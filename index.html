@@ -579,6 +579,25 @@ body::after {
   .fab { bottom: 24px; right: 24px; }
   .toast { bottom: 28px; }
 }
+
+/* ─── EFECTOS SUTILES EN SECCIONES ─── */
+.nov-item, .obj-item, .agent-row, .chofer-card {
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.nov-item:hover, .obj-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(37,99,235,0.12);
+}
+.agent-row:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(5,150,105,0.15);
+}
+.page-header h2 {
+  background: linear-gradient(135deg, #fff 0%, rgba(96,165,250,0.9) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
 </style>
 </head>
 <body>
@@ -1435,6 +1454,33 @@ body::after {
 
 <button class="fab" id="fab" onclick="fabClick()">+</button>
 <script>
+// ─── AUTO-REFRESH EN TIEMPO REAL ───
+var AUTO_REFRESH_INTERVAL = null;
+var LAST_ACTIVE_SECTION = 'dashboard';
+
+function startAutoRefresh() {
+  stopAutoRefresh();
+  AUTO_REFRESH_INTERVAL = setInterval(function() {
+    if (!USER) return;
+    // Solo refrescar la seccion activa
+    var name = LAST_ACTIVE_SECTION;
+    if (name === 'dashboard') { loadDash(); if(typeof loadNoticias==='function') loadNoticias(); }
+    else if (name === 'fichaje') loadFichajes();
+    else if (name === 'novedades') loadNovedades();
+    else if (name === 'objetivos') loadObjetivos();
+    else if (name === 'choferes') loadChoferes();
+    else if (name === 'llaves') { if(typeof loadLlaves==='function') loadLlaves(); }
+  }, 5000);
+}
+
+function stopAutoRefresh() {
+  if (AUTO_REFRESH_INTERVAL) {
+    clearInterval(AUTO_REFRESH_INTERVAL);
+    AUTO_REFRESH_INTERVAL = null;
+  }
+}
+
+
 function toggleNovedad(id, clickedEl) {
   var el = document.getElementById('nov-' + id);
   var arr = document.getElementById('arr-' + id);
@@ -1463,10 +1509,10 @@ function renderNovedadesAgrupadas(list) {
   for (var gi=0; gi<orden.length; gi++) {
     var fecha = orden[gi];
     // Separador de fecha estilo pill
-    html += '<div style="display:flex;align-items:center;gap:10px;padding:10px 0 8px">';
-    html += '<div style="flex:1;height:1px;background:var(--border2)"></div>';
-    html += '<span style="font-size:11px;font-weight:800;color:var(--accent3);white-space:nowrap;background:var(--bg3);padding:4px 14px;border-radius:20px;border:1px solid var(--border2)">'+formatFechaCompleta(fecha)+'</span>';
-    html += '<div style="flex:1;height:1px;background:var(--border2)"></div>';
+    html += '<div style="display:flex;align-items:center;gap:10px;padding:12px 0 10px">';
+    html += '<div style="flex:1;height:1px;background:linear-gradient(to right,transparent,rgba(96,165,250,0.4))"></div>';
+    html += '<span style="font-size:11px;font-weight:800;color:#fff;white-space:nowrap;background:linear-gradient(135deg,#1d4ed8,#2563eb);padding:5px 16px;border-radius:20px;box-shadow:0 2px 12px rgba(37,99,235,0.4);letter-spacing:.04em">'+formatFechaCompleta(fecha)+'</span>';
+    html += '<div style="flex:1;height:1px;background:linear-gradient(to left,transparent,rgba(96,165,250,0.4))"></div>';
     html += '</div>';
     var items = grupos[fecha];
     for (var ni=0; ni<items.length; ni++) {
@@ -2521,10 +2567,10 @@ async function loadObjetivos() {
   var ohtml = '';
   for (var ogj=0; ogj<oOrden.length; ogj++) {
     var oFechaLabel = oOrden[ogj];
-    ohtml += '<div style="display:flex;align-items:center;gap:10px;padding:8px 4px;margin-bottom:8px">';
-    ohtml += '<div style="flex:1;height:1px;background:var(--border2)"></div>';
-    ohtml += '<span style="font-size:11px;font-weight:700;color:var(--text3);white-space:nowrap;text-transform:uppercase;letter-spacing:.06em">'+formatFechaCompleta(oFechaLabel)+'</span>';
-    ohtml += '<div style="flex:1;height:1px;background:var(--border2)"></div>';
+    ohtml += '<div style="display:flex;align-items:center;gap:10px;padding:12px 0 10px">';
+    ohtml += '<div style="flex:1;height:1px;background:linear-gradient(to right,transparent,rgba(139,92,246,0.4))"></div>';
+    ohtml += '<span style="font-size:11px;font-weight:800;color:#fff;white-space:nowrap;background:linear-gradient(135deg,#7c3aed,#6d28d9);padding:5px 16px;border-radius:20px;box-shadow:0 2px 12px rgba(109,40,217,0.4);letter-spacing:.04em">'+formatFechaCompleta(oFechaLabel)+'</span>';
+    ohtml += '<div style="flex:1;height:1px;background:linear-gradient(to left,transparent,rgba(139,92,246,0.4))"></div>';
     ohtml += '</div>';
     var oItems = oGrupos[oFechaLabel];
     for (var oi=0; oi<oItems.length; oi++) {
@@ -2633,7 +2679,7 @@ loadChoferes();
 }, 'Finalizar', 'var(--green)');
 }
 function goView(name) {
-  dbgLog('goView(' + name + ')');
+  LAST_ACTIVE_SECTION = name;
 document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
 document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
 document.querySelectorAll('.sidebar-item').forEach(b=>b.classList.remove('active'));
