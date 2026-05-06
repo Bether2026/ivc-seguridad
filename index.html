@@ -1444,6 +1444,38 @@ function toggleNovedad(id, clickedEl) {
   if (arr) arr.style.transform = open ? 'rotate(0deg)' : 'rotate(180deg)';
 }
 
+
+function renderNovedadesAgrupadas(list) {
+  if (!list.length) {
+    document.getElementById('nov-list').innerHTML = '<div class="empty"><p>Sin novedades registradas</p></div>';
+    return;
+  }
+  // Ordenar descendente (mas reciente primero)
+  list = list.slice().sort(function(a,b){ return new Date(b.created_at) - new Date(a.created_at); });
+  // Agrupar por fecha
+  var grupos = {}, orden = [];
+  for (var i=0; i<list.length; i++) {
+    var fecha = fechaCorta(list[i].created_at);
+    if (!grupos[fecha]) { grupos[fecha] = []; orden.push(fecha); }
+    grupos[fecha].push(list[i]);
+  }
+  var html = '';
+  for (var gi=0; gi<orden.length; gi++) {
+    var fecha = orden[gi];
+    // Separador de fecha estilo pill
+    html += '<div style="display:flex;align-items:center;gap:10px;padding:10px 0 8px">';
+    html += '<div style="flex:1;height:1px;background:var(--border2)"></div>';
+    html += '<span style="font-size:11px;font-weight:800;color:var(--accent3);white-space:nowrap;background:var(--bg3);padding:4px 14px;border-radius:20px;border:1px solid var(--border2)">'+formatFechaCompleta(fecha)+'</span>';
+    html += '<div style="flex:1;height:1px;background:var(--border2)"></div>';
+    html += '</div>';
+    var items = grupos[fecha];
+    for (var ni=0; ni<items.length; ni++) {
+      html += renderNovCard(items[ni]);
+    }
+  }
+  document.getElementById('nov-list').innerHTML = html;
+}
+
 function renderNovCard(n) {
   var bc = TIPO_BADGE[n.tipo] || 'b-gray';
   var borderColor = n.relevancia==='Urgente' ? 'var(--red)' : n.relevancia==='Alta' ? 'var(--yellow)' : n.pendiente ? 'var(--yellow)' : 'var(--border)';
@@ -2402,51 +2434,25 @@ loadFichajes(); loadDash();
 }
 const TIPO_BADGE = {'Construcción indebida':'b-red','Intrusión':'b-red','Intrusión / Intento de intrusión':'b-red','Control':'b-blue','Daños':'b-yellow','Demolición':'b-gray','Otro':'b-gray','Acompañamiento':'b-purple','Poda / Corte de pasto':'b-green','Atención al público':'b-purple'};
 async function loadNovedades() {
-  var _dbgEl = document.getElementById('nov-list');
-  if (_dbgEl) _dbgEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3)">Cargando datos...</div>';
-  const f = filtro();
-  let q = db.from('novedades').select('*').order('created_at',{ascending:false});
+  var el = document.getElementById('nov-list');
+  if (el) el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3)">Cargando...</div>';
+  var f = filtro();
+  var q = db.from('novedades').select('*').order('created_at',{ascending:false});
   if (f) q = q.eq('puesto',f);
   if (CUR_NOV_TAB === 'pendientes') q = q.eq('pendiente',true);
-  const { data: rows, error: novErr } = await q;
-  if (novErr) {
-  console.error('loadNovedades error:', novErr); document.getElementById('nov-list').innerHTML = '<div class="empty"><p>Error: '+novErr.message+'</p></div>'; return; }
-  const list = rows || [];
-  NOV_CACHE = list;
-  var _searchInput = document.getElementById('nov-search');
-  if (_searchInput && _searchInput.value.trim()) { buscarNovedades(); return; }
-  if (!list.length) {
-    document.getElementById('nov-list').innerHTML = '<div class="empty"><p>Sin novedades</p></div>';
+  var res = await q;
+  if (res.error) {
+    document.getElementById('nov-list').innerHTML = '<div class="empty"><p>Error: '+res.error.message+'</p></div>';
     return;
   }
-  var nhtml = '';
-  for (var ni=0; ni<list.length; ni++) {
-    var n = list[ni];
-    var bc = TIPO_BADGE[n.tipo] || 'b-gray';
-    nhtml += '<div class="nov-item' + (n.pendiente?' pendiente':'') + '">';
-    nhtml += '<div class="nov-badges"><span class="badge ' + bc + '">' + (n.tipo||'Otro') + '</span>';
-    if (n.pendiente) nhtml += '<span class="badge b-yellow">⚠ PENDIENTE</span>';
-    if (n.relevancia==='Urgente') nhtml += '<span class="badge b-red">URGENTE</span>';
-    if (n.relevancia==='Alta') nhtml += '<span class="badge b-yellow">ALTA</span>';
-    nhtml += '</div>';
-    nhtml += '<div class="nov-title">' + (n.asunto||'Sin titulo') + '</div>';
-    nhtml += '<div class="nov-text">' + (n.detalle||'') + '</div>';
-    nhtml += '<div class="nov-meta"><span>📍 ' + (n.ubicacion||n.puesto) + '</span>';
-    nhtml += '<span>' + formatTs(n.created_at) + ' · ' + n.puesto + '</span>';
-    if (n.cargado_por) nhtml += '<span style="font-size:10px">👤 ' + n.cargado_por + '</span>';
-    if (n.caso) nhtml += '<span class="badge b-yellow" style="font-size:9px">CASO: ' + n.caso + '</span>';
-    nhtml += '</div>';
-    if (n.fotos && n.fotos.length) {
-      nhtml += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">';
-      for (var nfi=0; nfi<n.fotos.length; nfi++) {
-        nhtml += '<a href="' + n.fotos[nfi] + '" target="_blank" style="display:block;width:64px;height:64px;border-radius:6px;overflow:hidden;border:1px solid var(--border2)"><img src="' + n.fotos[nfi] + '" style="width:100%;height:100%;object-fit:cover" loading="lazy"></a>';
-      }
-      nhtml += '</div>';
-    }
-    nhtml += '</div>';
-  }
-  document.getElementById('nov-list').innerHTML = nhtml;
+  var list = res.data || [];
+  NOV_CACHE = list;
+  var searchEl = document.getElementById('nov-search');
+  if (searchEl && searchEl.value.trim()) { buscarNovedades(); return; }
+  renderNovedadesAgrupadas(list);
 }
+
+
 function novTab(tab, btn) {
 CUR_NOV_TAB = tab;
 document.querySelectorAll('#view-novedades .tab').forEach(b=>b.classList.remove('active'));
