@@ -1481,6 +1481,79 @@ body::after {
 </div>
 <button class="fab" id="fab" onclick="fabClick()">+</button>
 <script>
+// ─── EDICION DIRECTA (solo Administrador) ───
+async function editarNovedad(id) {
+  // Cargar datos de la novedad
+  var res = await db.from('novedades').select('*').eq('id', id).single();
+  if (res.error || !res.data) { toast('Error cargando novedad','err'); return; }
+  var n = res.data;
+  // Pre-fill modal de nueva novedad
+  var tipoEl = document.getElementById('n-tipo');
+  var asuntoEl = document.getElementById('n-asunto');
+  var ubicEl = document.getElementById('n-ubicacion');
+  var detEl = document.getElementById('n-detalle');
+  var relevEl = document.getElementById('n-relev');
+  var pendEl = document.getElementById('n-pend');
+  var casoEl = document.getElementById('n-caso');
+  if (tipoEl) tipoEl.value = n.tipo || 'Otro';
+  if (asuntoEl) asuntoEl.value = n.asunto || '';
+  if (ubicEl) ubicEl.value = n.ubicacion || '';
+  if (detEl) detEl.value = n.detalle || '';
+  if (relevEl) relevEl.value = n.relevancia || 'Normal';
+  if (pendEl) pendEl.checked = n.pendiente || false;
+  if (casoEl) casoEl.value = n.caso || '';
+  // Marcar como edicion
+  window._EDIT_NOV_ID = id;
+  // Cambiar titulo del modal
+  var modalTitle = document.querySelector('#ov-nov .modal-title');
+  if (modalTitle) modalTitle.textContent = 'Editar Novedad';
+  openOv('ov-nov');
+}
+
+async function editarFichaje(id) {
+  // Cargar datos del fichaje
+  var res = await db.from('fichajes').select('*').eq('id', id).single();
+  if (res.error || !res.data) { toast('Error cargando fichaje','err'); return; }
+  var f = res.data;
+  showConfirm('Editar Fichaje','Editar registro de ' + f.agente,
+    'Queres marcar la salida de este fichaje? Se registrara la hora actual.',
+    async function() {
+      await db.from('fichajes').update({
+        salida: new Date().toISOString(), activo: false
+      }).eq('id', id);
+      toast('Fichaje actualizado');
+      loadFichajes();
+    }, 'Confirmar', 'var(--yellow)'
+  );
+}
+
+
+// ─── SEGUIMIENTO DE LECTURAS ───
+// Guarda en localStorage qué actualizaciones ya vio este usuario
+function getVistasPorUsuario() {
+  try { return JSON.parse(localStorage.getItem('ivc_vistas') || '{}'); } catch(e) { return {}; }
+}
+function setVistasPorUsuario(vistas) {
+  try { localStorage.setItem('ivc_vistas', JSON.stringify(vistas)); } catch(e) {}
+}
+function marcarNovedadLeida(novId) {
+  var vistas = getVistasPorUsuario();
+  if (!vistas[novId]) vistas[novId] = {};
+  vistas[novId].ts = Date.now();
+  vistas[novId].cant = 999; // Marca todo como leido
+  setVistasPorUsuario(vistas);
+  // Quitar badge del contador
+  var badge = document.getElementById('unread-'+novId);
+  if (badge) badge.style.display = 'none';
+}
+function getNoLeidas(novId, cantActualizaciones) {
+  var vistas = getVistasPorUsuario();
+  if (!vistas[novId]) return cantActualizaciones;
+  var cantVistas = vistas[novId].cant || 0;
+  return Math.max(0, cantActualizaciones - cantVistas);
+}
+
+
 // ─── ACTUALIZACIONES DE NOVEDADES ───
 function abrirActualizarNovedad(id, titulo) {
   document.getElementById('upd-nov-id').value = id;
@@ -1578,6 +1651,8 @@ function toggleNovedad(id, clickedEl) {
   var open = el.style.display !== 'none';
   el.style.display = open ? 'none' : 'block';
   if (arr) arr.style.transform = open ? 'rotate(0deg)' : 'rotate(180deg)';
+  // Marcar actualizaciones como leidas al abrir
+  if (!open) marcarNovedadLeida(id);
 }
 
 
@@ -1628,7 +1703,13 @@ function renderNovCard(n) {
   if (n.pendiente) h += '<span class="badge b-yellow">PENDIENTE</span>';
   if (n.relevancia==='Urgente') h += '<span class="badge b-red">URGENTE</span>';
   if (n.relevancia==='Alta') h += '<span class="badge b-yellow">ALTA</span>';
-  if (n.actualizaciones && n.actualizaciones.length) h += '<span class="badge" style="background:rgba(5,150,105,0.2);color:#34d399;border:1px solid rgba(5,150,105,0.3)">&#128260; ACTUALIZADA</span>';
+  if (n.actualizaciones && n.actualizaciones.length) {
+    h += '<span class="badge" style="background:rgba(5,150,105,0.2);color:#34d399;border:1px solid rgba(5,150,105,0.3)">&#128260; ACTUALIZADA</span>';
+    var noLeidas = getNoLeidas(n.id, n.actualizaciones.length);
+    if (noLeidas > 0) {
+      h += '<span id="unread-'+n.id+'" style="display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;background:#ef4444;color:white;border-radius:50%;font-size:10px;font-weight:900;padding:0 4px">'+noLeidas+'</span>';
+    }
+  }
   h += '</div>';
   h += '<div style="font-size:14px;font-weight:700;margin-bottom:4px;line-height:1.3">'+(n.asunto||'Sin titulo')+'</div>';
   h += '<div style="font-size:11px;color:var(--text3)">'+hora+' &middot; '+ubic+'</div>';
@@ -2417,6 +2498,13 @@ if (isAdminUser && $('f-puesto-wrap')) $('f-puesto-wrap').style.display = 'block
 if (USER.rol === 'ADMIN') {
 $('nb-admin').style.display = 'flex';
 $('si-admin') && ($('si-admin').style.display = 'flex');
+}
+// Admin sees all sections like TODOS
+if (USER.rol === 'ADMIN' || USER.rol === 'TODOS') {
+  var allNavBtns = ['nb-fichaje','nb-novedades','nb-objetivos','nb-choferes','nb-estadisticas'];
+  allNavBtns.forEach(function(id) { var el = document.getElementById(id); if(el) el.style.display='flex'; });
+  var allSideBtns = ['si-fichaje','si-novedades','si-objetivos','si-choferes','si-estadisticas'];
+  allSideBtns.forEach(function(id) { var el = document.getElementById(id); if(el) el.style.display='flex'; });
 }
 loadAll();
 loadNoticias();
