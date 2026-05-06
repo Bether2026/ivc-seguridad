@@ -4,9 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#060d1a">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Seguridad y Emergencias">
 <title>Seguridad y Emergencias — IVC</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap">
@@ -4682,12 +4679,23 @@ function renderNovedadesList(list) {
 </script>
 
 
+
+
+
 <script>
+// PWA - Service Worker inline
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function() {
-    navigator.serviceWorker.register('/sw.js').catch(function(e) {
-      console.log('SW no disponible:', e);
-    });
+  var swCode = [
+    "const CACHE='ivc-v2';",
+    "self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.add('/'))));",
+    "self.addEventListener('fetch',e=>e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request))));"
+  ].join('\n');
+  var blob = new Blob([swCode], {type:'application/javascript'});
+  var swUrl = URL.createObjectURL(blob);
+  navigator.serviceWorker.register(swUrl).then(function(reg) {
+    console.log('SW registrado');
+  }).catch(function(e) {
+    console.log('SW error:', e);
   });
 }
 </script>
