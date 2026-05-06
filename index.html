@@ -874,6 +874,9 @@ body::after {
       <button class="sidebar-item" onclick="goView('estadisticas')" id="si-estadisticas" style="display:none">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> Estadísticas
       </button>
+      <button class="sidebar-item" onclick="goView('rrhh')" id="si-rrhh" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg> RRHH
+      </button>
       <button class="sidebar-item" onclick="goView('admin')" id="si-admin" style="display:none">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6"/></svg> Admin
       </button>
@@ -1096,6 +1099,42 @@ body::after {
       <div id="llaves-list"></div>
     </div>
 
+        <!-- RRHH -->
+    <div class="view" id="view-rrhh">
+      <div class="page-header">
+        <h2>&#128101; Recursos Humanos</h2>
+        <p>Legajos, licencias y datos de agentes</p>
+      </div>
+
+      <!-- Buscar agente -->
+      <div style="display:flex;gap:8px;margin-bottom:14px">
+        <input type="text" id="rrhh-search" class="form-input" placeholder="&#128269; Buscar agente..." oninput="filtrarAgentesRRHH()" style="flex:1">
+        <select id="rrhh-filtro-puesto" class="form-select" style="width:auto" onchange="filtrarAgentesRRHH()">
+          <option value="">Todos los puestos</option>
+          <option>Papa Francisco</option>
+          <option>Rodrigo Bueno</option>
+          <option>Fraga</option>
+          <option>Base Castañares</option>
+          <option>Obrador Savio</option>
+          <option>CAV</option>
+          <option>Necochea</option>
+          <option>Complejo Orma</option>
+          <option>Alvarado</option>
+          <option>Padre Mugica</option>
+        </select>
+      </div>
+
+      <!-- Stats rapidas -->
+      <div class="stat-grid" style="margin-bottom:14px">
+        <div class="stat-card"><div class="stat-lbl">Agentes</div><div class="stat-val c-blue" id="rrhh-total">—</div><div class="stat-sub">registrados</div></div>
+        <div class="stat-card"><div class="stat-lbl">Activos</div><div class="stat-val c-green" id="rrhh-activos">—</div><div class="stat-sub">hoy</div></div>
+        <div class="stat-card"><div class="stat-lbl">De licencia</div><div class="stat-val c-yellow" id="rrhh-licencia">—</div><div class="stat-sub">hoy</div></div>
+        <div class="stat-card"><div class="stat-lbl">Cumpleaños</div><div class="stat-val c-purple" id="rrhh-cumple">—</div><div class="stat-sub">este mes</div></div>
+      </div>
+
+      <div id="rrhh-lista"></div>
+    </div>
+
         <div class="view" id="view-admin">
       <div class="page-header">
         <h2>⚙️ Panel de Administración</h2>
@@ -1169,6 +1208,9 @@ body::after {
     </button>
     <button class="nav-btn" onclick="goView('estadisticas')" id="nb-estadisticas" style="display:none">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span>Estadísticas</span>
+    </button>
+    <button class="nav-btn" onclick="goView('rrhh')" id="nb-rrhh" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span>RRHH</span>
     </button>
     <button class="nav-btn" onclick="goView('admin')" id="nb-admin" style="display:none">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6"/><path d="M18 14l2 2 4-4" stroke-width="2"/></svg><span>Admin</span>
@@ -1479,8 +1521,418 @@ body::after {
     <button class="btn-login" id="btn-save-upd-nov" onclick="guardarActualizacionNovedad()">&#128260; Guardar Actualizacion</button>
   </div>
 </div>
+
+<!-- MODAL NUEVO/EDITAR AGENTE -->
+<div class="overlay" id="ov-agente">
+  <div class="modal">
+    <div class="modal-head"><span class="modal-title" id="agente-modal-title">&#128101; Nuevo Agente</span><button class="btn-close" onclick="closeOv('ov-agente')">&#215;</button></div>
+    <input type="hidden" id="agente-edit-id">
+
+    <div class="form-group">
+      <label class="form-label">Nombre completo</label>
+      <input class="form-input" id="ag-nombre" placeholder="Apellido Nombre"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Legajo N°</label>
+      <input class="form-input" id="ag-legajo" placeholder="Numero de legajo"/>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Puesto</label>
+        <select class="form-select" id="ag-puesto">
+          <option>Papa Francisco</option><option>Rodrigo Bueno</option><option>Fraga</option>
+          <option>Base Castañares</option><option>Obrador Savio</option><option>CAV</option>
+          <option>Necochea</option><option>Complejo Orma</option><option>Alvarado</option><option>Padre Mugica</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Cargo</label>
+        <input class="form-input" id="ag-cargo" placeholder="Ej: Agente, Supervisor"/>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Fecha nacimiento</label>
+        <input class="form-input" type="date" id="ag-nacimiento"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Fecha ingreso</label>
+        <input class="form-input" type="date" id="ag-ingreso"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Telefono / Contacto</label>
+      <input class="form-input" id="ag-telefono" placeholder="Ej: 1123456789"/>
+    </div>
+
+    <div style="background:var(--bg3);border-radius:8px;padding:12px;margin-bottom:12px">
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:10px">Dias disponibles de licencia</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div class="form-group" style="margin:0"><label class="form-label" style="font-size:10px">Lic. ordinaria</label><input class="form-input" type="number" id="ag-lic-ord" value="14" min="0"/></div>
+        <div class="form-group" style="margin:0"><label class="form-label" style="font-size:10px">Enfermedad</label><input class="form-input" type="number" id="ag-lic-enf" value="30" min="0"/></div>
+        <div class="form-group" style="margin:0"><label class="form-label" style="font-size:10px">Dias particulares</label><input class="form-input" type="number" id="ag-lic-part" value="3" min="0"/></div>
+        <div class="form-group" style="margin:0"><label class="form-label" style="font-size:10px">Franco autorizado</label><input class="form-input" type="number" id="ag-lic-franco" value="0" min="0"/></div>
+        <div class="form-group" style="margin:0"><label class="form-label" style="font-size:10px">Familiar enfermo</label><input class="form-input" type="number" id="ag-lic-fam" value="5" min="0"/></div>
+        <div class="form-group" style="margin:0"><label class="form-label" style="font-size:10px">Duelo</label><input class="form-input" type="number" id="ag-lic-duelo" value="3" min="0"/></div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Observaciones</label>
+      <textarea class="form-textarea" id="ag-obs" style="min-height:60px" placeholder="Notas sobre el agente..."></textarea>
+    </div>
+
+    <button class="btn-login" id="btn-save-agente" onclick="saveAgente()">&#128101; Guardar Agente</button>
+  </div>
+</div>
+
+<!-- MODAL AJUSTE DE LICENCIA -->
+<div class="overlay" id="ov-ajuste-lic">
+  <div class="modal">
+    <div class="modal-head"><span class="modal-title">&#128203; Ajustar Licencia</span><button class="btn-close" onclick="closeOv('ov-ajuste-lic')">&#215;</button></div>
+    <div id="ajuste-agente-info" style="background:var(--bg3);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:13px;font-weight:700"></div>
+    <input type="hidden" id="ajuste-agente-id">
+
+    <div class="form-group">
+      <label class="form-label">Tipo de licencia</label>
+      <select class="form-select" id="ajuste-tipo">
+        <option value="Licencia ordinaria">Licencia ordinaria</option>
+        <option value="Enfermedad">Enfermedad</option>
+        <option value="Día particular">Dia particular</option>
+        <option value="Franco autorizado">Franco autorizado</option>
+        <option value="Familiar enfermo">Familiar enfermo</option>
+        <option value="Duelo">Duelo</option>
+        <option value="Paternidad/Maternidad">Paternidad / Maternidad</option>
+        <option value="Fuerza mayor">Fuerza mayor</option>
+      </select>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Operacion</label>
+        <select class="form-select" id="ajuste-op">
+          <option value="descontar">Descontar dias (tomada)</option>
+          <option value="devolver">Devolver dias (suspension/anulacion)</option>
+          <option value="agregar">Agregar dias (acreditacion)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Cantidad de dias</label>
+        <input class="form-input" type="number" id="ajuste-dias" value="1" min="1"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Motivo</label>
+      <input class="form-input" id="ajuste-motivo" placeholder="Ej: Suspension por enfermedad, Acreditacion anual..."/>
+    </div>
+    <button class="btn-login" id="btn-save-ajuste" onclick="guardarAjusteLicencia()">Confirmar Ajuste</button>
+  </div>
+</div>
+
 <button class="fab" id="fab" onclick="fabClick()">+</button>
 <script>
+// ─── MODULO RRHH ───
+var RRHH_CACHE = [];
+
+var LICENCIA_KEYS = {
+  'Licencia ordinaria': 'lic_ordinaria',
+  'Enfermedad': 'lic_enfermedad',
+  'Dia particular': 'lic_particular',
+  'Día particular': 'lic_particular',
+  'Franco autorizado': 'lic_franco',
+  'Familiar enfermo': 'lic_familiar',
+  'Duelo': 'lic_duelo',
+  'Paternidad/Maternidad': 'lic_maternidad',
+  'Fuerza mayor': 'lic_fuerza',
+};
+
+async function loadRRHH() {
+  var el = document.getElementById('rrhh-lista');
+  if (el) el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3)">Cargando...</div>';
+  var res = await db.from('agentes').select('*').order('nombre',{ascending:true});
+  if (res.error) {
+    document.getElementById('rrhh-lista').innerHTML = '<div class="empty"><p>Error: '+res.error.message+'</p></div>';
+    return;
+  }
+  RRHH_CACHE = res.data || [];
+  actualizarStatsRRHH();
+  filtrarAgentesRRHH();
+}
+
+function actualizarStatsRRHH() {
+  var total = RRHH_CACHE.length;
+  var hoy = new Date();
+  var mesActual = hoy.getMonth() + 1;
+  var diaActual = hoy.getDate();
+
+  // Cumpleanos este mes
+  var cumpleMes = RRHH_CACHE.filter(function(a) {
+    if (!a.fecha_nacimiento) return false;
+    var m = parseInt(a.fecha_nacimiento.split('-')[1]);
+    return m === mesActual;
+  }).length;
+
+  document.getElementById('rrhh-total').textContent = total;
+  document.getElementById('rrhh-activos').textContent = '—';
+  document.getElementById('rrhh-licencia').textContent = '—';
+  document.getElementById('rrhh-cumple').textContent = cumpleMes;
+}
+
+function filtrarAgentesRRHH() {
+  var search = (document.getElementById('rrhh-search').value || '').toLowerCase().trim();
+  var puesto = document.getElementById('rrhh-filtro-puesto').value;
+
+  var list = RRHH_CACHE.filter(function(a) {
+    if (puesto && a.puesto !== puesto) return false;
+    if (search && (a.nombre||'').toLowerCase().indexOf(search) === -1 && (a.legajo||'').indexOf(search) === -1) return false;
+    return true;
+  });
+
+  if (!list.length) {
+    document.getElementById('rrhh-lista').innerHTML = '<div class="empty"><p>Sin agentes. Usa el + para agregar.</p></div>';
+    return;
+  }
+
+  var html = '';
+  for (var i=0; i<list.length; i++) {
+    html += renderAgenteCard(list[i]);
+  }
+  document.getElementById('rrhh-lista').innerHTML = html;
+}
+
+function renderAgenteCard(a) {
+  var hoy = new Date();
+  var esCumple = false;
+  var diasParaCumple = null;
+  if (a.fecha_nacimiento) {
+    var partes = a.fecha_nacimiento.split('-');
+    var mes = parseInt(partes[1]);
+    var dia = parseInt(partes[2]);
+    var edad = hoy.getFullYear() - parseInt(partes[0]);
+    if (hoy.getMonth()+1 > mes || (hoy.getMonth()+1 === mes && hoy.getDate() > dia)) edad--;
+    esCumple = mes === hoy.getMonth()+1 && dia === hoy.getDate();
+    // Dias para cumple
+    var proxCumple = new Date(hoy.getFullYear(), mes-1, dia);
+    if (proxCumple < hoy) proxCumple.setFullYear(hoy.getFullYear()+1);
+    diasParaCumple = Math.ceil((proxCumple - hoy) / (1000*60*60*24));
+  }
+
+  var h = '<div class="card" style="margin-bottom:10px;'+(esCumple?'border-color:var(--yellow);':'')+'">';
+  h += '<div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:10px">';
+
+  // Avatar
+  var ini = (a.nombre||'?').split(' ').slice(0,2).map(function(p){return p[0];}).join('');
+  h += '<div class="agent-av" style="width:44px;height:44px;font-size:16px;flex-shrink:0'+(esCumple?';background:linear-gradient(135deg,var(--yellow),#f59e0b);':'')+'">' + ini + '</div>';
+
+  // Info principal
+  h += '<div style="flex:1;min-width:0">';
+  h += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:3px">';
+  h += '<div style="font-size:15px;font-weight:700">'+(a.nombre||'Sin nombre')+'</div>';
+  if (esCumple) h += '<span class="badge b-yellow">&#127874; Hoy es su cumpleanos!</span>';
+  else if (diasParaCumple !== null && diasParaCumple <= 7) h += '<span class="badge b-yellow">&#127874; Cumple en '+diasParaCumple+' dias</span>';
+  h += '</div>';
+  h += '<div style="font-size:12px;color:var(--text3)">';
+  if (a.legajo) h += 'Legajo: '+a.legajo+' &middot; ';
+  h += a.puesto || '';
+  if (a.cargo) h += ' &middot; '+a.cargo;
+  h += '</div>';
+  if (a.fecha_nacimiento) {
+    h += '<div style="font-size:11px;color:var(--text3);margin-top:2px">Nacimiento: '+formatFechaCompleta(a.fecha_nacimiento)+'</div>';
+  }
+  h += '</div>';
+  h += '</div>';
+
+  // Saldo de licencias
+  h += '<div style="background:var(--bg3);border-radius:8px;padding:10px;margin-bottom:10px">';
+  h += '<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Saldo de licencias disponibles</div>';
+  h += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">';
+
+  var lics = [
+    {key:'lic_ordinaria', label:'Ordinaria'},
+    {key:'lic_enfermedad', label:'Enfermedad'},
+    {key:'lic_particular', label:'Particular'},
+    {key:'lic_franco', label:'Franco'},
+    {key:'lic_familiar', label:'Fam. enfermo'},
+    {key:'lic_duelo', label:'Duelo'},
+  ];
+
+  for (var li=0; li<lics.length; li++) {
+    var lic = lics[li];
+    var dias = a[lic.key] !== undefined && a[lic.key] !== null ? a[lic.key] : '—';
+    var color = dias === 0 ? 'var(--red)' : dias !== '—' && dias <= 2 ? 'var(--yellow)' : 'var(--green)';
+    h += '<div style="text-align:center;background:var(--bg2);border-radius:6px;padding:6px 4px">';
+    h += '<div style="font-size:18px;font-weight:900;color:'+color+'">'+dias+'</div>';
+    h += '<div style="font-size:9px;color:var(--text3);line-height:1.2">'+lic.label+'</div>';
+    h += '</div>';
+  }
+  h += '</div>';
+  h += '</div>';
+
+  // Historial de ajustes
+  if (a.historial_licencias && a.historial_licencias.length) {
+    h += '<div id="hist-'+a.id+'" style="display:none;background:var(--bg3);border-radius:8px;padding:10px;margin-bottom:10px">';
+    h += '<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:8px">Historial de movimientos</div>';
+    var hist = a.historial_licencias.slice().reverse();
+    for (var hi=0; hi<hist.length; hi++) {
+      var mov = hist[hi];
+      var clrMov = mov.op === 'descontar' ? 'var(--red)' : mov.op === 'devolver' ? 'var(--green)' : 'var(--accent2)';
+      var iconMov = mov.op === 'descontar' ? '&#8595;' : '&#8593;';
+      h += '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px">';
+      h += '<span style="color:'+clrMov+';font-weight:700;font-size:14px">'+iconMov+'</span>';
+      h += '<span style="color:'+clrMov+';font-weight:700">'+mov.dias+' dias</span>';
+      h += '<span style="color:var(--text2)">'+mov.tipo+'</span>';
+      if (mov.motivo) h += '<span style="color:var(--text3);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + mov.motivo + '</span>';
+      h += '<span style="color:var(--text3);font-size:10px;flex-shrink:0">'+mov.fecha+'</span>';
+      h += '</div>';
+    }
+    h += '</div>';
+  }
+
+  // Botones
+  h += '<div style="display:flex;gap:8px">';
+  h += '<button data-aid="'+a.id+'" data-anom="'+a.nombre.replace(/"/g,"").replace(/</g,"").replace(/>/g,"")+'" onclick="abrirAjusteLicencia(this.getAttribute(\'data-aid\'),this.getAttribute(\'data-anom\'))" style="flex:1;padding:8px;background:rgba(37,99,235,0.12);border:1px solid rgba(37,99,235,0.3);border-radius:7px;color:var(--accent3);font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font)">&#128203; Ajustar licencia</button>';
+  if (a.historial_licencias && a.historial_licencias.length) {
+    h += '<button data-hid="hist-'+a.id+'" onclick="var hel=document.getElementById(this.getAttribute(\'data-hid\'));hel.style.display=hel.style.display===\'none\'?\'block\':\'none\'" style="padding:8px 12px;background:var(--bg3);border:1px solid var(--border2);border-radius:7px;color:var(--text2);font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font)">Historial ('+a.historial_licencias.length+')</button>';
+  }
+  h += '<button data-eid="'+a.id+'" onclick="editarAgente(this.getAttribute(\'data-eid\'))" style="padding:8px 12px;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);border-radius:7px;color:#fbbf24;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font)">&#9998;</button>';
+  h += '</div>';
+
+  h += '</div>';
+  return h;
+}
+
+function abrirNuevoAgente() {
+  document.getElementById('agente-modal-title').textContent = 'Nuevo Agente';
+  document.getElementById('agente-edit-id').value = '';
+  ['ag-nombre','ag-legajo','ag-cargo','ag-telefono','ag-obs'].forEach(function(id){
+    var e=document.getElementById(id); if(e) e.value='';
+  });
+  ['ag-lic-ord','ag-lic-enf','ag-lic-part','ag-lic-franco','ag-lic-fam','ag-lic-duelo'].forEach(function(id){
+    var e=document.getElementById(id);
+    if(e) e.value = id==='ag-lic-ord'?'14':id==='ag-lic-enf'?'30':id==='ag-lic-part'?'3':id==='ag-lic-fam'?'5':id==='ag-lic-duelo'?'3':'0';
+  });
+  openOv('ov-agente');
+}
+
+async function editarAgente(id) {
+  var agente = RRHH_CACHE.find(function(a){return a.id===id;});
+  if (!agente) return;
+  document.getElementById('agente-modal-title').textContent = 'Editar Agente';
+  document.getElementById('agente-edit-id').value = id;
+  document.getElementById('ag-nombre').value = agente.nombre || '';
+  document.getElementById('ag-legajo').value = agente.legajo || '';
+  document.getElementById('ag-puesto').value = agente.puesto || '';
+  document.getElementById('ag-cargo').value = agente.cargo || '';
+  document.getElementById('ag-telefono').value = agente.telefono || '';
+  document.getElementById('ag-obs').value = agente.observaciones || '';
+  if (agente.fecha_nacimiento) document.getElementById('ag-nacimiento').value = agente.fecha_nacimiento;
+  if (agente.fecha_ingreso) document.getElementById('ag-ingreso').value = agente.fecha_ingreso;
+  document.getElementById('ag-lic-ord').value = agente.lic_ordinaria || 14;
+  document.getElementById('ag-lic-enf').value = agente.lic_enfermedad || 30;
+  document.getElementById('ag-lic-part').value = agente.lic_particular || 3;
+  document.getElementById('ag-lic-franco').value = agente.lic_franco || 0;
+  document.getElementById('ag-lic-fam').value = agente.lic_familiar || 5;
+  document.getElementById('ag-lic-duelo').value = agente.lic_duelo || 3;
+  openOv('ov-agente');
+}
+
+async function saveAgente() {
+  var nombre = document.getElementById('ag-nombre').value.trim();
+  if (!nombre) { toast('Ingresa el nombre del agente','err'); return; }
+  setLoading('btn-save-agente', true);
+
+  var payload = {
+    nombre: nombre,
+    legajo: document.getElementById('ag-legajo').value || null,
+    puesto: document.getElementById('ag-puesto').value,
+    cargo: document.getElementById('ag-cargo').value || null,
+    telefono: document.getElementById('ag-telefono').value || null,
+    observaciones: document.getElementById('ag-obs').value || null,
+    fecha_nacimiento: document.getElementById('ag-nacimiento').value || null,
+    fecha_ingreso: document.getElementById('ag-ingreso').value || null,
+    lic_ordinaria: parseInt(document.getElementById('ag-lic-ord').value)||0,
+    lic_enfermedad: parseInt(document.getElementById('ag-lic-enf').value)||0,
+    lic_particular: parseInt(document.getElementById('ag-lic-part').value)||0,
+    lic_franco: parseInt(document.getElementById('ag-lic-franco').value)||0,
+    lic_familiar: parseInt(document.getElementById('ag-lic-fam').value)||0,
+    lic_duelo: parseInt(document.getElementById('ag-lic-duelo').value)||0,
+  };
+
+  var editId = document.getElementById('agente-edit-id').value;
+  var res;
+  if (editId) {
+    res = await db.from('agentes').update(payload).eq('id', editId);
+  } else {
+    payload.historial_licencias = [];
+    res = await db.from('agentes').insert(payload);
+  }
+
+  setLoading('btn-save-agente', false);
+  if (res.error) { toast('Error: '+res.error.message,'err'); return; }
+  closeOv('ov-agente');
+  toast(editId ? 'Agente actualizado' : 'Agente registrado');
+  loadRRHH();
+}
+
+function abrirAjusteLicencia(id, nombre) {
+  document.getElementById('ajuste-agente-id').value = id;
+  document.getElementById('ajuste-agente-info').textContent = nombre;
+  document.getElementById('ajuste-dias').value = 1;
+  document.getElementById('ajuste-motivo').value = '';
+  openOv('ov-ajuste-lic');
+}
+
+async function guardarAjusteLicencia() {
+  var id = document.getElementById('ajuste-agente-id').value;
+  var tipo = document.getElementById('ajuste-tipo').value;
+  var op = document.getElementById('ajuste-op').value;
+  var dias = parseInt(document.getElementById('ajuste-dias').value) || 0;
+  var motivo = document.getElementById('ajuste-motivo').value.trim();
+  if (!dias || dias < 1) { toast('Ingresa la cantidad de dias','err'); return; }
+
+  setLoading('btn-save-ajuste', true);
+
+  // Obtener agente actual
+  var res = await db.from('agentes').select('*').eq('id', id).single();
+  if (res.error || !res.data) { setLoading('btn-save-ajuste', false); toast('Error','err'); return; }
+  var ag = res.data;
+
+  // Calcular nuevo saldo
+  var key = LICENCIA_KEYS[tipo] || 'lic_ordinaria';
+  var saldoActual = ag[key] || 0;
+  var nuevoSaldo;
+  if (op === 'descontar') nuevoSaldo = Math.max(0, saldoActual - dias);
+  else if (op === 'devolver') nuevoSaldo = saldoActual + dias;
+  else nuevoSaldo = saldoActual + dias;
+
+  // Agregar al historial
+  var hist = ag.historial_licencias || [];
+  var now = new Date();
+  hist.push({
+    fecha: now.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric'})+' '+now.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}),
+    tipo: tipo,
+    op: op,
+    dias: dias,
+    saldo_anterior: saldoActual,
+    saldo_nuevo: nuevoSaldo,
+    motivo: motivo,
+    registrado_por: USER.puesto,
+  });
+
+  // Actualizar en BD
+  var update = { historial_licencias: hist };
+  update[key] = nuevoSaldo;
+  var saveRes = await db.from('agentes').update(update).eq('id', id);
+
+  setLoading('btn-save-ajuste', false);
+  if (saveRes.error) { toast('Error: '+saveRes.error.message,'err'); return; }
+
+  closeOv('ov-ajuste-lic');
+  var opLabel = op==='descontar'?'descontados':op==='devolver'?'devueltos':'acreditados';
+  toast(dias+' dias '+opLabel+' — Saldo: '+nuevoSaldo);
+  loadRRHH();
+}
+
+
 // ─── EDICION DIRECTA (solo Administrador) ───
 async function editarNovedad(id) {
   // Cargar datos de la novedad
@@ -2308,8 +2760,20 @@ function getMensajesAutomaticos() {
     }
   }
 
-  // Buscar cumpleanos
+  // Buscar cumpleanos desde RRHH_CACHE (si ya cargó)
   var cumplesHoy = [];
+  if (RRHH_CACHE && RRHH_CACHE.length) {
+    for (var rc=0; rc<RRHH_CACHE.length; rc++) {
+      var ag = RRHH_CACHE[rc];
+      if (!ag.fecha_nacimiento) continue;
+      var mmdd = ag.fecha_nacimiento.substring(5).replace('-','');
+      var mmddFmt = ag.fecha_nacimiento.substring(5);
+      if (mmddFmt === hoyMMDD.substring(0,2) + '-' + hoyMMDD.substring(2,4) || mmdd === hoyMMDD) {
+        cumplesHoy.push({nombre: ag.nombre, puesto: ag.puesto});
+      }
+    }
+  }
+  // Tambien buscar en array hardcodeado
   for (var c=0; c<CUMPLEANOS.length; c++) {
     if (CUMPLEANOS[c].fecha === hoyMMDD) cumplesHoy.push(CUMPLEANOS[c]);
   }
@@ -2472,6 +2936,7 @@ $('inp-pass').value = '';
 }
 function initApp() {
 if(['Gerencia','Administración','Administrador'].includes(USER.puesto)){var nbLl=document.getElementById('nb-llaves');var siLl=document.getElementById('si-llaves');if(nbLl)nbLl.style.display='flex';if(siLl)siLl.style.display='flex';}
+if(['Administración','Administrador'].includes(USER.puesto)){var nbRr=document.getElementById('nb-rrhh');var siRr=document.getElementById('si-rrhh');if(nbRr)nbRr.style.display='flex';if(siRr)siRr.style.display='flex';}
 
 const sel = $('f-sel');
 sel.innerHTML = '<option value="">— Seleccionar agente —</option>';
@@ -2888,9 +3353,10 @@ var _vEl = document.getElementById('view-' + name);
 if (_vEl) _vEl.classList.add('active');
 if (document.getElementById('nb-'+name)) document.getElementById('nb-'+name).classList.add('active');
 if (document.getElementById('si-'+name)) document.getElementById('si-'+name).classList.add('active');
-$('fab').style.display = ['novedades','objetivos','choferes','fichaje','llaves'].includes(name) ? 'flex' : 'none';
+$('fab').style.display = ['novedades','objetivos','choferes','fichaje','llaves','rrhh'].includes(name) ? 'flex' : 'none';
 try {
   if (name === 'llaves' && typeof loadLlaves === 'function') loadLlaves();
+  if (name === 'rrhh' && typeof loadRRHH === 'function') loadRRHH();
   if (name === 'admin' && typeof loadAdminTabla === 'function') { loadAdminTabla('fichajes'); loadAdminStats(); }
   if (name === 'estadisticas' && typeof loadStats === 'function') loadStats('dia');
   if (name === 'novedades' && typeof loadNovedades === 'function') loadNovedades();
@@ -2918,6 +3384,7 @@ else if (tab === 'gps') loadGPS();
 }
 function fabClick() {
 if (CUR_VIEW==='llaves') openOv('ov-nueva-llave');
+  else if (CUR_VIEW==='rrhh') abrirNuevoAgente();
 else if (CUR_VIEW==='novedades') openOv('ov-nov');
 else if (CUR_VIEW==='objetivos') openOv('ov-obj');
 else if (CUR_VIEW==='fichaje') {
@@ -4212,6 +4679,17 @@ function renderNovedadesList(list) {
   document.getElementById('nov-list').innerHTML = html;
 }
 
+</script>
+
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/sw.js').catch(function(e) {
+      console.log('SW no disponible:', e);
+    });
+  });
+}
 </script>
 
 </body>
