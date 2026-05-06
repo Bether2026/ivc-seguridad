@@ -1452,8 +1452,98 @@ body::after {
   </div>
 </div>
 
+
+<!-- MODAL ACTUALIZACION NOVEDAD -->
+<div class="overlay" id="ov-upd-nov">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="modal-title">&#128260; Actualizar Novedad</span>
+      <button class="btn-close" onclick="closeOv('ov-upd-nov')">&#215;</button>
+    </div>
+    <div id="upd-nov-titulo" style="font-size:13px;font-weight:700;color:var(--accent3);margin-bottom:12px;padding:8px 12px;background:var(--bg3);border-radius:8px"></div>
+    <input type="hidden" id="upd-nov-id">
+    <div class="form-group">
+      <label class="form-label">Detalle de la actualizacion</label>
+      <textarea class="form-textarea" id="upd-nov-texto" style="min-height:100px" placeholder="Describe que paso, como continua el caso, resultado de gestiones..."></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Quien actualiza</label>
+      <input class="form-input" id="upd-nov-autor" placeholder="Nombre del agente o responsable"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Foto de seguimiento (opcional)</label>
+      <input type="file" id="upd-nov-foto-input" accept="image/*" capture="environment" style="display:none" onchange="previewSingleFoto(this,'upd-nov-foto-preview')">
+      <div onclick="document.getElementById('upd-nov-foto-input').click()" style="border:2px dashed var(--border2);border-radius:8px;padding:12px;text-align:center;cursor:pointer;background:var(--bg3)">&#128247; Agregar foto</div>
+      <div id="upd-nov-foto-preview" style="margin-top:8px"></div>
+    </div>
+    <button class="btn-login" id="btn-save-upd-nov" onclick="guardarActualizacionNovedad()">&#128260; Guardar Actualizacion</button>
+  </div>
+</div>
 <button class="fab" id="fab" onclick="fabClick()">+</button>
 <script>
+// ─── ACTUALIZACIONES DE NOVEDADES ───
+function abrirActualizarNovedad(id, titulo) {
+  document.getElementById('upd-nov-id').value = id;
+  document.getElementById('upd-nov-titulo').textContent = titulo;
+  document.getElementById('upd-nov-texto').value = '';
+  document.getElementById('upd-nov-autor').value = '';
+  document.getElementById('upd-nov-foto-preview').innerHTML = '';
+  openOv('ov-upd-nov');
+}
+
+async function guardarActualizacionNovedad() {
+  var id = document.getElementById('upd-nov-id').value;
+  var texto = document.getElementById('upd-nov-texto').value.trim();
+  var autor = document.getElementById('upd-nov-autor').value.trim();
+  if (!texto) { toast('Ingresa el detalle de la actualizacion','err'); return; }
+
+  setLoading('btn-save-upd-nov', true);
+
+  // Obtener actualizaciones actuales
+  var res = await db.from('novedades').select('actualizaciones').eq('id', id).single();
+  var acts = (res.data && res.data.actualizaciones) ? res.data.actualizaciones : [];
+
+  // Nueva actualizacion
+  var now = new Date();
+  var nuevaAct = {
+    fecha: now.toLocaleDateString('es-AR', {weekday:'long',day:'numeric',month:'long',year:'numeric'}) + ' ' + now.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit'}),
+    autor: autor || USER.puesto,
+    texto: texto,
+    foto: null,
+  };
+
+  // Subir foto si hay
+  var fotoInput = document.getElementById('upd-nov-foto-input');
+  if (fotoInput && fotoInput.files && fotoInput.files[0]) {
+    var fileOrig = fotoInput.files[0];
+    var fileComp = await comprimirImagen(fileOrig);
+    var path = 'novedades/'+id+'/upd_'+Date.now()+'.jpg';
+    var upRes = await db.storage.from('fotos').upload(path, fileComp, {contentType:'image/jpeg', upsert:false});
+    if (!upRes.error) {
+      var urlRes = db.storage.from('fotos').getPublicUrl(path);
+      if (urlRes.data && urlRes.data.publicUrl) nuevaAct.foto = urlRes.data.publicUrl;
+    }
+  }
+
+  acts.push(nuevaAct);
+
+  // Guardar
+  var saveRes = await db.from('novedades').update({
+    actualizaciones: acts,
+    ultima_actualizacion: new Date().toISOString()
+  }).eq('id', id);
+
+  setLoading('btn-save-upd-nov', false);
+
+  if (saveRes.error) { toast('Error: '+saveRes.error.message,'err'); return; }
+
+  closeOv('ov-upd-nov');
+  toast('Actualizacion guardada');
+  loadNovedades();
+  loadDash();
+}
+
+
 // ─── AUTO-REFRESH EN TIEMPO REAL ───
 var AUTO_REFRESH_INTERVAL = null;
 var LAST_ACTIVE_SECTION = 'dashboard';
@@ -1470,7 +1560,7 @@ function startAutoRefresh() {
     else if (name === 'objetivos') loadObjetivos();
     else if (name === 'choferes') loadChoferes();
     else if (name === 'llaves') { if(typeof loadLlaves==='function') loadLlaves(); }
-  }, 5000);
+  }, 30000);
 }
 
 function stopAutoRefresh() {
@@ -1538,6 +1628,7 @@ function renderNovCard(n) {
   if (n.pendiente) h += '<span class="badge b-yellow">PENDIENTE</span>';
   if (n.relevancia==='Urgente') h += '<span class="badge b-red">URGENTE</span>';
   if (n.relevancia==='Alta') h += '<span class="badge b-yellow">ALTA</span>';
+  if (n.actualizaciones && n.actualizaciones.length) h += '<span class="badge" style="background:rgba(5,150,105,0.2);color:#34d399;border:1px solid rgba(5,150,105,0.3)">&#128260; ACTUALIZADA</span>';
   h += '</div>';
   h += '<div style="font-size:14px;font-weight:700;margin-bottom:4px;line-height:1.3">'+(n.asunto||'Sin titulo')+'</div>';
   h += '<div style="font-size:11px;color:var(--text3)">'+hora+' &middot; '+ubic+'</div>';
@@ -1562,15 +1653,37 @@ function renderNovCard(n) {
   if (n.area) h += '<span class="badge b-gray">'+n.area+'</span>';
   h += '</div>';
 
-  // Fotos en grande
+  // Fotos originales
   if (n.fotos && n.fotos.length) {
-    h += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;margin-top:8px">';
+    h += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;margin-bottom:12px">';
     for (var fi=0; fi<n.fotos.length; fi++) {
       h += '<a href="'+n.fotos[fi]+'" target="_blank" style="display:block;aspect-ratio:1;border-radius:8px;overflow:hidden;border:2px solid var(--border2)">';
       h += '<img src="'+n.fotos[fi]+'" style="width:100%;height:100%;object-fit:cover" loading="lazy"></a>';
     }
     h += '</div>';
   }
+
+  // Actualizaciones previas
+  if (n.actualizaciones && n.actualizaciones.length) {
+    h += '<div style="margin-bottom:12px">';
+    h += '<div style="font-size:10px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Actualizaciones ('+n.actualizaciones.length+')</div>';
+    for (var ai=0; ai<n.actualizaciones.length; ai++) {
+      var upd = n.actualizaciones[ai];
+      h += '<div style="background:var(--bg3);border-radius:8px;padding:10px 12px;margin-bottom:6px;border-left:2px solid var(--accent2)">';
+      h += '<div style="font-size:10px;color:var(--accent3);font-weight:700;margin-bottom:4px">'+upd.fecha+' — '+upd.autor+'</div>';
+      h += '<div style="font-size:13px;color:var(--text2);line-height:1.6">'+upd.texto+'</div>';
+      if (upd.foto) h += '<a href="'+upd.foto+'" target="_blank"><img src="'+upd.foto+'" style="width:100%;max-height:140px;object-fit:cover;border-radius:6px;margin-top:6px" loading="lazy"></a>';
+      h += '</div>';
+    }
+    h += '</div>';
+  }
+
+  // Boton actualizar novedad
+  h += '<div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px">';
+  h += '<button data-nid="'+n.id+'" data-ntit="'+n.asunto.replace(/"/g,"'").replace(/</g,"").replace(/>/g,"")+'" onclick="abrirActualizarNovedad(this.getAttribute(\'data-nid\'),this.getAttribute(\'data-ntit\'))" ';
+  h += 'style="width:100%;padding:9px;background:rgba(37,99,235,0.12);border:1px solid rgba(37,99,235,0.3);border-radius:8px;color:var(--accent3);font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font)">';
+  h += '+ Agregar actualizacion al seguimiento</button>';
+  h += '</div>';
 
   h += '</div></div></div>';
   return h;
