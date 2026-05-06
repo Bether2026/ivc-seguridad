@@ -1435,7 +1435,7 @@ body::after {
 
 <button class="fab" id="fab" onclick="fabClick()">+</button>
 <script>
-function toggleNovedad(id) {
+function toggleNovedad(id, clickedEl) {
   var el = document.getElementById('nov-' + id);
   var arr = document.getElementById('arr-' + id);
   if (!el) return;
@@ -1447,41 +1447,59 @@ function toggleNovedad(id) {
 function renderNovCard(n) {
   var bc = TIPO_BADGE[n.tipo] || 'b-gray';
   var borderColor = n.relevancia==='Urgente' ? 'var(--red)' : n.relevancia==='Alta' ? 'var(--yellow)' : n.pendiente ? 'var(--yellow)' : 'var(--border)';
-  var html = '<div class="nov-item' + (n.pendiente?' pendiente':'') + '" style="border-left:3px solid '+borderColor+';cursor:pointer;margin-bottom:6px" onclick="toggleNovedad(\''+n.id+'\')"> ';
-  html += '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">';
-  html += '<div style="flex:1;min-width:0">';
-  html += '<div class="nov-badges" style="margin-bottom:5px"><span class="badge '+bc+'">'+(n.tipo||'Otro')+'</span>';
-  if (n.pendiente) html += '<span class="badge b-yellow">PENDIENTE</span>';
-  if (n.relevancia==='Urgente') html += '<span class="badge b-red">URGENTE</span>';
-  if (n.relevancia==='Alta') html += '<span class="badge b-yellow">ALTA</span>';
-  html += '</div>';
-  html += '<div class="nov-title" style="margin-bottom:3px">'+(n.asunto||'Sin titulo')+'</div>';
-  html += '<div style="font-size:11px;color:var(--text3)">'+formatTs(n.created_at)+' · '+(n.ubicacion||n.puesto)+'</div>';
-  html += '</div>';
-  html += '<div style="font-size:14px;color:var(--text3);flex-shrink:0;transition:transform .25s" id="arr-'+n.id+'">▼</div>';
-  html += '</div>';
-  html += '<div id="nov-'+n.id+'" style="display:none;margin-top:10px;border-top:1px solid var(--border);padding-top:10px">';
-  html += '<div style="font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:8px">'+(n.detalle||'')+'</div>';
-  html += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">';
-  if (n.puesto) html += '<span class="badge b-gray">'+n.puesto+'</span>';
-  if (n.cargado_por) html += '<span class="badge b-gray">👤 '+n.cargado_por+'</span>';
-  if (n.caso) html += '<span class="badge b-yellow">CASO: '+n.caso+'</span>';
-  html += '</div>';
-  if (n.fotos && n.fotos.length) {
-    html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">';
-    for (var fi=0; fi<n.fotos.length; fi++) {
-      html += '<a href="'+n.fotos[fi]+'" target="_blank" style="display:block;width:80px;height:80px;border-radius:8px;overflow:hidden;border:2px solid var(--border2);flex-shrink:0"><img src="'+n.fotos[fi]+'" style="width:100%;height:100%;object-fit:cover" loading="lazy"></a>';
-    }
-    html += '</div>';
+  var hora = formatTs(n.created_at);
+  var ubic = n.ubicacion || n.puesto || '';
+
+  var h = '<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid '+borderColor+';border-radius:10px;margin-bottom:8px;overflow:hidden">';
+
+  // Header — siempre visible, clickeable para expandir
+  h += '<div onclick="toggleNovedad(\''+n.id+'\',this)" style="padding:12px 14px;cursor:pointer;display:flex;align-items:flex-start;justify-content:space-between;gap:10px">';
+  h += '<div style="flex:1;min-width:0">';
+  h += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">';
+  h += '<span class="badge '+bc+'">'+(n.tipo||'Otro')+'</span>';
+  if (n.pendiente) h += '<span class="badge b-yellow">PENDIENTE</span>';
+  if (n.relevancia==='Urgente') h += '<span class="badge b-red">URGENTE</span>';
+  if (n.relevancia==='Alta') h += '<span class="badge b-yellow">ALTA</span>';
+  h += '</div>';
+  h += '<div style="font-size:14px;font-weight:700;margin-bottom:4px;line-height:1.3">'+(n.asunto||'Sin titulo')+'</div>';
+  h += '<div style="font-size:11px;color:var(--text3)">'+hora+' &middot; '+ubic+'</div>';
+  h += '</div>';
+  h += '<div style="font-size:18px;color:var(--text3);flex-shrink:0;transition:transform .25s;margin-top:2px" id="arr-'+n.id+'">&#9660;</div>';
+  h += '</div>';
+
+  // Detalle — expandible
+  h += '<div id="nov-'+n.id+'" style="display:none;padding:0 14px 14px">';
+  h += '<div style="border-top:1px solid var(--border);padding-top:12px">';
+
+  // Detalle completo
+  if (n.detalle) {
+    h += '<div style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:10px">'+n.detalle+'</div>';
   }
-  html += '</div></div>';
-  return html;
+
+  // Info adicional
+  h += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">';
+  if (n.puesto) h += '<span class="badge b-gray">'+n.puesto+'</span>';
+  if (n.cargado_por) h += '<span class="badge b-gray">&#128100; '+n.cargado_por+'</span>';
+  if (n.caso) h += '<span class="badge b-yellow">CASO: '+n.caso+'</span>';
+  if (n.area) h += '<span class="badge b-gray">'+n.area+'</span>';
+  h += '</div>';
+
+  // Fotos en grande
+  if (n.fotos && n.fotos.length) {
+    h += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;margin-top:8px">';
+    for (var fi=0; fi<n.fotos.length; fi++) {
+      h += '<a href="'+n.fotos[fi]+'" target="_blank" style="display:block;aspect-ratio:1;border-radius:8px;overflow:hidden;border:2px solid var(--border2)">';
+      h += '<img src="'+n.fotos[fi]+'" style="width:100%;height:100%;object-fit:cover" loading="lazy"></a>';
+    }
+    h += '</div>';
+  }
+
+  h += '</div></div></div>';
+  return h;
 }
 
 
-async function marcarSalidaDirecta(el) {
-  var fichajeId = el.getAttribute('data-id');
-  var nombreAgente = el.getAttribute('data-nombre');
+async function marcarSalidaDirecta(fichajeId, nombreAgente) {
   showConfirm('Marcar Salida', 'Salida de ' + nombreAgente, 'Confirmar salida de ' + nombreAgente + '?', async function() {
     var geo = null;
     try {
@@ -2281,18 +2299,18 @@ async function loadFichajes() {
     var fhtml = '';
     for (var fi=0; fi<list.length; fi++) {
       var fr = list[fi];
-      fhtml += '<div class="agent-row" style="cursor:pointer" onclick="marcarSalidaDirecta(this)" data-id="'+fr.id+'" data-nombre="'+fr.agente.replace(/"/g,'&quot;')+'">'; 
+      fhtml += '<div class="agent-row">';
       fhtml += '<div class="agent-av">' + initials(fr.agente) + '</div>';
       fhtml += '<div class="agent-info"><div class="agent-name">' + fr.agente + '</div>';
       fhtml += '<div class="agent-sub">' + fr.puesto + '</div>';
       if (canSeeGeo && fr.geo_entrada && fr.geo_entrada.direccion) {
-        fhtml += '<div style="font-size:10px;color:var(--text3);margin-top:2px">📍 ' + fr.geo_entrada.direccion + '</div>';
+        fhtml += '<div style="font-size:10px;color:var(--text3);margin-top:2px">&#128205; ' + fr.geo_entrada.direccion + '</div>';
       }
       fhtml += '</div>';
-      fhtml += '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">';
+      fhtml += '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">';
       fhtml += '<span class="badge b-green"><span class="pulse"></span> Activo</span>';
       fhtml += '<span style="font-family:var(--mono);font-size:10px;color:var(--text2)">desde ' + formatTs(fr.entrada) + '</span>';
-      fhtml += '<span style="font-size:9px;color:var(--accent3);font-weight:600;margin-top:2px">Tocar para salida →</span>';
+      fhtml += '<button data-fid="'+fr.id+'" data-fnombre="'+fr.agente.replace(/"/g,'').replace(/'/g,'')+'" onclick="var b=this;marcarSalidaDirecta(b.getAttribute(\'data-fid\'),b.getAttribute(\'data-fnombre\'))" style="padding:5px 10px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.5);border-radius:6px;color:#f87171;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font)">Marcar salida</button>';
       fhtml += '</div></div>';
     }
     document.getElementById('f-list').innerHTML = fhtml;
