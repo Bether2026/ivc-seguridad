@@ -1218,6 +1218,9 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
       <button class="sidebar-item" onclick="goView('rrhh')" id="si-rrhh" style="display:none">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg> RRHH
       </button>
+      <button class="sidebar-item" onclick="goView('agenda')" id="si-agenda" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Agenda
+      </button>
       <button class="sidebar-item" onclick="goView('admin')" id="si-admin" style="display:none">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6"/></svg> Admin
       </button>
@@ -1260,12 +1263,23 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
         <div class="stat-card" style="cursor:pointer" onclick="goView('novedades')"><div class="stat-lbl">Novedades</div><div class="stat-val c-blue" id="d-nov">—</div><div class="stat-sub">registradas hoy</div></div>
         <div class="stat-card" style="cursor:pointer" onclick="goView('objetivos')"><div class="stat-lbl">C. Objetivo</div><div class="stat-val c-purple" id="d-obj">—</div><div class="stat-sub">en curso</div></div>
       </div>
+      <!-- WIDGET AGENDA DEL DÍA -->
+      <div class="card" id="widget-agenda" style="border-left:3px solid var(--yellow);cursor:pointer;display:none" onclick="abrirAgendaHoy()">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <div class="card-lbl" style="margin-bottom:4px">📅 Agenda del día</div>
+            <div style="font-size:28px;font-weight:900;font-family:var(--mono);color:var(--yellow)" id="d-agenda-cant">—</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:2px">operativos solicitados hoy</div>
+          </div>
+          <div style="font-size:32px;opacity:.4">📋</div>
+        </div>
+      </div>
       <div class="card">
         <div class="card-head"><span class="card-lbl">Actividad por puesto</span><span class="badge b-blue">Hoy</span></div>
         <div id="d-puestos"></div>
       </div>
       <div class="card">
-        <div class="card-head"><span class="card-lbl">Últimas novedades</span><span style="font-size:12px;color:var(--text2);cursor:pointer" onclick="goView('novedades')">Ver todas →</span></div>
+        <div class="card-head"><span class="card-lbl">Últimas novedades del día</span><span style="font-size:12px;color:var(--text2);cursor:pointer" onclick="goView('novedades')">Ver todas →</span></div>
         <div id="d-ultimas"></div>
       </div>
     </div>
@@ -1476,6 +1490,19 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
       <div id="rrhh-lista"></div>
     </div>
 
+    <div class="view" id="view-agenda">
+      <div class="page-header">
+        <h2>📅 Agenda de Operativo</h2>
+        <p>Planificación de operativos solicitados</p>
+      </div>
+      <div class="tabs" style="margin-bottom:14px">
+        <button class="tab active" onclick="agendaTab('hoy',this)">📅 Hoy</button>
+        <button class="tab" onclick="agendaTab('semana',this)">📆 Esta semana</button>
+        <button class="tab" onclick="agendaTab('todos',this)">📋 Todos</button>
+      </div>
+      <div id="agenda-list"><div class="empty"><div class="icon">📅</div><p>Sin operativos registrados</p></div></div>
+    </div>
+
         <div class="view" id="view-admin">
       <div class="page-header">
         <h2>⚙️ Panel de Administración</h2>
@@ -1553,10 +1580,50 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
     <button class="nav-btn" onclick="goView('rrhh')" id="nb-rrhh" style="display:none">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span>RRHH</span>
     </button>
+    <button class="nav-btn" onclick="goView('agenda')" id="nb-agenda" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Agenda</span>
+    </button>
     <button class="nav-btn" onclick="goView('admin')" id="nb-admin" style="display:none">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6"/><path d="M18 14l2 2 4-4" stroke-width="2"/></svg><span>Admin</span>
     </button>
   </nav>
+</div>
+<div class="overlay" id="ov-agenda">
+  <div class="modal">
+    <div class="modal-head"><span class="modal-title">📅 Nuevo Operativo</span><button class="btn-close" onclick="closeOv('ov-agenda')">×</button></div>
+    <div class="form-group"><label class="form-label">Asunto / Tipo de pedido</label><input class="form-input" id="ag-asunto" placeholder="Ej: Desalojo, Custodia, Acompañamiento..."/></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Barrio / Lugar</label><input class="form-input" id="ag-barrio" placeholder="Ej: Villa 31, Lugano..."/></div>
+      <div class="form-group"><label class="form-label">Horario solicitado</label><input class="form-input" type="time" id="ag-horario"/></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">📆 Fechas del operativo <small style="color:var(--text3)">(podés agregar varias)</small></label>
+      <div id="ag-fechas-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px"></div>
+      <div style="display:flex;gap:8px">
+        <input class="form-input" type="date" id="ag-fecha-nueva" style="flex:1"/>
+        <button onclick="agregarFechaAgenda()" style="padding:10px 14px;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);color:var(--accent3);font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">+ Agregar</button>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Agentes requeridos</label><input class="form-input" type="number" id="ag-agentes" placeholder="Cantidad" min="1"/></div>
+      <div class="form-group"><label class="form-label">Nro. de contacto</label><input class="form-input" type="tel" id="ag-telefono" placeholder="Ej: 11 4567-8901"/></div>
+    </div>
+    <div class="form-group"><label class="form-label">Quién lo solicita</label><input class="form-input" id="ag-solicitante" placeholder="Nombre y cargo de la autoridad solicitante"/></div>
+    <div class="form-group"><label class="form-label">Detalle del operativo</label><textarea class="form-textarea" id="ag-detalle" placeholder="Descripción completa del operativo solicitado..." style="min-height:80px"></textarea></div>
+    <button class="btn-login" id="btn-save-agenda" onclick="saveAgenda()">📅 Guardar Operativo</button>
+  </div>
+</div>
+<div class="overlay" id="ov-puesto-detalle">
+  <div class="modal">
+    <div class="modal-head"><span class="modal-title" id="puesto-det-titulo">Detalle del puesto</span><button class="btn-close" onclick="closeOv('ov-puesto-detalle')">×</button></div>
+    <div id="puesto-det-contenido"></div>
+  </div>
+</div>
+<div class="overlay" id="ov-agenda-hoy">
+  <div class="modal">
+    <div class="modal-head"><span class="modal-title">📅 Operativos de hoy</span><button class="btn-close" onclick="closeOv('ov-agenda-hoy')">×</button></div>
+    <div id="agenda-hoy-contenido"></div>
+  </div>
 </div>
 <div class="overlay" id="ov-edit">
   <div class="modal">
@@ -2464,13 +2531,19 @@ function renderNovedadesAgrupadas(list) {
     grupos[fecha].push(list[i]);
   }
   var html = '';
+  var hoyIsoGrupo = new Date().toISOString().split('T')[0];
   for (var gi=0; gi<orden.length; gi++) {
     var fecha = orden[gi];
-    // Separador de fecha estilo pill
+    var esHoyGrupo = fecha === hoyIsoGrupo;
+    // Separador de fecha estilo pill — HOY destacado en amarillo dorado
     html += '<div style="display:flex;align-items:center;gap:10px;padding:12px 0 10px">';
-    html += '<div style="flex:1;height:1px;background:linear-gradient(to right,transparent,rgba(96,165,250,0.4))"></div>';
-    html += '<span style="font-size:11px;font-weight:800;color:#fff;white-space:nowrap;background:linear-gradient(135deg,#1d4ed8,#2563eb);padding:5px 16px;border-radius:20px;box-shadow:0 2px 12px rgba(37,99,235,0.4);letter-spacing:.04em">'+formatFechaCompleta(fecha)+'</span>';
-    html += '<div style="flex:1;height:1px;background:linear-gradient(to left,transparent,rgba(96,165,250,0.4))"></div>';
+    html += '<div style="flex:1;height:1px;background:linear-gradient(to right,transparent,' + (esHoyGrupo ? 'rgba(245,158,11,0.5)' : 'rgba(96,165,250,0.4)') + ')"></div>';
+    if (esHoyGrupo) {
+      html += '<span style="font-size:11px;font-weight:800;color:#fff;white-space:nowrap;background:linear-gradient(135deg,#d97706,#f59e0b);padding:5px 16px;border-radius:20px;box-shadow:0 2px 12px rgba(245,158,11,0.5);letter-spacing:.04em">⚡ HOY — ' + formatFechaCompleta(fecha) + '</span>';
+    } else {
+      html += '<span style="font-size:11px;font-weight:800;color:#fff;white-space:nowrap;background:linear-gradient(135deg,#1d4ed8,#2563eb);padding:5px 16px;border-radius:20px;box-shadow:0 2px 12px rgba(37,99,235,0.4);letter-spacing:.04em">'+formatFechaCompleta(fecha)+'</span>';
+    }
+    html += '<div style="flex:1;height:1px;background:linear-gradient(to left,transparent,' + (esHoyGrupo ? 'rgba(245,158,11,0.5)' : 'rgba(96,165,250,0.4)') + ')"></div>';
     html += '</div>';
     var items = grupos[fecha];
     for (var ni=0; ni<items.length; ni++) {
@@ -3362,10 +3435,13 @@ $('si-admin') && ($('si-admin').style.display = 'flex');
 }
 // Admin sees all sections like TODOS
 if (USER.rol === 'ADMIN' || USER.rol === 'TODOS') {
-  var allNavBtns = ['nb-fichaje','nb-novedades','nb-objetivos','nb-choferes','nb-estadisticas'];
+  var allNavBtns = ['nb-fichaje','nb-novedades','nb-objetivos','nb-choferes','nb-estadisticas','nb-agenda'];
   allNavBtns.forEach(function(id) { var el = document.getElementById(id); if(el) el.style.display='flex'; });
-  var allSideBtns = ['si-fichaje','si-novedades','si-objetivos','si-choferes','si-estadisticas'];
+  var allSideBtns = ['si-fichaje','si-novedades','si-objetivos','si-choferes','si-estadisticas','si-agenda'];
   allSideBtns.forEach(function(id) { var el = document.getElementById(id); if(el) el.style.display='flex'; });
+  // Mostrar widget agenda en el panel
+  var wa = document.getElementById('widget-agenda');
+  if (wa) wa.style.display = 'block';
 }
 loadAll();
 loadNoticias();
@@ -3377,48 +3453,453 @@ db.channel('realtime-all')
 .on('postgres_changes', { event: '*', schema: 'public', table: 'rutas' }, () => { loadChoferes(); })
 .subscribe();
 }
+// ─── TOGGLE ÚLTIMAS NOVEDADES INLINE ───
+function toggleUltNov(id) {
+  var el = document.getElementById(id);
+  var arrId = 'arr-' + id;
+  var arr = document.getElementById(arrId);
+  if (!el) return;
+  var open = el.style.display !== 'none';
+  el.style.display = open ? 'none' : 'block';
+  if (arr) arr.style.transform = open ? 'rotate(0deg)' : 'rotate(180deg)';
+}
+
+// ─── DETALLE DE PUESTO (MODAL) ───
+async function mostrarDetallePuesto(puesto) {
+  var hoyIso = new Date().toISOString().split('T')[0];
+  var hoyInicio = hoyIso + 'T00:00:00.000Z';
+  var hoyFin = hoyIso + 'T23:59:59.999Z';
+
+  var tit = document.getElementById('puesto-det-titulo');
+  var cont = document.getElementById('puesto-det-contenido');
+  if (tit) tit.textContent = '📍 ' + puesto;
+  if (cont) cont.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3)">Cargando...</div>';
+  openOv('ov-puesto-detalle');
+
+  var [fichRes, novRes, objRes] = await Promise.all([
+    db.from('fichajes').select('*').eq('puesto', puesto).gte('entrada', hoyInicio),
+    db.from('novedades').select('*').eq('puesto', puesto).gte('created_at', hoyInicio).lte('created_at', hoyFin).order('created_at',{ascending:false}),
+    db.from('objetivos').select('*').eq('puesto', puesto).gte('created_at', hoyInicio).lte('created_at', hoyFin)
+  ]);
+
+  var fichs = fichRes.data || [];
+  var novs = novRes.data || [];
+  var objs = objRes.data || [];
+  var activos = fichs.filter(function(f) { return f.activo; });
+
+  var h = '';
+  // Stats rápidas
+  h += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:16px">';
+  h += '<div style="background:var(--bg3);border-radius:10px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:800;color:#34d399">' + activos.length + '</div><div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.06em">Fichados</div></div>';
+  h += '<div style="background:var(--bg3);border-radius:10px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:800;color:var(--accent3)">' + novs.length + '</div><div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.06em">Novedades</div></div>';
+  h += '<div style="background:var(--bg3);border-radius:10px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:800;color:#a78bfa">' + objs.length + '</div><div style="font-size:10px;color:var(--text3);font-weight:700;text-transform:uppercase;letter-spacing:.06em">C. Objetivo</div></div>';
+  h += '</div>';
+
+  // Fichados activos
+  if (fichs.length) {
+    h += '<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">👥 Agentes fichados hoy</div>';
+    for (var fi=0; fi<fichs.length; fi++) {
+      var fc = fichs[fi];
+      h += '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:var(--bg3);border-radius:8px;margin-bottom:6px">';
+      h += '<div><div style="font-size:13px;font-weight:700">' + fc.agente + '</div>';
+      h += '<div style="font-size:11px;color:var(--text3)">Entrada: ' + formatTs(fc.entrada) + (fc.salida ? ' · Salida: '+formatTs(fc.salida) : '') + '</div></div>';
+      h += '<span class="badge ' + (fc.activo ? 'b-green' : 'b-gray') + '">' + (fc.activo ? 'Activo' : 'Retirado') + '</span>';
+      h += '</div>';
+    }
+    h += '</div>';
+  }
+
+  // Novedades del día
+  if (novs.length) {
+    h += '<div style="margin-bottom:14px"><div style="font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">📋 Novedades del día</div>';
+    for (var ni=0; ni<novs.length; ni++) {
+      var nv = novs[ni];
+      var bc = TIPO_BADGE[nv.tipo] || 'b-gray';
+      h += '<div style="padding:8px 10px;background:var(--bg3);border-radius:8px;margin-bottom:6px;border-left:3px solid ' + (nv.pendiente ? 'var(--yellow)' : 'var(--border2)') + '">';
+      h += '<div style="display:flex;gap:4px;margin-bottom:4px"><span class="badge ' + bc + '">' + (nv.tipo||'Otro') + '</span>' + (nv.pendiente ? '<span class="badge b-yellow">PENDIENTE</span>' : '') + '</div>';
+      h += '<div style="font-size:13px;font-weight:700">' + (nv.asunto||'Sin título') + '</div>';
+      h += '<div style="font-size:11px;color:var(--text3);margin-top:2px">' + formatTs(nv.created_at) + '</div>';
+      h += '</div>';
+    }
+    h += '</div>';
+  }
+
+  // Control de objetivo
+  if (objs.length) {
+    h += '<div><div style="font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">🎯 Control de objetivo</div>';
+    for (var oi=0; oi<objs.length; oi++) {
+      var ob = objs[oi];
+      h += '<div style="padding:8px 10px;background:var(--bg3);border-radius:8px;margin-bottom:6px">';
+      h += '<div style="font-size:13px;font-weight:700">' + (ob.descripcion||'Sin descripción') + '</div>';
+      h += '<div style="font-size:11px;color:var(--text3);margin-top:2px">' + (ob.sector||'') + ' · ' + (ob.progreso||0) + '% completado</div>';
+      h += '</div>';
+    }
+    h += '</div>';
+  }
+
+  if (!fichs.length && !novs.length && !objs.length) {
+    h = '<div class="empty"><div class="icon">📭</div><p>Sin actividad registrada hoy para este puesto</p></div>';
+  }
+
+  if (cont) cont.innerHTML = h;
+}
+
+// ─── AGENDA DE OPERATIVOS ───
+var AGENDA_FECHAS_PENDIENTES = [];
+var CUR_AGENDA_TAB = 'hoy';
+
+function agendaTab(tab, btn) {
+  CUR_AGENDA_TAB = tab;
+  document.querySelectorAll('#view-agenda .tab').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  loadAgenda();
+}
+
+function agregarFechaAgenda() {
+  var inp = document.getElementById('ag-fecha-nueva');
+  if (!inp || !inp.value) { toast('Seleccioná una fecha','err'); return; }
+  var fecha = inp.value;
+  if (AGENDA_FECHAS_PENDIENTES.indexOf(fecha) !== -1) { toast('Ya agregaste esa fecha','err'); return; }
+  AGENDA_FECHAS_PENDIENTES.push(fecha);
+  renderFechasAgenda();
+  inp.value = '';
+}
+
+function quitarFechaAgenda(idx) {
+  AGENDA_FECHAS_PENDIENTES.splice(idx, 1);
+  renderFechasAgenda();
+}
+
+function renderFechasAgenda() {
+  var cont = document.getElementById('ag-fechas-list');
+  if (!cont) return;
+  if (!AGENDA_FECHAS_PENDIENTES.length) { cont.innerHTML = ''; return; }
+  var h = '';
+  for (var i=0; i<AGENDA_FECHAS_PENDIENTES.length; i++) {
+    var f = AGENDA_FECHAS_PENDIENTES[i];
+    var d = new Date(f + 'T12:00:00');
+    var label = d.toLocaleDateString('es-AR', {weekday:'short', day:'numeric', month:'short'});
+    h += '<div style="display:flex;align-items:center;gap:6px;background:rgba(37,99,235,0.15);border:1px solid rgba(37,99,235,0.3);border-radius:20px;padding:4px 10px 4px 12px">';
+    h += '<span style="font-size:12px;font-weight:700;color:var(--accent3)">' + label + '</span>';
+    h += '<button onclick="quitarFechaAgenda(' + i + ')" style="border:none;background:none;color:var(--text3);cursor:pointer;font-size:14px;padding:0;line-height:1">×</button>';
+    h += '</div>';
+  }
+  cont.innerHTML = h;
+}
+
+async function saveAgenda() {
+  var asunto = document.getElementById('ag-asunto').value.trim();
+  var barrio = document.getElementById('ag-barrio').value.trim();
+  var horario = document.getElementById('ag-horario').value;
+  var agentes = document.getElementById('ag-agentes').value;
+  var telefono = document.getElementById('ag-telefono').value.trim();
+  var solicitante = document.getElementById('ag-solicitante').value.trim();
+  var detalle = document.getElementById('ag-detalle').value.trim();
+
+  if (!asunto) { toast('Ingresá el asunto del operativo','err'); return; }
+  if (!AGENDA_FECHAS_PENDIENTES.length) { toast('Agregá al menos una fecha','err'); return; }
+
+  setLoading('btn-save-agenda', true);
+  var payload = {
+    asunto: asunto,
+    barrio: barrio,
+    horario: horario,
+    agentes_requeridos: agentes ? parseInt(agentes) : null,
+    telefono: telefono,
+    solicitante: solicitante,
+    detalle: detalle,
+    fechas: AGENDA_FECHAS_PENDIENTES.slice(),
+    cargado_por: USER.puesto,
+    created_at: new Date().toISOString()
+  };
+
+  var res = await db.from('agenda_operativos').insert(payload);
+  setLoading('btn-save-agenda', false);
+
+  if (res.error) { toast('Error: ' + res.error.message, 'err'); return; }
+  closeOv('ov-agenda');
+  AGENDA_FECHAS_PENDIENTES = [];
+  renderFechasAgenda();
+  ['ag-asunto','ag-barrio','ag-horario','ag-agentes','ag-telefono','ag-solicitante','ag-detalle'].forEach(function(id) {
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  toast('Operativo guardado');
+  loadAgenda();
+  loadDash();
+}
+
+async function loadAgenda() {
+  var cont = document.getElementById('agenda-list');
+  if (!cont) return;
+  cont.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3)">Cargando...</div>';
+
+  var res = await db.from('agenda_operativos').select('*').order('created_at',{ascending:false});
+  if (res.error) { cont.innerHTML = '<div class="empty"><p>Error: '+res.error.message+'</p></div>'; return; }
+  var todos = res.data || [];
+
+  var hoyStr = new Date().toISOString().split('T')[0];
+  // Rango semana actual
+  var ahora = new Date();
+  var diaSemana = ahora.getDay(); // 0=dom
+  var inicioSemana = new Date(ahora);
+  inicioSemana.setDate(ahora.getDate() - diaSemana);
+  var finSemana = new Date(inicioSemana);
+  finSemana.setDate(inicioSemana.getDate() + 6);
+  var semIni = inicioSemana.toISOString().split('T')[0];
+  var semFin = finSemana.toISOString().split('T')[0];
+
+  var lista = todos.filter(function(op) {
+    if (!op.fechas) return false;
+    if (CUR_AGENDA_TAB === 'hoy') return op.fechas.indexOf(hoyStr) !== -1;
+    if (CUR_AGENDA_TAB === 'semana') return op.fechas.some(function(f) { return f >= semIni && f <= semFin; });
+    return true;
+  });
+
+  if (!lista.length) {
+    cont.innerHTML = '<div class="empty"><div class="icon">📅</div><p>Sin operativos para ' + (CUR_AGENDA_TAB==='hoy'?'hoy':CUR_AGENDA_TAB==='semana'?'esta semana':'mostrar') + '</p></div>';
+    return;
+  }
+
+  var h = '';
+  for (var i=0; i<lista.length; i++) {
+    var op = lista[i];
+    var fechasLabel = (op.fechas||[]).map(function(f) {
+      var d = new Date(f + 'T12:00:00');
+      return d.toLocaleDateString('es-AR',{weekday:'short',day:'numeric',month:'short'});
+    }).join(' · ');
+    var esHoy = op.fechas && op.fechas.indexOf(hoyStr) !== -1;
+
+    h += '<div style="background:var(--bg2);border:1px solid ' + (esHoy ? 'var(--yellow)' : 'var(--border)') + ';' + (esHoy ? 'border-left:3px solid var(--yellow);' : 'border-left:3px solid var(--border2);') + 'border-radius:10px;margin-bottom:10px;padding:14px">';
+
+    // Header
+    h += '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px">';
+    h += '<div>';
+    h += '<div style="font-size:15px;font-weight:800;margin-bottom:4px">' + (op.asunto||'Sin título') + '</div>';
+    if (op.barrio) h += '<div style="font-size:12px;color:var(--text2)">📍 ' + op.barrio + '</div>';
+    h += '</div>';
+    if (esHoy) h += '<span style="background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.35);color:#fbbf24;font-size:10px;font-weight:800;padding:3px 8px;border-radius:20px;white-space:nowrap">HOY</span>';
+    h += '</div>';
+
+    // Fechas
+    if (fechasLabel) {
+      h += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">';
+      var fechasArr = op.fechas || [];
+      for (var fi=0; fi<fechasArr.length; fi++) {
+        var fd = new Date(fechasArr[fi]+'T12:00:00');
+        var fLabel = fd.toLocaleDateString('es-AR',{weekday:'short',day:'numeric',month:'short'});
+        var esFechaHoy = fechasArr[fi] === hoyStr;
+        h += '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;' +
+          (esFechaHoy ? 'background:rgba(245,158,11,0.2);color:#fbbf24;border:1px solid rgba(245,158,11,0.4)' : 'background:var(--bg3);color:var(--text2);border:1px solid var(--border2)') +
+          '">' + fLabel + '</span>';
+      }
+      h += '</div>';
+    }
+
+    // Detalles
+    h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">';
+    if (op.horario) h += '<div style="font-size:12px;color:var(--text2)">🕐 Horario: <strong>' + op.horario + '</strong></div>';
+    if (op.agentes_requeridos) h += '<div style="font-size:12px;color:var(--text2)">👥 Agentes: <strong>' + op.agentes_requeridos + '</strong></div>';
+    if (op.solicitante) h += '<div style="font-size:12px;color:var(--text2);grid-column:span 2">👤 ' + op.solicitante + '</div>';
+    if (op.telefono) h += '<div style="font-size:12px;color:var(--text2)">📞 ' + op.telefono + '</div>';
+    h += '</div>';
+
+    if (op.detalle) {
+      h += '<div style="font-size:12px;color:var(--text3);line-height:1.6;border-top:1px solid var(--border);padding-top:8px">' + op.detalle + '</div>';
+    }
+    h += '</div>';
+  }
+  cont.innerHTML = h;
+}
+
+async function abrirAgendaHoy() {
+  var cont = document.getElementById('agenda-hoy-contenido');
+  if (cont) cont.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3)">Cargando...</div>';
+  openOv('ov-agenda-hoy');
+
+  var res = await db.from('agenda_operativos').select('*').order('horario',{ascending:true});
+  if (res.error) { if (cont) cont.innerHTML = '<div class="empty"><p>Error: '+res.error.message+'</p></div>'; return; }
+  var hoyStr = new Date().toISOString().split('T')[0];
+  var lista = (res.data||[]).filter(function(op) { return op.fechas && op.fechas.indexOf(hoyStr) !== -1; });
+
+  if (!lista.length) {
+    if (cont) cont.innerHTML = '<div class="empty"><div class="icon">📅</div><p>Sin operativos para hoy</p></div>';
+    return;
+  }
+
+  var h = '';
+  for (var i=0; i<lista.length; i++) {
+    var op = lista[i];
+    h += '<div style="background:var(--bg3);border-radius:10px;padding:14px;margin-bottom:10px;border-left:3px solid var(--yellow)">';
+    h += '<div style="font-size:15px;font-weight:800;margin-bottom:6px">' + (op.asunto||'Sin título') + '</div>';
+    if (op.barrio) h += '<div style="font-size:12px;color:var(--text2);margin-bottom:4px">📍 ' + op.barrio + '</div>';
+    h += '<div style="display:flex;gap:12px;font-size:12px;color:var(--text2);flex-wrap:wrap">';
+    if (op.horario) h += '<span>🕐 ' + op.horario + '</span>';
+    if (op.agentes_requeridos) h += '<span>👥 ' + op.agentes_requeridos + ' agentes</span>';
+    if (op.telefono) h += '<span>📞 ' + op.telefono + '</span>';
+    h += '</div>';
+    if (op.solicitante) h += '<div style="font-size:12px;color:var(--text3);margin-top:4px">Solicitado por: ' + op.solicitante + '</div>';
+    if (op.detalle) h += '<div style="font-size:12px;color:var(--text3);margin-top:8px;border-top:1px solid var(--border);padding-top:8px">' + op.detalle + '</div>';
+    h += '</div>';
+  }
+  if (cont) cont.innerHTML = h;
+}
+
 async function loadAll() {
 await Promise.all([loadDash(), loadFichajes(), loadNovedades(), loadObjetivos(), loadChoferes()]);
 }
 async function loadDash() {
 const f = filtro();
+var hoyIso = new Date().toISOString().split('T')[0];
+var hoyInicio = hoyIso + 'T00:00:00.000Z';
+var hoyFin = hoyIso + 'T23:59:59.999Z';
+
+// Fichados activos
 let qFich = db.from('fichajes').select('*').eq('activo', true);
-let qNov  = db.from('novedades').select('*');
-let qObj  = db.from('objetivos').select('*').eq('estado','activo');
-if (f) { qFich = qFich.eq('puesto',f); qNov = qNov.eq('puesto',f); qObj = qObj.eq('puesto',f); }
-const [fichRes, novRes, objRes] = await Promise.all([qFich, qNov, qObj]);
+// Novedades de HOY solamente para el contador
+let qNovHoy = db.from('novedades').select('*').gte('created_at', hoyInicio).lte('created_at', hoyFin);
+// Novedades pendientes (todas, para alertas)
+let qPend = db.from('novedades').select('*').eq('pendiente', true);
+// Objetivos activos
+let qObj = db.from('objetivos').select('*').eq('estado','activo');
+// Últimas novedades del día
+let qUlt = db.from('novedades').select('*').gte('created_at', hoyInicio).lte('created_at', hoyFin).order('created_at',{ascending:false}).limit(5);
+// Todos los fichajes de hoy para actividad por puesto
+let qFichHoy = db.from('fichajes').select('*').gte('entrada', hoyInicio);
+// Novedades por puesto hoy
+let qNovPuesto = db.from('novedades').select('puesto').gte('created_at', hoyInicio).lte('created_at', hoyFin);
+// Objetivos por puesto hoy
+let qObjPuesto = db.from('objetivos').select('puesto').gte('created_at', hoyInicio).lte('created_at', hoyFin);
+
+if (f) {
+  qFich = qFich.eq('puesto',f);
+  qNovHoy = qNovHoy.eq('puesto',f);
+  qPend = qPend.eq('puesto',f);
+  qObj = qObj.eq('puesto',f);
+  qUlt = qUlt.eq('puesto',f);
+  qFichHoy = qFichHoy.eq('puesto',f);
+  qNovPuesto = qNovPuesto.eq('puesto',f);
+  qObjPuesto = qObjPuesto.eq('puesto',f);
+}
+
+const [fichRes, novHoyRes, pendRes, objRes, ultRes, fichHoyRes, novPuestoRes, objPuestoRes] =
+  await Promise.all([qFich, qNovHoy, qPend, qObj, qUlt, qFichHoy, qNovPuesto, qObjPuesto]);
+
 const fichs = fichRes.data || [];
-const novs  = novRes.data  || [];
-const objs  = objRes.data  || [];
-const pends = novs.filter(n=>n.pendiente);
-$('d-fich').textContent = fichs.length;
-$('d-pend').textContent = pends.length;
-$('d-nov').textContent  = novs.length;
-$('d-obj').textContent  = objs.length;
-const bd = $('nb-badge');
-bd.textContent = pends.length;
-bd.style.display = pends.length > 0 ? 'flex' : 'none';
-const puestoMap = {};
-fichs.forEach(f => { puestoMap[f.puesto] = (puestoMap[f.puesto]||0)+1; });
-const sorted = Object.entries(puestoMap).sort((a,b)=>b[1]-a[1]).slice(0,6);
-const max = (sorted[0] && sorted[0][1]) ? sorted[0][1] : 1;
-const colors = ['var(--accent2)','var(--purple)','var(--green)','var(--yellow)','var(--red)','var(--text3)'];
-$('d-puestos').innerHTML = sorted.length ? sorted.map(([p,n],i) => `
-<div class="puesto-row">
-<span class="puesto-name">${p}</span>
-<div class="puesto-bar-bg"><div class="puesto-bar-fill" style="width:${Math.round(n/max*100)}%;background:${colors[i%colors.length]}"></div></div>
-<span class="puesto-n">${n}</span>
-</div>`).join('') : '<div style="font-size:12px;color:var(--text3);padding:8px 0">Sin agentes fichados ahora</div>';
-const ultimas = novs.slice(-3).reverse();
-$('d-ultimas').innerHTML = ultimas.length ? ultimas.map(n=>`
-<div style="padding:9px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="goView('novedades')">
-<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
-${n.pendiente?'<span class="badge b-yellow">[!] Pendiente</span>':'<span class="badge b-gray">PD</span>'}
-<span style="font-size:10px;color:var(--text3)">${formatTs(n.created_at)} · ${n.puesto}</span>
-</div>
-<div style="font-size:13px;font-weight:700">${n.asunto||'Sin título'}</div>
-<div style="font-size:11px;color:var(--text2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${n.detalle||''}</div>
-</div>`).join('') : '<div class="empty"><div class="icon">[Doc]</div><p>Sin novedades registradas</p></div>';
+const novsHoy = novHoyRes.data || [];
+const pends = pendRes.data || [];
+const objs = objRes.data || [];
+const ults = ultRes.data || [];
+
+// Contadores principales
+document.getElementById('d-fich').textContent = fichs.length;
+document.getElementById('d-pend').textContent = pends.length;
+document.getElementById('d-nov').textContent = novsHoy.length;   // SOLO HOY
+document.getElementById('d-obj').textContent = objs.length;
+
+// Badge novedades pendientes
+const bd = document.getElementById('nb-badge');
+if (bd) { bd.textContent = pends.length; bd.style.display = pends.length > 0 ? 'flex' : 'none'; }
+
+// ── Actividad por puesto (con modal al tocar) ──
+var fichHoyList = fichHoyRes.data || [];
+var novPuestoList = novPuestoRes.data || [];
+var objPuestoList = objPuestoRes.data || [];
+
+var puestoMap = {};
+var PUESTOS_CONOCIDOS = ['Papa Francisco','Rodrigo Bueno','Fraga','Base Castañares','Obrador Savio','CAV','Necochea','Complejo Orma','Alvarado','Padre Mugica'];
+PUESTOS_CONOCIDOS.forEach(function(p) { puestoMap[p] = {fichados:0, novedades:0, objetivos:0}; });
+
+fichHoyList.forEach(function(r) {
+  if (!puestoMap[r.puesto]) puestoMap[r.puesto] = {fichados:0, novedades:0, objetivos:0};
+  puestoMap[r.puesto].fichados++;
+});
+novPuestoList.forEach(function(r) {
+  if (!puestoMap[r.puesto]) puestoMap[r.puesto] = {fichados:0, novedades:0, objetivos:0};
+  puestoMap[r.puesto].novedades++;
+});
+objPuestoList.forEach(function(r) {
+  if (!puestoMap[r.puesto]) puestoMap[r.puesto] = {fichados:0, novedades:0, objetivos:0};
+  puestoMap[r.puesto].objetivos++;
+});
+
+// Solo mostrar puestos con actividad
+var puestosConActividad = Object.keys(puestoMap).filter(function(p) {
+  var d = puestoMap[p];
+  return d.fichados > 0 || d.novedades > 0 || d.objetivos > 0;
+});
+
+var phtml = '';
+if (puestosConActividad.length === 0) {
+  phtml = '<div style="font-size:12px;color:var(--text3);padding:8px 0">Sin actividad registrada hoy</div>';
+} else {
+  for (var pi=0; pi<puestosConActividad.length; pi++) {
+    var pn = puestosConActividad[pi];
+    var pd = puestoMap[pn];
+    var total = pd.fichados + pd.novedades + pd.objetivos;
+    phtml += '<div onclick="mostrarDetallePuesto(\'' + pn.replace(/'/g,"\\'") + '\')" ' +
+      'style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer">';
+    phtml += '<div style="flex:1;min-width:0">';
+    phtml += '<div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + pn + '</div>';
+    phtml += '<div style="font-size:11px;color:var(--text3);margin-top:3px;display:flex;gap:8px">';
+    phtml += '<span>👥 ' + pd.fichados + '</span>';
+    phtml += '<span>📋 ' + pd.novedades + '</span>';
+    phtml += '<span>🎯 ' + pd.objetivos + '</span>';
+    phtml += '</div></div>';
+    phtml += '<div style="font-size:18px;color:var(--accent3);font-weight:800;font-family:var(--mono)">' + total + '</div>';
+    phtml += '</div>';
+  }
+}
+document.getElementById('d-puestos').innerHTML = phtml;
+
+// ── Últimas novedades del día — expandibles inline ──
+var dUlt = document.getElementById('d-ultimas');
+if (!ults.length) {
+  dUlt.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0">Sin novedades registradas hoy</div>';
+} else {
+  var uhtml = '';
+  for (var ui=0; ui<ults.length; ui++) {
+    var un = ults[ui];
+    var bc = TIPO_BADGE[un.tipo] || 'b-gray';
+    var hora = formatTs(un.created_at);
+    uhtml += '<div style="border-bottom:1px solid var(--border)">';
+    uhtml += '<div onclick="toggleUltNov(\'dun-' + un.id + '\')" style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;padding:10px 0;cursor:pointer">';
+    uhtml += '<div style="flex:1;min-width:0">';
+    uhtml += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px">';
+    uhtml += '<span class="badge ' + bc + '">' + (un.tipo||'Otro') + '</span>';
+    if (un.pendiente) uhtml += '<span class="badge b-yellow">PENDIENTE</span>';
+    uhtml += '</div>';
+    uhtml += '<div style="font-size:13px;font-weight:700;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (un.asunto||'Sin título') + '</div>';
+    uhtml += '<div style="font-size:11px;color:var(--text3);margin-top:2px">' + hora + ' · ' + (un.puesto||'') + '</div>';
+    uhtml += '</div>';
+    uhtml += '<div style="font-size:16px;color:var(--text3);flex-shrink:0;transition:transform .25s" id="arr-dun-' + un.id + '">▼</div>';
+    uhtml += '</div>';
+    // Detalle expandible
+    uhtml += '<div id="dun-' + un.id + '" style="display:none;padding-bottom:12px">';
+    if (un.detalle) uhtml += '<div style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:8px">' + un.detalle + '</div>';
+    if (un.fotos && un.fotos.length) {
+      uhtml += '<div style="display:flex;gap:6px;flex-wrap:wrap">';
+      for (var ufi=0; ufi<un.fotos.length; ufi++) {
+        uhtml += '<a href="' + un.fotos[ufi] + '" target="_blank"><img src="' + un.fotos[ufi] + '" style="width:70px;height:70px;object-fit:cover;border-radius:6px;border:1px solid var(--border2)" loading="lazy"></a>';
+      }
+      uhtml += '</div>';
+    }
+    uhtml += '</div></div>';
+  }
+  dUlt.innerHTML = uhtml;
+}
+
+// ── Widget agenda del día ──
+try {
+  var hoyStr = new Date().toISOString().split('T')[0];
+  var agRes = await db.from('agenda_operativos').select('id, fechas');
+  var agTodos = agRes.data || [];
+  var agHoy = agTodos.filter(function(op) {
+    if (!op.fechas) return false;
+    return op.fechas.indexOf(hoyStr) !== -1;
+  });
+  var cantEl = document.getElementById('d-agenda-cant');
+  if (cantEl) cantEl.textContent = agHoy.length;
+} catch(e) { /* tabla puede no existir aún */ }
 }
 async function loadFichajes() {
   console.log('DEBUG: loadFichajes llamado, USER=', USER ? USER.puesto : 'null');
@@ -3749,7 +4230,7 @@ var _vEl = document.getElementById('view-' + name);
 if (_vEl) _vEl.classList.add('active');
 if (document.getElementById('nb-'+name)) document.getElementById('nb-'+name).classList.add('active');
 if (document.getElementById('si-'+name)) document.getElementById('si-'+name).classList.add('active');
-$('fab').style.display = ['novedades','objetivos','choferes','fichaje','llaves','rrhh'].includes(name) ? 'flex' : 'none';
+$('fab').style.display = ['novedades','objetivos','choferes','fichaje','llaves','rrhh','agenda'].includes(name) ? 'flex' : 'none';
 try {
   if (name === 'llaves' && typeof loadLlaves === 'function') loadLlaves();
   if (name === 'rrhh' && typeof loadRRHH === 'function') loadRRHH();
@@ -3759,6 +4240,7 @@ try {
   if (name === 'objetivos' && typeof loadObjetivos === 'function') loadObjetivos();
   if (name === 'fichaje' && typeof loadFichajes === 'function') loadFichajes();
   if (name === 'choferes' && typeof loadChoferes === 'function') loadChoferes();
+  if (name === 'agenda' && typeof loadAgenda === 'function') loadAgenda();
   if (name === 'dashboard') { if (typeof loadDash === 'function') loadDash(); if (typeof loadNoticias === 'function') loadNoticias(); }
 } catch(e) {
   }
@@ -3786,6 +4268,11 @@ else if (CUR_VIEW==='objetivos') openOv('ov-obj');
 else if (CUR_VIEW==='fichaje') {
 if (CUR_FICH_TAB === 'licencias') openOv('ov-licencia');
 else openOv('ov-nov'); // fallback
+}
+else if (CUR_VIEW==='agenda') {
+  var isAdminAgenda = ['Administración','Administrador','Gerencia','Jefe de departamento'].includes(USER ? USER.puesto : '');
+  if (isAdminAgenda) { AGENDA_FECHAS_PENDIENTES = []; renderFechasAgenda(); openOv('ov-agenda'); }
+  else toast('Solo administración puede cargar operativos', 'err');
 }
 else if (CUR_VIEW==='choferes') {
 if (CUR_CHOF_SUBTAB==='rutas') openOv('ov-chof');
