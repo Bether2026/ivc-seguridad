@@ -287,15 +287,23 @@ body::after { display: none; }
   backdrop-filter: blur(28px) saturate(180%); -webkit-backdrop-filter: blur(28px) saturate(180%);
   border-top: 1px solid var(--border);
   display: flex;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
+.bottomnav::-webkit-scrollbar { display: none; }
 .bottomnav::before {
   content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
   background: linear-gradient(90deg, transparent, rgba(124,176,255,0.25), transparent);
+  pointer-events: none;
 }
 .nav-btn {
-  flex: 1;
+  flex: 0 0 auto;
+  min-width: 68px;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 5px; padding: 10px 4px;
+  gap: 5px; padding: 10px 8px;
   border: none; background: none; color: var(--text3);
   cursor: pointer; transition: color .2s; position: relative;
   -webkit-tap-highlight-color: transparent;
@@ -311,7 +319,7 @@ body::after { display: none; }
   box-shadow: 0 0 12px var(--accent3);
 }
 .nav-btn svg { width: 22px; height: 22px; stroke-width: 2; }
-.nav-btn span { font-size: 10.5px; font-weight: 700; letter-spacing: .02em; text-transform: none; }
+.nav-btn span { font-size: 10.5px; font-weight: 700; letter-spacing: .02em; text-transform: none; white-space: nowrap; }
 .nav-btn:active { transform: scale(0.94); }
 .nav-badge {
   position: absolute; top: 4px; right: calc(50% - 20px);
@@ -1474,14 +1482,14 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
         <p>Gestión y limpieza de datos del sistema</p>
       </div>
 
-      <!-- PIN DEL DIA - 2FA -->
+      <!-- PIN TOKEN - 2FA -->
       <div class="card" style="border-left:4px solid var(--accent2);margin-bottom:14px">
         <div class="card-head">
-          <span class="card-lbl">🔐 PIN del día — Doble Autenticación</span>
-          <button onclick="mostrarPINAdmin()" style="font-size:11px;padding:5px 12px;border-radius:6px;border:1px solid var(--border2);background:var(--accent);color:white;font-family:var(--font);font-weight:700;cursor:pointer">👁 Ver PIN</button>
+          <span class="card-lbl">🔐 Token 2FA — Autorizar dispositivo</span>
+          <button onclick="mostrarPINAdmin()" style="font-size:11px;padding:5px 12px;border-radius:6px;border:1px solid var(--border2);background:var(--accent);color:white;font-family:var(--font);font-weight:700;cursor:pointer">Generar Token</button>
         </div>
         <div id="admin-pin-display" style="font-size:12px;color:var(--text3);padding:4px 0">
-          Tocá "Ver PIN" para ver el código del día. Compartilo solo con agentes que necesiten autorizar su dispositivo.
+          Tocá "Generar Token" para crear un PIN de un solo uso. Es único por dispositivo y expira en 15 minutos. La autorización dura 60 días.
         </div>
       </div>
       <div class="stat-grid" id="admin-stats" style="margin-bottom:16px"></div>
@@ -2598,13 +2606,19 @@ function fechaCorta(dateStr) {
 
 
 async function mostrarPINAdmin() {
-  var pin = await generarPINDelDia();
+  var pin = await generarPINUnico();
   var el = document.getElementById('admin-pin-display');
   if (el) {
     el.innerHTML =
-      '<div style="display:flex;align-items:center;gap:12px;margin-top:6px">' +
+      '<div style="display:flex;flex-direction:column;gap:10px;margin-top:8px">' +
+      '<div style="display:flex;align-items:center;gap:12px">' +
       '<div style="font-size:28px;font-weight:900;font-family:monospace;letter-spacing:8px;color:var(--accent3)">' + pin + '</div>' +
-      '<div style="font-size:11px;color:var(--text3);line-height:1.5">Valido solo hoy<br>Comparte con cuidado</div>' +
+      '<button onclick="mostrarPINAdmin()" style="padding:5px 12px;font-size:11px;background:rgba(37,99,235,0.15);border:1px solid rgba(37,99,235,0.4);border-radius:8px;color:var(--accent3);font-family:var(--font);font-weight:700;cursor:pointer">Nuevo PIN</button>' +
+      '</div>' +
+      '<div style="font-size:11px;color:var(--text3);line-height:1.6;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);border-radius:8px;padding:8px 10px">' +
+      '⚠️ <strong>Token de un solo uso.</strong> Caduca en 15 minutos o al ser utilizado.<br>' +
+      'Compartir con el agente para autorizar su dispositivo por 60 días.' +
+      '</div>' +
       '</div>';
   }
 }
@@ -2614,21 +2628,37 @@ async function mostrarPINAdmin() {
 var DEVICE_KEY = 'ivc_device';
 var IVC_SECRET = 'IVC2026SEG'; // Semilla para generar PINs
 
-// Genera PIN de 6 digitos del dia actual
-async function generarPINDelDia() {
-  var hoy = new Date();
-  var fecha = hoy.getFullYear() + '' + (hoy.getMonth()+1).toString().padStart(2,'0') + hoy.getDate().toString().padStart(2,'0');
-  var input = IVC_SECRET + fecha;
+// Genera un PIN de 6 digitos de un solo uso (token unico)
+// Se basa en: secreto + fingerprint del dispositivo + timestamp redondeado a 15 minutos
+// Esto lo hace unico por dispositivo y por ventana de tiempo
+async function generarPINUnico() {
+  var fp = getDeviceFingerprint();
+  // Redondear timestamp a bloques de 15 minutos (900000 ms)
+  var bloque = Math.floor(Date.now() / 900000);
+  var input = IVC_SECRET + fp + bloque;
   var encoder = new TextEncoder();
   var data = encoder.encode(input);
   var hashBuffer = await crypto.subtle.digest('SHA-256', data);
   var hashArray = Array.from(new Uint8Array(hashBuffer));
-  // Tomar primeros 6 digitos del hash
   var num = '';
   for (var i=0; i<hashArray.length && num.length<6; i++) {
-    var d = hashArray[i] % 10;
-    num += d;
+    num += hashArray[i] % 10;
   }
+  // Guardar el PIN generado en Supabase para poder validarlo desde cualquier parte
+  // (lo almacenamos en dispositivos_auth como "pin_pendiente")
+  try {
+    await db.from('dispositivos_auth').upsert({
+      fingerprint: 'pending_' + fp,
+      puesto: '__PENDING__',
+      pin_token: num,
+      pin_expiry: new Date(Date.now() + 900000).toISOString(), // 15 min
+      pin_usado: false,
+      user_agent: 'ADMIN_GENERATED',
+      autorizado_hasta: new Date(0).toISOString(),
+    }, { onConflict: 'fingerprint' });
+  } catch(e) { console.log('PIN guardado localmente solamente'); }
+  // Guardar el PIN en sessionStorage del admin para validar
+  try { sessionStorage.setItem('ivc_pin_emitido', JSON.stringify({ pin: num, expiry: Date.now() + 900000, usado: false })); } catch(e) {}
   return num;
 }
 
@@ -2653,12 +2683,17 @@ function getDeviceFingerprint() {
   return Math.abs(hash).toString(36);
 }
 
-// Guardar dispositivo autorizado (localStorage + Supabase)
+// Guardar dispositivo autorizado (localStorage + Supabase) — 60 dias
 async function autorizarDispositivo(puesto) {
   var fp = getDeviceFingerprint();
-  var expiry = Date.now() + (30 * 24 * 60 * 60 * 1000); // 30 dias
+  var expiry = Date.now() + (60 * 24 * 60 * 60 * 1000); // 60 dias
   var data = { fp: fp, puesto: puesto, expiry: expiry, ts: Date.now() };
   try { localStorage.setItem(DEVICE_KEY, JSON.stringify(data)); } catch(e) {}
+  // Marcar el PIN como usado en sessionStorage del admin
+  try {
+    var pinData = JSON.parse(sessionStorage.getItem('ivc_pin_emitido') || 'null');
+    if (pinData) { pinData.usado = true; sessionStorage.setItem('ivc_pin_emitido', JSON.stringify(pinData)); }
+  } catch(e) {}
   // Guardar en Supabase para auditoria
   try {
     await db.from('dispositivos_auth').upsert({
@@ -2666,6 +2701,8 @@ async function autorizarDispositivo(puesto) {
       puesto: puesto,
       user_agent: (navigator.userAgent||'').substring(0,200),
       autorizado_hasta: new Date(expiry).toISOString(),
+      pin_token: null,
+      pin_usado: true,
     }, { onConflict: 'fingerprint' });
   } catch(e) { console.error('Error guardando dispositivo:', e); }
 }
@@ -2697,13 +2734,13 @@ function mostrar2FA(callbackOk) {
     '<div style="background:rgba(255,255,255,0.05);border:1px solid rgba(96,165,250,0.3);border-radius:16px;padding:32px 28px;width:320px;max-width:90vw;text-align:center">' +
     '<div style="font-size:36px;margin-bottom:12px">🔐</div>' +
     '<div style="font-size:18px;font-weight:700;color:white;margin-bottom:6px">Verificacion de Dispositivo</div>' +
-    '<div style="font-size:12px;color:rgba(255,255,255,0.6);margin-bottom:24px;line-height:1.6">Este dispositivo no esta autorizado.<br>Ingresa el PIN del dia para continuar.</div>' +
+    '<div style="font-size:12px;color:rgba(255,255,255,0.6);margin-bottom:24px;line-height:1.6">Este dispositivo no esta autorizado.<br>Ingresa el PIN que te dio el administrador.</div>' +
     '<input id="input-2fa" type="tel" maxlength="6" placeholder="PIN de 6 digitos" ' +
     'style="width:100%;padding:14px;background:rgba(255,255,255,0.08);border:1px solid rgba(96,165,250,0.4);border-radius:10px;color:white;font-size:22px;text-align:center;font-family:monospace;letter-spacing:8px;box-sizing:border-box;outline:none;margin-bottom:8px">' +
-    '<div id="msg-2fa" style="font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:16px;min-height:16px">Obtene el PIN con el administrador del sistema</div>' +
+    '<div id="msg-2fa" style="font-size:11px;color:rgba(255,255,255,0.5);margin-bottom:16px;min-height:16px">El PIN es de un solo uso y vence en 15 minutos</div>' +
     '<button id="btn-2fa" onclick="verificar2FA()" ' +
     'style="width:100%;padding:13px;background:linear-gradient(135deg,#2563eb,#1d4ed8);border:none;border-radius:10px;color:white;font-size:15px;font-weight:700;cursor:pointer;font-family:sans-serif">Verificar</button>' +
-    '<div style="margin-top:16px;font-size:10px;color:rgba(255,255,255,0.3)">El PIN cambia cada 24 horas · La verificacion dura 30 dias</div>' +
+    '<div style="margin-top:16px;font-size:10px;color:rgba(255,255,255,0.3)">Token de un solo uso · La autorizacion dura 60 dias</div>' +
     '</div>';
 
   document.body.appendChild(overlay);
@@ -2739,9 +2776,35 @@ async function verificar2FA() {
   btn.textContent = 'Verificando...';
   btn.disabled = true;
 
-  var pinCorrecto = await generarPINDelDia();
+  // Buscar el PIN emitido por el admin en Supabase
+  var pinValido = false;
+  try {
+    // Intentar validar contra los PINs pendientes en Supabase
+    var res = await db.from('dispositivos_auth')
+      .select('*')
+      .like('fingerprint', 'pending_%')
+      .eq('pin_token', pinIngresado)
+      .eq('pin_usado', false)
+      .gt('pin_expiry', new Date().toISOString())
+      .maybeSingle();
+    if (res.data && !res.error) {
+      pinValido = true;
+      // Marcar el token como usado
+      await db.from('dispositivos_auth').update({ pin_usado: true }).eq('fingerprint', res.data.fingerprint);
+    }
+  } catch(e) {
+    // Fallback: validar contra sessionStorage si estamos en el mismo browser
+    try {
+      var pinData = JSON.parse(sessionStorage.getItem('ivc_pin_emitido') || 'null');
+      if (pinData && !pinData.usado && pinData.expiry > Date.now() && pinData.pin === pinIngresado) {
+        pinValido = true;
+        pinData.usado = true;
+        sessionStorage.setItem('ivc_pin_emitido', JSON.stringify(pinData));
+      }
+    } catch(e2) {}
+  }
 
-  if (pinIngresado === pinCorrecto) {
+  if (pinValido) {
     // Autorizar dispositivo
     var puesto = window._2fa_puesto || '';
     await autorizarDispositivo(puesto);
@@ -2755,7 +2818,7 @@ async function verificar2FA() {
   } else {
     inp.value = '';
     msg.style.color = '#f87171';
-    msg.textContent = 'PIN incorrecto. Intenta nuevamente.';
+    msg.textContent = 'PIN incorrecto, ya usado o expirado. Pedile uno nuevo al Administrador.';
     btn.textContent = 'Verificar';
     btn.disabled = false;
     inp.focus();
@@ -3175,7 +3238,7 @@ const ahora = () => new Date().toLocaleTimeString('es-AR',{hour:'2-digit',minute
 const ahoraFull = () => new Date().toLocaleTimeString('es-AR');
 const hoy = () => new Date().toLocaleDateString('es-AR',{weekday:'long',day:'numeric',month:'long'});
 const initials = n => n.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase();
-const filtro = () => (USER && USER.rol !== 'TODOS') ? USER.puesto : null;
+const filtro = () => (USER && USER.rol !== 'TODOS' && USER.rol !== 'ADMIN') ? USER.puesto : null;
 function toast(msg, type='ok') {
 const t = $('toast');
 t.textContent = msg; t.className = `toast ${type} show`;
