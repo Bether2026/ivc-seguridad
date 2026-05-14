@@ -1259,7 +1259,7 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
       </div>
       <div class="stat-grid">
         <div class="stat-card" style="cursor:pointer" onclick="goView('fichaje')"><div class="stat-lbl">Fichados</div><div class="stat-val c-green" id="d-fich">—</div><div class="stat-sub">activos ahora</div></div>
-        <div class="stat-card" style="cursor:pointer" onclick="goView('novedades')"><div class="stat-lbl">Pendientes</div><div class="stat-val c-yellow" id="d-pend">—</div><div class="stat-sub">casos abiertos</div></div>
+        <div class="stat-card" style="cursor:pointer" onclick="goView('objetivos')"><div class="stat-lbl">Recorridos</div><div class="stat-val c-purple" id="d-pend">—</div><div class="stat-sub">activos ahora</div></div>
         <div class="stat-card" style="cursor:pointer" onclick="goView('novedades')"><div class="stat-lbl">Novedades</div><div class="stat-val c-blue" id="d-nov">—</div><div class="stat-sub">registradas hoy</div></div>
         <div class="stat-card" style="cursor:pointer" onclick="goView('objetivos')"><div class="stat-lbl">C. Objetivo</div><div class="stat-val c-purple" id="d-obj">—</div><div class="stat-sub">en curso</div></div>
       </div>
@@ -1342,7 +1342,6 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
       </div>
       <div class="tabs">
         <button class="tab active" onclick="novTab('todas',this)">Todas</button>
-        <button class="tab" onclick="novTab('pendientes',this)">⚠ Pendientes</button>
       </div>
       <div id="nov-list"></div>
     </div>
@@ -1416,16 +1415,12 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
         <div id="stat-nov-tipo"></div>
       </div>
       <div class="card">
-        <div class="card-head"><span class="card-lbl">Fichajes por puesto</span></div>
-        <div id="stat-fich-puesto"></div>
+        <div class="card-head"><span class="card-lbl">📋 Licencias activas en el período</span></div>
+        <div id="stat-licencias"></div>
       </div>
       <div class="card" id="stat-actividad-card">
         <div class="card-head"><span class="card-lbl">Actividad reciente</span></div>
         <div id="stat-actividad"></div>
-      </div>
-      <div class="card">
-        <div class="card-head"><span class="card-lbl">Casos pendientes por puesto</span></div>
-        <div id="stat-pendientes"></div>
       </div>
     </div>
     <!-- LLAVES -->
@@ -1517,6 +1512,22 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
         </div>
         <div id="admin-pin-display" style="font-size:12px;color:var(--text3);padding:4px 0">
           Tocá "Generar Token" para crear un PIN de un solo uso. Es único por dispositivo y expira en 15 minutos. La autorización dura 60 días.
+        </div>
+      </div>
+      <!-- CONTROL DE PERMISOS POR USUARIO -->
+      <div class="card" style="border-left:4px solid var(--purple);margin-bottom:14px">
+        <div class="card-head">
+          <span class="card-lbl">🔑 Control de permisos por usuario</span>
+          <div style="display:flex;gap:6px">
+            <button onclick="loadPermisosAdmin()" style="font-size:11px;padding:5px 12px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--accent3);font-family:var(--font);font-weight:700;cursor:pointer">Cargar</button>
+            <button onclick="resetPermisos()" style="font-size:11px;padding:5px 10px;border-radius:6px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.08);color:#f87171;font-family:var(--font);font-weight:700;cursor:pointer">Reset</button>
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:10px;line-height:1.5">
+          Activá o desactivá las secciones que puede ver cada usuario. Los cambios se guardan automáticamente.
+        </div>
+        <div id="permisos-tabla">
+          <div style="font-size:12px;color:var(--text3);padding:8px 0">Tocá "Actualizar" para cargar los permisos</div>
         </div>
       </div>
       <div class="stat-grid" id="admin-stats" style="margin-bottom:16px"></div>
@@ -2555,7 +2566,7 @@ function renderNovedadesAgrupadas(list) {
 
 function renderNovCard(n) {
   var bc = TIPO_BADGE[n.tipo] || 'b-gray';
-  var borderColor = n.relevancia==='Urgente' ? 'var(--red)' : n.relevancia==='Alta' ? 'var(--yellow)' : n.pendiente ? 'var(--yellow)' : 'var(--border)';
+  var borderColor = n.relevancia==='Urgente' ? 'var(--red)' : n.relevancia==='Alta' ? 'var(--yellow)' : 'var(--border)';
   var hora = formatTs(n.created_at);
   var ubic = n.ubicacion || n.puesto || '';
 
@@ -2566,7 +2577,7 @@ function renderNovCard(n) {
   h += '<div style="flex:1;min-width:0">';
   h += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">';
   h += '<span class="badge '+bc+'">'+(n.tipo||'Otro')+'</span>';
-  if (n.pendiente) h += '<span class="badge b-yellow">PENDIENTE</span>';
+  
   if (n.relevancia==='Urgente') h += '<span class="badge b-red">URGENTE</span>';
   if (n.relevancia==='Alta') h += '<span class="badge b-yellow">ALTA</span>';
   if (n.actualizaciones && n.actualizaciones.length) {
@@ -3430,8 +3441,8 @@ const isAdminUser = ['Administración','Administrador','Gerencia','Jefe de depar
 if (isAdminUser && $('tab-licencias')) $('tab-licencias').style.display = 'block';
 if (isAdminUser && $('f-puesto-wrap')) $('f-puesto-wrap').style.display = 'block';
 if (USER.rol === 'ADMIN') {
-$('nb-admin').style.display = 'flex';
-$('si-admin') && ($('si-admin').style.display = 'flex');
+document.getElementById('nb-admin').style.display = 'flex';
+var siAdm = document.getElementById('si-admin'); if(siAdm) siAdm.style.display = 'flex';
 }
 // Admin sees all sections like TODOS
 if (USER.rol === 'ADMIN' || USER.rol === 'TODOS') {
@@ -3446,6 +3457,8 @@ if (USER.rol === 'ADMIN' || USER.rol === 'TODOS') {
 loadAll();
 loadNoticias();
 suscribirNotifNovedades();
+// Aplicar permisos configurados por el Administrador
+if (USER.rol !== 'ADMIN') { setTimeout(function(){ aplicarPermisosAlLogin(); }, 100); }
 db.channel('realtime-all')
 .on('postgres_changes', { event: '*', schema: 'public', table: 'fichajes' }, () => { loadFichajes(); loadDash(); })
 .on('postgres_changes', { event: '*', schema: 'public', table: 'novedades' }, () => { loadNovedades(); loadDash(); })
@@ -3516,7 +3529,7 @@ async function mostrarDetallePuesto(puesto) {
       var nv = novs[ni];
       var bc = TIPO_BADGE[nv.tipo] || 'b-gray';
       h += '<div style="padding:8px 10px;background:var(--bg3);border-radius:8px;margin-bottom:6px;border-left:3px solid ' + (nv.pendiente ? 'var(--yellow)' : 'var(--border2)') + '">';
-      h += '<div style="display:flex;gap:4px;margin-bottom:4px"><span class="badge ' + bc + '">' + (nv.tipo||'Otro') + '</span>' + (nv.pendiente ? '<span class="badge b-yellow">PENDIENTE</span>' : '') + '</div>';
+      h += '<div style="display:flex;gap:4px;margin-bottom:4px"><span class="badge ' + bc + '">' + (nv.tipo||'Otro') + '</span>' + '' + '</div>';
       h += '<div style="font-size:13px;font-weight:700">' + (nv.asunto||'Sin título') + '</div>';
       h += '<div style="font-size:11px;color:var(--text3);margin-top:2px">' + formatTs(nv.created_at) + '</div>';
       h += '</div>';
@@ -3757,8 +3770,8 @@ var hoyFin = hoyIso + 'T23:59:59.999Z';
 let qFich = db.from('fichajes').select('*').eq('activo', true);
 // Novedades de HOY solamente para el contador
 let qNovHoy = db.from('novedades').select('*').gte('created_at', hoyInicio).lte('created_at', hoyFin);
-// Novedades pendientes (todas, para alertas)
-let qPend = db.from('novedades').select('*').eq('pendiente', true);
+// Novedades pendientes (todas, para alertas) — usamos para badge nav
+let qPend = db.from('novedades').select('id,puesto').eq('pendiente', true);
 // Objetivos activos
 let qObj = db.from('objetivos').select('*').eq('estado','activo');
 // Últimas novedades del día
@@ -3792,7 +3805,7 @@ const ults = ultRes.data || [];
 
 // Contadores principales
 document.getElementById('d-fich').textContent = fichs.length;
-document.getElementById('d-pend').textContent = pends.length;
+document.getElementById('d-pend').textContent = objs.length;  // recorridos activos
 document.getElementById('d-nov').textContent = novsHoy.length;   // SOLO HOY
 document.getElementById('d-obj').textContent = objs.length;
 
@@ -3866,7 +3879,7 @@ if (!ults.length) {
     uhtml += '<div style="flex:1;min-width:0">';
     uhtml += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px">';
     uhtml += '<span class="badge ' + bc + '">' + (un.tipo||'Otro') + '</span>';
-    if (un.pendiente) uhtml += '<span class="badge b-yellow">PENDIENTE</span>';
+    
     uhtml += '</div>';
     uhtml += '<div style="font-size:13px;font-weight:700;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (un.asunto||'Sin título') + '</div>';
     uhtml += '<div style="font-size:11px;color:var(--text3);margin-top:2px">' + hora + ' · ' + (un.puesto||'') + '</div>';
@@ -4312,83 +4325,276 @@ function periodLabel(period) {
 return {dia:'hoy', semana:'esta semana', mes:'este mes', anio:'este año'}[period];
 }
 async function loadStats(period) {
-const { from, to } = getDateRange(period);
-const [fichRes, novRes, objRes, rutRes] = await Promise.all([
-db.from('fichajes').select('*'),
-db.from('novedades').select('*'),
-db.from('objetivos').select('*'),
-db.from('rutas').select('*'),
-]);
-const fichs = fichRes.data || [];
-const novs  = novRes.data  || [];
-const objs  = objRes.data  || [];
-const rutas = rutRes.data  || [];
-const pends = novs.filter(n => n.pendiente);
-const label = periodLabel(period);
-$('stat-kpis').innerHTML = `
-<div class="stat-card"><div class="stat-lbl">Fichajes</div><div class="stat-val c-green">${fichs.length}</div><div class="stat-sub">${label}</div></div>
-<div class="stat-card"><div class="stat-lbl">Novedades</div><div class="stat-val c-blue">${novs.length}</div><div class="stat-sub">${label}</div></div>
-<div class="stat-card"><div class="stat-lbl">Pendientes</div><div class="stat-val c-yellow">${pends.length}</div><div class="stat-sub">${label}</div></div>
-<div class="stat-card"><div class="stat-lbl">Recorridos</div><div class="stat-val c-purple">${objs.length}</div><div class="stat-sub">${label}</div></div>
-`;
-const tipoMap = {};
-novs.forEach(n => { tipoMap[n.tipo||'Otro'] = (tipoMap[n.tipo||'Otro']||0)+1; });
-const tipoSorted = Object.entries(tipoMap).sort((a,b)=>b[1]-a[1]);
-const maxTipo = (tipoSorted[0] && tipoSorted[0][1]) ? tipoSorted[0][1] : 1;
-const tipoColors = ['var(--accent2)','var(--red)','var(--yellow)','var(--purple)','var(--green)','var(--text3)'];
-$('stat-nov-tipo').innerHTML = tipoSorted.length ? tipoSorted.map(([tipo,n],i) => `
-<div class="puesto-row">
-<span class="puesto-name">${tipo}</span>
-<div class="puesto-bar-bg" style="width:90px"><div class="puesto-bar-fill" style="width:${Math.round(n/maxTipo*100)}%;background:${tipoColors[i%tipoColors.length]}"></div></div>
-<span class="puesto-n">${n}</span>
-</div>`).join('') : '<div style="font-size:12px;color:var(--text3);padding:8px 0">Sin novedades en este período</div>';
-const puestoMap = {};
-fichs.forEach(f => { puestoMap[f.puesto] = (puestoMap[f.puesto]||0)+1; });
-const puestoSorted = Object.entries(puestoMap).sort((a,b)=>b[1]-a[1]);
-const maxPuesto = (puestoSorted[0] && puestoSorted[0][1]) ? puestoSorted[0][1] : 1;
-const puestoColors = ['var(--green)','var(--accent2)','var(--purple)','var(--yellow)','var(--red)','var(--text3)'];
-$('stat-fich-puesto').innerHTML = puestoSorted.length ? puestoSorted.map(([puesto,n],i) => `
-<div class="puesto-row">
-<span class="puesto-name">${puesto}</span>
-<div class="puesto-bar-bg" style="width:90px"><div class="puesto-bar-fill" style="width:${Math.round(n/maxPuesto*100)}%;background:${puestoColors[i%puestoColors.length]}"></div></div>
-<span class="puesto-n">${n}</span>
-</div>`).join('') : '<div style="font-size:12px;color:var(--text3);padding:8px 0">Sin fichajes en este período</div>';
-const pendMap = {};
-pends.forEach(n => { pendMap[n.puesto] = (pendMap[n.puesto]||0)+1; });
-const pendSorted = Object.entries(pendMap).sort((a,b)=>b[1]-a[1]);
-const maxPend = (pendSorted[0] && pendSorted[0][1]) ? pendSorted[0][1] : 1;
-$('stat-pendientes').innerHTML = pendSorted.length ? pendSorted.map(([puesto,n]) => `
-<div class="puesto-row">
-<span class="puesto-name">${puesto}</span>
-<div class="puesto-bar-bg" style="width:90px"><div class="puesto-bar-fill" style="width:${Math.round(n/maxPend*100)}%;background:var(--yellow)"></div></div>
-<span class="puesto-n">${n}</span>
-</div>`).join('') : '<div style="font-size:12px;color:var(--text3);padding:8px 0">Sin casos pendientes en este período</div>';
-if (period !== 'dia') {
-const days = period === 'semana' ? 7 : period === 'mes' ? 30 : 12;
-const unit = period === 'anio' ? 'mes' : 'día';
-const actMap = {};
-novs.forEach(n => {
-const d = new Date(n.created_at);
-const key = period === 'anio'
-? d.toLocaleDateString('es-AR',{month:'short'})
-: d.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit'});
-actMap[key] = (actMap[key]||0)+1;
-});
-const actEntries = Object.entries(actMap).slice(-10);
-const maxAct = Math.max(...actEntries.map(e=>e[1]), 1);
-$('stat-actividad').innerHTML = actEntries.length ? `
-<div style="display:flex;align-items:flex-end;gap:6px;height:80px;padding-bottom:4px">
-${actEntries.map(([d,n]) => `
-<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">
-<div style="font-size:9px;color:var(--text3)">${n}</div>
-<div style="width:100%;background:var(--accent2);border-radius:3px 3px 0 0;height:${Math.round(n/maxAct*60)+4}px;opacity:.8"></div>
-<div style="font-size:8px;color:var(--text3);text-align:center;white-space:nowrap">${d}</div>
-</div>`).join('')}
-</div>` : '<div style="font-size:12px;color:var(--text3);padding:8px 0">Sin datos suficientes</div>';
-$('stat-actividad-card').style.display = 'block';
-} else {
-$('stat-actividad-card').style.display = 'none';
+var range = getDateRange(period);
+var from = range.from;
+var to = range.to;
+var label = periodLabel(period);
+
+// Queries CON filtro de fecha real
+var novQ = db.from('novedades').select('*').gte('created_at', from).lte('created_at', to);
+var objQ = db.from('objetivos').select('*').gte('created_at', from).lte('created_at', to);
+var licQ = db.from('fichajes').select('*').eq('activo', false).gte('entrada', from).lte('salida', to); // historial fichajes no activos
+
+// Licencias del período (tabla fichajes no existe para licencias, usamos tabla licencias si existe)
+var licRealQ = db.from('licencias').select('*').gte('created_at', from).lte('created_at', to);
+
+var f = filtro();
+if (f) {
+  novQ = novQ.eq('puesto', f);
+  objQ = objQ.eq('puesto', f);
 }
+
+var novRes, objRes, licRes;
+try {
+  var results = await Promise.all([novQ, objQ, licRealQ]);
+  novRes = results[0];
+  objRes = results[1];
+  licRes = results[2];
+} catch(e) {
+  novRes = await novQ;
+  objRes = await objQ;
+  licRes = {data: [], error: null};
+}
+
+var novs = novRes.data || [];
+var objs = objRes.data || [];
+var lics = licRes.data || [];
+
+// KPIs
+var kpisEl = document.getElementById('stat-kpis');
+if (kpisEl) {
+  kpisEl.innerHTML =
+    '<div class="stat-card"><div class="stat-lbl">Novedades</div><div class="stat-val c-blue">' + novs.length + '</div><div class="stat-sub">' + label + '</div></div>' +
+    '<div class="stat-card"><div class="stat-lbl">C. Objetivo</div><div class="stat-val c-purple">' + objs.length + '</div><div class="stat-sub">' + label + '</div></div>' +
+    '<div class="stat-card"><div class="stat-lbl">Licencias</div><div class="stat-val c-yellow">' + lics.length + '</div><div class="stat-sub">' + label + '</div></div>';
+}
+
+// Novedades por tipo
+var tipoMap = {};
+for (var ni=0; ni<novs.length; ni++) {
+  var t = novs[ni].tipo || 'Otro';
+  tipoMap[t] = (tipoMap[t] || 0) + 1;
+}
+var tipoSorted = Object.entries(tipoMap).sort(function(a,b){return b[1]-a[1];});
+var maxTipo = tipoSorted.length ? tipoSorted[0][1] : 1;
+var tipoColors = ['var(--accent2)','var(--red)','var(--yellow)','var(--purple)','var(--green)','var(--text3)'];
+var tipoEl = document.getElementById('stat-nov-tipo');
+if (tipoEl) {
+  if (!tipoSorted.length) {
+    tipoEl.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0">Sin novedades en este período</div>';
+  } else {
+    var thtml = '';
+    for (var ti=0; ti<tipoSorted.length; ti++) {
+      var tn = tipoSorted[ti][0];
+      var tv = tipoSorted[ti][1];
+      thtml += '<div class="puesto-row">';
+      thtml += '<span class="puesto-name">' + tn + '</span>';
+      thtml += '<div class="puesto-bar-bg" style="width:90px"><div class="puesto-bar-fill" style="width:'+Math.round(tv/maxTipo*100)+'%;background:'+tipoColors[ti%tipoColors.length]+'"></div></div>';
+      thtml += '<span class="puesto-n">' + tv + '</span></div>';
+    }
+    tipoEl.innerHTML = thtml;
+  }
+}
+
+// Licencias activas en el período
+var licEl = document.getElementById('stat-licencias');
+if (licEl) {
+  if (!lics.length) {
+    licEl.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0">Sin licencias registradas en este período</div>';
+  } else {
+    // Agrupar por tipo
+    var licTipoMap = {};
+    var licPuestoMap = {};
+    for (var li=0; li<lics.length; li++) {
+      var lc = lics[li];
+      var lt = lc.tipo || lc.tipo_licencia || 'Sin tipo';
+      var lp = lc.puesto || lc.agente || '—';
+      licTipoMap[lt] = (licTipoMap[lt] || 0) + 1;
+      licPuestoMap[lp] = (licPuestoMap[lp] || 0) + 1;
+    }
+    var lhtml = '<div style="margin-bottom:12px">';
+    lhtml += '<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Por tipo</div>';
+    var licTipoArr = Object.entries(licTipoMap).sort(function(a,b){return b[1]-a[1];});
+    var maxLT = licTipoArr.length ? licTipoArr[0][1] : 1;
+    for (var lti=0; lti<licTipoArr.length; lti++) {
+      lhtml += '<div class="puesto-row">';
+      lhtml += '<span class="puesto-name">' + licTipoArr[lti][0] + '</span>';
+      lhtml += '<div class="puesto-bar-bg" style="width:90px"><div class="puesto-bar-fill" style="width:'+Math.round(licTipoArr[lti][1]/maxLT*100)+'%;background:var(--yellow)"></div></div>';
+      lhtml += '<span class="puesto-n">' + licTipoArr[lti][1] + '</span></div>';
+    }
+    lhtml += '</div>';
+    lhtml += '<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Por puesto</div>';
+    var licPuestoArr = Object.entries(licPuestoMap).sort(function(a,b){return b[1]-a[1];});
+    var maxLP = licPuestoArr.length ? licPuestoArr[0][1] : 1;
+    for (var lpi=0; lpi<licPuestoArr.length; lpi++) {
+      lhtml += '<div class="puesto-row">';
+      lhtml += '<span class="puesto-name">' + licPuestoArr[lpi][0] + '</span>';
+      lhtml += '<div class="puesto-bar-bg" style="width:90px"><div class="puesto-bar-fill" style="width:'+Math.round(licPuestoArr[lpi][1]/maxLP*100)+'%;background:var(--purple)"></div></div>';
+      lhtml += '<span class="puesto-n">' + licPuestoArr[lpi][1] + '</span></div>';
+    }
+    licEl.innerHTML = lhtml;
+  }
+}
+
+// Actividad por fecha (solo semana/mes/año)
+var actEl = document.getElementById('stat-actividad');
+var actCard = document.getElementById('stat-actividad-card');
+if (period !== 'dia') {
+  var actMap = {};
+  for (var ai=0; ai<novs.length; ai++) {
+    var ad = new Date(novs[ai].created_at);
+    var akey = period === 'anio'
+      ? ad.toLocaleDateString('es-AR',{month:'short'})
+      : ad.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit'});
+    actMap[akey] = (actMap[akey] || 0) + 1;
+  }
+  var actEntries = Object.entries(actMap).slice(-10);
+  var maxAct = 1;
+  for (var aei=0; aei<actEntries.length; aei++) { if(actEntries[aei][1]>maxAct) maxAct=actEntries[aei][1]; }
+  if (actEl) {
+    if (!actEntries.length) {
+      actEl.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0">Sin datos suficientes</div>';
+    } else {
+      var barHtml = '<div style="display:flex;align-items:flex-end;gap:6px;height:80px;padding-bottom:4px">';
+      for (var bi=0; bi<actEntries.length; bi++) {
+        var bk = actEntries[bi][0];
+        var bv = actEntries[bi][1];
+        barHtml += '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">';
+        barHtml += '<div style="font-size:9px;color:var(--text3)">' + bv + '</div>';
+        barHtml += '<div style="width:100%;background:var(--accent2);border-radius:3px 3px 0 0;height:' + (Math.round(bv/maxAct*60)+4) + 'px;opacity:.8"></div>';
+        barHtml += '<div style="font-size:8px;color:var(--text3);text-align:center;white-space:nowrap">' + bk + '</div>';
+        barHtml += '</div>';
+      }
+      barHtml += '</div>';
+      actEl.innerHTML = barHtml;
+    }
+  }
+  if (actCard) actCard.style.display = 'block';
+} else {
+  if (actCard) actCard.style.display = 'none';
+}
+}
+// ─── SISTEMA DE PERMISOS POR USUARIO ───
+// Secciones controlables (id nav, label legible)
+var SECCIONES_PERMISOS = [
+  {id:'fichaje',    label:'Fichaje'},
+  {id:'novedades',  label:'Novedades'},
+  {id:'objetivos',  label:'C. Objetivo'},
+  {id:'choferes',   label:'Choferes'},
+  {id:'llaves',     label:'Llaves'},
+  {id:'estadisticas',label:'Estadísticas'},
+  {id:'rrhh',       label:'RRHH'},
+  {id:'agenda',     label:'Agenda'},
+];
+
+// Usuarios operativos (puestos que tienen restricciones)
+var USUARIOS_OPERATIVOS = [
+  'Papa Francisco','Rodrigo Bueno','Fraga','Base Castañares',
+  'Obrador Savio','CAV','Necochea','Complejo Orma','Alvarado','Padre Mugica',
+  'Administración','Gerencia','Responsable de turno','Jefe de departamento','Emergencias'
+];
+
+// Permisos por defecto: todos los operativos ven Fichaje, Novedades, Objetivos, Choferes
+var DEFAULT_PERMISOS = {
+  'Papa Francisco':       {fichaje:1,novedades:1,objetivos:1,choferes:1,llaves:0,estadisticas:0,rrhh:0,agenda:0},
+  'Rodrigo Bueno':        {fichaje:1,novedades:1,objetivos:1,choferes:1,llaves:0,estadisticas:0,rrhh:0,agenda:0},
+  'Fraga':                {fichaje:1,novedades:1,objetivos:1,choferes:1,llaves:0,estadisticas:0,rrhh:0,agenda:0},
+  'Base Castañares':      {fichaje:1,novedades:1,objetivos:1,choferes:1,llaves:0,estadisticas:0,rrhh:0,agenda:0},
+  'Obrador Savio':        {fichaje:1,novedades:1,objetivos:1,choferes:1,llaves:0,estadisticas:0,rrhh:0,agenda:0},
+  'CAV':                  {fichaje:1,novedades:1,objetivos:1,choferes:1,llaves:0,estadisticas:0,rrhh:0,agenda:0},
+  'Necochea':             {fichaje:1,novedades:1,objetivos:1,choferes:1,llaves:0,estadisticas:0,rrhh:0,agenda:0},
+  'Complejo Orma':        {fichaje:1,novedades:1,objetivos:1,choferes:1,llaves:0,estadisticas:0,rrhh:0,agenda:0},
+  'Alvarado':             {fichaje:1,novedades:1,objetivos:1,choferes:1,llaves:0,estadisticas:0,rrhh:0,agenda:0},
+  'Padre Mugica':         {fichaje:1,novedades:1,objetivos:1,choferes:1,llaves:0,estadisticas:0,rrhh:0,agenda:0},
+  'Administración':       {fichaje:1,novedades:1,objetivos:1,choferes:1,llaves:1,estadisticas:1,rrhh:1,agenda:1},
+  'Gerencia':             {fichaje:1,novedades:1,objetivos:1,choferes:1,llaves:1,estadisticas:1,rrhh:0,agenda:1},
+  'Responsable de turno': {fichaje:1,novedades:1,objetivos:1,choferes:1,llaves:0,estadisticas:1,rrhh:0,agenda:1},
+  'Jefe de departamento': {fichaje:1,novedades:1,objetivos:1,choferes:1,llaves:0,estadisticas:1,rrhh:1,agenda:1},
+  'Emergencias':          {fichaje:1,novedades:1,objetivos:1,choferes:1,llaves:0,estadisticas:0,rrhh:0,agenda:0},
+};
+
+function getPermisos() {
+  try {
+    var raw = localStorage.getItem('ivc_permisos_v2');
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return JSON.parse(JSON.stringify(DEFAULT_PERMISOS)); // copia profunda
+}
+
+function savePermisos(permisos) {
+  try { localStorage.setItem('ivc_permisos_v2', JSON.stringify(permisos)); } catch(e) {}
+}
+
+function getPermisosUsuario(puesto) {
+  var permisos = getPermisos();
+  return permisos[puesto] || DEFAULT_PERMISOS[puesto] || {};
+}
+
+function aplicarPermisosAlLogin() {
+  if (!USER) return;
+  // Administrador: ve todo, no aplicar restricciones
+  if (USER.rol === 'ADMIN') return;
+  var perms = getPermisosUsuario(USER.puesto);
+  SECCIONES_PERMISOS.forEach(function(sec) {
+    var nb = document.getElementById('nb-' + sec.id);
+    var si = document.getElementById('si-' + sec.id);
+    var visible = perms[sec.id] ? true : false;
+    if (nb) nb.style.display = visible ? 'flex' : 'none';
+    if (si) si.style.display = visible ? 'flex' : 'none';
+  });
+}
+
+function loadPermisosAdmin() {
+  var permisos = getPermisos();
+  var cont = document.getElementById('permisos-tabla');
+  if (!cont) return;
+
+  var headers = '<div style="display:grid;grid-template-columns:140px repeat(' + SECCIONES_PERMISOS.length + ',1fr);gap:4px;margin-bottom:8px;align-items:center">';
+  headers += '<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Usuario</div>';
+  SECCIONES_PERMISOS.forEach(function(s) {
+    headers += '<div style="font-size:9px;font-weight:700;color:var(--text3);text-align:center;line-height:1.2;transform:none">' + s.label + '</div>';
+  });
+  headers += '</div>';
+
+  var rows = '';
+  USUARIOS_OPERATIVOS.forEach(function(usuario) {
+    var up = permisos[usuario] || DEFAULT_PERMISOS[usuario] || {};
+    rows += '<div style="display:grid;grid-template-columns:140px repeat(' + SECCIONES_PERMISOS.length + ',1fr);gap:4px;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)">';
+    rows += '<div style="font-size:11px;font-weight:600;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + usuario + '</div>';
+    SECCIONES_PERMISOS.forEach(function(sec) {
+      var checked = up[sec.id] ? 'checked' : '';
+      var uid = 'perm-' + usuario.replace(/\s/g,'_').replace(/[^a-zA-Z0-9_]/g,'') + '-' + sec.id;
+      rows += '<div style="display:flex;justify-content:center">';
+      rows += '<input type="checkbox" id="' + uid + '" ' + checked + ' style="width:18px;height:18px;accent-color:var(--accent2);cursor:pointer" ';
+      rows += 'onchange="togglePermiso(\'' + usuario.replace(/'/g,"\\'") + '\',\'' + sec.id + '\',this.checked)">';
+      rows += '</div>';
+    });
+    rows += '</div>';
+  });
+
+  cont.innerHTML =
+    '<div style="overflow-x:auto;-webkit-overflow-scrolling:touch">' +
+    '<div style="min-width:500px">' + headers + rows + '</div>' +
+    '</div>' +
+    '<div style="margin-top:10px;padding:8px 10px;background:rgba(37,99,235,0.08);border-radius:8px;border:1px solid rgba(37,99,235,0.2)">' +
+    '<div style="font-size:10px;color:var(--text3)">✅ Los cambios se guardan automáticamente. El usuario debe cerrar sesión y volver a entrar para que los cambios tengan efecto.</div>' +
+    '</div>';
+}
+
+function togglePermiso(usuario, seccion, valor) {
+  var permisos = getPermisos();
+  if (!permisos[usuario]) {
+    permisos[usuario] = DEFAULT_PERMISOS[usuario] ? JSON.parse(JSON.stringify(DEFAULT_PERMISOS[usuario])) : {};
+  }
+  permisos[usuario][seccion] = valor ? 1 : 0;
+  savePermisos(permisos);
+  toast('Permiso actualizado — ' + usuario);
+}
+
+function resetPermisos() {
+  localStorage.removeItem('ivc_permisos_v2');
+  loadPermisosAdmin();
+  toast('Permisos restablecidos a valores por defecto');
 }
 async function loadBitacora() {
 try {
@@ -5536,7 +5742,7 @@ function renderNovedadesList(list) {
   }
   var html = list.map(function(n) {
     var bc = TIPO_BADGE[n.tipo] || 'b-gray';
-    var pendBadge = n.pendiente ? '<span class="badge b-yellow">[!] PENDIENTE</span>' : '';
+    
     var urgBadge = n.relevancia==='Urgente' ? '<span class="badge b-red">URGENTE</span>' : '';
     var altaBadge = n.relevancia==='Alta' ? '<span class="badge b-yellow">ALTA</span>' : '';
     var casoBadge = n.caso ? '<span class="badge b-yellow" style="font-size:9px">CASO: '+n.caso+'</span>' : '';
@@ -5549,7 +5755,7 @@ function renderNovedadesList(list) {
       }
       fotosHtml += '</div>';
     }
-    return '<div class="nov-item ' + (n.pendiente?'pendiente':'') + '">' +
+    return '<div class="nov-item ' + ('') + '">' +
       '<div class="nov-badges"><span class="badge '+bc+'">'+(n.tipo||'Otro')+'</span>'+pendBadge+urgBadge+altaBadge+'</div>' +
       '<div class="nov-title">'+(n.asunto||'Sin titulo')+'</div>' +
       '<div class="nov-text">'+(n.detalle||'')+'</div>' +
