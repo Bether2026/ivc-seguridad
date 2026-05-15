@@ -1077,7 +1077,7 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
     <div class="form-group"><label class="form-label">Chofer</label>
       <select class="form-select" id="c-chofer"><option>ACOSTA PAMELA</option><option>ALVAREZ OZON NICOLAS MARCELO</option><option>ARROYO LAURA</option><option>CASTILLO ANGEL HERNAN</option><option>CONTE LUCAS EZEQUIEL</option><option>DEL COLLE DAMIAN EZEQUIEL</option><option>GIMENEZ GREGORIO</option><option>LUACES JONATHAN RICARDO</option></select>
     </div>
-    <div class="form-group"><label class="form-label">Móvil / Vehículo</label><input class="form-input" id="c-movil" placeholder="Ej: Patrol 01, Transit 03..."/></div>
+    <div class="form-group"><label class="form-label">Móvil / Vehículo</label><select class="form-select" id="c-movil"><option value="">— Seleccionar móvil —</option><option>S-10 · AA-909-LF</option><option>S-10 · AA-909-LD</option><option>Berlingo · MYH-863</option><option>S-10 vieja · EKT-637</option><option>Jumper · KWI-159</option></select></div>
     <div class="form-group"><label class="form-label">Destino</label><input class="form-input" id="c-dest" placeholder="Ej: Papa Francisco → Base Castañares"/></div>
     <div class="form-group"><label class="form-label">Observaciones</label><textarea class="form-textarea" id="c-obs" style="min-height:70px" placeholder="Detalle del servicio..."></textarea></div>
     <button class="btn-login" id="btn-save-chof" onclick="saveChof()">Iniciar Hoja de Ruta</button>
@@ -1091,7 +1091,7 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
     <div class="form-group"><label class="form-label">Chofer</label>
       <select class="form-select" id="comb-chofer"><option value="">— Seleccionar —</option><option>ACOSTA PAMELA</option><option>ALVAREZ OZON NICOLAS MARCELO</option><option>ARROYO LAURA</option><option>CASTILLO ANGEL HERNAN</option><option>CONTE LUCAS EZEQUIEL</option><option>DEL COLLE DAMIAN EZEQUIEL</option><option>GIMENEZ GREGORIO</option><option>LUACES JONATHAN RICARDO</option></select>
     </div>
-    <div class="form-group"><label class="form-label">Móvil / Vehículo</label><input class="form-input" id="comb-movil" placeholder="Ej: Patrol 01"/></div>
+    <div class="form-group"><label class="form-label">Móvil / Vehículo</label><select class="form-select" id="comb-movil"><option value="">— Seleccionar móvil —</option><option>S-10 · AA-909-LF</option><option>S-10 · AA-909-LD</option><option>Berlingo · MYH-863</option><option>S-10 vieja · EKT-637</option><option>Jumper · KWI-159</option></select></div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Litros</label><input class="form-input" type="number" step="0.1" id="comb-litros" placeholder="Litros"/></div>
       <div class="form-group"><label class="form-label">Importe ($)</label><input class="form-input" type="number" id="comb-importe" placeholder="Importe"/></div>
@@ -1115,7 +1115,7 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
     <div class="form-group"><label class="form-label">Chofer</label>
       <select class="form-select" id="inc-chofer"><option value="">— Seleccionar —</option><option>ACOSTA PAMELA</option><option>ALVAREZ OZON NICOLAS MARCELO</option><option>ARROYO LAURA</option><option>CONTE LUCAS EZEQUIEL</option><option>LUACES JONATHAN RICARDO</option></select>
     </div>
-    <div class="form-group"><label class="form-label">Móvil</label><input class="form-input" id="inc-movil" placeholder="Ej: Patrol 02"/></div>
+    <div class="form-group"><label class="form-label">Móvil</label><select class="form-select" id="inc-movil"><option value="">— Seleccionar móvil —</option><option>S-10 · AA-909-LF</option><option>S-10 · AA-909-LD</option><option>Berlingo · MYH-863</option><option>S-10 vieja · EKT-637</option><option>Jumper · KWI-159</option></select></div>
     <div class="form-group"><label class="form-label">Tipo de incidencia</label>
       <select class="form-select" id="inc-tipo"><option>Pinchazo / rueda</option><option>Desperfecto mecánico</option><option>Choque / colisión</option><option>Falla eléctrica</option><option>Otra</option></select>
     </div>
@@ -1135,7 +1135,7 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
 <div class="overlay" id="ov-taller">
   <div class="modal">
     <div class="modal-head"><span class="modal-title">🔧 Ingreso a Taller</span><button class="btn-close" onclick="closeOv('ov-taller')">×</button></div>
-    <div class="form-group"><label class="form-label">Móvil</label><input class="form-input" id="tal-movil" placeholder="Ej: Patrol 01"/></div>
+    <div class="form-group"><label class="form-label">Móvil</label><select class="form-select" id="tal-movil"><option value="">— Seleccionar móvil —</option><option>S-10 · AA-909-LF</option><option>S-10 · AA-909-LD</option><option>Berlingo · MYH-863</option><option>S-10 vieja · EKT-637</option><option>Jumper · KWI-159</option></select></div>
     <div class="form-group"><label class="form-label">Tipo</label>
       <select class="form-select" id="tal-tipo"><option>Service / Mantenimiento</option><option>Reparación mecánica</option><option>Reparación eléctrica</option><option>Carrocería / Pintura</option><option>Neumáticos</option><option>Otro</option></select>
     </div>
@@ -5572,14 +5572,16 @@ var LLAVES_TAB_ACTUAL = 'tablero';
 function llavesTab(tab, btn) {
   LLAVES_TAB_ACTUAL = tab;
   document.querySelectorAll('#view-llaves .tab').forEach(function(b) { b.classList.remove('active'); });
-  btn.classList.add('active');
-  document.getElementById('llaves-tab-tablero').style.display = tab === 'tablero' ? 'block' : 'none';
-  document.getElementById('llaves-tab-lista').style.display = tab === 'lista' ? 'block' : 'none';
-  document.getElementById('llaves-tab-movimientos').style.display = tab === 'movimientos' ? 'block' : 'none';
+  if (btn) btn.classList.add('active');
+  var t = document.getElementById('llaves-tab-tablero');
+  var l = document.getElementById('llaves-tab-lista');
+  var m = document.getElementById('llaves-tab-movimientos');
+  if (t) t.style.display = tab === 'tablero' ? 'block' : 'none';
+  if (l) l.style.display = tab === 'lista' ? 'block' : 'none';
+  if (m) m.style.display = tab === 'movimientos' ? 'block' : 'none';
   if (tab === 'movimientos') loadHistorialLlaves();
 }
 
-var LLAVES_CACHE = [];
 async function loadLlaves() {
   try {
     var result = await db.from('llaves').select('*').order('numero_tablero', {ascending: true});
