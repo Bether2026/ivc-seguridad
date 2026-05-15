@@ -1431,7 +1431,7 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
       </div>
 
       <div class="stat-grid" style="margin-bottom:14px">
-        <div class="stat-card"><div class="stat-lbl">Total</div><div class="stat-val c-blue" id="llaves-total">92</div><div class="stat-sub">llaves en tablero</div></div>
+        <div class="stat-card"><div class="stat-lbl">Total</div><div class="stat-val c-blue" id="llaves-total">—</div><div class="stat-sub">llaves con objetivo</div></div>
         <div class="stat-card"><div class="stat-lbl">En Obrador</div><div class="stat-val c-green" id="llaves-base">—</div><div class="stat-sub">colgadas en tablero</div></div>
         <div class="stat-card"><div class="stat-lbl">Retiradas</div><div class="stat-val c-yellow" id="llaves-prestadas">—</div><div class="stat-sub">fuera del tablero</div></div>
         <div class="stat-card"><div class="stat-lbl">Sin registrar</div><div class="stat-val c-purple" id="llaves-sa">—</div><div class="stat-sub">sin movimiento</div></div>
@@ -3131,11 +3131,7 @@ function renderFotoPreview() {
 const wrap = document.getElementById('foto-preview');
 const btnMas = document.getElementById('btn-mas-foto');
 if (!FOTOS_PENDIENTES.length) { wrap.innerHTML = ''; if(btnMas) btnMas.style.display='none'; return; }
-wrap.innerHTML = FOTOS_PENDIENTES.map((f,i) => `
-<div style="position:relative;width:80px;height:80px;border-radius:8px;overflow:hidden;border:1px solid var(--border2)">
-<img src="${URL.createObjectURL(f)}" style="width:100%;height:100%;object-fit:cover">
-<button onclick="removeFoto(${i})" style="position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;border:none;background:rgba(0,0,0,.7);color:white;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center">×</button>
-</div>`).join('');
+wrap.innerHTML = FOTOS_PENDIENTES.map((f,i) => '\n<div style="position:relative;width:80px;height:80px;border-radius:8px;overflow:hidden;border:1px solid var(--border2)">\n<img src="' + (URL.createObjectURL(f)) + '" style="width:100%;height:100%;object-fit:cover">\n<button onclick="removeFoto(' + (i) + ')" style="position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;border:none;background:rgba(0,0,0,.7);color:white;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center">×</button>\n</div>').join('');
 if(btnMas) btnMas.style.display='block';
 const dz = document.getElementById('foto-drop-zone');
 if(dz) { dz.querySelector('div').textContent = 'OK '+FOTOS_PENDIENTES.length+' foto(s) agregada(s)'; }
@@ -3447,7 +3443,7 @@ const initials = n => n.split(' ').slice(0,2).map(w=>w[0]).join('').toUpperCase(
 const filtro = () => (USER && USER.rol !== 'TODOS' && USER.rol !== 'ADMIN') ? USER.puesto : null;
 function toast(msg, type='ok') {
 const t = $('toast');
-t.textContent = msg; t.className = `toast ${type} show`;
+t.textContent = msg; t.className = 'toast ' + (type) + ' show';
 setTimeout(() => t.className = 'toast', 2800);
 }
 function showConfirm(icon, title, text, onYes, label='Confirmar', color='var(--accent)') {
@@ -4113,7 +4109,7 @@ pos => resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude, acc: Math.
 }
 async function getAddress(lat, lng) {
 try {
-const res = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&accept-language=es`);
+const res = await fetch('https://nominatim.openstreetmap.org/reverse?lat=' + (lat) + '&lon=' + (lng) + '&format=json&accept-language=es');
 const data = await res.json();
 const addr = data.address || {};
 const calle = addr.road || addr.pedestrian || addr.footway || '';
@@ -4139,12 +4135,12 @@ if (geoData) payload.geo_entrada = geoData;
 const { error } = await db.from('fichajes').insert(payload);
 setLoading('btn-entrada', false);
 if (error) { toast('Error al registrar: '+error.message,'err'); return; }
-toast(`OK Entrada registrada — ${SEL_AGENT}`);
+toast('OK Entrada registrada — ' + (SEL_AGENT));
 loadFichajes(); loadDash();
 }
 async function doSalida() {
 if (!SEL_AGENT) return;
-showConfirm('[Salir]','Confirmar salida',`¿Marcar la salida de ${SEL_AGENT}?`, async () => {
+showConfirm('[Salir]','Confirmar salida','¿Marcar la salida de ' + (SEL_AGENT) + '?', async () => {
 const geo = await getGeoSilent();
 const updates = { salida: new Date().toISOString(), activo: false };
 if (geo) {
@@ -4152,7 +4148,7 @@ const direccion = await getAddress(geo.lat, geo.lng);
 updates.geo_salida = { lat: geo.lat, lng: geo.lng, acc: geo.acc, direccion };
 }
 await db.from('fichajes').update(updates).eq('agente',SEL_AGENT).eq('activo',true);
-toast(`Salida registrada — ${SEL_AGENT}`);
+toast('Salida registrada — ' + (SEL_AGENT));
 loadFichajes(); loadDash();
 }, 'Marcar salida', 'var(--red)');
 }
@@ -4209,7 +4205,7 @@ await db.from('novedades').update({ fotos: urls }).eq('id', inserted.id);
 }
 setLoading('btn-save-nov', false);
 closeOv('ov-nov');
-toast('OK Novedad guardada' + (FOTOS_PENDIENTES.length ? ` con ${FOTOS_PENDIENTES.length} foto(s)` : ''));
+toast('OK Novedad guardada' + (FOTOS_PENDIENTES.length ? ' con ' + (FOTOS_PENDIENTES.length) + ' foto(s)' : ''));
 FOTOS_PENDIENTES = [];
 ['n-asunto','n-ubicacion','n-detalle','n-caso','n-agente'].forEach(id=>$(id).value='');
 $('n-pend').checked = false;
@@ -5591,8 +5587,14 @@ async function loadLlaves() {
     }
     LLAVES_CACHE = result.data || [];
 
-    // Counters: use DB data + fill gaps with "sin registrar"
-    var enObrador = 0, retiradas = 0, sinRegistrar = 0;
+    // Count named slots in the tablero (only numbered keys that have a description)
+    var totalConNombre = 0;
+    for (var n = 1; n <= 92; n++) {
+      if (LLAVES_DATA[n] && LLAVES_DATA[n].trim() !== '') totalConNombre++;
+    }
+
+    // Counters from DB
+    var enObrador = 0, retiradas = 0;
     var byNum = {};
     for (var i = 0; i < LLAVES_CACHE.length; i++) {
       var l = LLAVES_CACHE[i];
@@ -5600,8 +5602,8 @@ async function loadLlaves() {
       if (!l.estado_actual || l.estado_actual === 'base') enObrador++;
       else if (l.estado_actual === 'prestada') retiradas++;
     }
-    sinRegistrar = 92 - LLAVES_CACHE.length;
-    document.getElementById('llaves-total').textContent = 92;
+    var sinRegistrar = totalConNombre - LLAVES_CACHE.length;
+    document.getElementById('llaves-total').textContent = totalConNombre;
     document.getElementById('llaves-base').textContent = enObrador;
     document.getElementById('llaves-prestadas').textContent = retiradas;
     document.getElementById('llaves-sa').textContent = sinRegistrar > 0 ? sinRegistrar : 0;
