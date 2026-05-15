@@ -1427,26 +1427,46 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
     <div class="view" id="view-llaves">
       <div class="page-header">
         <h2>🔑 Control de Llaves</h2>
-        <p>Inventario y movimientos de llaves físicas</p>
+        <p>Tablero de llaves — Obrador Savio</p>
       </div>
 
       <div class="stat-grid" style="margin-bottom:14px">
-        <div class="stat-card"><div class="stat-lbl">Total</div><div class="stat-val c-blue" id="llaves-total">—</div><div class="stat-sub">llaves registradas</div></div>
-        <div class="stat-card"><div class="stat-lbl">En base</div><div class="stat-val c-green" id="llaves-base">—</div><div class="stat-sub">en su lugar</div></div>
-        <div class="stat-card"><div class="stat-lbl">Prestadas</div><div class="stat-val c-yellow" id="llaves-prestadas">—</div><div class="stat-sub">fuera de base</div></div>
-        <div class="stat-card"><div class="stat-lbl">Sin asignar</div><div class="stat-val c-purple" id="llaves-sa">—</div><div class="stat-sub">sin ubicación</div></div>
+        <div class="stat-card"><div class="stat-lbl">Total</div><div class="stat-val c-blue" id="llaves-total">92</div><div class="stat-sub">llaves en tablero</div></div>
+        <div class="stat-card"><div class="stat-lbl">En Obrador</div><div class="stat-val c-green" id="llaves-base">—</div><div class="stat-sub">colgadas en tablero</div></div>
+        <div class="stat-card"><div class="stat-lbl">Retiradas</div><div class="stat-val c-yellow" id="llaves-prestadas">—</div><div class="stat-sub">fuera del tablero</div></div>
+        <div class="stat-card"><div class="stat-lbl">Sin registrar</div><div class="stat-val c-purple" id="llaves-sa">—</div><div class="stat-sub">sin movimiento</div></div>
       </div>
 
-      <div style="display:flex;gap:8px;margin-bottom:12px">
-        <input type="text" id="llaves-search" class="form-input" placeholder="🔍 Buscar llave..." style="flex:1" oninput="filtrarLlaves()">
-        <select id="llaves-filtro" class="form-select" style="width:auto" onchange="filtrarLlaves()">
-          <option value="todas">Todas</option>
-          <option value="base">En base</option>
-          <option value="prestada">Prestadas</option>
-        </select>
+      <!-- Tabs: Tablero visual / Lista / Movimientos -->
+      <div class="tabs" style="margin-bottom:12px">
+        <button class="tab active" onclick="llavesTab('tablero',this)">🗂 Tablero</button>
+        <button class="tab" onclick="llavesTab('lista',this)">📋 Lista</button>
+        <button class="tab" onclick="llavesTab('movimientos',this)">📜 Historial</button>
       </div>
 
-      <div id="llaves-list"></div>
+      <!-- TABLERO VISUAL -->
+      <div id="llaves-tab-tablero">
+        <div style="font-size:11px;color:var(--text3);margin-bottom:10px">Tocá una llave para ver su estado y registrar un movimiento</div>
+        <div id="llaves-tablero-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(62px,1fr));gap:6px"></div>
+      </div>
+
+      <!-- LISTA -->
+      <div id="llaves-tab-lista" style="display:none">
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+          <input type="text" id="llaves-search" class="form-input" placeholder="🔍 Buscar por nro o nombre..." style="flex:1" oninput="filtrarLlaves()">
+          <select id="llaves-filtro" class="form-select" style="width:auto" onchange="filtrarLlaves()">
+            <option value="todas">Todas</option>
+            <option value="base">En Obrador</option>
+            <option value="prestada">Retiradas</option>
+          </select>
+        </div>
+        <div id="llaves-list"></div>
+      </div>
+
+      <!-- HISTORIAL MOVIMIENTOS -->
+      <div id="llaves-tab-movimientos" style="display:none">
+        <div id="llaves-historial-list"><div class="empty"><div class="icon">📜</div><p>Cargando historial...</p></div></div>
+      </div>
     </div>
 
         <!-- RRHH -->
@@ -1838,39 +1858,115 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
 <!-- MODAL NUEVA LLAVE -->
 <div class="overlay" id="ov-nueva-llave">
   <div class="modal">
-    <div class="modal-head"><span class="modal-title">🔑 Nueva Llave</span><button class="btn-close" onclick="closeOv('ov-nueva-llave')">×</button></div>
+    <div class="modal-head"><span class="modal-title">🔑 Registrar Llave</span><button class="btn-close" onclick="closeOv('ov-nueva-llave')">×</button></div>
 
     <div class="form-group">
-      <label class="form-label">Nombre / Identificación</label>
-      <input class="form-input" id="ll-nombre" placeholder="Ej: Llave portón Manzana 5"/>
-    </div>
-
-    <div class="form-group">
-      <label class="form-label">Código / Etiqueta (opcional)</label>
-      <input class="form-input" id="ll-codigo" placeholder="Ej: A-001 o número de etiqueta"/>
-    </div>
-
-    <div class="form-group">
-      <label class="form-label">Categoría</label>
-      <select class="form-select" id="ll-categoria">
-        <option>Portón / Acceso</option>
-        <option>Oficina</option>
-        <option>Depósito</option>
-        <option>Vehículo</option>
-        <option>Tablero eléctrico</option>
-        <option>Cerradura general</option>
-        <option>Otro</option>
+      <label class="form-label">Nro. de Tablero</label>
+      <select class="form-select" id="ll-numero" onchange="autocompletarLlave()">
+        <option value="">— Seleccionar número —</option>
+        <option value="1">1 — La Rosadita</option>
+        <option value="2">2 — Almirante Brown 1242/44/46</option>
+        <option value="3">3 — Almirante Brown 633 PB°A</option>
+        <option value="4">4 — Alte Brown 500 (Portón de acceso)</option>
+        <option value="5">5 — Bonorino y Riestra</option>
+        <option value="6">6 — Brandsen 106</option>
+        <option value="7">7</option>
+        <option value="8">8</option>
+        <option value="9">9</option>
+        <option value="10">10 — Corrales 2783</option>
+        <option value="11">11 — Depto. Piedra Buena</option>
+        <option value="12">12 — Espinosa</option>
+        <option value="13">13 — Fraga (Of. Seguridad)</option>
+        <option value="14">14 — Portón Fraga</option>
+        <option value="15">15 — Fraga, Casa S/N (Puerta blanca)</option>
+        <option value="16">16</option>
+        <option value="17">17 — Macias Local</option>
+        <option value="18">18 — Jujuy 2044</option>
+        <option value="19">19 — Trailer Ministerio</option>
+        <option value="20">20 — Lagos</option>
+        <option value="21">21 — Lautaro 1496</option>
+        <option value="22">22 — Rivera Indarte 1617</option>
+        <option value="23">23 — Baigorria</option>
+        <option value="24">24 — Papa Francisco (O. Green Of. 1 y 3)</option>
+        <option value="25">25 — Papa Francisco (Trailer) L.1 Portón 12C y 9B</option>
+        <option value="26">26 — Olavarría 240</option>
+        <option value="27">27 — Portal Lamadrid</option>
+        <option value="28">28 — Av. La Plata</option>
+        <option value="29">29 — Hubac 4744</option>
+        <option value="30">30 — Orma (Of. Seguridad, Local 1 al 3264)</option>
+        <option value="31">31 — Rodrigo Bueno (Playa de estacionamiento)</option>
+        <option value="32">32 — Solon Blindey "K"</option>
+        <option value="33">33 — Portal Osvaldo Cruz (Azul)</option>
+        <option value="34">34 — Suarez 1061</option>
+        <option value="35">35 — Alvarado (Local)</option>
+        <option value="36">36 — Valparaiso</option>
+        <option value="37">37 — Complejo Orma</option>
+        <option value="38">38 — Suarez 58</option>
+        <option value="39">39 — Cerri 1150 (Conventillo)</option>
+        <option value="40">40 — Beron de Astrada</option>
+        <option value="41">41 — Complejo Alvarado (Local)</option>
+        <option value="42">42 — Padre Mugica (Platea 4)</option>
+        <option value="43">43 — Estación Buenos Aires</option>
+        <option value="44">44 — Santa Elena (Demolida 01/03/2024)</option>
+        <option value="45">45 — Salvadores 829</option>
+        <option value="46">46 — Suarez 479</option>
+        <option value="47">47 — Necochea 878</option>
+        <option value="48">48 — Zañartu 1522, 6°F</option>
+        <option value="49">49 — Zañartu 1520, 6°F</option>
+        <option value="50">50 — B. Olimpico Edif. 26 (Jeanette Campbell 4491, 1°E)</option>
+        <option value="51">51 — Acoyte 595, Piso 9°</option>
+        <option value="52">52</option>
+        <option value="53">53</option>
+        <option value="54">54</option>
+        <option value="55">55</option>
+        <option value="56">56 — Barrio Olimpico Torre 8</option>
+        <option value="57">57 — Lisandro de la Torre 5471/75/77/79 11°E</option>
+        <option value="58">58</option>
+        <option value="59">59</option>
+        <option value="60">60 — Estación de Bombeo Carrillo</option>
+        <option value="61">61 — Av. La Plata 2253</option>
+        <option value="62">62</option>
+        <option value="63">63</option>
+        <option value="64">64</option>
+        <option value="65">65</option>
+        <option value="66">66</option>
+        <option value="67">67</option>
+        <option value="68">68</option>
+        <option value="69">69</option>
+        <option value="70">70 — Brandsen 660</option>
+        <option value="71">71 — Varela Container Amarillo</option>
+        <option value="72">72</option>
+        <option value="73">73</option>
+        <option value="74">74</option>
+        <option value="75">75</option>
+        <option value="76">76</option>
+        <option value="77">77</option>
+        <option value="78">78</option>
+        <option value="79">79</option>
+        <option value="80">80</option>
+        <option value="81">81</option>
+        <option value="82">82</option>
+        <option value="83">83</option>
+        <option value="84">84</option>
+        <option value="85">85</option>
+        <option value="86">86</option>
+        <option value="87">87</option>
+        <option value="88">88</option>
+        <option value="89">89</option>
+        <option value="90">90</option>
+        <option value="91">91</option>
+        <option value="92">92</option>
       </select>
     </div>
 
     <div class="form-group">
-      <label class="form-label">Ubicación habitual (donde debería estar)</label>
-      <input class="form-input" id="ll-ubicacion" value="Oficina administrativa - Obrador Savio" placeholder="Ej: Oficina administrativa - Obrador Savio"/>
+      <label class="form-label">Objetivo / Descripción</label>
+      <input class="form-input" id="ll-nombre" placeholder="Se completa automático al elegir número"/>
     </div>
 
     <div class="form-group">
       <label class="form-label">Observaciones (opcional)</label>
-      <textarea class="form-textarea" id="ll-obs" style="min-height:60px" placeholder="Detalle adicional de la llave..."></textarea>
+      <textarea class="form-textarea" id="ll-obs" style="min-height:56px" placeholder="Detalle adicional..."></textarea>
     </div>
 
     <button class="btn-login" id="btn-save-llave" onclick="saveLlave()">🔑 Registrar Llave</button>
@@ -1882,31 +1978,57 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
   <div class="modal">
     <div class="modal-head"><span class="modal-title">📋 Movimiento de Llave</span><button class="btn-close" onclick="closeOv('ov-mov-llave')">×</button></div>
 
+    <!-- Info de la llave seleccionada -->
     <div id="mov-llave-info" style="background:var(--bg3);border-radius:8px;padding:10px 12px;margin-bottom:12px"></div>
     <input type="hidden" id="mov-llave-id">
 
     <div class="form-group">
       <label class="form-label">Tipo de movimiento</label>
       <select class="form-select" id="mov-tipo" onchange="toggleMovFields()">
-        <option value="prestamo">📤 Prestar / Llevar</option>
-        <option value="devolucion">📥 Devolver a base</option>
+        <option value="prestamo">📤 Retirar del tablero</option>
+        <option value="devolucion">📥 Devolver al tablero</option>
         <option value="cambio">🔄 Cambiar ubicación</option>
       </select>
     </div>
 
-    <div class="form-group" id="mov-quien-wrap">
-      <label class="form-label">¿Quién la lleva?</label>
-      <input class="form-input" id="mov-quien" placeholder="Nombre de la persona o área"/>
-    </div>
+    <div id="mov-retiro-fields">
+      <div class="form-group">
+        <label class="form-label">¿Quién la retira?</label>
+        <input class="form-input" id="mov-quien" placeholder="Nombre del agente o responsable"/>
+      </div>
 
-    <div class="form-group" id="mov-donde-wrap">
-      <label class="form-label">¿A dónde va?</label>
-      <input class="form-input" id="mov-donde" placeholder="Ej: Papa Francisco, Base Castañares..."/>
+      <div class="form-group">
+        <label class="form-label">Destino</label>
+        <select class="form-select" id="mov-destino" onchange="toggleDestinoOtro()">
+          <option value="">— Seleccionar destino —</option>
+          <option value="Obrador Savio">Obrador Savio</option>
+          <option value="Base Castañares">Base Castañares</option>
+          <option value="Ministerio">Ministerio</option>
+          <option value="otro">Otro (especificar)</option>
+        </select>
+      </div>
+
+      <div class="form-group" id="mov-otro-wrap" style="display:none">
+        <label class="form-label">Especificar otro destino</label>
+        <input class="form-input" id="mov-destino-otro" placeholder="Ej: Jefatura, Contratista, etc."/>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Vehículo (si aplica)</label>
+        <select class="form-select" id="mov-vehiculo">
+          <option value="">— Sin vehículo / N/A —</option>
+          <option value="S-10 AA-909-LF">S-10 · AA-909-LF</option>
+          <option value="S-10 AA-909-LD">S-10 · AA-909-LD</option>
+          <option value="Berlingo MYH-863">Berlingo · MYH-863</option>
+          <option value="S-10 vieja EKT-637">S-10 vieja · EKT-637</option>
+          <option value="Jumper KWI-159">Jumper · KWI-159</option>
+        </select>
+      </div>
     </div>
 
     <div class="form-group">
       <label class="form-label">Motivo / Observación</label>
-      <textarea class="form-textarea" id="mov-motivo" style="min-height:60px" placeholder="¿Para qué se lleva?"></textarea>
+      <textarea class="form-textarea" id="mov-motivo" style="min-height:56px" placeholder="¿Para qué se lleva? Detalle adicional..."></textarea>
     </div>
 
     <button class="btn-login" id="btn-save-mov" onclick="saveMovimiento()">✓ Registrar Movimiento</button>
@@ -5418,152 +5540,376 @@ window.focus();
 n.close();
 };
 
+// ─── LLAVES ── TABLERO COMPLETO ───
+
+var LLAVES_DATA = {
+  1:'La Rosadita',2:'Almirante Brown 1242/44/46',3:'Almirante Brown 633 PB°A',
+  4:'Alte Brown 500 (Portón de acceso)',5:'Bonorino y Riestra',6:'Brandsen 106',
+  7:'',8:'',9:'',10:'Corrales 2783',11:'Depto. Piedra Buena',12:'Espinosa',
+  13:'Fraga (Of. Seguridad)',14:'Portón Fraga',15:'Fraga, Casa S/N (Puerta blanca)',
+  16:'',17:'Macias Local',18:'Jujuy 2044',19:'Trailer Ministerio',20:'Lagos',
+  21:'Lautaro 1496',22:'Rivera Indarte 1617',23:'Baigorria',
+  24:'Papa Francisco (O. Green Of. 1 y 3)',25:'Papa Francisco (Trailer) L.1 Portón 12C y 9B',
+  26:'Olavarría 240',27:'Portal Lamadrid',28:'Av. La Plata',29:'Hubac 4744',
+  30:'Orma (Of. Seguridad, Local 1 al 3264)',31:'Rodrigo Bueno (Playa de estacionamiento)',
+  32:'Solon Blindey "K"',33:'Portal Osvaldo Cruz (Azul)',34:'Suarez 1061',
+  35:'Alvarado (Local)',36:'Valparaiso',37:'Complejo Orma',38:'Suarez 58',
+  39:'Cerri 1150 (Conventillo)',40:'Beron de Astrada',41:'Complejo Alvarado (Local)',
+  42:'Padre Mugica (Platea 4)',43:'Estación Buenos Aires',44:'Santa Elena (Demolida 01/03/2024)',
+  45:'Salvadores 829',46:'Suarez 479',47:'Necochea 878',48:'Zañartu 1522, 6°F',
+  49:'Zañartu 1520, 6°F',50:'B. Olimpico Edif. 26 (Jeanette Campbell 4491, 1°E)',
+  51:'Acoyte 595, Piso 9°',52:'',53:'',54:'',55:'',56:'Barrio Olimpico Torre 8',
+  57:'Lisandro de la Torre 5471/75/77/79 11°E',58:'',59:'',60:'Estación de Bombeo Carrillo',
+  61:'Av. La Plata 2253',62:'',63:'',64:'',65:'',66:'',67:'',68:'',69:'',
+  70:'Brandsen 660',71:'Varela Container Amarillo',72:'',73:'',74:'',75:'',76:'',
+  77:'',78:'',79:'',80:'',81:'',82:'',83:'',84:'',85:'',86:'',87:'',88:'',89:'',
+  90:'',91:'',92:''
+};
+
+var LLAVES_CACHE = [];
+var LLAVES_TAB_ACTUAL = 'tablero';
+
+function llavesTab(tab, btn) {
+  LLAVES_TAB_ACTUAL = tab;
+  document.querySelectorAll('#view-llaves .tab').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  document.getElementById('llaves-tab-tablero').style.display = tab === 'tablero' ? 'block' : 'none';
+  document.getElementById('llaves-tab-lista').style.display = tab === 'lista' ? 'block' : 'none';
+  document.getElementById('llaves-tab-movimientos').style.display = tab === 'movimientos' ? 'block' : 'none';
+  if (tab === 'movimientos') loadHistorialLlaves();
+}
+
 var LLAVES_CACHE = [];
 async function loadLlaves() {
   try {
-    var result = await db.from('llaves').select('*').order('nombre',{ascending:true});
-    if (result.error) { document.getElementById('llaves-list').innerHTML = '<div class="empty"><p>Error: '+result.error.message+'</p></div>'; return; }
+    var result = await db.from('llaves').select('*').order('numero_tablero', {ascending: true});
+    if (result.error) {
+      document.getElementById('llaves-list').innerHTML = '<div class="empty"><p>Error: ' + result.error.message + '</p></div>';
+      return;
+    }
     LLAVES_CACHE = result.data || [];
-    var total = LLAVES_CACHE.length, prestadas = 0, enBase = 0, sinAsignar = 0;
-    for (var i=0; i<LLAVES_CACHE.length; i++) {
+
+    // Counters: use DB data + fill gaps with "sin registrar"
+    var enObrador = 0, retiradas = 0, sinRegistrar = 0;
+    var byNum = {};
+    for (var i = 0; i < LLAVES_CACHE.length; i++) {
       var l = LLAVES_CACHE[i];
-      if (!l.estado_actual || l.estado_actual === 'base') enBase++;
-      else if (l.estado_actual === 'prestada') prestadas++;
-      else sinAsignar++;
+      byNum[parseInt(l.numero_tablero)] = l;
+      if (!l.estado_actual || l.estado_actual === 'base') enObrador++;
+      else if (l.estado_actual === 'prestada') retiradas++;
     }
-    document.getElementById('llaves-total').textContent = total;
-    document.getElementById('llaves-base').textContent = enBase;
-    document.getElementById('llaves-prestadas').textContent = prestadas;
-    document.getElementById('llaves-sa').textContent = sinAsignar;
+    sinRegistrar = 92 - LLAVES_CACHE.length;
+    document.getElementById('llaves-total').textContent = 92;
+    document.getElementById('llaves-base').textContent = enObrador;
+    document.getElementById('llaves-prestadas').textContent = retiradas;
+    document.getElementById('llaves-sa').textContent = sinRegistrar > 0 ? sinRegistrar : 0;
+
+    renderTablero(byNum);
     filtrarLlaves();
-  } catch(e) { document.getElementById('llaves-list').innerHTML = '<div class="empty"><p>Error: '+e.message+'</p></div>'; }
-}
-function filtrarLlaves() {
-  var search = (document.getElementById('llaves-search').value || '').toLowerCase().trim();
-  var filtro = document.getElementById('llaves-filtro').value;
-  var listFiltered = LLAVES_CACHE.filter(function(l) {
-    if (filtro === 'base' && l.estado_actual !== 'base' && l.estado_actual) return false;
-    if (filtro === 'prestada' && l.estado_actual !== 'prestada') return false;
-    if (search) {
-      var hay = (l.nombre||'').toLowerCase().indexOf(search) !== -1 || (l.codigo||'').toLowerCase().indexOf(search) !== -1 || (l.categoria||'').toLowerCase().indexOf(search) !== -1 || (l.ubicacion_actual||'').toLowerCase().indexOf(search) !== -1;
-      if (!hay) return false;
-    }
-    return true;
-  });
-  if (!listFiltered.length) { document.getElementById('llaves-list').innerHTML = '<div class="empty"><p>Sin llaves para mostrar</p></div>'; return; }
-  var iconCat = {'Portón / Acceso':'🚪','Oficina':'🏢','Depósito':'📦','Vehículo':'🚗','Tablero eléctrico':'⚡','Cerradura general':'🔐','Otro':'🔑'};
-  var lhtml = '';
-  for (var i=0; i<listFiltered.length; i++) {
-    var l = listFiltered[i];
-    var icon = iconCat[l.categoria] || '🔑';
-    var prestada = l.estado_actual === 'prestada';
-    var ubicMostrar = prestada ? l.ubicacion_actual : (l.ubicacion_habitual || 'Sin ubicación');
-    var color = prestada ? 'var(--yellow)' : 'var(--green)';
-    var estadoTxt = prestada ? 'PRESTADA' : 'EN BASE';
-    var estadoClass = prestada ? 'b-yellow' : 'b-green';
-    lhtml += '<div class="card" style="border-left:3px solid '+color+';margin-bottom:8px"><div style="display:flex;align-items:flex-start;gap:10px">';
-    lhtml += '<div style="font-size:24px;flex-shrink:0">'+icon+'</div><div style="flex:1;min-width:0">';
-    lhtml += '<div style="display:flex;justify-content:space-between;gap:8px;margin-bottom:4px"><div style="font-size:14px;font-weight:700">'+l.nombre+'</div><span class="badge '+estadoClass+'">'+estadoTxt+'</span></div>';
-    if (l.codigo) lhtml += '<div style="font-size:11px;color:var(--text3);margin-bottom:3px">Código: '+l.codigo+' · '+l.categoria+'</div>';
-    else lhtml += '<div style="font-size:11px;color:var(--text3);margin-bottom:3px">'+l.categoria+'</div>';
-    lhtml += '<div style="font-size:12px;color:var(--text2);margin-bottom:3px">📍 '+ubicMostrar+'</div>';
-    if (prestada && l.persona_actual) lhtml += '<div style="font-size:12px;color:var(--yellow);margin-bottom:3px">👤 La tiene: '+l.persona_actual+'</div>';
-    if (l.observaciones) lhtml += '<div style="font-size:11px;color:var(--text3);margin-top:4px">'+l.observaciones+'</div>';
-    lhtml += '<div style="display:flex;gap:6px;margin-top:8px">';
-    lhtml += '<button class="btn-sm" onclick="abrirMovimiento(&quot;'+l.id+'&quot;)">📋 Movimiento</button>';
-    lhtml += '<button class="btn-sm" onclick="verHistorialLlave(&quot;'+l.id+'&quot;)">📜 Historial</button>';
-    lhtml += '<button class="btn-sm" onclick="eliminarLlave(&quot;'+l.id+'&quot;)" style="border-color:rgba(239,68,68,.3);color:#f87171">🗑</button>';
-    lhtml += '</div></div></div></div>';
+  } catch(e) {
+    document.getElementById('llaves-list').innerHTML = '<div class="empty"><p>Error: ' + e.message + '</p></div>';
   }
-  document.getElementById('llaves-list').innerHTML = lhtml;
 }
-async function saveLlave() {
-  var nombre = document.getElementById('ll-nombre').value.trim();
-  if (!nombre) { toast('Ingresa el nombre','err'); return; }
-  setLoading('btn-save-llave', true);
-  var ubic = document.getElementById('ll-ubicacion').value;
-  var payload = { nombre:nombre, codigo:document.getElementById('ll-codigo').value||null, categoria:document.getElementById('ll-categoria').value, ubicacion_habitual:ubic, ubicacion_actual:ubic, estado_actual:'base', observaciones:document.getElementById('ll-obs').value||null };
-  var result = await db.from('llaves').insert(payload);
-  setLoading('btn-save-llave', false);
-  if (result.error) { toast('Error: '+result.error.message,'err'); return; }
-  closeOv('ov-nueva-llave');
-  toast('🔑 Llave registrada');
-  ['ll-nombre','ll-codigo','ll-obs'].forEach(function(id){var e=document.getElementById(id);if(e)e.value='';});
-  loadLlaves();
+
+function renderTablero(byNum) {
+  var cont = document.getElementById('llaves-tablero-grid');
+  if (!cont) return;
+  var html = '';
+  for (var n = 1; n <= 92; n++) {
+    var llave = byNum[n];
+    var objetivo = LLAVES_DATA[n] || '';
+    var retirada = llave && llave.estado_actual === 'prestada';
+    var registrada = !!llave;
+    var color = retirada ? 'var(--yellow)' : registrada ? 'var(--green)' : 'rgba(96,165,250,0.25)';
+    var borde = retirada ? '#f59e0b' : registrada ? '#34d399' : 'rgba(96,165,250,0.3)';
+    var iconTxt = retirada ? '📤' : registrada ? '🔑' : '◦';
+    var titulo = objetivo ? (n + ' - ' + objetivo) : ('Llave ' + n + ' (sin objetivo asignado)');
+    html += '<div onclick="abrirDetalleLlave(' + n + ')" title="' + titulo.replace(/"/g, '&quot;') + '" ';
+    html += 'style="background:rgba(15,40,80,0.6);border:1.5px solid ' + borde + ';border-radius:8px;';
+    html += 'padding:6px 4px;text-align:center;cursor:pointer;transition:transform .15s,box-shadow .15s" ';
+    html += 'onmouseover="this.style.transform=\'scale(1.08)\';this.style.boxShadow=\'0 2px 12px rgba(0,0,0,0.4)\'" ';
+    html += 'onmouseout="this.style.transform=\'\';this.style.boxShadow=\'\'">';
+    html += '<div style="font-size:9px;color:' + (retirada ? '#f59e0b' : registrada ? '#34d399' : 'rgba(96,165,250,0.6)') + ';font-weight:700;line-height:1">' + iconTxt + '</div>';
+    html += '<div style="font-size:13px;font-weight:800;color:#f1f5fc;line-height:1.3;margin:2px 0">' + n + '</div>';
+    if (objetivo) {
+      var short = objetivo.length > 18 ? objetivo.substring(0, 16) + '…' : objetivo;
+      html += '<div style="font-size:7px;color:var(--text3);line-height:1.3;word-break:break-word">' + short + '</div>';
+    }
+    html += '</div>';
+  }
+  cont.innerHTML = html;
 }
-function abrirMovimiento(id) {
+
+function abrirDetalleLlave(numero) {
   var llave = null;
-  for (var i=0;i<LLAVES_CACHE.length;i++) if (LLAVES_CACHE[i].id===id) { llave = LLAVES_CACHE[i]; break; }
-  if (!llave) return;
-  document.getElementById('mov-llave-id').value = id;
-  document.getElementById('mov-llave-info').innerHTML = '<div style="font-size:13px;font-weight:700;margin-bottom:4px">🔑 '+llave.nombre+'</div><div style="font-size:11px;color:var(--text3)">Estado actual: '+(llave.estado_actual==='prestada' ? '<span style="color:var(--yellow)">Prestada</span>' : '<span style="color:var(--green)">En base</span>')+'</div><div style="font-size:11px;color:var(--text2);margin-top:2px">📍 '+(llave.ubicacion_actual||llave.ubicacion_habitual||'-')+'</div>';
-  document.getElementById('mov-tipo').value = llave.estado_actual === 'prestada' ? 'devolucion' : 'prestamo';
+  for (var i = 0; i < LLAVES_CACHE.length; i++) {
+    if (parseInt(LLAVES_CACHE[i].numero_tablero) === numero) { llave = LLAVES_CACHE[i]; break; }
+  }
+  var objetivo = LLAVES_DATA[numero] || 'Sin objetivo asignado';
+
+  if (!llave) {
+    // No registrada — abrir modal para registrar
+    var selEl = document.getElementById('ll-numero');
+    if (selEl) selEl.value = String(numero);
+    var nomEl = document.getElementById('ll-nombre');
+    if (nomEl) nomEl.value = objetivo;
+    openOv('ov-nueva-llave');
+    return;
+  }
+
+  // Ya registrada — abrir movimiento
+  document.getElementById('mov-llave-id').value = llave.id;
+  var retirada = llave.estado_actual === 'prestada';
+  var estadoBadge = retirada
+    ? '<span style="color:var(--yellow);font-weight:700">📤 RETIRADA</span>'
+    : '<span style="color:var(--green);font-weight:700">🔑 EN TABLERO</span>';
+  document.getElementById('mov-llave-info').innerHTML =
+    '<div style="font-size:15px;font-weight:800;margin-bottom:4px">Nro. ' + numero + ' — ' + objetivo + '</div>' +
+    '<div style="font-size:12px;margin-bottom:2px">Estado: ' + estadoBadge + '</div>' +
+    (retirada && llave.persona_actual ? '<div style="font-size:11px;color:var(--text3)">Tiene: ' + llave.persona_actual + '</div>' : '') +
+    (retirada && llave.ubicacion_actual ? '<div style="font-size:11px;color:var(--text3)">Destino: ' + llave.ubicacion_actual + '</div>' : '');
+
+  document.getElementById('mov-tipo').value = retirada ? 'devolucion' : 'prestamo';
   document.getElementById('mov-quien').value = '';
-  document.getElementById('mov-donde').value = '';
+  document.getElementById('mov-destino').value = '';
+  document.getElementById('mov-destino-otro').value = '';
+  document.getElementById('mov-vehiculo').value = '';
   document.getElementById('mov-motivo').value = '';
   toggleMovFields();
   openOv('ov-mov-llave');
 }
+
+function autocompletarLlave() {
+  var sel = document.getElementById('ll-numero');
+  var nom = document.getElementById('ll-nombre');
+  if (!sel || !nom) return;
+  var num = parseInt(sel.value);
+  if (num && LLAVES_DATA[num]) {
+    nom.value = LLAVES_DATA[num];
+  } else if (!num) {
+    nom.value = '';
+  }
+}
+
+function filtrarLlaves() {
+  var search = (document.getElementById('llaves-search') ? document.getElementById('llaves-search').value : '').toLowerCase().trim();
+  var filtro = document.getElementById('llaves-filtro') ? document.getElementById('llaves-filtro').value : 'todas';
+
+  // Build list from all 92 numbers + DB data
+  var byNum = {};
+  for (var i = 0; i < LLAVES_CACHE.length; i++) {
+    byNum[parseInt(LLAVES_CACHE[i].numero_tablero)] = LLAVES_CACHE[i];
+  }
+
+  var rows = [];
+  for (var n = 1; n <= 92; n++) {
+    var llave = byNum[n];
+    var obj = LLAVES_DATA[n] || '';
+    var estado = llave ? (llave.estado_actual || 'base') : 'sinregistrar';
+    if (filtro === 'base' && estado !== 'base') continue;
+    if (filtro === 'prestada' && estado !== 'prestada') continue;
+    if (search) {
+      var hay = String(n).indexOf(search) !== -1 || obj.toLowerCase().indexOf(search) !== -1;
+      if (llave) {
+        hay = hay || (llave.nombre||'').toLowerCase().indexOf(search) !== -1;
+        hay = hay || (llave.ubicacion_actual||'').toLowerCase().indexOf(search) !== -1;
+      }
+      if (!hay) continue;
+    }
+    rows.push({n: n, llave: llave, obj: obj, estado: estado});
+  }
+
+  if (!rows.length) {
+    document.getElementById('llaves-list').innerHTML = '<div class="empty"><p>Sin llaves para mostrar</p></div>';
+    return;
+  }
+
+  var html = '';
+  for (var ri = 0; ri < rows.length; ri++) {
+    var r = rows[ri];
+    var retirada = r.estado === 'prestada';
+    var sinReg = r.estado === 'sinregistrar';
+    var borde = retirada ? 'var(--yellow)' : sinReg ? 'rgba(96,165,250,0.3)' : 'var(--green)';
+    var estadoTxt = retirada ? 'RETIRADA' : sinReg ? 'SIN REGISTRAR' : 'EN TABLERO';
+    var estadoClass = retirada ? 'b-yellow' : sinReg ? 'b-gray' : 'b-green';
+    html += '<div class="card" style="border-left:3px solid ' + borde + ';margin-bottom:8px">';
+    html += '<div style="display:flex;align-items:flex-start;gap:10px">';
+    html += '<div style="font-size:22px;font-weight:900;font-family:var(--mono);color:var(--accent3);min-width:32px;text-align:center;flex-shrink:0">' + r.n + '</div>';
+    html += '<div style="flex:1;min-width:0">';
+    html += '<div style="display:flex;justify-content:space-between;gap:8px;margin-bottom:4px">';
+    html += '<div style="font-size:13px;font-weight:700">' + (r.obj || 'Sin objetivo asignado') + '</div>';
+    html += '<span class="badge ' + estadoClass + '">' + estadoTxt + '</span></div>';
+    if (retirada && r.llave) {
+      if (r.llave.persona_actual) html += '<div style="font-size:12px;color:var(--yellow)">👤 ' + r.llave.persona_actual + '</div>';
+      if (r.llave.ubicacion_actual) html += '<div style="font-size:12px;color:var(--text2)">📍 ' + r.llave.ubicacion_actual + '</div>';
+    }
+    if (r.llave && r.llave.vehiculo) html += '<div style="font-size:11px;color:var(--text3)">🚗 ' + r.llave.vehiculo + '</div>';
+    html += '<div style="display:flex;gap:6px;margin-top:8px">';
+    html += '<button class="btn-sm" onclick="abrirDetalleLlave(' + r.n + ')">📋 Movimiento</button>';
+    if (r.llave) html += '<button class="btn-sm" onclick="verHistorialLlave(\'' + r.llave.id + '\',' + r.n + ')">📜 Historial</button>';
+    html += '</div></div></div></div>';
+  }
+  document.getElementById('llaves-list').innerHTML = html;
+}
+
 function toggleMovFields() {
   var tipo = document.getElementById('mov-tipo').value;
-  var qw = document.getElementById('mov-quien-wrap');
-  var dw = document.getElementById('mov-donde-wrap');
-  if (tipo === 'devolucion') { qw.style.display='none'; dw.style.display='none'; }
-  else { qw.style.display='block'; dw.style.display='block'; }
+  var wrap = document.getElementById('mov-retiro-fields');
+  if (wrap) wrap.style.display = tipo === 'devolucion' ? 'none' : 'block';
 }
+
+function toggleDestinoOtro() {
+  var sel = document.getElementById('mov-destino');
+  var wrap = document.getElementById('mov-otro-wrap');
+  if (wrap) wrap.style.display = (sel && sel.value === 'otro') ? 'block' : 'none';
+}
+
+async function saveLlave() {
+  var numEl = document.getElementById('ll-numero');
+  var numero = numEl ? parseInt(numEl.value) : 0;
+  var nombre = document.getElementById('ll-nombre').value.trim();
+  if (!numero) { toast('Seleccioná el número del tablero', 'err'); return; }
+  if (!nombre) nombre = LLAVES_DATA[numero] || 'Llave ' + numero;
+  setLoading('btn-save-llave', true);
+  var payload = {
+    numero_tablero: numero,
+    nombre: nombre,
+    codigo: 'T-' + String(numero).padStart(2, '0'),
+    categoria: 'Objetivo',
+    ubicacion_habitual: 'Obrador Savio — Tablero',
+    ubicacion_actual: 'Obrador Savio — Tablero',
+    estado_actual: 'base',
+    observaciones: document.getElementById('ll-obs').value || null
+  };
+  var result = await db.from('llaves').insert(payload);
+  setLoading('btn-save-llave', false);
+  if (result.error) { toast('Error: ' + result.error.message, 'err'); return; }
+  closeOv('ov-nueva-llave');
+  toast('🔑 Llave Nro. ' + numero + ' registrada');
+  var obsEl = document.getElementById('ll-obs');
+  if (obsEl) obsEl.value = '';
+  loadLlaves();
+}
+
 async function saveMovimiento() {
   var id = document.getElementById('mov-llave-id').value;
   var tipo = document.getElementById('mov-tipo').value;
-  var quien = document.getElementById('mov-quien').value;
-  var donde = document.getElementById('mov-donde').value;
-  var motivo = document.getElementById('mov-motivo').value;
+  var quien = document.getElementById('mov-quien') ? document.getElementById('mov-quien').value.trim() : '';
+  var destinoSel = document.getElementById('mov-destino') ? document.getElementById('mov-destino').value : '';
+  var destinoOtro = document.getElementById('mov-destino-otro') ? document.getElementById('mov-destino-otro').value.trim() : '';
+  var vehiculo = document.getElementById('mov-vehiculo') ? document.getElementById('mov-vehiculo').value : '';
+  var motivo = document.getElementById('mov-motivo').value.trim();
+  var donde = destinoSel === 'otro' ? destinoOtro : destinoSel;
+
+  if (tipo !== 'devolucion' && !donde) { toast('Seleccioná el destino', 'err'); return; }
+
   setLoading('btn-save-mov', true);
+
   var llave = null;
-  for (var i=0;i<LLAVES_CACHE.length;i++) if (LLAVES_CACHE[i].id===id) { llave = LLAVES_CACHE[i]; break; }
-  await db.from('llaves_movimientos').insert({ llave_id:id, tipo:tipo, persona:quien||null, ubicacion:donde||null, motivo:motivo||null, registrado_por:USER.puesto });
+  for (var i = 0; i < LLAVES_CACHE.length; i++) {
+    if (LLAVES_CACHE[i].id === id) { llave = LLAVES_CACHE[i]; break; }
+  }
+
+  await db.from('llaves_movimientos').insert({
+    llave_id: id,
+    tipo: tipo,
+    persona: quien || null,
+    ubicacion: donde || null,
+    vehiculo: vehiculo || null,
+    motivo: motivo || null,
+    registrado_por: USER.puesto
+  });
+
   var updates = {};
-  if (tipo === 'devolucion') { updates.estado_actual='base'; updates.persona_actual=null; updates.ubicacion_actual=llave?llave.ubicacion_habitual:null; }
-  else if (tipo === 'prestamo') { updates.estado_actual='prestada'; updates.persona_actual=quien; updates.ubicacion_actual=donde; }
-  else if (tipo === 'cambio') { updates.ubicacion_actual=donde; updates.persona_actual=quien; }
+  if (tipo === 'devolucion') {
+    updates.estado_actual = 'base';
+    updates.persona_actual = null;
+    updates.ubicacion_actual = 'Obrador Savio — Tablero';
+    updates.vehiculo = null;
+  } else if (tipo === 'prestamo') {
+    updates.estado_actual = 'prestada';
+    updates.persona_actual = quien || null;
+    updates.ubicacion_actual = donde;
+    updates.vehiculo = vehiculo || null;
+  } else if (tipo === 'cambio') {
+    updates.ubicacion_actual = donde;
+    updates.persona_actual = quien || null;
+    updates.vehiculo = vehiculo || null;
+  }
+
   var result = await db.from('llaves').update(updates).eq('id', id);
   setLoading('btn-save-mov', false);
-  if (result.error) { toast('Error: '+result.error.message,'err'); return; }
+  if (result.error) { toast('Error: ' + result.error.message, 'err'); return; }
   closeOv('ov-mov-llave');
-  toast('✓ Movimiento registrado');
+  toast(tipo === 'devolucion' ? '✅ Llave devuelta al tablero' : '📤 Movimiento registrado');
   loadLlaves();
 }
-async function verHistorialLlave(id) {
-  var llave = null;
-  for (var i=0;i<LLAVES_CACHE.length;i++) if (LLAVES_CACHE[i].id===id) { llave = LLAVES_CACHE[i]; break; }
-  var result = await db.from('llaves_movimientos').select('*').eq('llave_id',id).order('id',{ascending:false}).limit(20);
-  var movs = result.data || [];
-  var html = '<div style="background:var(--bg3);border-radius:8px;padding:10px 12px;margin-bottom:12px"><div style="font-size:13px;font-weight:700">🔑 '+(llave?llave.nombre:'Llave')+'</div><div style="font-size:11px;color:var(--text3);margin-top:2px">Últimos '+movs.length+' movimientos</div></div>';
-  if (!movs.length) html += '<div style="font-size:12px;color:var(--text3);text-align:center;padding:12px">Sin movimientos registrados</div>';
-  else {
-    var iconos = {prestamo:'📤',devolucion:'📥',cambio:'🔄'};
-    var labels = {prestamo:'PRÉSTAMO',devolucion:'DEVOLUCIÓN',cambio:'CAMBIO'};
-    for (var j=0;j<movs.length;j++) {
-      var m = movs[j];
-      html += '<div style="background:var(--bg3);border-radius:8px;padding:10px 12px;margin-bottom:6px;border-left:3px solid var(--accent2)"><div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span>'+(iconos[m.tipo]||'📋')+'</span><span style="font-size:12px;font-weight:700">'+(labels[m.tipo]||m.tipo)+'</span><span style="font-size:10px;color:var(--text3);margin-left:auto">'+formatTs(m.created_at)+'</span></div>';
-      if (m.persona) html += '<div style="font-size:12px;color:var(--text2)">👤 '+m.persona+'</div>';
-      if (m.ubicacion) html += '<div style="font-size:12px;color:var(--text2)">📍 '+m.ubicacion+'</div>';
-      if (m.motivo) html += '<div style="font-size:11px;color:var(--text3);margin-top:3px">'+m.motivo+'</div>';
-      if (m.registrado_por) html += '<div style="font-size:10px;color:var(--text3);margin-top:3px">Registrado por: '+m.registrado_por+'</div>';
-      html += '</div>';
-    }
-  }
-  document.getElementById('mapa-info').innerHTML = html;
-  document.getElementById('mapa-frame').innerHTML = '';
-  document.querySelector('#ov-mapa .modal-title').textContent = '📜 Historial de Movimientos';
-  openOv('ov-mapa');
+
+async function verHistorialLlave(id, numero) {
+  llavesTab('movimientos', document.querySelectorAll('#view-llaves .tab')[2]);
+  loadHistorialLlave(id, numero);
 }
+
+async function loadHistorialLlaves() {
+  var cont = document.getElementById('llaves-historial-list');
+  if (!cont) return;
+  cont.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text3)">Cargando...</div>';
+  var res = await db.from('llaves_movimientos').select('*, llaves(numero_tablero, nombre)').order('created_at', {ascending: false}).limit(50);
+  if (res.error || !res.data || !res.data.length) {
+    cont.innerHTML = '<div class="empty"><div class="icon">📜</div><p>Sin movimientos registrados</p></div>';
+    return;
+  }
+  renderHistorial(cont, res.data, true);
+}
+
+async function loadHistorialLlave(id, numero) {
+  var cont = document.getElementById('llaves-historial-list');
+  if (!cont) return;
+  cont.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text3)">Cargando historial llave ' + numero + '...</div>';
+  var res = await db.from('llaves_movimientos').select('*').eq('llave_id', id).order('created_at', {ascending: false});
+  if (res.error || !res.data || !res.data.length) {
+    cont.innerHTML = '<div class="empty"><div class="icon">📜</div><p>Sin movimientos para esta llave</p></div>';
+    return;
+  }
+  renderHistorial(cont, res.data, false, numero);
+}
+
+function renderHistorial(cont, movs, showNro, numero) {
+  var html = '';
+  if (numero !== undefined) html += '<div style="font-size:12px;color:var(--accent3);font-weight:700;margin-bottom:10px">Llave Nro. ' + numero + ' — ' + (LLAVES_DATA[numero] || '') + '</div>';
+  for (var i = 0; i < movs.length; i++) {
+    var m = movs[i];
+    var tipo = m.tipo;
+    var icon = tipo === 'devolucion' ? '📥' : tipo === 'prestamo' ? '📤' : '🔄';
+    var color = tipo === 'devolucion' ? 'var(--green)' : tipo === 'prestamo' ? 'var(--yellow)' : 'var(--accent3)';
+    var tipoTxt = tipo === 'devolucion' ? 'Devuelta al tablero' : tipo === 'prestamo' ? 'Retirada' : 'Cambio de ubicación';
+    html += '<div class="card" style="border-left:3px solid ' + color + ';margin-bottom:8px">';
+    html += '<div style="display:flex;gap:10px;align-items:flex-start">';
+    html += '<div style="font-size:20px;flex-shrink:0">' + icon + '</div>';
+    html += '<div style="flex:1;min-width:0">';
+    html += '<div style="display:flex;justify-content:space-between;gap:8px;margin-bottom:3px">';
+    if (showNro && m.llaves) html += '<div style="font-size:13px;font-weight:700">Nro. ' + m.llaves.numero_tablero + ' — ' + (m.llaves.nombre || '') + '</div>';
+    else html += '<div style="font-size:13px;font-weight:700">' + tipoTxt + '</div>';
+    html += '<span style="font-size:10px;color:var(--text3)">' + formatTs(m.created_at) + '</span></div>';
+    if (showNro && m.llaves) html += '<div style="font-size:11px;color:var(--text3);margin-bottom:3px">' + tipoTxt + '</div>';
+    if (m.persona) html += '<div style="font-size:12px;color:var(--text2)">👤 ' + m.persona + '</div>';
+    if (m.ubicacion) html += '<div style="font-size:12px;color:var(--text2)">📍 ' + m.ubicacion + '</div>';
+    if (m.vehiculo) html += '<div style="font-size:12px;color:var(--text2)">🚗 ' + m.vehiculo + '</div>';
+    if (m.motivo) html += '<div style="font-size:11px;color:var(--text3);margin-top:3px">' + m.motivo + '</div>';
+    html += '<div style="font-size:10px;color:var(--text3);margin-top:4px">Registrado por: ' + (m.registrado_por||'—') + '</div>';
+    html += '</div></div></div>';
+  }
+  cont.innerHTML = html;
+}
+
 async function eliminarLlave(id) {
-  showConfirm('Eliminar','Eliminar llave','Confirmar eliminacion de la llave y su historial?', async function() {
-    await db.from('llaves_movimientos').delete().eq('llave_id', id);
-    await db.from('llaves').delete().eq('id', id);
-    toast('Llave eliminada');
-    loadLlaves();
-  }, 'Eliminar', 'var(--red)');
+  if (!confirm('¿Eliminar esta llave del registro?')) return;
+  await db.from('llaves').delete().eq('id', id);
+  toast('Llave eliminada');
+  loadLlaves();
+}
+async function loadAll() {
+await Promise.all([loadDash(), loadFichajes(), loadNovedades(), loadObjetivos(), loadChoferes()]);
 }
 
 setTimeout(function() { try { n.close(); } catch(e) {} }, 30000);
