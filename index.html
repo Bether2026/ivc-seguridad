@@ -5579,21 +5579,23 @@ function llavesTab(tab, btn) {
 }
 
 async function loadLlaves() {
+  // Render tablero immediately from hardcoded data so user sees it right away
+  var totalConNombre = 0;
+  for (var nn = 1; nn <= 92; nn++) { if (LLAVES_DATA[nn] && LLAVES_DATA[nn].trim() !== '') totalConNombre++; }
+  document.getElementById('llaves-total').textContent = totalConNombre;
+  renderTablero({});
+
   try {
     var result = await db.from('llaves').select('*').order('numero_tablero', {ascending: true});
     if (result.error) {
-      document.getElementById('llaves-list').innerHTML = '<div class="empty"><p>Error: ' + result.error.message + '</p></div>';
+      console.error('Error cargando llaves:', result.error.message);
+      document.getElementById('llaves-base').textContent = '—';
+      document.getElementById('llaves-prestadas').textContent = '—';
+      document.getElementById('llaves-sa').textContent = totalConNombre;
       return;
     }
     LLAVES_CACHE = result.data || [];
 
-    // Count named slots in the tablero (only numbered keys that have a description)
-    var totalConNombre = 0;
-    for (var n = 1; n <= 92; n++) {
-      if (LLAVES_DATA[n] && LLAVES_DATA[n].trim() !== '') totalConNombre++;
-    }
-
-    // Counters from DB
     var enObrador = 0, retiradas = 0;
     var byNum = {};
     for (var i = 0; i < LLAVES_CACHE.length; i++) {
@@ -5603,15 +5605,15 @@ async function loadLlaves() {
       else if (l.estado_actual === 'prestada') retiradas++;
     }
     var sinRegistrar = totalConNombre - LLAVES_CACHE.length;
-    document.getElementById('llaves-total').textContent = totalConNombre;
     document.getElementById('llaves-base').textContent = enObrador;
     document.getElementById('llaves-prestadas').textContent = retiradas;
     document.getElementById('llaves-sa').textContent = sinRegistrar > 0 ? sinRegistrar : 0;
 
+    // Re-render tablero with real estados from DB
     renderTablero(byNum);
     filtrarLlaves();
   } catch(e) {
-    document.getElementById('llaves-list').innerHTML = '<div class="empty"><p>Error: ' + e.message + '</p></div>';
+    console.error('Error en loadLlaves:', e.message);
   }
 }
 
