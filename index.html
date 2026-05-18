@@ -978,19 +978,35 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
 <option value="Padre Mugica">Padre Mugica</option>
       </select>
     </div>
-    <div class="form-group"><label class="form-label">Tipo</label>
-      <select class="form-select" id="n-tipo"><option>Otro</option><option>Construcción indebida</option><option>Intrusión / Intento de intrusión</option><option>Control</option><option>Daños</option><option>Demolición</option><option>Poda / Corte de pasto</option><option>Acompañamiento</option><option>Atención al público</option></select>
+    <div class="form-group"><label class="form-label">Asunto</label>
+      <select class="form-select" id="n-tipo" onchange="toggleOtroAsunto()">
+        <option>Construcción indebida</option>
+        <option>Intrusión / Intento de intrusión</option>
+        <option>Control</option>
+        <option>Daños</option>
+        <option>Demolición</option>
+        <option>Poda / Corte de pasto</option>
+        <option>Acompañamiento</option>
+        <option>Atención al público</option>
+        <option>Otro</option>
+      </select>
     </div>
-    <div class="form-group"><label class="form-label">Asunto / Título</label><input class="form-input" id="n-asunto" placeholder="Ej: Control de orden N°92..."/></div>
+    <div class="form-group" id="n-otro-wrap" style="display:none">
+      <label class="form-label">Especificar asunto</label>
+      <input class="form-input" id="n-asunto-otro" placeholder="Describa el asunto..."/>
+    </div>
     <div class="form-group"><label class="form-label">Ubicación / Sector</label><input class="form-input" id="n-ubicacion" placeholder="Ej: Manzana 4, Orden 87..."/></div>
     <div class="form-group"><label class="form-label">Detalle</label><textarea class="form-textarea" id="n-detalle" placeholder="Describa los hechos con detalle..."></textarea></div>
-    <div class="form-row">
-      <div class="form-group"><label class="form-label">Área</label><select class="form-select" id="n-area"><option value="">—</option><option>Seguridad</option><option>Social</option><option>Técnica</option><option>Coordinación</option></select></div>
-      <div class="form-group"><label class="form-label">Relevancia</label><select class="form-select" id="n-relev"><option>Normal</option><option>Alta</option><option>Urgente</option></select></div>
+    <div class="form-group"><label class="form-label">Área</label><select class="form-select" id="n-area"><option value="">—</option><option>Seguridad</option><option>Social</option><option>Técnica</option><option>Coordinación</option></select></div>
+    <div class="form-group" id="n-relev-wrap">
+      <label class="form-label">Relevancia</label>
+      <select class="form-select" id="n-relev"><option>Normal</option><option>Alta</option><option>Urgente</option></select>
     </div>
     <div class="form-group">
       <label class="form-label">👤 Cargado por (Agente)</label>
-      <input class="form-input" id="n-agente" placeholder="Nombre del agente que registra"/>
+      <select class="form-select" id="n-agente">
+        <option value="">— Seleccionar agente fichado —</option>
+      </select>
     </div>
     <div class="form-group">
       <label class="form-check"><input type="checkbox" id="n-pend"> Marcar como PENDIENTE (caso activo)</label>
@@ -2592,7 +2608,7 @@ function _editarNovedad() {
         case 2:
           n = res.data; // Pre-fill modal de nueva novedad
           tipoEl = document.getElementById('n-tipo');
-          asuntoEl = document.getElementById('n-asunto');
+          asuntoEl = document.getElementById('n-asunto-otro');
           ubicEl = document.getElementById('n-ubicacion');
           detEl = document.getElementById('n-detalle');
           relevEl = document.getElementById('n-relev');
@@ -4061,6 +4077,24 @@ function doLogout() {
   }, 'Salir', 'var(--red)');
 }
 function initApp() {
+  // Puestos operativos: solo ven Panel, Fichaje, Novedades, C.Objetivo
+  // Choferes solo lo ven: Administración, Administrador, Gerencia, Emergencias, RT, Jefe, Choferes
+  var CAN_SEE_CHOFERES = ['Administración', 'Administrador', 'Gerencia', 'Emergencias',
+    'Responsable de turno', 'Jefe de departamento', 'Choferes'];
+  var nbCh = document.getElementById('nb-choferes');
+  var siCh = document.getElementById('si-choferes');
+  if (!CAN_SEE_CHOFERES.includes(USER.puesto) && USER.rol !== 'ADMIN' && USER.rol !== 'TODOS') {
+    if (nbCh) nbCh.style.display = 'none';
+    if (siCh) siCh.style.display = 'none';
+  }
+
+  // Relevancia en novedades: solo Administración, Gerencia, Administrador
+  var CAN_SEE_RELEV = ['Administración', 'Administrador', 'Gerencia'];
+  var relevWrap = document.getElementById('n-relev-wrap');
+  if (relevWrap && !CAN_SEE_RELEV.includes(USER.puesto) && USER.rol !== 'ADMIN') {
+    relevWrap.style.display = 'none';
+  }
+
   if (['Gerencia', 'Administración', 'Administrador'].includes(USER.puesto)) {
     var nbLl = document.getElementById('nb-llaves');
     var siLl = document.getElementById('si-llaves');
@@ -5119,6 +5153,46 @@ function novTab(tab, btn) {
   btn.classList.add('active');
   loadNovedades();
 }
+// ─── NOVEDAD HELPERS ───
+function toggleOtroAsunto() {
+  var sel = document.getElementById('n-tipo');
+  var wrap = document.getElementById('n-otro-wrap');
+  if (wrap) wrap.style.display = (sel && sel.value === 'Otro') ? 'block' : 'none';
+}
+
+async function abrirNuevaNovedad() {
+  // Reset form
+  var tipoEl = document.getElementById('n-tipo');
+  if (tipoEl) tipoEl.value = 'Construcción indebida';
+  var otroWrap = document.getElementById('n-otro-wrap');
+  if (otroWrap) otroWrap.style.display = 'none';
+  var otroEl = document.getElementById('n-asunto-otro');
+  if (otroEl) otroEl.value = '';
+
+  // Load active fichajes for this puesto to populate "Cargado por"
+  var agenteSelect = document.getElementById('n-agente');
+  if (agenteSelect) {
+    agenteSelect.innerHTML = '<option value="">— Seleccionar agente —</option>';
+    try {
+      var puesto = filtro() || USER.puesto;
+      var res = await db.from('fichajes').select('agente').eq('activo', true).eq('puesto', puesto);
+      var activos = res.data || [];
+      if (activos.length) {
+        activos.forEach(function(f) {
+          var o = document.createElement('option');
+          o.value = f.agente; o.textContent = f.agente;
+          agenteSelect.appendChild(o);
+        });
+      } else {
+        var oNone = document.createElement('option');
+        oNone.value = ''; oNone.textContent = 'Sin agentes fichados ahora';
+        agenteSelect.appendChild(oNone);
+      }
+    } catch(e) { console.error('Error cargando fichajes:', e); }
+  }
+  openOv('ov-nov');
+}
+
 function saveNov() {
   return _saveNov.apply(this, arguments);
 }
@@ -5132,8 +5206,8 @@ function _saveNov() {
           setLoading('btn-save-nov', true);
           payload = {
             puesto: ['Administración', 'Administrador', 'Gerencia', 'Jefe de departamento'].includes(USER.puesto) && document.getElementById('n-puesto-sel') && document.getElementById('n-puesto-sel').value ? document.getElementById('n-puesto-sel').value : USER.puesto,
-            tipo: $('n-tipo').value,
-            asunto: $('n-asunto').value || 'Sin título',
+            tipo: $('n-tipo').value === 'Otro' ? ($('n-asunto-otro') ? ($('n-asunto-otro').value || 'Otro') : 'Otro') : $('n-tipo').value,
+            asunto: $('n-tipo').value === 'Otro' ? ($('n-asunto-otro') ? ($('n-asunto-otro').value || 'Sin título') : 'Sin título') : $('n-tipo').value,
             ubicacion: $('n-ubicacion').value,
             detalle: $('n-detalle').value,
             relevancia: $('n-relev').value,
@@ -5178,7 +5252,7 @@ function _saveNov() {
           closeOv('ov-nov');
           toast('OK Novedad guardada' + (FOTOS_PENDIENTES.length ? " con ".concat(FOTOS_PENDIENTES.length, " foto(s)") : ''));
           FOTOS_PENDIENTES = [];
-          ['n-asunto', 'n-ubicacion', 'n-detalle', 'n-caso', 'n-agente'].forEach(function (id) {
+          ['n-asunto-otro', 'n-ubicacion', 'n-detalle', 'n-caso'].forEach(function (id) {
             return $(id).value = '';
           });
           $('n-pend').checked = false;
@@ -5512,7 +5586,7 @@ function chofSubTab(tab, btn) {
   if (tab === 'combustible') loadCombustible();else if (tab === 'incidencias') loadIncidencias();else if (tab === 'taller') loadTaller();else if (tab === 'gps') loadGPS();
 }
 function fabClick() {
-  if (CUR_VIEW === 'llaves') openOv('ov-nueva-llave');else if (CUR_VIEW === 'rrhh') abrirNuevoAgente();else if (CUR_VIEW === 'novedades') openOv('ov-nov');else if (CUR_VIEW === 'objetivos') openOv('ov-obj');else if (CUR_VIEW === 'fichaje') {
+  if (CUR_VIEW === 'llaves') openOv('ov-nueva-llave');else if (CUR_VIEW === 'rrhh') abrirNuevoAgente();else if (CUR_VIEW === 'novedades') abrirNuevaNovedad();else if (CUR_VIEW === 'objetivos') openOv('ov-obj');else if (CUR_VIEW === 'fichaje') {
     if (CUR_FICH_TAB === 'licencias') openOv('ov-licencia');else openOv('ov-nov'); // fallback
   } else if (CUR_VIEW === 'agenda') {
     var isAdminAgenda = ['Administración', 'Administrador', 'Gerencia', 'Jefe de departamento'].includes(USER ? USER.puesto : '');
@@ -5780,7 +5854,7 @@ var DEFAULT_PERMISOS = {
     fichaje: 1,
     novedades: 1,
     objetivos: 1,
-    choferes: 1,
+    choferes: 0,
     llaves: 0,
     estadisticas: 0,
     rrhh: 0,
@@ -5790,7 +5864,7 @@ var DEFAULT_PERMISOS = {
     fichaje: 1,
     novedades: 1,
     objetivos: 1,
-    choferes: 1,
+    choferes: 0,
     llaves: 0,
     estadisticas: 0,
     rrhh: 0,
@@ -5800,7 +5874,7 @@ var DEFAULT_PERMISOS = {
     fichaje: 1,
     novedades: 1,
     objetivos: 1,
-    choferes: 1,
+    choferes: 0,
     llaves: 0,
     estadisticas: 0,
     rrhh: 0,
@@ -5810,7 +5884,7 @@ var DEFAULT_PERMISOS = {
     fichaje: 1,
     novedades: 1,
     objetivos: 1,
-    choferes: 1,
+    choferes: 0,
     llaves: 0,
     estadisticas: 0,
     rrhh: 0,
@@ -5820,7 +5894,7 @@ var DEFAULT_PERMISOS = {
     fichaje: 1,
     novedades: 1,
     objetivos: 1,
-    choferes: 1,
+    choferes: 0,
     llaves: 0,
     estadisticas: 0,
     rrhh: 0,
@@ -5830,7 +5904,7 @@ var DEFAULT_PERMISOS = {
     fichaje: 1,
     novedades: 1,
     objetivos: 1,
-    choferes: 1,
+    choferes: 0,
     llaves: 0,
     estadisticas: 0,
     rrhh: 0,
@@ -5840,7 +5914,7 @@ var DEFAULT_PERMISOS = {
     fichaje: 1,
     novedades: 1,
     objetivos: 1,
-    choferes: 1,
+    choferes: 0,
     llaves: 0,
     estadisticas: 0,
     rrhh: 0,
@@ -5850,7 +5924,7 @@ var DEFAULT_PERMISOS = {
     fichaje: 1,
     novedades: 1,
     objetivos: 1,
-    choferes: 1,
+    choferes: 0,
     llaves: 0,
     estadisticas: 0,
     rrhh: 0,
@@ -5860,7 +5934,7 @@ var DEFAULT_PERMISOS = {
     fichaje: 1,
     novedades: 1,
     objetivos: 1,
-    choferes: 1,
+    choferes: 0,
     llaves: 0,
     estadisticas: 0,
     rrhh: 0,
@@ -5870,7 +5944,7 @@ var DEFAULT_PERMISOS = {
     fichaje: 1,
     novedades: 1,
     objetivos: 1,
-    choferes: 1,
+    choferes: 0,
     llaves: 0,
     estadisticas: 0,
     rrhh: 0,
