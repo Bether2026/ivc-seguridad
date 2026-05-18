@@ -1009,8 +1009,7 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
       </select>
     </div>
     <div class="form-group">
-      <label class="form-check"><input type="checkbox" id="n-pend"> Marcar como PENDIENTE (caso activo)</label>
-      <div id="n-caso-wrap" style="margin-top:10px;display:none"><input class="form-input" id="n-caso" placeholder="Nombre del caso..."/></div>
+      <label class="form-check"><input type="checkbox" id="n-pend"> Marcar caso como abierto</label>
     </div>
     <div class="form-group">
       <label class="form-label">📷 Fotos / Evidencia</label>
@@ -2040,8 +2039,10 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
       <textarea class="form-textarea" id="upd-nov-texto" style="min-height:100px" placeholder="Describe que paso, como continua el caso, resultado de gestiones..."></textarea>
     </div>
     <div class="form-group">
-      <label class="form-label">Quien actualiza</label>
-      <input class="form-input" id="upd-nov-autor" placeholder="Nombre del agente o responsable"/>
+      <label class="form-label">¿Quién actualiza? (Agente fichado)</label>
+      <select class="form-select" id="upd-nov-autor">
+        <option value="">— Seleccionar agente —</option>
+      </select>
     </div>
     <div class="form-group">
       <label class="form-label">Foto de seguimiento (opcional)</label>
@@ -2613,7 +2614,7 @@ function _editarNovedad() {
           detEl = document.getElementById('n-detalle');
           relevEl = document.getElementById('n-relev');
           pendEl = document.getElementById('n-pend');
-          casoEl = document.getElementById('n-caso');
+          // n-caso removed
           if (tipoEl) tipoEl.value = n.tipo || 'Otro';
           if (asuntoEl) asuntoEl.value = n.asunto || '';
           if (ubicEl) ubicEl.value = n.ubicacion || '';
@@ -2710,12 +2711,38 @@ function getNoLeidas(novId, cantActualizaciones) {
 }
 
 // ─── ACTUALIZACIONES DE NOVEDADES ───
-function abrirActualizarNovedad(id, titulo) {
+async function abrirActualizarNovedad(id, titulo, novData) {
   document.getElementById('upd-nov-id').value = id;
   document.getElementById('upd-nov-titulo').textContent = titulo;
   document.getElementById('upd-nov-texto').value = '';
-  document.getElementById('upd-nov-autor').value = '';
-  document.getElementById('upd-nov-foto-preview').innerHTML = '';
+  var fotoPreview = document.getElementById('upd-nov-foto-preview');
+  if (fotoPreview) fotoPreview.innerHTML = '';
+
+  // Store original novedad data for auto-new-novedad generation
+  window._UPD_NOV_ORIGINAL = novData || null;
+
+  // Load active fichajes for this puesto
+  var autorSel = document.getElementById('upd-nov-autor');
+  if (autorSel) {
+    autorSel.innerHTML = '<option value="">— Seleccionar agente —</option>';
+    try {
+      var puesto = filtro() || USER.puesto;
+      var res = await db.from('fichajes').select('agente').eq('activo', true).eq('puesto', puesto);
+      var activos = res.data || [];
+      if (activos.length) {
+        activos.forEach(function(f) {
+          var o = document.createElement('option');
+          o.value = f.agente; o.textContent = f.agente;
+          autorSel.appendChild(o);
+        });
+      } else {
+        var oNone = document.createElement('option');
+        oNone.value = USER.puesto; oNone.textContent = USER.puesto + ' (sin fichaje activo)';
+        autorSel.appendChild(oNone);
+        autorSel.value = USER.puesto;
+      }
+    } catch(e) { console.error('Error cargando fichajes:', e); }
+  }
   openOv('ov-upd-nov');
 }
 function guardarActualizacionNovedad() {
@@ -2803,6 +2830,25 @@ function _guardarActualizacionNovedad() {
         case 7:
           closeOv('ov-upd-nov');
           toast('Actualizacion guardada');
+          // ── Crear novedad nueva de hoy que referencia la actualización ──
+          var orig = window._UPD_NOV_ORIGINAL;
+          var autorVal = document.getElementById('upd-nov-autor') ? document.getElementById('upd-nov-autor').value : '';
+          var textoVal = document.getElementById('upd-nov-texto') ? document.getElementById('upd-nov-texto').value : '';
+          if (orig) {
+            var resumen = (orig.detalle || '').substring(0, 120);
+            if (resumen.length === 120) resumen += '…';
+            db.from('novedades').insert({
+              puesto: orig.puesto || USER.puesto,
+              tipo: orig.tipo || 'Actualización',
+              asunto: 'Actualización — ' + (orig.asunto || orig.tipo || 'Novedad anterior'),
+              detalle: '📌 Novedad original: ' + resumen + '\n\n🔄 Actualización: ' + textoVal,
+              ubicacion: orig.ubicacion || null,
+              relevancia: 'Normal',
+              cargado_por: autorVal || USER.puesto,
+              ref_novedad_id: id
+            }).then(function() {});
+          }
+          window._UPD_NOV_ORIGINAL = null;
           loadNovedades();
           loadDash();
         case 8:
@@ -2958,7 +3004,7 @@ function renderNovCard(n) {
 
   // Boton actualizar novedad
   h += '<div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px">';
-  h += '<button data-nid="' + n.id + '" data-ntit="' + n.asunto.replace(/"/g, "'").replace(/</g, "").replace(/>/g, "") + '" onclick="abrirActualizarNovedad(this.getAttribute(\'data-nid\'),this.getAttribute(\'data-ntit\'))" ';
+  h += '<button onclick="abrirActualizarNovedad(\'' + n.id + '\',\'' + (n.asunto||'').replace(/'/g,'').replace(/</g,'').replace(/>/g,'') + '\',' + JSON.stringify({id:n.id,asunto:n.asunto,tipo:n.tipo,puesto:n.puesto,detalle:n.detalle,ubicacion:n.ubicacion}).replace(/</g,'').replace(/>/g,'') + ')" ';
   h += 'style="width:100%;padding:9px;background:rgba(37,99,235,0.12);border:1px solid rgba(37,99,235,0.3);border-radius:8px;color:var(--accent3);font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font)">';
   h += '+ Agregar actualizacion al seguimiento</button>';
   h += '</div>';
@@ -5212,7 +5258,7 @@ function _saveNov() {
             detalle: $('n-detalle').value,
             relevancia: $('n-relev').value,
             pendiente: pend,
-            caso: pend ? $('n-caso').value : null,
+            caso: null,
             cargado_por: $('n-agente').value || null,
             fotos: []
           };
@@ -5252,11 +5298,11 @@ function _saveNov() {
           closeOv('ov-nov');
           toast('OK Novedad guardada' + (FOTOS_PENDIENTES.length ? " con ".concat(FOTOS_PENDIENTES.length, " foto(s)") : ''));
           FOTOS_PENDIENTES = [];
-          ['n-asunto-otro', 'n-ubicacion', 'n-detalle', 'n-caso'].forEach(function (id) {
+          ['n-asunto-otro', 'n-ubicacion', 'n-detalle'].forEach(function (id) {
             return $(id).value = '';
           });
           $('n-pend').checked = false;
-          $('n-caso-wrap').style.display = 'none';
+          
           if ($('n-puesto-sel')) $('n-puesto-sel').value = '';
           document.getElementById('foto-preview').innerHTML = '';
           loadNovedades();
@@ -5269,7 +5315,7 @@ function _saveNov() {
   return _saveNov.apply(this, arguments);
 }
 $('n-pend').addEventListener('change', function () {
-  $('n-caso-wrap').style.display = this.checked ? 'block' : 'none';
+  
 });
 function loadObjetivos() {
   return _loadObjetivos.apply(this, arguments);
