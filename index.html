@@ -2711,7 +2711,11 @@ function getNoLeidas(novId, cantActualizaciones) {
 }
 
 // ─── ACTUALIZACIONES DE NOVEDADES ───
-async function abrirActualizarNovedad(id, titulo, novData) {
+async function abrirActualizarNovedad(id) {
+  // Get novedad data from cache (set during render)
+  var novData = (window.NOV_CARD_CACHE && window.NOV_CARD_CACHE[id]) ? window.NOV_CARD_CACHE[id] : null;
+  var titulo = novData ? (novData.asunto || 'Novedad') : 'Novedad';
+
   document.getElementById('upd-nov-id').value = id;
   document.getElementById('upd-nov-titulo').textContent = titulo;
   document.getElementById('upd-nov-texto').value = '';
@@ -2719,7 +2723,7 @@ async function abrirActualizarNovedad(id, titulo, novData) {
   if (fotoPreview) fotoPreview.innerHTML = '';
 
   // Store original novedad data for auto-new-novedad generation
-  window._UPD_NOV_ORIGINAL = novData || null;
+  window._UPD_NOV_ORIGINAL = novData;
 
   // Load active fichajes for this puesto
   var autorSel = document.getElementById('upd-nov-autor');
@@ -3004,11 +3008,16 @@ function renderNovCard(n) {
 
   // Boton actualizar novedad
   h += '<div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px">';
-  h += '<button onclick="abrirActualizarNovedad(\'' + n.id + '\',\'' + (n.asunto||'').replace(/'/g,'').replace(/</g,'').replace(/>/g,'') + '\',' + JSON.stringify({id:n.id,asunto:n.asunto,tipo:n.tipo,puesto:n.puesto,detalle:n.detalle,ubicacion:n.ubicacion}).replace(/</g,'').replace(/>/g,'') + ')" ';
+  h += '<button onclick="abrirActualizarNovedad(\'' + n.id + '\')" ';
   h += 'style="width:100%;padding:9px;background:rgba(37,99,235,0.12);border:1px solid rgba(37,99,235,0.3);border-radius:8px;color:var(--accent3);font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font)">';
   h += '+ Agregar actualizacion al seguimiento</button>';
   h += '</div>';
   h += '</div></div></div>';
+
+  // Store novedad data in global cache for update modal
+  if (!window.NOV_CARD_CACHE) window.NOV_CARD_CACHE = {};
+  window.NOV_CARD_CACHE[n.id] = { id: n.id, asunto: n.asunto, tipo: n.tipo, puesto: n.puesto, detalle: n.detalle, ubicacion: n.ubicacion };
+
   return h;
 }
 function marcarSalidaDirecta(_x4, _x5) {
