@@ -7624,13 +7624,11 @@ function abrirDetalleLlave(numero) {
     '<div style="font-size:15px;font-weight:800;margin-bottom:4px">Nro. ' + numero + ' — ' + objetivo + '</div>' +
     '<div style="font-size:12px;margin-bottom:2px">Estado: ' + estadoBadge + '</div>' +
     (retirada && llave.persona_actual ? '<div style="font-size:11px;color:var(--text3)">Tiene: ' + llave.persona_actual + '</div>' : '') +
-    (retirada && llave.ubicacion_actual ? '<div style="font-size:11px;color:var(--text3)">Destino: ' + llave.ubicacion_actual + '</div>' : '');
+    (retirada && llave.ubicacion_actual ? '<div style="font-size:11px;color:var(--text3)">Bajo resguardo: ' + llave.ubicacion_actual + '</div>' : '');
   document.getElementById('mov-tipo').value = retirada ? 'devolucion' : 'prestamo';
-  document.getElementById('mov-quien').value = '';
-  var destEl = document.getElementById('mov-destino');
-  if (destEl) destEl.value = '';
-  document.getElementById('mov-vehiculo').value = '';
-  document.getElementById('mov-motivo').value = '';
+  var quienEl = document.getElementById('mov-quien'); if (quienEl) quienEl.value = '';
+  var destEl = document.getElementById('mov-destino'); if (destEl) destEl.value = '';
+  var motivoEl = document.getElementById('mov-motivo'); if (motivoEl) motivoEl.value = '';
   toggleMovFields();
   openOv('ov-mov-llave');
 }
