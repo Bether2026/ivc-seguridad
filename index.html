@@ -1427,7 +1427,7 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
     <div class="view" id="view-llaves">
       <div class="page-header">
         <h2>🔑 Control de Llaves</h2>
-        <p>Tablero de llaves — Obrador Savio</p>
+        <p>Tablero físico — Obrador Savio</p>
       </div>
 
       <div class="stat-grid" style="margin-bottom:14px">
@@ -1978,7 +1978,6 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
   <div class="modal">
     <div class="modal-head"><span class="modal-title">📋 Movimiento de Llave</span><button class="btn-close" onclick="closeOv('ov-mov-llave')">×</button></div>
 
-    <!-- Info de la llave seleccionada -->
     <div id="mov-llave-info" style="background:var(--bg3);border-radius:8px;padding:10px 12px;margin-bottom:12px"></div>
     <input type="hidden" id="mov-llave-id">
 
@@ -1986,8 +1985,7 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
       <label class="form-label">Tipo de movimiento</label>
       <select class="form-select" id="mov-tipo" onchange="toggleMovFields()">
         <option value="prestamo">📤 Retirar del tablero</option>
-        <option value="devolucion">📥 Devolver al tablero</option>
-        <option value="cambio">🔄 Cambiar ubicación</option>
+        <option value="devolucion">📥 Devolver al tablero (Obrador Savio)</option>
       </select>
     </div>
 
@@ -1996,39 +1994,15 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
         <label class="form-label">¿Quién la retira?</label>
         <input class="form-input" id="mov-quien" placeholder="Nombre del agente o responsable"/>
       </div>
-
       <div class="form-group">
-        <label class="form-label">Destino</label>
-        <select class="form-select" id="mov-destino" onchange="toggleDestinoOtro()">
-          <option value="">— Seleccionar destino —</option>
-          <option value="Obrador Savio">Obrador Savio</option>
-          <option value="Base Castañares">Base Castañares</option>
-          <option value="Ministerio">Ministerio</option>
-          <option value="otro">Otro (especificar)</option>
-        </select>
-      </div>
-
-      <div class="form-group" id="mov-otro-wrap" style="display:none">
-        <label class="form-label">Especificar otro destino</label>
-        <input class="form-input" id="mov-destino-otro" placeholder="Ej: Jefatura, Contratista, etc."/>
-      </div>
-
-      <div class="form-group">
-        <label class="form-label">Vehículo (si aplica)</label>
-        <select class="form-select" id="mov-vehiculo">
-          <option value="">— Sin vehículo / N/A —</option>
-          <option value="S-10 AA-909-LF">S-10 · AA-909-LF</option>
-          <option value="S-10 AA-909-LD">S-10 · AA-909-LD</option>
-          <option value="Berlingo MYH-863">Berlingo · MYH-863</option>
-          <option value="S-10 vieja EKT-637">S-10 vieja · EKT-637</option>
-          <option value="Jumper KWI-159">Jumper · KWI-159</option>
-        </select>
+        <label class="form-label">¿Bajo resguardo de quién / dónde queda?</label>
+        <input class="form-input" id="mov-destino" placeholder="Ej: Base Castañares, Ministerio, Jefatura..."/>
       </div>
     </div>
 
     <div class="form-group">
       <label class="form-label">Motivo / Observación</label>
-      <textarea class="form-textarea" id="mov-motivo" style="min-height:56px" placeholder="¿Para qué se lleva? Detalle adicional..."></textarea>
+      <textarea class="form-textarea" id="mov-motivo" style="min-height:56px" placeholder="¿Para qué se lleva? Detalle..."></textarea>
     </div>
 
     <button class="btn-login" id="btn-save-mov" onclick="saveMovimiento()">✓ Registrar Movimiento</button>
@@ -7724,10 +7698,42 @@ function toggleMovFields() {
   if (wrap) wrap.style.display = tipo === 'devolucion' ? 'none' : 'block';
 }
 
-function toggleDestinoOtro() {
-  var sel = document.getElementById('mov-destino');
-  var wrap = document.getElementById('mov-otro-wrap');
-  if (wrap) wrap.style.display = (sel && sel.value === 'otro') ? 'block' : 'none';
+function toggleDestinoOtro() {}
+
+function saveMovimiento() {
+  var id = document.getElementById('mov-llave-id').value;
+  var tipo = document.getElementById('mov-tipo').value;
+  var quien = (document.getElementById('mov-quien') || {}).value || '';
+  var donde = (document.getElementById('mov-destino') || {}).value || '';
+  var motivo = document.getElementById('mov-motivo').value || '';
+  if (tipo !== 'devolucion' && !quien) { toast('Indicá quién retira la llave', 'err'); return; }
+  setLoading('btn-save-mov', true);
+  db.from('llaves_movimientos').insert({
+    llave_id: id, tipo: tipo,
+    persona: quien || null,
+    ubicacion: tipo === 'devolucion' ? 'Obrador Savio — Tablero' : (donde || null),
+    motivo: motivo || null,
+    registrado_por: USER ? USER.puesto : ''
+  }).then(function() {
+    var updates = {};
+    if (tipo === 'devolucion') {
+      updates.estado_actual = 'base';
+      updates.persona_actual = null;
+      updates.ubicacion_actual = 'Obrador Savio — Tablero';
+      updates.vehiculo = null;
+    } else {
+      updates.estado_actual = 'prestada';
+      updates.persona_actual = quien || null;
+      updates.ubicacion_actual = donde || 'Fuera del obrador';
+      updates.vehiculo = null;
+    }
+    db.from('llaves').update(updates).eq('id', id).then(function(result) {
+      setLoading('btn-save-mov', false);
+      if (result.error) { toast('Error: ' + result.error.message, 'err'); return; }
+      closeOv('ov-mov-llave');
+      toast(tipo === 'devolucion' ? 'Llave devuelta al tablero' : 'Llave retirada — registrado');
+    });
+  });
 }
 
 function saveLlave() {
@@ -7752,34 +7758,6 @@ function saveLlave() {
   });
 }
 
-function saveMovimiento() {
-  var id = document.getElementById('mov-llave-id').value;
-  var tipo = document.getElementById('mov-tipo').value;
-  var quien = (document.getElementById('mov-quien') || {}).value || '';
-  var destinoSel = (document.getElementById('mov-destino') || {}).value || '';
-  var destinoOtro = (document.getElementById('mov-destino-otro') || {}).value || '';
-  var vehiculo = (document.getElementById('mov-vehiculo') || {}).value || '';
-  var motivo = document.getElementById('mov-motivo').value || '';
-  var donde = destinoSel === 'otro' ? destinoOtro : destinoSel;
-  if (tipo !== 'devolucion' && !donde) { toast('Seleccioná el destino', 'err'); return; }
-  setLoading('btn-save-mov', true);
-  db.from('llaves_movimientos').insert({
-    llave_id: id, tipo: tipo, persona: quien || null,
-    ubicacion: donde || null, vehiculo: vehiculo || null,
-    motivo: motivo || null, registrado_por: USER ? USER.puesto : ''
-  }).then(function() {
-    var updates = {};
-    if (tipo === 'devolucion') { updates.estado_actual = 'base'; updates.persona_actual = null; updates.ubicacion_actual = 'Obrador Savio — Tablero'; updates.vehiculo = null; }
-    else { updates.estado_actual = 'prestada'; updates.persona_actual = quien || null; updates.ubicacion_actual = donde; updates.vehiculo = vehiculo || null; }
-    db.from('llaves').update(updates).eq('id', id).then(function(result) {
-      setLoading('btn-save-mov', false);
-      if (result.error) { toast('Error: ' + result.error.message, 'err'); return; }
-      closeOv('ov-mov-llave');
-      toast(tipo === 'devolucion' ? 'Llave devuelta al tablero' : 'Movimiento registrado');
-      loadLlaves();
-    });
-  });
-}
 
 function loadHistorialLlaves() {
   var cont = document.getElementById('llaves-historial-list');
@@ -7810,6 +7788,7 @@ function loadHistorialLlaves() {
   });
 }
 
+var NOTIF_SUBSCRIPTION = null;
 function suscribirNotifNovedades() {
   var canRecibir = ['Gerencia', 'Administración', 'Administrador', 'Jefe de departamento', 'Responsable de turno', 'Emergencias'].includes(USER.puesto);
   if (!canRecibir) return;
