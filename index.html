@@ -1027,35 +1027,40 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
     <button class="btn-login" id="btn-save-nov" onclick="saveNov()">Guardar Novedad</button>
   </div>
 </div>
+<!-- MODAL INICIAR RECORRIDO -->
 <div class="overlay" id="ov-obj">
   <div class="modal">
-    <div class="modal-head"><span class="modal-title">Iniciar Recorrido</span><button class="btn-close" onclick="closeOv('ov-obj')">×</button></div>
+    <div class="modal-head"><span class="modal-title">🚶 Iniciar Recorrido</span><button class="btn-close" onclick="closeOv('ov-obj')">×</button></div>
+
     <div class="form-group" id="o-puesto-wrap" style="display:none">
       <label class="form-label">📍 Cargar en nombre de puesto</label>
       <select class="form-select" id="o-puesto-sel">
         <option value="">— Seleccioná el puesto —</option>
         <option value="Papa Francisco">Papa Francisco</option>
-<option value="Rodrigo Bueno">Rodrigo Bueno</option>
-<option value="Fraga">Fraga</option>
-<option value="Base Castañares">Base Castañares</option>
-<option value="Obrador Savio">Obrador Savio</option>
-<option value="CAV">CAV</option>
-<option value="Necochea">Necochea</option>
-<option value="Complejo Orma">Complejo Orma</option>
-<option value="Alvarado">Alvarado</option>
-<option value="Padre Mugica">Padre Mugica</option>
+        <option value="Rodrigo Bueno">Rodrigo Bueno</option>
+        <option value="Fraga">Fraga</option>
+        <option value="Base Castañares">Base Castañares</option>
+        <option value="Obrador Savio">Obrador Savio</option>
+        <option value="CAV">CAV</option>
+        <option value="Necochea">Necochea</option>
+        <option value="Complejo Orma">Complejo Orma</option>
+        <option value="Alvarado">Alvarado</option>
+        <option value="Padre Mugica">Padre Mugica</option>
       </select>
     </div>
-    <div class="form-group"><label class="form-label">Descripción</label><input class="form-input" id="o-desc" placeholder="Ej: Recorrida Manzana 1..."/></div>
-    <div class="form-group"><label class="form-label">Sector / Zona</label><input class="form-input" id="o-sector" placeholder="Ej: Módulo 110..."/></div>
-    <div class="form-row">
-      <div class="form-group"><label class="form-label">Prioridad</label><select class="form-select" id="o-prior"><option>Normal</option><option>Alta</option><option>Urgente</option></select></div>
-      <div class="form-group"><label class="form-label">Tipo</label><select class="form-select" id="o-tipo"><option>Recorrida</option><option>Control</option><option>Monitoreo</option><option>Acompañamiento</option></select></div>
-    </div>
+
     <div class="form-group">
-      <label class="form-label">👤 Cargado por (Agente)</label>
-      <input class="form-input" id="o-agente" placeholder="Nombre del agente que inicia el recorrido"/>
+      <label class="form-label">👤 Agente que inicia el recorrido</label>
+      <select class="form-select" id="o-agente">
+        <option value="">— Seleccionar agente fichado —</option>
+      </select>
     </div>
+
+    <div class="form-group">
+      <label class="form-label">Lugar / Ubicación</label>
+      <input class="form-input" id="o-desc" placeholder="Ej: Manzana 4, Módulo 110, Sector norte..."/>
+    </div>
+
     <div class="form-group">
       <label class="form-label">📷 Foto inicial (opcional)</label>
       <div onclick="document.getElementById('obj-foto-input').click()" style="border:2px dashed var(--border2);border-radius:var(--radius-sm);padding:16px;text-align:center;cursor:pointer;background:var(--bg3)">
@@ -1065,25 +1070,51 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
       <input type="file" id="obj-foto-input" accept="image/*" capture="environment" style="display:none" onchange="previewObjFoto(this)">
       <div id="obj-foto-preview" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"></div>
     </div>
+
     <button class="btn-login" id="btn-save-obj" onclick="saveObj()">🚀 Iniciar Recorrido</button>
   </div>
 </div>
+
+<!-- MODAL AGREGAR PUNTO DE RECORRIDO -->
 <div class="overlay" id="ov-obj-upd">
   <div class="modal">
-    <div class="modal-head"><span class="modal-title">Actualizar Recorrido</span><button class="btn-close" onclick="closeOv('ov-obj-upd')">×</button></div>
+    <div class="modal-head"><span class="modal-title">📍 Registrar Punto</span><button class="btn-close" onclick="closeOv('ov-obj-upd')">×</button></div>
+
+    <div id="upd-obj-agente-info" style="background:var(--bg3);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:13px;font-weight:700;color:var(--accent3)"></div>
     <input type="hidden" id="upd-obj-id">
     <input type="hidden" id="upd-obj-prog">
-    <div class="form-group"><label class="form-label">Novedad / Observación</label><textarea class="form-textarea" id="upd-obs" placeholder="Describí lo que encontraste o novedades del recorrido..." style="min-height:80px"></textarea></div>
+
     <div class="form-group">
-      <label class="form-label">📷 Foto de la actualización</label>
-      <div onclick="document.getElementById('upd-foto-input').click()" style="border:2px dashed var(--border2);border-radius:var(--radius-sm);padding:16px;text-align:center;cursor:pointer;background:var(--bg3)">
-        <div style="font-size:24px;margin-bottom:4px">📷</div>
-        <div style="font-size:13px;color:var(--text2);font-weight:600">Sacar foto o elegir de galería</div>
+      <label class="form-label">Lugar / Ubicación del punto</label>
+      <input class="form-input" id="upd-lugar" placeholder="Ej: Módulo 120, Orden 45, Pasillo B..."/>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">¿Hubo incidencia en este punto?</label>
+      <div style="display:flex;gap:10px;margin-top:6px">
+        <button id="btn-sin-inc" onclick="selIncidencia(false)" style="flex:1;padding:12px;border-radius:10px;border:2px solid var(--green);background:rgba(52,211,153,0.15);color:var(--green);font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">✅ Sin incidencia</button>
+        <button id="btn-con-inc" onclick="selIncidencia(true)" style="flex:1;padding:12px;border-radius:10px;border:2px solid var(--border2);background:var(--bg3);color:var(--text2);font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">⚠️ Con incidencia</button>
+      </div>
+    </div>
+
+    <div id="upd-incidencia-wrap" style="display:none">
+      <div class="form-group">
+        <label class="form-label">Detalle de la incidencia</label>
+        <textarea class="form-textarea" id="upd-obs" placeholder="Describí lo que encontraste..." style="min-height:80px"></textarea>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">📷 Foto del punto (opcional)</label>
+      <div onclick="document.getElementById('upd-foto-input').click()" style="border:2px dashed var(--border2);border-radius:var(--radius-sm);padding:14px;text-align:center;cursor:pointer;background:var(--bg3)">
+        <div style="font-size:20px;margin-bottom:4px">📷</div>
+        <div style="font-size:12px;color:var(--text2)">Agregar foto del punto</div>
       </div>
       <input type="file" id="upd-foto-input" accept="image/*" capture="environment" style="display:none" onchange="previewUpdFoto(this)">
-      <div id="upd-foto-preview" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"></div>
+      <div id="upd-foto-preview" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"></div>
     </div>
-    <button class="btn-login" id="btn-save-upd" onclick="saveUpdObj()">📊 Guardar Actualización</button>
+
+    <button class="btn-login" id="btn-save-upd" onclick="saveUpdObj()">📍 Registrar Punto</button>
   </div>
 </div>
 <div class="overlay" id="ov-chof">
@@ -4533,6 +4564,66 @@ function _loadAgenda() {
           return _context28.a(2);
         case 4:
           h = '';
+
+          if (CUR_AGENDA_TAB === 'semana') {
+            // ── VISTA SEMANAL: agrupar por día ──
+            var DIAS = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+            // Construir mapa fecha → operativos
+            var porDia = {};
+            for (i = 0; i < lista.length; i++) {
+              op = lista[i];
+              var fechasOp = op.fechas || [];
+              for (fi = 0; fi < fechasOp.length; fi++) {
+                var fd2 = fechasOp[fi];
+                if (fd2 >= semIni && fd2 <= semFin) {
+                  if (!porDia[fd2]) porDia[fd2] = [];
+                  porDia[fd2].push(op);
+                }
+              }
+            }
+            // Ordenar fechas
+            var fechasConOps = Object.keys(porDia).sort();
+            if (!fechasConOps.length) {
+              cont.innerHTML = '<div class="empty"><div class="icon">📅</div><p>Sin operativos esta semana</p></div>';
+              return _context28.a(2);
+            }
+            for (var di = 0; di < fechasConOps.length; di++) {
+              var fechaDia = fechasConOps[di];
+              var dObj = new Date(fechaDia + 'T12:00:00');
+              var esHoyDia = fechaDia === hoyStr;
+              var dLabel = DIAS[dObj.getDay()] + ' ' + dObj.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+              // Separador de día
+              h += '<div style="display:flex;align-items:center;gap:10px;padding:14px 0 8px">';
+              h += '<div style="flex:1;height:1px;background:' + (esHoyDia ? 'rgba(245,158,11,0.4)' : 'rgba(255,255,255,0.08)') + '"></div>';
+              h += '<span style="font-size:12px;font-weight:800;white-space:nowrap;padding:5px 16px;border-radius:20px;letter-spacing:.04em;' + (esHoyDia ? 'background:rgba(245,158,11,0.2);color:#fbbf24;border:1px solid rgba(245,158,11,0.4)' : 'background:var(--bg3);color:var(--text2);border:1px solid var(--border2)') + '">';
+              h += dLabel + (esHoyDia ? ' — HOY' : '');
+              h += '</span>';
+              h += '<div style="flex:1;height:1px;background:' + (esHoyDia ? 'rgba(245,158,11,0.4)' : 'rgba(255,255,255,0.08)') + '"></div>';
+              h += '</div>';
+
+              // Operativos de ese día
+              var opsDelDia = porDia[fechaDia];
+              for (var odi = 0; odi < opsDelDia.length; odi++) {
+                op = opsDelDia[odi];
+                h += '<div style="background:var(--bg2);border:1px solid ' + (esHoyDia ? 'rgba(245,158,11,0.3)' : 'var(--border)') + ';border-left:3px solid ' + (esHoyDia ? 'var(--yellow)' : 'var(--accent2)') + ';border-radius:10px;margin-bottom:8px;padding:12px 14px">';
+                h += '<div style="font-size:15px;font-weight:800;margin-bottom:4px">' + (op.asunto || 'Sin título') + '</div>';
+                if (op.barrio) h += '<div style="font-size:12px;color:var(--text2);margin-bottom:6px">📍 ' + op.barrio + '</div>';
+                h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px">';
+                if (op.horario) h += '<div style="font-size:12px;color:var(--text2)">🕐 <strong>' + op.horario + '</strong></div>';
+                if (op.agentes_requeridos) h += '<div style="font-size:12px;color:var(--text2)">👥 <strong>' + op.agentes_requeridos + '</strong></div>';
+                if (op.solicitante) h += '<div style="font-size:12px;color:var(--text2);grid-column:span 2">👤 ' + op.solicitante + '</div>';
+                if (op.telefono) h += '<div style="font-size:12px;color:var(--text2)">📞 ' + op.telefono + '</div>';
+                h += '</div>';
+                if (op.detalle) h += '<div style="font-size:11px;color:var(--text3);line-height:1.55;border-top:1px solid var(--border);padding-top:6px">' + op.detalle + '</div>';
+                h += '</div>';
+              }
+            }
+            cont.innerHTML = h;
+            return _context28.a(2);
+          }
+
+          // ── VISTA HOY / TODOS (sin cambios) ──
           for (i = 0; i < lista.length; i++) {
             op = lista[i];
             fechasLabel = (op.fechas || []).map(function (f) {
@@ -4545,8 +4636,6 @@ function _loadAgenda() {
             }).join(' · ');
             esHoy = op.fechas && op.fechas.indexOf(hoyStr) !== -1;
             h += '<div style="background:var(--bg2);border:1px solid ' + (esHoy ? 'var(--yellow)' : 'var(--border)') + ';' + (esHoy ? 'border-left:3px solid var(--yellow);' : 'border-left:3px solid var(--border2);') + 'border-radius:10px;margin-bottom:10px;padding:14px">';
-
-            // Header
             h += '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px">';
             h += '<div>';
             h += '<div style="font-size:15px;font-weight:800;margin-bottom:4px">' + (op.asunto || 'Sin título') + '</div>';
@@ -4554,34 +4643,24 @@ function _loadAgenda() {
             h += '</div>';
             if (esHoy) h += '<span style="background:rgba(245,158,11,0.15);border:1px solid rgba(245,158,11,0.35);color:#fbbf24;font-size:10px;font-weight:800;padding:3px 8px;border-radius:20px;white-space:nowrap">HOY</span>';
             h += '</div>';
-
-            // Fechas
             if (fechasLabel) {
               h += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">';
               fechasArr = op.fechas || [];
               for (fi = 0; fi < fechasArr.length; fi++) {
                 fd = new Date(fechasArr[fi] + 'T12:00:00');
-                fLabel = fd.toLocaleDateString('es-AR', {
-                  weekday: 'short',
-                  day: 'numeric',
-                  month: 'short'
-                });
+                fLabel = fd.toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' });
                 esFechaHoy = fechasArr[fi] === hoyStr;
                 h += '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;' + (esFechaHoy ? 'background:rgba(245,158,11,0.2);color:#fbbf24;border:1px solid rgba(245,158,11,0.4)' : 'background:var(--bg3);color:var(--text2);border:1px solid var(--border2)') + '">' + fLabel + '</span>';
               }
               h += '</div>';
             }
-
-            // Detalles
             h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px">';
             if (op.horario) h += '<div style="font-size:12px;color:var(--text2)">🕐 Horario: <strong>' + op.horario + '</strong></div>';
             if (op.agentes_requeridos) h += '<div style="font-size:12px;color:var(--text2)">👥 Agentes: <strong>' + op.agentes_requeridos + '</strong></div>';
             if (op.solicitante) h += '<div style="font-size:12px;color:var(--text2);grid-column:span 2">👤 ' + op.solicitante + '</div>';
             if (op.telefono) h += '<div style="font-size:12px;color:var(--text2)">📞 ' + op.telefono + '</div>';
             h += '</div>';
-            if (op.detalle) {
-              h += '<div style="font-size:12px;color:var(--text3);line-height:1.6;border-top:1px solid var(--border);padding-top:8px">' + op.detalle + '</div>';
-            }
+            if (op.detalle) h += '<div style="font-size:12px;color:var(--text3);line-height:1.6;border-top:1px solid var(--border);padding-top:8px">' + op.detalle + '</div>';
             h += '</div>';
           }
           cont.innerHTML = h;
@@ -5326,6 +5405,216 @@ function _saveNov() {
 $('n-pend').addEventListener('change', function () {
   
 });
+// ─── CONTROL DE OBJETIVO — COMPLETO ───
+var OBJ_FOTO_FILE = null;
+var OBJ_UPD_FOTO_FILE = null;
+var OBJ_CON_INCIDENCIA = false;
+
+function previewObjFoto(input) {
+  OBJ_FOTO_FILE = input.files[0] || null;
+  var wrap = document.getElementById('obj-foto-preview');
+  if (!wrap || !OBJ_FOTO_FILE) return;
+  wrap.innerHTML = '<div style="position:relative;width:80px;height:80px;border-radius:8px;overflow:hidden;border:1px solid var(--border2)"><img src="' + URL.createObjectURL(OBJ_FOTO_FILE) + '" style="width:100%;height:100%;object-fit:cover"><button onclick="OBJ_FOTO_FILE=null;document.getElementById(\'obj-foto-preview\').innerHTML=\'\'" style="position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;border:none;background:rgba(0,0,0,.7);color:white;font-size:11px;cursor:pointer">x</button></div>';
+}
+
+function previewUpdFoto(input) {
+  OBJ_UPD_FOTO_FILE = input.files[0] || null;
+  var wrap = document.getElementById('upd-foto-preview');
+  if (!wrap || !OBJ_UPD_FOTO_FILE) return;
+  wrap.innerHTML = '<div style="position:relative;width:80px;height:80px;border-radius:8px;overflow:hidden;border:1px solid var(--border2)"><img src="' + URL.createObjectURL(OBJ_UPD_FOTO_FILE) + '" style="width:100%;height:100%;object-fit:cover"><button onclick="OBJ_UPD_FOTO_FILE=null;document.getElementById(\'upd-foto-preview\').innerHTML=\'\'" style="position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;border:none;background:rgba(0,0,0,.7);color:white;font-size:11px;cursor:pointer">x</button></div>';
+}
+
+function selIncidencia(conInc) {
+  OBJ_CON_INCIDENCIA = conInc;
+  var btnSin = document.getElementById('btn-sin-inc');
+  var btnCon = document.getElementById('btn-con-inc');
+  var wrap = document.getElementById('upd-incidencia-wrap');
+  if (conInc) {
+    if (btnCon) { btnCon.style.borderColor = 'var(--yellow)'; btnCon.style.background = 'rgba(245,158,11,0.15)'; btnCon.style.color = 'var(--yellow)'; }
+    if (btnSin) { btnSin.style.borderColor = 'var(--border2)'; btnSin.style.background = 'var(--bg3)'; btnSin.style.color = 'var(--text2)'; }
+    if (wrap) wrap.style.display = 'block';
+  } else {
+    if (btnSin) { btnSin.style.borderColor = 'var(--green)'; btnSin.style.background = 'rgba(52,211,153,0.15)'; btnSin.style.color = 'var(--green)'; }
+    if (btnCon) { btnCon.style.borderColor = 'var(--border2)'; btnCon.style.background = 'var(--bg3)'; btnCon.style.color = 'var(--text2)'; }
+    if (wrap) wrap.style.display = 'none';
+  }
+}
+
+async function abrirIniciarRecorrido() {
+  OBJ_FOTO_FILE = null;
+  var prev = document.getElementById('obj-foto-preview');
+  if (prev) prev.innerHTML = '';
+  var descEl = document.getElementById('o-desc');
+  if (descEl) descEl.value = '';
+
+  // Load active fichajes
+  var sel = document.getElementById('o-agente');
+  if (sel) {
+    sel.innerHTML = '<option value="">— Seleccionar agente fichado —</option>';
+    try {
+      var puesto = filtro() || USER.puesto;
+      var res = await db.from('fichajes').select('agente').eq('activo', true).eq('puesto', puesto);
+      var activos = res.data || [];
+      if (activos.length) {
+        activos.forEach(function(f) {
+          var o = document.createElement('option');
+          o.value = f.agente; o.textContent = f.agente;
+          sel.appendChild(o);
+        });
+      } else {
+        var oNone = document.createElement('option');
+        oNone.value = USER.puesto; oNone.textContent = USER.puesto + ' (sin fichaje activo)';
+        sel.appendChild(oNone);
+        sel.value = USER.puesto;
+      }
+    } catch(e) {}
+  }
+  openOv('ov-obj');
+}
+
+async function saveObj() {
+  var agente = (document.getElementById('o-agente') || {}).value || '';
+  var desc = (document.getElementById('o-desc') || {}).value.trim();
+  if (!agente) { toast('Seleccioná el agente', 'err'); return; }
+  if (!desc) { toast('Ingresá el lugar / ubicación', 'err'); return; }
+
+  var puesto = ['Administración','Administrador','Gerencia','Jefe de departamento'].includes(USER.puesto) && document.getElementById('o-puesto-sel') && document.getElementById('o-puesto-sel').value
+    ? document.getElementById('o-puesto-sel').value : USER.puesto;
+
+  setLoading('btn-save-obj', true);
+
+  var fotoUrl = null;
+  if (OBJ_FOTO_FILE) {
+    try {
+      var comp = await comprimirImagen(OBJ_FOTO_FILE);
+      var path = 'objetivos/' + Date.now() + '_inicio.jpg';
+      var up = await db.storage.from('fotos').upload(path, comp, { contentType: 'image/jpeg', upsert: false });
+      if (!up.error) {
+        var urlRes = db.storage.from('fotos').getPublicUrl(path);
+        if (urlRes.data) fotoUrl = urlRes.data.publicUrl;
+      }
+    } catch(e) {}
+  }
+
+  var now = new Date();
+  var primerPunto = {
+    lugar: desc,
+    hora: now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
+    fecha: now.toISOString(),
+    incidencia: false,
+    obs: '',
+    foto: fotoUrl || null
+  };
+
+  var result = await db.from('objetivos').insert({
+    puesto: puesto,
+    descripcion: desc,
+    sector: desc,
+    tipo: 'Recorrida',
+    prioridad: 'Normal',
+    estado: 'activo',
+    progreso: 0,
+    cargado_por: agente,
+    foto_inicio: fotoUrl,
+    actualizaciones: [primerPunto]
+  });
+
+  setLoading('btn-save-obj', false);
+  if (result.error) { toast('Error: ' + result.error.message, 'err'); return; }
+  closeOv('ov-obj');
+  OBJ_FOTO_FILE = null;
+  toast('🚀 Recorrido iniciado');
+  loadObjetivos();
+  loadDash();
+}
+
+function openUpdObj(id, prog) {
+  document.getElementById('upd-obj-id').value = id;
+  document.getElementById('upd-obj-prog').value = prog || 0;
+
+  // Show agente info from cache
+  var info = document.getElementById('upd-obj-agente-info');
+  if (info && window.OBJ_CACHE && window.OBJ_CACHE[id]) {
+    var o = window.OBJ_CACHE[id];
+    info.textContent = '👤 ' + (o.cargado_por || '') + ' — ' + (o.descripcion || '');
+  }
+
+  // Reset form
+  var lugarEl = document.getElementById('upd-lugar');
+  if (lugarEl) lugarEl.value = '';
+  var obsEl = document.getElementById('upd-obs');
+  if (obsEl) obsEl.value = '';
+  var prev = document.getElementById('upd-foto-preview');
+  if (prev) prev.innerHTML = '';
+  OBJ_UPD_FOTO_FILE = null;
+  OBJ_CON_INCIDENCIA = false;
+  selIncidencia(false); // reset buttons to Sin incidencia
+  openOv('ov-obj-upd');
+}
+
+async function saveUpdObj() {
+  var id = document.getElementById('upd-obj-id').value;
+  var lugar = (document.getElementById('upd-lugar') || {}).value.trim();
+  if (!lugar) { toast('Ingresá el lugar del punto', 'err'); return; }
+
+  var obs = OBJ_CON_INCIDENCIA ? ((document.getElementById('upd-obs') || {}).value.trim() || '') : '';
+  if (OBJ_CON_INCIDENCIA && !obs) { toast('Describí la incidencia', 'err'); return; }
+
+  setLoading('btn-save-upd', true);
+
+  var fotoUrl = null;
+  if (OBJ_UPD_FOTO_FILE) {
+    try {
+      var comp = await comprimirImagen(OBJ_UPD_FOTO_FILE);
+      var path = 'objetivos/' + id + '/upd_' + Date.now() + '.jpg';
+      var up = await db.storage.from('fotos').upload(path, comp, { contentType: 'image/jpeg', upsert: false });
+      if (!up.error) {
+        var urlRes = db.storage.from('fotos').getPublicUrl(path);
+        if (urlRes.data) fotoUrl = urlRes.data.publicUrl;
+      }
+    } catch(e) {}
+  }
+
+  // Get current actualizaciones
+  var res = await db.from('objetivos').select('actualizaciones, progreso').eq('id', id).single();
+  var acts = (res.data && res.data.actualizaciones) ? res.data.actualizaciones : [];
+
+  var now = new Date();
+  acts.push({
+    lugar: lugar,
+    hora: now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
+    fecha: now.toISOString(),
+    incidencia: OBJ_CON_INCIDENCIA,
+    obs: obs,
+    foto: fotoUrl || null
+  });
+
+  var newProg = Math.min(100, acts.length * 10);
+
+  var saveRes = await db.from('objetivos').update({
+    actualizaciones: acts,
+    progreso: newProg,
+    ultima_actualizacion: new Date().toISOString()
+  }).eq('id', id);
+
+  setLoading('btn-save-upd', false);
+  if (saveRes.error) { toast('Error: ' + saveRes.error.message, 'err'); return; }
+  closeOv('ov-obj-upd');
+  OBJ_UPD_FOTO_FILE = null;
+  toast('📍 Punto registrado (' + acts.length + ' en total)');
+  loadObjetivos();
+  loadDash();
+}
+
+async function finObj(id) {
+  showConfirm('Finalizar', 'Finalizar recorrido', 'Confirmar finalización del recorrido?', async function() {
+    await db.from('objetivos').update({ estado: 'finalizado', progreso: 100 }).eq('id', id);
+    toast('Recorrido finalizado');
+    loadObjetivos();
+    loadDash();
+  }, 'Finalizar', 'var(--green)');
+}
+
 function loadObjetivos() {
   return _loadObjetivos.apply(this, arguments);
 }
@@ -5368,14 +5657,12 @@ function _loadObjetivos() {
             Normal: 'var(--accent2)',
             Alta: 'var(--yellow)',
             Urgente: 'var(--red)'
-          }; // Agrupar por fecha
-          oGrupos = {}, oOrden = [];
+          };
+          if (!window.OBJ_CACHE) window.OBJ_CACHE = {};
+          oGrupos = {}; oOrden = [];
           for (ogi = 0; ogi < list.length; ogi++) {
             oFecha = fechaCorta(list[ogi].created_at || list[ogi].inicio);
-            if (!oGrupos[oFecha]) {
-              oGrupos[oFecha] = [];
-              oOrden.push(oFecha);
-            }
+            if (!oGrupos[oFecha]) { oGrupos[oFecha] = []; oOrden.push(oFecha); }
             oGrupos[oFecha].push(list[ogi]);
           }
           ohtml = '';
@@ -5388,36 +5675,61 @@ function _loadObjetivos() {
             ohtml += '</div>';
             oItems = oGrupos[oFechaLabel];
             for (oi = 0; oi < oItems.length; oi++) {
-              o = list[oi];
-              prog = o.progreso || 0;
-              color = oC[o.prioridad] || 'var(--accent2)';
+              o = oItems[oi];
+              window.OBJ_CACHE[o.id] = o;
               isAct = o.estado === 'activo';
-              ohtml += '<div class="obj-item">';
-              ohtml += '<div class="obj-head"><div>';
-              ohtml += '<div class="obj-title">' + (o.descripcion || '') + '</div>';
-              ohtml += '<div class="obj-sub">' + (o.sector || '') + ' · ' + (o.tipo || '') + ' · ' + (o.puesto || '');
-              if (o.cargado_por) ohtml += ' · 👤 ' + o.cargado_por;
-              ohtml += '</div></div>';
-              ohtml += '<span class="badge ' + (isAct ? 'b-green' : 'b-gray') + '">' + (isAct ? 'En curso' : 'Finalizado') + '</span></div>';
-              if (o.foto_inicio) ohtml += '<div style="margin:8px 0"><img src="' + o.foto_inicio + '" style="width:100%;max-height:140px;object-fit:cover;border-radius:8px" loading="lazy"></div>';
-              ohtml += '<div class="obj-bar-wrap"><div class="obj-bar" style="width:' + prog + '%;background:' + color + '"></div></div>';
-              ohtml += '<div class="obj-foot"><span>' + prog + '%</span></div>';
-              if (o.actualizaciones && o.actualizaciones.length) {
-                ohtml += '<div style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px">';
-                ohtml += '<div style="font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;margin-bottom:8px">Actualizaciones</div>';
-                for (aui = 0; aui < o.actualizaciones.length; aui++) {
-                  u = o.actualizaciones[aui];
-                  ohtml += '<div style="background:var(--bg3);border-radius:8px;padding:9px 11px;margin-bottom:6px">';
-                  ohtml += '<div style="font-size:12px;color:var(--text2)">' + (u.obs || '') + '</div>';
-                  if (u.foto) ohtml += '<img src="' + u.foto + '" style="width:80px;height:60px;object-fit:cover;border-radius:6px;margin-top:4px" loading="lazy">';
-                  ohtml += '<div style="font-size:10px;color:var(--text3);margin-top:4px">' + (u.hora || '') + '</div></div>';
+              var puntos = (o.actualizaciones && o.actualizaciones.length) ? o.actualizaciones : [];
+              var conInc = puntos.filter(function(p) { return p.incidencia; }).length;
+              var sinInc = puntos.length - conInc;
+
+              ohtml += '<div class="obj-item" style="border-left:3px solid ' + (isAct ? 'var(--green)' : 'var(--border2)') + '">';
+
+              // Header: agent name prominent
+              ohtml += '<div class="obj-head">';
+              ohtml += '<div style="flex:1;min-width:0">';
+              ohtml += '<div style="font-size:16px;font-weight:800;color:var(--accent3);margin-bottom:3px">👤 ' + (o.cargado_por || 'Agente') + '</div>';
+              ohtml += '<div style="font-size:11px;color:var(--text3)">' + (o.puesto || '') + ' · ' + formatTs(o.created_at) + '</div>';
+              ohtml += '</div>';
+              ohtml += '<span class="badge ' + (isAct ? 'b-green' : 'b-gray') + '">' + (isAct ? 'En curso' : 'Finalizado') + '</span>';
+              ohtml += '</div>';
+
+              // Stats bar
+              ohtml += '<div style="display:flex;gap:8px;margin:8px 0;flex-wrap:wrap">';
+              ohtml += '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(96,165,250,0.12);color:var(--accent3)">📍 ' + puntos.length + ' punto' + (puntos.length !== 1 ? 's' : '') + '</span>';
+              if (sinInc > 0) ohtml += '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(52,211,153,0.1);color:var(--green)">✅ ' + sinInc + ' sin inc.</span>';
+              if (conInc > 0) ohtml += '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(245,158,11,0.12);color:var(--yellow)">⚠️ ' + conInc + ' con inc.</span>';
+              ohtml += '</div>';
+
+              // Checkpoints list
+              if (puntos.length) {
+                ohtml += '<div style="margin-top:4px">';
+                for (aui = 0; aui < puntos.length; aui++) {
+                  u = puntos[aui];
+                  var incColor = u.incidencia ? 'var(--yellow)' : 'var(--green)';
+                  var incIcon = u.incidencia ? '⚠️' : '✅';
+                  ohtml += '<div style="display:flex;gap:8px;align-items:flex-start;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04)">';
+                  ohtml += '<div style="width:24px;height:24px;border-radius:50%;border:2px solid ' + incColor + ';display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;margin-top:1px">' + incIcon + '</div>';
+                  ohtml += '<div style="flex:1;min-width:0">';
+                  ohtml += '<div style="font-size:13px;font-weight:600;color:var(--text1)">' + (u.lugar || 'Sin ubicación') + '</div>';
+                  if (u.obs) ohtml += '<div style="font-size:11px;color:var(--yellow);margin-top:2px">' + u.obs + '</div>';
+                  if (u.foto) ohtml += '<img src="' + u.foto + '" style="width:70px;height:55px;object-fit:cover;border-radius:6px;margin-top:5px" loading="lazy">';
+                  ohtml += '</div>';
+                  ohtml += '<div style="font-size:10px;color:var(--text3);white-space:nowrap;flex-shrink:0">' + (u.hora || '') + '</div>';
+                  ohtml += '</div>';
                 }
                 ohtml += '</div>';
               }
+
+              // Progress bar
+              var prog = Math.min(100, puntos.length * 10);
+              ohtml += '<div class="obj-bar-wrap" style="margin-top:8px"><div class="obj-bar" style="width:' + prog + '%;background:var(--accent2)"></div></div>';
+              ohtml += '<div class="obj-foot"><span>' + prog + '% · ' + puntos.length + ' puntos</span></div>';
+
+              // Actions
               if (isAct) {
                 ohtml += '<div class="obj-actions">';
-                ohtml += '<button class="btn-sm" onclick="openUpdObj(\'' + o.id + '\',' + prog + ')">Actualizar</button>';
-                ohtml += '<button class="btn-sm ok" onclick="finObj(\'' + o.id + '\')">Finalizar</button>';
+                ohtml += '<button class="btn-sm" onclick="openUpdObj(\'' + o.id + '\',' + prog + ')">📍 Registrar punto</button>';
+                ohtml += '<button class="btn-sm ok" onclick="finObj(\'' + o.id + '\')">✓ Finalizar</button>';
                 ohtml += '</div>';
               }
               ohtml += '</div>';
@@ -5641,7 +5953,7 @@ function chofSubTab(tab, btn) {
   if (tab === 'combustible') loadCombustible();else if (tab === 'incidencias') loadIncidencias();else if (tab === 'taller') loadTaller();else if (tab === 'gps') loadGPS();
 }
 function fabClick() {
-  if (CUR_VIEW === 'llaves') openOv('ov-nueva-llave');else if (CUR_VIEW === 'rrhh') abrirNuevoAgente();else if (CUR_VIEW === 'novedades') abrirNuevaNovedad();else if (CUR_VIEW === 'objetivos') openOv('ov-obj');else if (CUR_VIEW === 'fichaje') {
+  if (CUR_VIEW === 'llaves') openOv('ov-nueva-llave');else if (CUR_VIEW === 'rrhh') abrirNuevoAgente();else if (CUR_VIEW === 'novedades') abrirNuevaNovedad();else if (CUR_VIEW === 'objetivos') abrirIniciarRecorrido();else if (CUR_VIEW === 'fichaje') {
     if (CUR_FICH_TAB === 'licencias') openOv('ov-licencia');else openOv('ov-nov'); // fallback
   } else if (CUR_VIEW === 'agenda') {
     var isAdminAgenda = ['Administración', 'Administrador', 'Gerencia', 'Jefe de departamento'].includes(USER ? USER.puesto : '');
