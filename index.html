@@ -1303,23 +1303,32 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
         </div>
         <div id="d-noticias"></div>
       </div>
-      <div class="stat-grid">
+      <!-- Fila 1: 4 stats principales -->
+      <div class="stat-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:10px">
         <div class="stat-card" style="cursor:pointer" onclick="goView('fichaje')"><div class="stat-lbl">Fichados</div><div class="stat-val c-green" id="d-fich">—</div><div class="stat-sub">activos ahora</div></div>
         <div class="stat-card" style="cursor:pointer" onclick="goView('novedades')"><div class="stat-lbl">Novedades</div><div class="stat-val c-blue" id="d-nov">—</div><div class="stat-sub">registradas hoy</div></div>
         <div class="stat-card" style="cursor:pointer" onclick="goView('objetivos')"><div class="stat-lbl">C. Objetivo</div><div class="stat-val c-green" id="d-obj">—</div><div class="stat-sub">en curso hoy</div></div>
-        <div class="stat-card" style="cursor:pointer" onclick="goView('objetivos')"><div class="stat-lbl">Finalizados</div><div class="stat-val c-purple" id="d-pend">—</div><div class="stat-sub">hoy</div></div>
-        <div class="stat-card" style="cursor:pointer" onclick="goView('fichaje')"><div class="stat-lbl">Licencias</div><div class="stat-val c-yellow" id="d-lic-act">—</div><div class="stat-sub">activas hoy</div></div>
+        <div class="stat-card" style="cursor:pointer" onclick="goView('objetivos')"><div class="stat-lbl">Recorridos finalizados</div><div class="stat-val c-purple" id="d-pend">—</div><div class="stat-sub">hoy</div></div>
       </div>
-      <!-- WIDGET AGENDA DEL DÍA -->
-      <div class="card" id="widget-agenda" style="border-left:3px solid var(--yellow);cursor:pointer;display:none" onclick="abrirAgendaHoy()">
-        <div style="display:flex;align-items:center;justify-content:space-between">
-          <div>
-            <div class="card-lbl" style="margin-bottom:4px">📅 Agenda del día</div>
-            <div style="font-size:28px;font-weight:900;font-family:var(--mono);color:var(--yellow)" id="d-agenda-cant">—</div>
-            <div style="font-size:12px;color:var(--text3);margin-top:2px">operativos solicitados hoy</div>
-          </div>
-          <div style="font-size:32px;opacity:.4">📋</div>
+      <!-- Fila 2: Licencias + Agenda lado a lado -->
+      <div style="display:grid;grid-template-columns:1fr 3fr;gap:10px;margin-bottom:10px">
+        <div class="stat-card" style="cursor:pointer" onclick="goView('fichaje')">
+          <div class="stat-lbl">Licencias</div>
+          <div class="stat-val c-yellow" id="d-lic-act">—</div>
+          <div class="stat-sub">activas hoy</div>
         </div>
+        <div class="card" id="widget-agenda" style="border-left:3px solid var(--yellow);cursor:pointer;display:none;margin:0" onclick="abrirAgendaHoy()">
+          <div style="display:flex;align-items:center;justify-content:space-between;height:100%">
+            <div>
+              <div class="card-lbl" style="margin-bottom:4px">📅 Agenda del día</div>
+              <div style="font-size:32px;font-weight:900;font-family:var(--mono);color:var(--yellow)" id="d-agenda-cant">—</div>
+              <div style="font-size:12px;color:var(--text3);margin-top:2px">operativos solicitados hoy</div>
+            </div>
+            <div style="font-size:36px;opacity:.35">📋</div>
+          </div>
+        </div>
+        <!-- Placeholder cuando no hay agenda (para mantener el layout) -->
+        <div id="widget-agenda-empty" style="display:none"></div>
       </div>
       <div class="card">
         <div class="card-head"><span class="card-lbl">Actividad por puesto</span><span class="badge b-blue">Hoy</span></div>
@@ -4252,7 +4261,9 @@ function initApp() {
     });
     // Mostrar widget agenda en el panel
     var wa = document.getElementById('widget-agenda');
-    if (wa) wa.style.display = 'block';
+    var waEmpty = document.getElementById('widget-agenda-empty');
+    if (wa) wa.style.display = 'flex';
+    if (waEmpty) waEmpty.style.display = 'none';
   }
   loadAll();
   loadNoticias();
