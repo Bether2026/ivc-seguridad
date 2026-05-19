@@ -2021,9 +2021,12 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
 
 <!-- LIGHTBOX FOTOS -->
 <div id="ov-lightbox" onclick="cerrarFotoLightbox()" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.92);align-items:center;justify-content:center;cursor:zoom-out">
-  <div style="position:relative;max-width:95vw;max-height:90vh">
-    <img id="lightbox-img" src="" style="max-width:95vw;max-height:88vh;object-fit:contain;border-radius:8px;display:block;box-shadow:0 8px 40px rgba(0,0,0,0.6)">
-    <button onclick="cerrarFotoLightbox()" style="position:absolute;top:-12px;right:-12px;width:32px;height:32px;border-radius:50%;border:none;background:rgba(255,255,255,0.15);color:white;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">×</button>
+  <div style="position:relative;max-width:95vw;max-height:90vh" onclick="event.stopPropagation()">
+    <img id="lightbox-img" src="" style="max-width:95vw;max-height:82vh;object-fit:contain;border-radius:8px;display:block;box-shadow:0 8px 40px rgba(0,0,0,0.6)">
+    <div style="display:flex;justify-content:center;gap:10px;margin-top:10px">
+      <a id="lightbox-download" href="" download="foto_ivc.jpg" onclick="event.stopPropagation()" style="display:flex;align-items:center;gap:6px;padding:8px 20px;background:rgba(37,99,235,0.85);border:1px solid rgba(96,165,250,0.4);border-radius:8px;color:#fff;font-size:13px;font-weight:700;text-decoration:none;cursor:pointer">⬇ Descargar</a>
+      <button onclick="cerrarFotoLightbox()" style="padding:8px 20px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.1);color:white;font-size:13px;font-weight:700;cursor:pointer">✕ Cerrar</button>
+    </div>
   </div>
 </div>
 
@@ -5565,10 +5568,37 @@ function openUpdObj(id, prog) {
 function abrirFotoLightbox(url) {
   var ov = document.getElementById('ov-lightbox');
   var img = document.getElementById('lightbox-img');
+  var dl = document.getElementById('lightbox-download');
   if (!ov || !img) return;
   img.src = url;
   ov.style.display = 'flex';
   document.body.style.overflow = 'hidden';
+
+  // Set download — fetch as blob to bypass CORS/Content-Disposition issues
+  if (dl) {
+    dl.href = url;
+    dl.download = 'foto_ivc_' + Date.now() + '.jpg';
+    dl.onclick = function(e) {
+      e.stopPropagation();
+      e.preventDefault();
+      fetch(url)
+        .then(function(r) { return r.blob(); })
+        .then(function(blob) {
+          var blobUrl = URL.createObjectURL(blob);
+          var a = document.createElement('a');
+          a.href = blobUrl;
+          a.download = 'foto_ivc_' + Date.now() + '.jpg';
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setTimeout(function() { URL.revokeObjectURL(blobUrl); }, 1000);
+        })
+        .catch(function() {
+          // Fallback: open in new tab
+          window.open(url, '_blank');
+        });
+    };
+  }
 }
 
 function cerrarFotoLightbox() {
