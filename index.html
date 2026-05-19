@@ -1305,9 +1305,10 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
       </div>
       <div class="stat-grid">
         <div class="stat-card" style="cursor:pointer" onclick="goView('fichaje')"><div class="stat-lbl">Fichados</div><div class="stat-val c-green" id="d-fich">—</div><div class="stat-sub">activos ahora</div></div>
-        <div class="stat-card" style="cursor:pointer" onclick="goView('objetivos')"><div class="stat-lbl">Recorridos</div><div class="stat-val c-purple" id="d-pend">—</div><div class="stat-sub">activos ahora</div></div>
         <div class="stat-card" style="cursor:pointer" onclick="goView('novedades')"><div class="stat-lbl">Novedades</div><div class="stat-val c-blue" id="d-nov">—</div><div class="stat-sub">registradas hoy</div></div>
-        <div class="stat-card" style="cursor:pointer" onclick="goView('objetivos')"><div class="stat-lbl">C. Objetivo</div><div class="stat-val c-purple" id="d-obj">—</div><div class="stat-sub">en curso</div></div>
+        <div class="stat-card" style="cursor:pointer" onclick="goView('objetivos')"><div class="stat-lbl">C. Objetivo</div><div class="stat-val c-green" id="d-obj">—</div><div class="stat-sub">en curso hoy</div></div>
+        <div class="stat-card" style="cursor:pointer" onclick="goView('objetivos')"><div class="stat-lbl">Finalizados</div><div class="stat-val c-purple" id="d-pend">—</div><div class="stat-sub">hoy</div></div>
+        <div class="stat-card" style="cursor:pointer" onclick="goView('fichaje')"><div class="stat-lbl">Licencias</div><div class="stat-val c-yellow" id="d-lic-act">—</div><div class="stat-sub">activas hoy</div></div>
       </div>
       <!-- WIDGET AGENDA DEL DÍA -->
       <div class="card" id="widget-agenda" style="border-left:3px solid var(--yellow);cursor:pointer;display:none" onclick="abrirAgendaHoy()">
@@ -3042,7 +3043,7 @@ function renderNovCard(n) {
       h += '<div style="background:var(--bg3);border-radius:8px;padding:10px 12px;margin-bottom:6px;border-left:2px solid var(--accent2)">';
       h += '<div style="font-size:10px;color:var(--accent3);font-weight:700;margin-bottom:4px">' + upd.fecha + ' — ' + upd.autor + '</div>';
       h += '<div style="font-size:13px;color:var(--text2);line-height:1.6">' + upd.texto + '</div>';
-      if (upd.foto) h += '<a href="' + upd.foto + '" target="_blank"><img src="' + upd.foto + '" style="width:100%;max-height:140px;object-fit:cover;border-radius:6px;margin-top:6px" loading="lazy"></a>';
+      if (upd.foto) h += '<img src="' + upd.foto + '" onclick="abrirFotoLightbox(\'' + upd.foto + '\')" style="width:100%;max-height:140px;object-fit:cover;border-radius:6px;margin-top:6px;cursor:zoom-in" loading="lazy" onerror="this.style.display=\'none\'">';
       h += '</div>';
     }
     h += '</div>';
@@ -4763,7 +4764,7 @@ function loadDash() {
 }
 function _loadDash() {
   _loadDash = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee31() {
-    var f, hoyIso, hoyInicio, hoyFin, qFich, qNovHoy, qPend, qObj, qUlt, qFichHoy, qNovPuesto, qObjPuesto, _yield$Promise$all3, _yield$Promise$all4, fichRes, novHoyRes, pendRes, objRes, ultRes, fichHoyRes, novPuestoRes, objPuestoRes, fichs, novsHoy, pends, objs, ults, bd, fichHoyList, novPuestoList, objPuestoList, puestoMap, PUESTOS_CONOCIDOS, puestosConActividad, phtml, pi, pn, pd, total, dUlt, uhtml, ui, un, bc, hora, ufi, hoyStr, agRes, agTodos, agHoy, cantEl, _t8;
+    var f, hoyIso, hoyInicio, hoyFin, qFich, qNovHoy, qPend, qObj, qObjFin, qLicAct, qUlt, qFichHoy, qNovPuesto, qObjPuesto, _yield$Promise$all3, _yield$Promise$all4, fichRes, novHoyRes, pendRes, objRes, objFinRes, licActRes, ultRes, fichHoyRes, novPuestoRes, objPuestoRes, fichs, novsHoy, pends, objs, objsFin, licsAct, ults, bd, fichHoyList, novPuestoList, objPuestoList, puestoMap, PUESTOS_CONOCIDOS, puestosConActividad, phtml, pi, pn, pd, total, dUlt, uhtml, ui, un, bc, hora, ufi, hoyStr, agRes, agTodos, agHoy, cantEl, _t8;
     return _regenerator().w(function (_context31) {
       while (1) switch (_context31.p = _context31.n) {
         case 0:
@@ -4774,7 +4775,9 @@ function _loadDash() {
           qFich = db.from('fichajes').select('*').eq('activo', true); // Novedades de HOY solamente para el contador
           qNovHoy = db.from('novedades').select('*').gte('created_at', hoyInicio).lte('created_at', hoyFin); // Novedades pendientes (todas, para alertas) — usamos para badge nav
           qPend = db.from('novedades').select('id,puesto').eq('pendiente', true); // Objetivos activos
-          qObj = db.from('objetivos').select('*').eq('estado', 'activo'); // Últimas novedades del día
+          qObj = db.from('objetivos').select('id,puesto,estado').eq('estado', 'activo'); // Objetivos finalizados HOY
+          qObjFin = db.from('objetivos').select('id,puesto').eq('estado', 'finalizado').gte('created_at', hoyInicio).lte('created_at', hoyFin); // Licencias activas
+          qLicAct = db.from('licencias').select('id,puesto').lte('fecha_desde', hoyIso).gte('fecha_hasta', hoyIso); // Últimas novedades del día
           qUlt = db.from('novedades').select('*').gte('created_at', hoyInicio).lte('created_at', hoyFin).order('created_at', {
             ascending: false
           }).limit(5); // Todos los fichajes de hoy para actividad por puesto
@@ -4786,33 +4789,41 @@ function _loadDash() {
             qNovHoy = qNovHoy.eq('puesto', f);
             qPend = qPend.eq('puesto', f);
             qObj = qObj.eq('puesto', f);
+            qObjFin = qObjFin.eq('puesto', f);
+            qLicAct = qLicAct.eq('puesto', f);
             qUlt = qUlt.eq('puesto', f);
             qFichHoy = qFichHoy.eq('puesto', f);
             qNovPuesto = qNovPuesto.eq('puesto', f);
             qObjPuesto = qObjPuesto.eq('puesto', f);
           }
           _context31.n = 1;
-          return Promise.all([qFich, qNovHoy, qPend, qObj, qUlt, qFichHoy, qNovPuesto, qObjPuesto]);
+          return Promise.all([qFich, qNovHoy, qPend, qObj, qObjFin, qLicAct, qUlt, qFichHoy, qNovPuesto, qObjPuesto]);
         case 1:
           _yield$Promise$all3 = _context31.v;
-          _yield$Promise$all4 = _slicedToArray(_yield$Promise$all3, 8);
+          _yield$Promise$all4 = _slicedToArray(_yield$Promise$all3, 10);
           fichRes = _yield$Promise$all4[0];
           novHoyRes = _yield$Promise$all4[1];
           pendRes = _yield$Promise$all4[2];
           objRes = _yield$Promise$all4[3];
-          ultRes = _yield$Promise$all4[4];
-          fichHoyRes = _yield$Promise$all4[5];
-          novPuestoRes = _yield$Promise$all4[6];
-          objPuestoRes = _yield$Promise$all4[7];
+          objFinRes = _yield$Promise$all4[4];
+          licActRes = _yield$Promise$all4[5];
+          ultRes = _yield$Promise$all4[6];
+          fichHoyRes = _yield$Promise$all4[7];
+          novPuestoRes = _yield$Promise$all4[8];
+          objPuestoRes = _yield$Promise$all4[9];
           fichs = fichRes.data || [];
           novsHoy = novHoyRes.data || [];
           pends = pendRes.data || [];
           objs = objRes.data || [];
+          objsFin = objFinRes.data || [];
+          licsAct = licActRes.data || [];
           ults = ultRes.data || []; // Contadores principales
           document.getElementById('d-fich').textContent = fichs.length;
-          document.getElementById('d-pend').textContent = objs.length; // recorridos activos
-          document.getElementById('d-nov').textContent = novsHoy.length; // SOLO HOY
+          document.getElementById('d-nov').textContent = novsHoy.length;
           document.getElementById('d-obj').textContent = objs.length;
+          document.getElementById('d-pend').textContent = objsFin.length;
+          var licEl = document.getElementById('d-lic-act');
+          if (licEl) licEl.textContent = licsAct.length;
 
           // Badge novedades pendientes
           bd = document.getElementById('nb-badge');
@@ -5676,14 +5687,17 @@ async function saveUpdObj() {
     var objData = window.OBJ_CACHE ? window.OBJ_CACHE[id] : null;
     var objPuesto = objData ? (objData.puesto || USER.puesto) : USER.puesto;
     var objAgente = objData ? (objData.cargado_por || USER.puesto) : USER.puesto;
+    var novDetalle = '⚠️ Incidencia detectada en el punto "' + lugar + '" durante control de objetivo.\n\n' + obs + '\n\n👤 Agente: ' + objAgente;
+    var novFotos = fotoUrl ? [fotoUrl] : [];
     db.from('novedades').insert({
       puesto: objPuesto,
       tipo: 'Control de Objetivo',
       asunto: 'Incidencia en recorrido — ' + lugar,
-      detalle: '⚠️ Incidencia detectada en el punto "' + lugar + '" durante control de objetivo.\n\n' + obs + '\n\n👤 Agente: ' + objAgente,
+      detalle: novDetalle,
       ubicacion: lugar,
       relevancia: 'Alta',
       cargado_por: objAgente,
+      fotos: novFotos,
       ref_novedad_id: null
     }).then(function() {});
     toast('📍 Punto registrado (' + acts.length + ' en total) — ⚠️ Novedad generada por incidencia');
@@ -6975,7 +6989,7 @@ function _loadCombustible() {
           rows = _yield$db$from$select3.data;
           list = rows || [];
           document.getElementById('combustible-list').innerHTML = list.length ? list.map(function (r) {
-            return "\n<div class=\"chofer-card\">\n<div class=\"chofer-head\">\n<div>\n<div class=\"chofer-name\">\u26FD ".concat(r.movil || '', "</div>\n<div class=\"chofer-sub\">").concat(r.chofer, " \xB7 ").concat(r.estacion || '', "</div>\n</div>\n<span class=\"badge b-blue\">").concat(formatTs(r.created_at), "</span>\n</div>\n<div style=\"display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px\">\n<div style=\"background:var(--bg3);border-radius:6px;padding:8px;text-align:center\">\n<div style=\"font-size:10px;color:var(--text3)\">Litros</div>\n<div style=\"font-size:16px;font-weight:700;color:var(--accent3)\">").concat(r.litros || 0, "L</div>\n</div>\n<div style=\"background:var(--bg3);border-radius:6px;padding:8px;text-align:center\">\n<div style=\"font-size:10px;color:var(--text3)\">Importe</div>\n<div style=\"font-size:16px;font-weight:700;color:var(--green)\">$").concat(r.importe || 0, "</div>\n</div>\n<div style=\"background:var(--bg3);border-radius:6px;padding:8px;text-align:center\">\n<div style=\"font-size:10px;color:var(--text3)\">Km</div>\n<div style=\"font-size:16px;font-weight:700;color:var(--yellow)\">").concat(r.km || '—', "</div>\n</div>\n</div>\n").concat(r.foto ? "<a href=\"".concat(r.foto, "\" target=\"_blank\"><img src=\"").concat(r.foto, "\" style=\"width:100%;max-height:120px;object-fit:cover;border-radius:8px;border:1px solid var(--border2)\" loading=\"lazy\"></a>") : '', "\n</div>");
+            return "\n<div class=\"chofer-card\">\n<div class=\"chofer-head\">\n<div>\n<div class=\"chofer-name\">\u26FD ".concat(r.movil || '', "</div>\n<div class=\"chofer-sub\">").concat(r.chofer, " \xB7 ").concat(r.estacion || '', "</div>\n</div>\n<span class=\"badge b-blue\">").concat(formatTs(r.created_at), "</span>\n</div>\n<div style=\"display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px\">\n<div style=\"background:var(--bg3);border-radius:6px;padding:8px;text-align:center\">\n<div style=\"font-size:10px;color:var(--text3)\">Litros</div>\n<div style=\"font-size:16px;font-weight:700;color:var(--accent3)\">").concat(r.litros || 0, "L</div>\n</div>\n<div style=\"background:var(--bg3);border-radius:6px;padding:8px;text-align:center\">\n<div style=\"font-size:10px;color:var(--text3)\">Importe</div>\n<div style=\"font-size:16px;font-weight:700;color:var(--green)\">$").concat(r.importe || 0, "</div>\n</div>\n<div style=\"background:var(--bg3);border-radius:6px;padding:8px;text-align:center\">\n<div style=\"font-size:10px;color:var(--text3)\">Km</div>\n<div style=\"font-size:16px;font-weight:700;color:var(--yellow)\">").concat(r.km || '—', "</div>\n</div>\n</div>\n").concat(r.foto ? "<img src=\"".concat(r.foto, "\" onclick=\"abrirFotoLightbox('").concat(r.foto, "')\" style=\"width:100%;max-height:120px;object-fit:cover;border-radius:8px;border:1px solid var(--border2);cursor:zoom-in\" loading=\"lazy\">") : '', "\n</div>");
           }).join('') : '<div class="empty"><div class="icon">⛽</div><p>Sin cargas registradas</p></div>';
         case 2:
           return _context57.a(2);
@@ -7070,7 +7084,7 @@ function _loadIncidencias() {
           rows = _yield$db$from$select4.data;
           list = rows || [];
           document.getElementById('incidencias-list').innerHTML = list.length ? list.map(function (r) {
-            return "\n<div class=\"chofer-card\">\n<div class=\"chofer-head\">\n<div>\n<div class=\"chofer-name\">[!] ".concat(r.tipo || 'Incidencia', "</div>\n<div class=\"chofer-sub\">").concat(r.movil || '', " \xB7 ").concat(r.chofer, "</div>\n</div>\n<span class=\"badge b-yellow\">").concat(formatTs(r.created_at), "</span>\n</div>\n<div style=\"font-size:13px;color:var(--text2);line-height:1.55;margin-bottom:8px\">").concat(r.descripcion || '', "</div>\n").concat(r.ubicacion ? "<div style=\"font-size:11px;color:var(--text3);margin-bottom:8px\">[Ubic] ".concat(r.ubicacion, "</div>") : '', "\n").concat(r.foto ? "<a href=\"".concat(r.foto, "\" target=\"_blank\"><img src=\"").concat(r.foto, "\" style=\"width:100%;max-height:160px;object-fit:cover;border-radius:8px;border:1px solid var(--border2)\" loading=\"lazy\"></a>") : '', "\n</div>");
+            return "\n<div class=\"chofer-card\">\n<div class=\"chofer-head\">\n<div>\n<div class=\"chofer-name\">[!] ".concat(r.tipo || 'Incidencia', "</div>\n<div class=\"chofer-sub\">").concat(r.movil || '', " \xB7 ").concat(r.chofer, "</div>\n</div>\n<span class=\"badge b-yellow\">").concat(formatTs(r.created_at), "</span>\n</div>\n<div style=\"font-size:13px;color:var(--text2);line-height:1.55;margin-bottom:8px\">").concat(r.descripcion || '', "</div>\n").concat(r.ubicacion ? "<div style=\"font-size:11px;color:var(--text3);margin-bottom:8px\">[Ubic] ".concat(r.ubicacion, "</div>") : '', "\n").concat(r.foto ? "<img src=\"".concat(r.foto, "\" onclick=\"abrirFotoLightbox('").concat(r.foto, "')\" style=\"width:100%;max-height:160px;object-fit:cover;border-radius:8px;border:1px solid var(--border2);cursor:zoom-in\" loading=\"lazy\">") : '', "\n</div>");
           }).join('') : '<div class="empty"><div class="icon">[!]</div><p>Sin incidencias registradas</p></div>';
         case 2:
           return _context59.a(2);
