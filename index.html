@@ -5593,8 +5593,7 @@ async function saveUpdObj() {
 
   var saveRes = await db.from('objetivos').update({
     actualizaciones: acts,
-    progreso: newProg,
-    ultima_actualizacion: new Date().toISOString()
+    progreso: newProg
   }).eq('id', id);
 
   setLoading('btn-save-upd', false);
