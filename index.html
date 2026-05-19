@@ -5552,6 +5552,15 @@ function openUpdObj(id, prog) {
   openOv('ov-obj-upd');
 }
 
+function toggleObjCard(cardId, headerEl) {
+  var body = document.getElementById(cardId);
+  var arr = document.getElementById('arr-' + cardId);
+  if (!body) return;
+  var isOpen = body.style.display !== 'none';
+  body.style.display = isOpen ? 'none' : 'block';
+  if (arr) arr.style.transform = isOpen ? '' : 'rotate(180deg)';
+}
+
 async function saveUpdObj() {
   var id = document.getElementById('upd-obj-id').value;
   var lugar = (document.getElementById('upd-lugar') || {}).value.trim();
@@ -5598,9 +5607,29 @@ async function saveUpdObj() {
 
   setLoading('btn-save-upd', false);
   if (saveRes.error) { toast('Error: ' + saveRes.error.message, 'err'); return; }
+
+  // Auto-generate novedad if incidencia
+  if (OBJ_CON_INCIDENCIA && obs) {
+    var objData = window.OBJ_CACHE ? window.OBJ_CACHE[id] : null;
+    var objPuesto = objData ? (objData.puesto || USER.puesto) : USER.puesto;
+    var objAgente = objData ? (objData.cargado_por || USER.puesto) : USER.puesto;
+    db.from('novedades').insert({
+      puesto: objPuesto,
+      tipo: 'Control de Objetivo',
+      asunto: 'Incidencia en recorrido — ' + lugar,
+      detalle: '⚠️ Incidencia detectada en el punto "' + lugar + '" durante control de objetivo.\n\n' + obs + '\n\n👤 Agente: ' + objAgente,
+      ubicacion: lugar,
+      relevancia: 'Alta',
+      cargado_por: objAgente,
+      ref_novedad_id: null
+    }).then(function() {});
+    toast('📍 Punto registrado (' + acts.length + ' en total) — ⚠️ Novedad generada por incidencia');
+  } else {
+    toast('📍 Punto registrado (' + acts.length + ' en total)');
+  }
+
   closeOv('ov-obj-upd');
   OBJ_UPD_FOTO_FILE = null;
-  toast('📍 Punto registrado (' + acts.length + ' en total)');
   loadObjetivos();
   loadDash();
 }
@@ -5658,80 +5687,102 @@ function _loadObjetivos() {
             Urgente: 'var(--red)'
           };
           if (!window.OBJ_CACHE) window.OBJ_CACHE = {};
+          // Group by date then by puesto
           oGrupos = {}; oOrden = [];
           for (ogi = 0; ogi < list.length; ogi++) {
             oFecha = fechaCorta(list[ogi].created_at || list[ogi].inicio);
-            if (!oGrupos[oFecha]) { oGrupos[oFecha] = []; oOrden.push(oFecha); }
-            oGrupos[oFecha].push(list[ogi]);
+            if (!oGrupos[oFecha]) { oGrupos[oFecha] = {}; oOrden.push(oFecha); }
+            var oPuesto = list[ogi].puesto || 'Sin puesto';
+            if (!oGrupos[oFecha][oPuesto]) oGrupos[oFecha][oPuesto] = [];
+            oGrupos[oFecha][oPuesto].push(list[ogi]);
           }
           ohtml = '';
           for (ogj = 0; ogj < oOrden.length; ogj++) {
             oFechaLabel = oOrden[ogj];
+            // Date separator
             ohtml += '<div style="display:flex;align-items:center;gap:10px;padding:12px 0 10px">';
             ohtml += '<div style="flex:1;height:1px;background:linear-gradient(to right,transparent,rgba(139,92,246,0.4))"></div>';
             ohtml += '<span style="font-size:11px;font-weight:800;color:#fff;white-space:nowrap;background:linear-gradient(135deg,#7c3aed,#6d28d9);padding:5px 16px;border-radius:20px;box-shadow:0 2px 12px rgba(109,40,217,0.4);letter-spacing:.04em">' + formatFechaCompleta(oFechaLabel) + '</span>';
             ohtml += '<div style="flex:1;height:1px;background:linear-gradient(to left,transparent,rgba(139,92,246,0.4))"></div>';
             ohtml += '</div>';
-            oItems = oGrupos[oFechaLabel];
-            for (oi = 0; oi < oItems.length; oi++) {
-              o = oItems[oi];
-              window.OBJ_CACHE[o.id] = o;
-              isAct = o.estado === 'activo';
-              var puntos = (o.actualizaciones && o.actualizaciones.length) ? o.actualizaciones : [];
-              var conInc = puntos.filter(function(p) { return p.incidencia; }).length;
-              var sinInc = puntos.length - conInc;
 
-              ohtml += '<div class="obj-item" style="border-left:3px solid ' + (isAct ? 'var(--green)' : 'var(--border2)') + '">';
+            var puestosEnFecha = Object.keys(oGrupos[oFechaLabel]);
+            for (var opj = 0; opj < puestosEnFecha.length; opj++) {
+              var puestoNom = puestosEnFecha[opj];
+              var puestosItems = oGrupos[oFechaLabel][puestoNom];
 
-              // Header: agent name prominent
-              ohtml += '<div class="obj-head">';
-              ohtml += '<div style="flex:1;min-width:0">';
-              ohtml += '<div style="font-size:16px;font-weight:800;color:var(--accent3);margin-bottom:3px">👤 ' + (o.cargado_por || 'Agente') + '</div>';
-              ohtml += '<div style="font-size:11px;color:var(--text3)">' + (o.puesto || '') + ' · ' + formatTs(o.created_at) + '</div>';
-              ohtml += '</div>';
-              ohtml += '<span class="badge ' + (isAct ? 'b-green' : 'b-gray') + '">' + (isAct ? 'En curso' : 'Finalizado') + '</span>';
-              ohtml += '</div>';
+              // Puesto separator (only if more than one puesto)
+              if (puestosEnFecha.length > 1) {
+                ohtml += '<div style="font-size:10px;font-weight:700;color:var(--accent3);text-transform:uppercase;letter-spacing:.1em;padding:4px 0 6px;border-bottom:1px solid rgba(96,165,250,0.15);margin-bottom:6px">📍 ' + puestoNom + '</div>';
+              }
 
-              // Stats bar
-              ohtml += '<div style="display:flex;gap:8px;margin:8px 0;flex-wrap:wrap">';
-              ohtml += '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(96,165,250,0.12);color:var(--accent3)">📍 ' + puntos.length + ' punto' + (puntos.length !== 1 ? 's' : '') + '</span>';
-              if (sinInc > 0) ohtml += '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(52,211,153,0.1);color:var(--green)">✅ ' + sinInc + ' sin inc.</span>';
-              if (conInc > 0) ohtml += '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(245,158,11,0.12);color:var(--yellow)">⚠️ ' + conInc + ' con inc.</span>';
-              ohtml += '</div>';
+              for (oi = 0; oi < puestosItems.length; oi++) {
+                o = puestosItems[oi];
+                window.OBJ_CACHE[o.id] = o;
+                isAct = o.estado === 'activo';
+                var puntos = (o.actualizaciones && o.actualizaciones.length) ? o.actualizaciones : [];
+                var conInc = puntos.filter(function(p) { return p.incidencia; }).length;
+                var sinInc = puntos.length - conInc;
+                var prog = Math.min(100, puntos.length * 10);
+                var cardId = 'obj-body-' + o.id.replace(/-/g,'');
 
-              // Checkpoints list
-              if (puntos.length) {
-                ohtml += '<div style="margin-top:4px">';
-                for (aui = 0; aui < puntos.length; aui++) {
-                  u = puntos[aui];
-                  var incColor = u.incidencia ? 'var(--yellow)' : 'var(--green)';
-                  var incIcon = u.incidencia ? '⚠️' : '✅';
-                  ohtml += '<div style="display:flex;gap:8px;align-items:flex-start;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04)">';
-                  ohtml += '<div style="width:24px;height:24px;border-radius:50%;border:2px solid ' + incColor + ';display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;margin-top:1px">' + incIcon + '</div>';
-                  ohtml += '<div style="flex:1;min-width:0">';
-                  ohtml += '<div style="font-size:13px;font-weight:600;color:var(--text1)">' + (u.lugar || 'Sin ubicación') + '</div>';
-                  if (u.obs) ohtml += '<div style="font-size:11px;color:var(--yellow);margin-top:2px">' + u.obs + '</div>';
-                  if (u.foto) ohtml += '<img src="' + u.foto + '" style="width:70px;height:55px;object-fit:cover;border-radius:6px;margin-top:5px" loading="lazy">';
-                  ohtml += '</div>';
-                  ohtml += '<div style="font-size:10px;color:var(--text3);white-space:nowrap;flex-shrink:0">' + (u.hora || '') + '</div>';
+                // ── COLLAPSIBLE CARD ──
+                ohtml += '<div class="obj-item" style="border-left:3px solid ' + (isAct ? 'var(--green)' : 'var(--border2)') + ';margin-bottom:8px;cursor:pointer" onclick="toggleObjCard(\'' + cardId + '\',this)">';
+
+                // Header (always visible)
+                ohtml += '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px">';
+                ohtml += '<div style="flex:1;min-width:0">';
+                ohtml += '<div style="font-size:15px;font-weight:800;color:var(--accent3);margin-bottom:3px">👤 ' + (o.cargado_por || 'Agente') + '</div>';
+                ohtml += '<div style="font-size:11px;color:var(--text3)">' + (o.puesto || '') + ' · ' + formatTs(o.created_at) + '</div>';
+                ohtml += '</div>';
+                ohtml += '<div style="display:flex;align-items:center;gap:6px">';
+                ohtml += '<span class="badge ' + (isAct ? 'b-green' : 'b-gray') + '">' + (isAct ? 'En curso' : 'Finalizado') + '</span>';
+                ohtml += '<span style="font-size:16px;color:var(--text3);transition:transform .2s" id="arr-' + cardId + '">▼</span>';
+                ohtml += '</div></div>';
+
+                // Stats badges (always visible)
+                ohtml += '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">';
+                ohtml += '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(96,165,250,0.12);color:var(--accent3)">📍 ' + puntos.length + ' punto' + (puntos.length !== 1 ? 's' : '') + '</span>';
+                if (sinInc > 0) ohtml += '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(52,211,153,0.1);color:var(--green)">✅ ' + sinInc + ' sin inc.</span>';
+                if (conInc > 0) ohtml += '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(239,68,68,0.15);color:#f87171">⚠️ ' + conInc + ' con inc.</span>';
+                ohtml += '</div>';
+
+                // Progress bar (always visible)
+                ohtml += '<div class="obj-bar-wrap" style="margin-top:8px"><div class="obj-bar" style="width:' + prog + '%;background:var(--accent2)"></div></div>';
+
+                // ── COLLAPSIBLE BODY (hidden by default) ──
+                ohtml += '<div id="' + cardId + '" style="display:none;margin-top:10px;border-top:1px solid rgba(255,255,255,0.06);padding-top:10px">';
+
+                // Checkpoints list
+                if (puntos.length) {
+                  for (aui = 0; aui < puntos.length; aui++) {
+                    u = puntos[aui];
+                    var rowBg = u.incidencia ? 'background:rgba(239,68,68,0.1);border-radius:8px;margin-bottom:4px;' : 'border-bottom:1px solid rgba(255,255,255,0.04);';
+                    var incColor = u.incidencia ? '#f87171' : 'var(--green)';
+                    var incIcon = u.incidencia ? '⚠️' : '✅';
+                    ohtml += '<div style="display:flex;gap:8px;align-items:flex-start;padding:8px;' + rowBg + '">';
+                    ohtml += '<div style="width:22px;height:22px;border-radius:50%;border:2px solid ' + incColor + ';display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;margin-top:1px">' + incIcon + '</div>';
+                    ohtml += '<div style="flex:1;min-width:0">';
+                    ohtml += '<div style="font-size:13px;font-weight:600;color:' + (u.incidencia ? '#fca5a5' : 'var(--text1)') + '">' + (u.lugar || 'Sin ubicación') + '</div>';
+                    if (u.obs) ohtml += '<div style="font-size:11px;color:#f87171;margin-top:2px">' + u.obs + '</div>';
+                    if (u.foto) ohtml += '<img src="' + u.foto + '" style="width:70px;height:55px;object-fit:cover;border-radius:6px;margin-top:5px" loading="lazy">';
+                    ohtml += '</div>';
+                    ohtml += '<div style="font-size:10px;color:var(--text3);white-space:nowrap;flex-shrink:0">' + (u.hora || '') + '</div>';
+                    ohtml += '</div>';
+                  }
+                }
+
+                // Actions inside body
+                if (isAct) {
+                  ohtml += '<div class="obj-actions" style="margin-top:10px">';
+                  ohtml += '<button class="btn-sm" onclick="event.stopPropagation();openUpdObj(\'' + o.id + '\',' + prog + ')">📍 Registrar punto</button>';
+                  ohtml += '<button class="btn-sm ok" onclick="event.stopPropagation();finObj(\'' + o.id + '\')">✓ Finalizar</button>';
                   ohtml += '</div>';
                 }
-                ohtml += '</div>';
-              }
 
-              // Progress bar
-              var prog = Math.min(100, puntos.length * 10);
-              ohtml += '<div class="obj-bar-wrap" style="margin-top:8px"><div class="obj-bar" style="width:' + prog + '%;background:var(--accent2)"></div></div>';
-              ohtml += '<div class="obj-foot"><span>' + prog + '% · ' + puntos.length + ' puntos</span></div>';
-
-              // Actions
-              if (isAct) {
-                ohtml += '<div class="obj-actions">';
-                ohtml += '<button class="btn-sm" onclick="openUpdObj(\'' + o.id + '\',' + prog + ')">📍 Registrar punto</button>';
-                ohtml += '<button class="btn-sm ok" onclick="finObj(\'' + o.id + '\')">✓ Finalizar</button>';
-                ohtml += '</div>';
+                ohtml += '</div>'; // end collapsible body
+                ohtml += '</div>'; // end obj-item
               }
-              ohtml += '</div>';
             }
           }
           document.getElementById('obj-list').innerHTML = ohtml;
