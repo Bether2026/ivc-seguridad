@@ -283,44 +283,76 @@ body::after { display: none; }
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
   height: calc(68px + env(safe-area-inset-bottom));
   padding-bottom: env(safe-area-inset-bottom);
-  background: rgba(6, 27, 52, 0.94);
+  background: rgba(5, 18, 38, 0.97);
   backdrop-filter: blur(28px) saturate(180%); -webkit-backdrop-filter: blur(28px) saturate(180%);
-  border-top: 1px solid var(--border);
+  border-top: 1px solid rgba(255,255,255,0.06);
   display: flex;
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   -ms-overflow-style: none;
+  box-shadow: 0 -8px 32px rgba(0,0,0,0.4);
 }
 .bottomnav::-webkit-scrollbar { display: none; }
 .bottomnav::before {
   content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(124,176,255,0.25), transparent);
+  background: linear-gradient(90deg, transparent, rgba(124,176,255,0.2), rgba(167,139,250,0.2), rgba(244,114,182,0.2), transparent);
   pointer-events: none;
 }
 .nav-btn {
   flex: 0 0 auto;
   min-width: 68px;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 5px; padding: 10px 8px;
-  border: none; background: none; color: var(--text3);
-  cursor: pointer; transition: color .2s; position: relative;
+  gap: 4px; padding: 8px 8px;
+  border: none; background: none; color: rgba(148,163,184,0.5);
+  cursor: pointer; transition: all .2s; position: relative;
   -webkit-tap-highlight-color: transparent;
   font-family: var(--font);
 }
-.nav-btn.active { color: var(--accent3); }
+.nav-btn span {
+  font-size: 10px; font-weight: 700; letter-spacing: .02em;
+  text-transform: none; white-space: nowrap;
+  transition: color .2s;
+}
+.nav-btn svg { width: 22px; height: 22px; stroke-width: 2; transition: all .2s; }
+.nav-btn:active { transform: scale(0.9); }
+
+/* Color per section */
+#nb-dashboard       { --nc: #60a5fa; }
+#nb-fichaje         { --nc: #34d399; }
+#nb-novedades       { --nc: #f472b6; }
+#nb-objetivos       { --nc: #a78bfa; }
+#nb-choferes        { --nc: #fb923c; }
+#nb-llaves          { --nc: #fbbf24; }
+#nb-estadisticas    { --nc: #38bdf8; }
+#nb-rrhh            { --nc: #4ade80; }
+#nb-agenda          { --nc: #fde68a; }
+#nb-admin           { --nc: #f87171; }
+
+.nav-btn.active {
+  color: var(--nc, #60a5fa);
+}
+.nav-btn.active span { color: var(--nc, #60a5fa); }
+.nav-btn.active svg {
+  filter: drop-shadow(0 0 6px var(--nc, #60a5fa));
+}
 .nav-btn.active::before {
   content: ''; position: absolute;
   top: 0; left: 50%; transform: translateX(-50%);
-  width: 32px; height: 3px;
-  background: var(--accent3);
-  border-radius: 0 0 4px 4px;
-  box-shadow: 0 0 12px var(--accent3);
+  width: 36px; height: 3px;
+  background: var(--nc, #60a5fa);
+  border-radius: 0 0 6px 6px;
+  box-shadow: 0 0 12px var(--nc, #60a5fa), 0 0 24px var(--nc, #60a5fa);
 }
-.nav-btn svg { width: 22px; height: 22px; stroke-width: 2; }
-.nav-btn span { font-size: 10.5px; font-weight: 700; letter-spacing: .02em; text-transform: none; white-space: nowrap; }
-.nav-btn:active { transform: scale(0.94); }
+.nav-btn.active::after {
+  content: ''; position: absolute;
+  top: 0; bottom: 0; left: 4px; right: 4px;
+  background: radial-gradient(ellipse at 50% 0%, var(--nc, #60a5fa) 0%, transparent 70%);
+  opacity: .08;
+  border-radius: 0 0 12px 12px;
+  pointer-events: none;
+}
 .nav-badge {
   position: absolute; top: 4px; right: calc(50% - 20px);
   background: var(--red); color: white;
@@ -1303,67 +1335,67 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
         </div>
         <div id="d-noticias"></div>
       </div>
-      <!-- Fila 1: 2+2 en mobile, 4 en desktop -->
+      <!-- Stats 3x2: Fichados/Licencias | En curso/Finalizados | Novedades/Agenda -->
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">
 
-        <div onclick="goView('fichaje')" style="cursor:pointer;background:linear-gradient(135deg,rgba(52,211,153,0.12),rgba(16,185,129,0.06));border:1px solid rgba(52,211,153,0.25);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px">
-          <div style="font-size:28px;flex-shrink:0">🟢</div>
-          <div>
-            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(52,211,153,0.7);margin-bottom:2px">Fichados</div>
-            <div style="font-size:30px;font-weight:900;font-family:var(--mono);color:#34d399;line-height:1" id="d-fich">—</div>
-            <div style="font-size:10px;color:var(--text3);margin-top:2px">activos ahora</div>
+        <!-- Fichados -->
+        <div onclick="goView('fichaje')" style="cursor:pointer;background:linear-gradient(145deg,rgba(52,211,153,0.18) 0%,rgba(16,185,129,0.06) 100%);border:1px solid rgba(52,211,153,0.3);border-bottom:3px solid rgba(52,211,153,0.5);border-radius:16px;padding:14px 16px;box-shadow:0 4px 20px rgba(52,211,153,0.08),0 1px 0 rgba(255,255,255,0.06) inset">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(52,211,153,0.8)">Fichados</div>
+            <div style="width:32px;height:32px;border-radius:10px;background:rgba(52,211,153,0.15);display:flex;align-items:center;justify-content:center;font-size:16px">🟢</div>
           </div>
+          <div style="font-size:36px;font-weight:900;font-family:var(--mono);color:#34d399;line-height:1;text-shadow:0 0 20px rgba(52,211,153,0.4)" id="d-fich">—</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:4px">activos ahora</div>
         </div>
 
-        <div onclick="goView('novedades')" style="cursor:pointer;background:linear-gradient(135deg,rgba(96,165,250,0.12),rgba(59,130,246,0.06));border:1px solid rgba(96,165,250,0.25);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px">
-          <div style="font-size:28px;flex-shrink:0">📋</div>
-          <div>
-            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(96,165,250,0.7);margin-bottom:2px">Novedades</div>
-            <div style="font-size:30px;font-weight:900;font-family:var(--mono);color:#60a5fa;line-height:1" id="d-nov">—</div>
-            <div style="font-size:10px;color:var(--text3);margin-top:2px">hoy</div>
+        <!-- Licencias -->
+        <div onclick="goView('fichaje')" style="cursor:pointer;background:linear-gradient(145deg,rgba(251,191,36,0.18) 0%,rgba(245,158,11,0.06) 100%);border:1px solid rgba(251,191,36,0.3);border-bottom:3px solid rgba(251,191,36,0.5);border-radius:16px;padding:14px 16px;box-shadow:0 4px 20px rgba(251,191,36,0.08),0 1px 0 rgba(255,255,255,0.06) inset">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(251,191,36,0.8)">Licencias</div>
+            <div style="width:32px;height:32px;border-radius:10px;background:rgba(251,191,36,0.15);display:flex;align-items:center;justify-content:center;font-size:16px">📄</div>
           </div>
+          <div style="font-size:36px;font-weight:900;font-family:var(--mono);color:#fbbf24;line-height:1;text-shadow:0 0 20px rgba(251,191,36,0.4)" id="d-lic-act">—</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:4px">activas hoy</div>
         </div>
 
-        <div onclick="goView('objetivos')" style="cursor:pointer;background:linear-gradient(135deg,rgba(52,211,153,0.1),rgba(16,185,129,0.05));border:1px solid rgba(52,211,153,0.2);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px">
-          <div style="font-size:28px;flex-shrink:0">🎯</div>
-          <div>
-            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(52,211,153,0.7);margin-bottom:2px">En curso</div>
-            <div style="font-size:30px;font-weight:900;font-family:var(--mono);color:#34d399;line-height:1" id="d-obj">—</div>
-            <div style="font-size:10px;color:var(--text3);margin-top:2px">recorridos</div>
+        <!-- En curso -->
+        <div onclick="goView('objetivos')" style="cursor:pointer;background:linear-gradient(145deg,rgba(96,165,250,0.18) 0%,rgba(59,130,246,0.06) 100%);border:1px solid rgba(96,165,250,0.3);border-bottom:3px solid rgba(96,165,250,0.5);border-radius:16px;padding:14px 16px;box-shadow:0 4px 20px rgba(96,165,250,0.08),0 1px 0 rgba(255,255,255,0.06) inset">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(96,165,250,0.8)">En curso</div>
+            <div style="width:32px;height:32px;border-radius:10px;background:rgba(96,165,250,0.15);display:flex;align-items:center;justify-content:center;font-size:16px">🎯</div>
           </div>
+          <div style="font-size:36px;font-weight:900;font-family:var(--mono);color:#60a5fa;line-height:1;text-shadow:0 0 20px rgba(96,165,250,0.4)" id="d-obj">—</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:4px">recorridos</div>
         </div>
 
-        <div onclick="goView('objetivos')" style="cursor:pointer;background:linear-gradient(135deg,rgba(167,139,250,0.12),rgba(139,92,246,0.06));border:1px solid rgba(167,139,250,0.25);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px">
-          <div style="font-size:28px;flex-shrink:0">✅</div>
-          <div>
-            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(167,139,250,0.7);margin-bottom:2px">Finalizados</div>
-            <div style="font-size:30px;font-weight:900;font-family:var(--mono);color:#a78bfa;line-height:1" id="d-pend">—</div>
-            <div style="font-size:10px;color:var(--text3);margin-top:2px">hoy</div>
+        <!-- Finalizados -->
+        <div onclick="goView('objetivos')" style="cursor:pointer;background:linear-gradient(145deg,rgba(167,139,250,0.18) 0%,rgba(139,92,246,0.06) 100%);border:1px solid rgba(167,139,250,0.3);border-bottom:3px solid rgba(167,139,250,0.5);border-radius:16px;padding:14px 16px;box-shadow:0 4px 20px rgba(167,139,250,0.08),0 1px 0 rgba(255,255,255,0.06) inset">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(167,139,250,0.8)">Finalizados</div>
+            <div style="width:32px;height:32px;border-radius:10px;background:rgba(167,139,250,0.15);display:flex;align-items:center;justify-content:center;font-size:16px">✅</div>
           </div>
+          <div style="font-size:36px;font-weight:900;font-family:var(--mono);color:#a78bfa;line-height:1;text-shadow:0 0 20px rgba(167,139,250,0.4)" id="d-pend">—</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:4px">hoy</div>
         </div>
 
-      </div>
-
-      <!-- Fila 2: Licencias + Agenda -->
-      <div style="display:grid;grid-template-columns:1fr 2fr;gap:10px;margin-bottom:10px">
-
-        <div onclick="goView('fichaje')" style="cursor:pointer;background:linear-gradient(135deg,rgba(251,191,36,0.12),rgba(245,158,11,0.06));border:1px solid rgba(251,191,36,0.25);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;justify-content:center">
-          <div style="font-size:24px;margin-bottom:4px">📄</div>
-          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(251,191,36,0.7);margin-bottom:2px">Licencias</div>
-          <div style="font-size:30px;font-weight:900;font-family:var(--mono);color:#fbbf24;line-height:1" id="d-lic-act">—</div>
-          <div style="font-size:10px;color:var(--text3);margin-top:2px">activas hoy</div>
+        <!-- Novedades -->
+        <div onclick="goView('novedades')" style="cursor:pointer;background:linear-gradient(145deg,rgba(244,114,182,0.18) 0%,rgba(236,72,153,0.06) 100%);border:1px solid rgba(244,114,182,0.3);border-bottom:3px solid rgba(244,114,182,0.5);border-radius:16px;padding:14px 16px;box-shadow:0 4px 20px rgba(244,114,182,0.08),0 1px 0 rgba(255,255,255,0.06) inset">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(244,114,182,0.8)">Novedades</div>
+            <div style="width:32px;height:32px;border-radius:10px;background:rgba(244,114,182,0.15);display:flex;align-items:center;justify-content:center;font-size:16px">📋</div>
+          </div>
+          <div style="font-size:36px;font-weight:900;font-family:var(--mono);color:#f472b6;line-height:1;text-shadow:0 0 20px rgba(244,114,182,0.4)" id="d-nov">—</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:4px">registradas hoy</div>
         </div>
 
-        <div class="card" id="widget-agenda" style="border:1px solid rgba(251,191,36,0.3);border-left:3px solid var(--yellow);border-radius:14px;cursor:pointer;display:none;margin:0;padding:14px 16px" onclick="abrirAgendaHoy()">
-          <div style="display:flex;align-items:center;justify-content:space-between;height:100%">
-            <div>
-              <div style="font-size:24px;margin-bottom:4px">📅</div>
-              <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:rgba(251,191,36,0.7);margin-bottom:2px">Agenda del día</div>
-              <div style="font-size:30px;font-weight:900;font-family:var(--mono);color:#fbbf24;line-height:1" id="d-agenda-cant">—</div>
-              <div style="font-size:10px;color:var(--text3);margin-top:2px">operativos hoy</div>
-            </div>
-            <div style="font-size:28px;opacity:.3">📋</div>
+        <!-- Agenda -->
+        <div id="widget-agenda" onclick="abrirAgendaHoy()" style="cursor:pointer;display:none;background:linear-gradient(145deg,rgba(251,191,36,0.18) 0%,rgba(245,158,11,0.06) 100%);border:1px solid rgba(251,191,36,0.3);border-bottom:3px solid rgba(251,191,36,0.5);border-radius:16px;padding:14px 16px;box-shadow:0 4px 20px rgba(251,191,36,0.08),0 1px 0 rgba(255,255,255,0.06) inset">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(251,191,36,0.8)">Agenda hoy</div>
+            <div style="width:32px;height:32px;border-radius:10px;background:rgba(251,191,36,0.15);display:flex;align-items:center;justify-content:center;font-size:16px">📅</div>
           </div>
+          <div style="font-size:36px;font-weight:900;font-family:var(--mono);color:#fbbf24;line-height:1;text-shadow:0 0 20px rgba(251,191,36,0.4)" id="d-agenda-cant">—</div>
+          <div style="font-size:10px;color:var(--text3);margin-top:4px">operativos solicitados</div>
         </div>
         <div id="widget-agenda-empty" style="display:none"></div>
 
@@ -4928,21 +4960,45 @@ function _loadDash() {
           if (puestosConActividad.length === 0) {
             phtml = '<div style="font-size:12px;color:var(--text3);padding:8px 0">Sin actividad registrada hoy</div>';
           } else {
+            // Find max total for bar scaling
+            var maxTotal = 1;
+            for (pi = 0; pi < puestosConActividad.length; pi++) {
+              pd = puestoMap[puestosConActividad[pi]];
+              total = pd.fichados + pd.novedades + pd.objetivos;
+              if (total > maxTotal) maxTotal = total;
+            }
             for (pi = 0; pi < puestosConActividad.length; pi++) {
               pn = puestosConActividad[pi];
               pd = puestoMap[pn];
               total = pd.fichados + pd.novedades + pd.objetivos;
-              phtml += '<div onclick="mostrarDetallePuesto(\'' + pn.replace(/'/g, "\\'") + '\')" ' + 'style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer">';
-              phtml += '<div style="flex:1;min-width:0">';
-              phtml += '<div style="font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + pn + '</div>';
-              phtml += '<div style="font-size:11px;color:var(--text3);margin-top:3px;display:flex;gap:8px">';
-              phtml += '<span>👥 ' + pd.fichados + '</span>';
-              phtml += '<span>📋 ' + pd.novedades + '</span>';
-              phtml += '<span>🎯 ' + pd.objetivos + '</span>';
+              var barPct = Math.round((total / maxTotal) * 100);
+              var fichPct = total > 0 ? Math.round((pd.fichados / total) * barPct) : 0;
+              var novPct = total > 0 ? Math.round((pd.novedades / total) * barPct) : 0;
+              var objPct = barPct - fichPct - novPct;
+              if (objPct < 0) objPct = 0;
+
+              phtml += '<div onclick="mostrarDetallePuesto(\'' + pn.replace(/'/g, "\\'") + '\')" style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer">';
+              // Name + total
+              phtml += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">';
+              phtml += '<div style="font-size:13px;font-weight:700">' + pn + '</div>';
+              phtml += '<div style="display:flex;align-items:center;gap:10px">';
+              phtml += '<span style="font-size:10px;color:var(--text3)">👥' + pd.fichados + ' 📋' + pd.novedades + ' 🎯' + pd.objetivos + '</span>';
+              phtml += '<span style="font-size:16px;font-weight:900;font-family:var(--mono);color:var(--accent3)">' + total + '</span>';
               phtml += '</div></div>';
-              phtml += '<div style="font-size:18px;color:var(--accent3);font-weight:800;font-family:var(--mono)">' + total + '</div>';
+              // Bar chart
+              phtml += '<div style="height:8px;background:rgba(255,255,255,0.06);border-radius:4px;overflow:hidden;display:flex">';
+              if (fichPct > 0) phtml += '<div style="width:' + fichPct + '%;background:#34d399;border-radius:4px 0 0 4px;transition:width .6s ease"></div>';
+              if (novPct > 0) phtml += '<div style="width:' + novPct + '%;background:#f472b6"></div>';
+              if (objPct > 0) phtml += '<div style="width:' + objPct + '%;background:#a78bfa;border-radius:0 4px 4px 0"></div>';
+              phtml += '</div>';
               phtml += '</div>';
             }
+            // Legend
+            phtml += '<div style="display:flex;gap:14px;margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.05)">';
+            phtml += '<span style="font-size:10px;color:var(--text3);display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#34d399;display:inline-block"></span>Fichados</span>';
+            phtml += '<span style="font-size:10px;color:var(--text3);display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#f472b6;display:inline-block"></span>Novedades</span>';
+            phtml += '<span style="font-size:10px;color:var(--text3);display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:#a78bfa;display:inline-block"></span>Objetivos</span>';
+            phtml += '</div>';
           }
           document.getElementById('d-puestos').innerHTML = phtml;
 
