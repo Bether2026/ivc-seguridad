@@ -5495,13 +5495,15 @@ async function saveObj() {
   if (OBJ_FOTO_FILE) {
     try {
       var comp = await comprimirImagen(OBJ_FOTO_FILE);
-      var path = 'objetivos/' + Date.now() + '_inicio.jpg';
+      var path = 'objetivos/ini_' + Date.now() + '_' + Math.random().toString(36).substr(2,5) + '.jpg';
       var up = await db.storage.from('fotos').upload(path, comp, { contentType: 'image/jpeg', upsert: false });
-      if (!up.error) {
+      if (up.error) {
+        console.error('Error foto inicio:', up.error);
+      } else {
         var urlRes = db.storage.from('fotos').getPublicUrl(path);
-        if (urlRes.data) fotoUrl = urlRes.data.publicUrl;
+        if (urlRes && urlRes.data && urlRes.data.publicUrl) fotoUrl = urlRes.data.publicUrl;
       }
-    } catch(e) {}
+    } catch(e) { console.error('Foto inicio error:', e); }
   }
 
   var now = new Date();
@@ -5598,13 +5600,21 @@ async function saveUpdObj() {
   if (OBJ_UPD_FOTO_FILE) {
     try {
       var comp = await comprimirImagen(OBJ_UPD_FOTO_FILE);
-      var path = 'objetivos/' + id + '/upd_' + Date.now() + '.jpg';
+      var path = 'objetivos/upd_' + Date.now() + '_' + Math.random().toString(36).substr(2,5) + '.jpg';
       var up = await db.storage.from('fotos').upload(path, comp, { contentType: 'image/jpeg', upsert: false });
-      if (!up.error) {
+      if (up.error) {
+        console.error('Error subiendo foto objetivo:', up.error);
+        toast('Foto no subida: ' + up.error.message, 'err');
+      } else {
         var urlRes = db.storage.from('fotos').getPublicUrl(path);
-        if (urlRes.data) fotoUrl = urlRes.data.publicUrl;
+        if (urlRes && urlRes.data && urlRes.data.publicUrl) {
+          fotoUrl = urlRes.data.publicUrl;
+          console.log('Foto subida OK:', fotoUrl);
+        }
       }
-    } catch(e) {}
+    } catch(e) {
+      console.error('Error foto:', e);
+    }
   }
 
   // Get current actualizaciones
