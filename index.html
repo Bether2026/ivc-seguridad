@@ -7858,13 +7858,16 @@ function _loadNoticias() {
         case 0:
           _context71.p = 0;
           hoy = new Date().toISOString().split('T')[0];
-          // Cargar cumpleaños desde DB antes de los mensajes automáticos
+          // Cargar cumpleaños primero (case 0 -> case 1)
           _context71.n = 1;
           return cargarCumpleanosDB();
+        case 1:
+          // Ahora cargar noticias (case 1 -> case 2)
+          _context71.n = 2;
           return db.from('noticias').select('*').or('vence.is.null,vence.gte.' + hoy).order('id', {
             ascending: false
           }).limit(20);
-        case 1:
+        case 2:
           result = _context71.v;
           allList = result.data || []; // Agregar mensajes automaticos al principio
           autoMessages = getMensajesAutomaticos();
@@ -7884,12 +7887,12 @@ function _loadNoticias() {
           btnAdd = document.getElementById('btn-add-noticia');
           if (btnAdd) btnAdd.style.display = canManage ? 'block' : 'none';
           if (list.length) {
-            _context71.n = 2;
+            _context71.n = 3;
             break;
           }
           document.getElementById('d-noticias').innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0;text-align:center">Sin comunicaciones publicadas</div>';
           return _context71.a(2);
-        case 2:
+        case 3:
           icons = {
             Comunicacion: '📢',
             Directiva: '⚠',
@@ -7969,17 +7972,17 @@ function _loadNoticias() {
           if (list.length > 1) {
             setTimeout(function() { iniciarCarouselNoticias(list.length); }, 100);
           }
-          _context71.n = 4;
+          _context71.n = 5;
           break;
-        case 3:
-          _context71.p = 3;
+        case 4:
+          _context71.p = 4;
           _t10 = _context71.v;
           console.error('loadNoticias:', _t10);
           document.getElementById('d-noticias').innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0">Error: ' + _t10.message + '</div>';
-        case 4:
+        case 5:
           return _context71.a(2);
       }
-    }, _callee71, null, [[0, 3]]);
+    }, _callee71, null, [[0, 4]]);
   }));
   return _loadNoticias.apply(this, arguments);
 }
