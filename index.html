@@ -3960,11 +3960,8 @@ function getMensajesAutomaticos() {
     }
   }
 
-  // Buscar cumpleanos desde tabla cumpleanos (CUMPLEANOS array ya cargado)
-  var cumplesHoy = [];
-  var hoyMM = hoyMMDD.substring(0, 2);
-  var hoyDD = hoyMMDD.substring(2, 4);
-  var hoyFmt = hoyMM + '-' + hoyDD;
+  // hoyMMDD ya viene en formato "MM-DD" desde getFechaHoyMMDD()
+  var hoyFmt = hoyMMDD; // "05-20"
 
   // Desde tabla DB (CUMPLEANOS array)
   for (var c = 0; c < CUMPLEANOS.length; c++) {
