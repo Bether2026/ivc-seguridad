@@ -2983,7 +2983,7 @@ function renderNovedadesAgrupadas(list) {
     grupos[fecha].push(list[i]);
   }
   var html = '';
-  var hoyIsoGrupo = new Date().toISOString().split('T')[0];
+  var hoyIsoGrupo = fechaHoyAR();
   for (var gi = 0; gi < orden.length; gi++) {
     var fecha = orden[gi];
     var esHoyGrupo = fecha === hoyIsoGrupo;
@@ -3161,8 +3161,16 @@ function formatFechaCompleta(dateStr) {
 }
 function fechaCorta(dateStr) {
   if (!dateStr) return '';
+  // Parse the stored date/timestamp and return in Argentina timezone
   var d = new Date(dateStr);
-  return d.toISOString().split('T')[0];
+  var argOffset = -3 * 60;
+  var localOffset = d.getTimezoneOffset();
+  var diffMs = (localOffset - argOffset) * 60 * 1000;
+  var argDate = new Date(d.getTime() - diffMs);
+  var yyyy = argDate.getUTCFullYear();
+  var mm = String(argDate.getUTCMonth() + 1).padStart(2, '0');
+  var dd = String(argDate.getUTCDate()).padStart(2, '0');
+  return yyyy + '-' + mm + '-' + dd;
 }
 function mostrarPINAdmin() {
   return _mostrarPINAdmin.apply(this, arguments);
@@ -3961,11 +3969,23 @@ var FECHAS_ESPECIALES = [{
 var RECORDATORIOS_MES = [
   // Ejemplo: { dia: 1, titulo: 'Inicio de mes', tipo: 'Comunicacion', mensajes: ['Comenzamos un nuevo mes...'] }
 ];
+// ── Fecha en zona horaria Argentina (UTC-3) ──
+function fechaHoyAR() {
+  // Offset Argentina: UTC-3 siempre (no tiene horario de verano desde 1999)
+  var ahora = new Date();
+  var argOffset = -3 * 60; // minutos
+  var localOffset = ahora.getTimezoneOffset(); // minutos (negativo si adelantado)
+  var diffMs = (localOffset - argOffset) * 60 * 1000;
+  var argDate = new Date(ahora.getTime() - diffMs);
+  var yyyy = argDate.getUTCFullYear();
+  var mm = String(argDate.getUTCMonth() + 1).padStart(2, '0');
+  var dd = String(argDate.getUTCDate()).padStart(2, '0');
+  return yyyy + '-' + mm + '-' + dd; // "YYYY-MM-DD"
+}
+
 function getFechaHoyMMDD() {
-  var hoy = new Date();
-  var mm = (hoy.getMonth() + 1).toString().padStart(2, '0');
-  var dd = hoy.getDate().toString().padStart(2, '0');
-  return mm + '-' + dd;
+  var hoyAR = fechaHoyAR(); // "YYYY-MM-DD"
+  return hoyAR.substring(5); // "MM-DD"
 }
 function pickMensajeAleatorio(arr) {
   if (!arr || !arr.length) return null;
@@ -4424,9 +4444,9 @@ function _mostrarDetallePuesto() {
     return _regenerator().w(function (_context26) {
       while (1) switch (_context26.n) {
         case 0:
-          hoyIso = new Date().toISOString().split('T')[0];
-          hoyInicio = hoyIso + 'T00:00:00.000Z';
-          hoyFin = hoyIso + 'T23:59:59.999Z';
+          hoyIso = fechaHoyAR();
+          hoyInicio = hoyIso + 'T03:00:00.000Z'; // Medianoche en Argentina = 03:00 UTC
+          hoyFin = hoyIso + 'T26:59:59.999Z'; // 23:59 Argentina = 02:59 UTC del dia siguiente
           tit = document.getElementById('puesto-det-titulo');
           cont = document.getElementById('puesto-det-contenido');
           if (tit) tit.textContent = '📍 ' + puesto;
@@ -4662,15 +4682,17 @@ function _loadAgenda() {
           return _context28.a(2);
         case 3:
           todos = res.data || [];
-          hoyStr = new Date().toISOString().split('T')[0]; // Rango semana actual
-          ahora = new Date();
+          hoyStr = fechaHoyAR(); // Rango semana actual
+          // Calcular inicio/fin de semana en horario Argentina
+          var hoyParts = hoyStr.split('-');
+          ahora = new Date(parseInt(hoyParts[0]), parseInt(hoyParts[1])-1, parseInt(hoyParts[2]));
           diaSemana = ahora.getDay(); // 0=dom
           inicioSemana = new Date(ahora);
           inicioSemana.setDate(ahora.getDate() - diaSemana);
           finSemana = new Date(inicioSemana);
           finSemana.setDate(inicioSemana.getDate() + 6);
-          semIni = inicioSemana.toISOString().split('T')[0];
-          semFin = finSemana.toISOString().split('T')[0];
+          semIni = inicioSemana.getFullYear() + '-' + String(inicioSemana.getMonth()+1).padStart(2,'0') + '-' + String(inicioSemana.getDate()).padStart(2,'0');
+          semFin = finSemana.getFullYear() + '-' + String(finSemana.getMonth()+1).padStart(2,'0') + '-' + String(finSemana.getDate()).padStart(2,'0');
           lista = todos.filter(function (op) {
             if (!op.fechas) return false;
             if (CUR_AGENDA_TAB === 'hoy') return op.fechas.indexOf(hoyStr) !== -1;
@@ -4819,7 +4841,7 @@ function _abrirAgendaHoy() {
           if (cont) cont.innerHTML = '<div class="empty"><p>Error: ' + res.error.message + '</p></div>';
           return _context29.a(2);
         case 2:
-          hoyStr = new Date().toISOString().split('T')[0];
+          hoyStr = fechaHoyAR();
           lista = (res.data || []).filter(function (op) {
             return op.fechas && op.fechas.indexOf(hoyStr) !== -1;
           });
@@ -4880,9 +4902,9 @@ function _loadDash() {
       while (1) switch (_context31.p = _context31.n) {
         case 0:
           f = filtro();
-          hoyIso = new Date().toISOString().split('T')[0];
-          hoyInicio = hoyIso + 'T00:00:00.000Z';
-          hoyFin = hoyIso + 'T23:59:59.999Z'; // Fichados activos
+          hoyIso = fechaHoyAR();
+          hoyInicio = hoyIso + 'T03:00:00.000Z'; // Medianoche en Argentina = 03:00 UTC
+          hoyFin = hoyIso + 'T26:59:59.999Z'; // 23:59 Argentina = 02:59 UTC del dia siguiente // Fichados activos
           qFich = db.from('fichajes').select('*').eq('activo', true); // Novedades de HOY solamente para el contador
           qNovHoy = db.from('novedades').select('*').gte('created_at', hoyInicio).lte('created_at', hoyFin); // Novedades pendientes (todas, para alertas) — usamos para badge nav
           qPend = db.from('novedades').select('id,puesto').eq('pendiente', true); // Objetivos activos
@@ -5070,7 +5092,7 @@ function _loadDash() {
 
           // ── Widget agenda del día ──
           _context31.p = 2;
-          hoyStr = new Date().toISOString().split('T')[0];
+          hoyStr = fechaHoyAR();
           _context31.n = 3;
           return db.from('agenda_operativos').select('id, fechas');
         case 3:
@@ -7886,7 +7908,7 @@ function _loadNoticias() {
       while (1) switch (_context71.p = _context71.n) {
         case 0:
           _context71.p = 0;
-          hoy = new Date().toISOString().split('T')[0];
+          hoy = fechaHoyAR();
           // Cargar cumpleaños primero (case 0 -> case 1)
           _context71.n = 1;
           return cargarCumpleanosDB();
