@@ -3796,12 +3796,52 @@ function registrarLogout() {
 
 // ─── MENSAJES AUTOMATICOS POR FECHA ───
 // Cumpleanos de personas: agregar/editar aca
-var CUMPLEANOS = [
-  // Formato: { fecha: 'MM-DD', nombre: 'NOMBRE COMPLETO', puesto: 'Puesto opcional' }
-  // Ejemplos (descomentar y editar):
-  // { fecha: '03-15', nombre: 'PEREZ JUAN CARLOS', puesto: 'Rodrigo Bueno' },
-  // { fecha: '07-22', nombre: 'GARCIA MARIA', puesto: 'Papa Francisco' },
-];
+var CUMPLEANOS = []; // Se carga desde la tabla cumpleanos en Supabase
+var CUMPLEANOS_DB = []; // Cache de la tabla
+
+var NOTICIA_CAROUSEL_IDX = 0;
+var NOTICIA_CAROUSEL_TIMER = null;
+var NOTICIA_CAROUSEL_TOTAL = 0;
+
+function goToNoticia(idx) {
+  var slides = document.getElementById('noticias-slides');
+  if (!slides) return;
+  NOTICIA_CAROUSEL_IDX = idx;
+  slides.style.transform = 'translateX(-' + (idx * 100) + '%)';
+  // Update dots
+  var dots = document.querySelectorAll('.noticia-dot');
+  for (var i = 0; i < dots.length; i++) {
+    dots[i].style.background = i === idx ? 'var(--accent3)' : 'rgba(255,255,255,0.2)';
+    dots[i].style.transform = i === idx ? 'scale(1.3)' : 'scale(1)';
+  }
+}
+
+function iniciarCarouselNoticias(total) {
+  NOTICIA_CAROUSEL_TOTAL = total;
+  NOTICIA_CAROUSEL_IDX = 0;
+  if (NOTICIA_CAROUSEL_TIMER) clearInterval(NOTICIA_CAROUSEL_TIMER);
+  if (total <= 1) return;
+  NOTICIA_CAROUSEL_TIMER = setInterval(function() {
+    var next = (NOTICIA_CAROUSEL_IDX + 1) % NOTICIA_CAROUSEL_TOTAL;
+    goToNoticia(next);
+  }, 5000); // Cambia cada 5 segundos
+}
+
+function cargarCumpleanosDB() {
+  return db.from('cumpleanos').select('nombre, fecha_nacimiento, puesto').then(function(res) {
+    if (!res.error && res.data) {
+      CUMPLEANOS_DB = res.data;
+      CUMPLEANOS = res.data.map(function(r) {
+        var d = new Date(r.fecha_nacimiento + 'T12:00:00');
+        var mm = String(d.getMonth()+1).padStart(2,'0');
+        var dd = String(d.getDate()).padStart(2,'0');
+        return { fecha: mm + '-' + dd, nombre: r.nombre, puesto: r.puesto || '' };
+      });
+    }
+  }).catch(function(e) { console.error('Error cargando cumpleanos:', e); });
+}
+
+
 
 // Fechas especiales y feriados
 var FECHAS_ESPECIALES = [{
@@ -3920,39 +3960,58 @@ function getMensajesAutomaticos() {
     }
   }
 
-  // Buscar cumpleanos desde RRHH_CACHE (si ya cargó)
+  // Buscar cumpleanos desde tabla cumpleanos (CUMPLEANOS array ya cargado)
   var cumplesHoy = [];
+  var hoyMM = hoyMMDD.substring(0, 2);
+  var hoyDD = hoyMMDD.substring(2, 4);
+  var hoyFmt = hoyMM + '-' + hoyDD;
+
+  // Desde tabla DB (CUMPLEANOS array)
+  for (var c = 0; c < CUMPLEANOS.length; c++) {
+    if (CUMPLEANOS[c].fecha === hoyFmt) cumplesHoy.push(CUMPLEANOS[c]);
+  }
+  // También desde RRHH_CACHE si existe
   if (RRHH_CACHE && RRHH_CACHE.length) {
     for (var rc = 0; rc < RRHH_CACHE.length; rc++) {
       var ag = RRHH_CACHE[rc];
       if (!ag.fecha_nacimiento) continue;
-      var mmdd = ag.fecha_nacimiento.substring(5).replace('-', '');
-      var mmddFmt = ag.fecha_nacimiento.substring(5);
-      if (mmddFmt === hoyMMDD.substring(0, 2) + '-' + hoyMMDD.substring(2, 4) || mmdd === hoyMMDD) {
-        cumplesHoy.push({
-          nombre: ag.nombre,
-          puesto: ag.puesto
-        });
+      var mmddFmt = ag.fecha_nacimiento.substring(5); // "MM-DD"
+      if (mmddFmt === hoyFmt) {
+        // Avoid duplicates
+        var exists = false;
+        for (var ci = 0; ci < cumplesHoy.length; ci++) {
+          if (cumplesHoy[ci].nombre === ag.nombre) { exists = true; break; }
+        }
+        if (!exists) cumplesHoy.push({ nombre: ag.nombre, puesto: ag.puesto });
       }
     }
   }
-  // Tambien buscar en array hardcodeado
-  for (var c = 0; c < CUMPLEANOS.length; c++) {
-    if (CUMPLEANOS[c].fecha === hoyMMDD) cumplesHoy.push(CUMPLEANOS[c]);
-  }
-  if (cumplesHoy.length) {
-    var nombres = cumplesHoy.map(function (p) {
-      return p.nombre;
-    });
-    var mensajesCumple = ['🎂 ¡Feliz cumpleaños a ' + nombres.join(', ') + '! Que tengas un día maravilloso.', '🎉 Hoy celebramos el cumpleaños de ' + nombres.join(', ') + '. ¡Muchas felicidades!', '🎈 ¡Que tengas un día genial, ' + nombres.join(', ') + '! El equipo te desea lo mejor.', '🥳 ¡Feliz cumple a ' + nombres.join(' y a ') + '! Que disfrutes tu día.'];
+
+  // Generate ONE beautiful card per birthday person
+  var emojis = ['🎂','🎉','🎈','🥳','🎁','✨','🌟','🎊'];
+  var frases = [
+    'El equipo de Seguridad y Emergencias te desea un día increíble lleno de alegría.',
+    'Gracias por tu compromiso y dedicación. ¡Que tengas un cumpleaños espectacular!',
+    'Hoy es tu día especial. ¡Todo el equipo te manda el mejor de los deseos!',
+    'Que este nuevo año de vida te traiga salud, felicidad y muchos éxitos.',
+    'Un día como hoy nació alguien muy importante para este equipo. ¡Feliz cumple!',
+    'Que todos tus deseos se cumplan hoy y siempre. ¡Muchas felicidades!'
+  ];
+  for (var ci2 = 0; ci2 < cumplesHoy.length; ci2++) {
+    var cp = cumplesHoy[ci2];
+    var emj = emojis[ci2 % emojis.length];
+    var frase = frases[ci2 % frases.length];
+    var primerasLetras = cp.nombre.split(' ').slice(0, 2).join(' ');
     mensajes.push({
-      id: 'auto-cumple-' + hoyMMDD,
+      id: 'auto-cumple-' + hoyFmt + '-' + ci2,
       tipo: 'Cumpleanos',
-      titulo: nombres.length === 1 ? '🎂 Cumpleaños de ' + nombres[0] : '🎂 Cumpleaños hoy',
-      mensaje: pickMensajeAleatorio(mensajesCumple),
-      importancia: 'Normal',
+      titulo: emj + ' ¡Feliz Cumpleaños, ' + primerasLetras + '!',
+      mensaje: frase + (cp.puesto ? ' (' + cp.puesto + ')' : ''),
+      importancia: 'Cumpleanos',
       autor: 'Sistema',
-      es_automatico: true
+      es_automatico: true,
+      es_cumple: true,
+      nombre_cumple: cp.nombre
     });
   }
 
@@ -7799,7 +7858,9 @@ function _loadNoticias() {
         case 0:
           _context71.p = 0;
           hoy = new Date().toISOString().split('T')[0];
+          // Cargar cumpleaños desde DB antes de los mensajes automáticos
           _context71.n = 1;
+          return cargarCumpleanosDB();
           return db.from('noticias').select('*').or('vence.is.null,vence.gte.' + hoy).order('id', {
             ascending: false
           }).limit(20);
@@ -7844,31 +7905,70 @@ function _loadNoticias() {
             Urgente: 'var(--red)'
           };
           nh = '';
+          // Si hay más de 1 noticia, agregar carousel wrapper
+          if (list.length > 1) {
+            nh += '<div id="noticias-carousel" style="position:relative;overflow:hidden">';
+            nh += '<div id="noticias-slides" style="display:flex;transition:transform .5s ease;will-change:transform">';
+          }
           for (i = 0; i < list.length; i++) {
             n = list[i];
             icon = icons[n.tipo] || '📌';
             color = colors[n.importancia] || 'var(--accent2)';
             canDelete = canManage;
-            nh += '<div style="background:var(--bg3);border-radius:8px;padding:11px 13px;margin-bottom:6px;border-left:3px solid ' + color + '">';
-            nh += '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:5px">';
-            nh += '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">';
-            nh += '<span style="font-size:18px">' + icon + '</span>';
-            nh += '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">' + (n.titulo || '') + '</div>';
-            destText = '';
-            if (n.destinatarios && Array.isArray(n.destinatarios) && n.destinatarios.length > 0) {
-              destText = ' &middot; 📍 ' + (n.destinatarios.length === 1 ? n.destinatarios[0] : n.destinatarios.length + ' puestos');
+            var slideStyle = list.length > 1 ? 'min-width:100%;box-sizing:border-box;' : '';
+
+            if (n.es_cumple) {
+              // ── BIRTHDAY CARD ──
+              nh += '<div style="' + slideStyle + 'background:linear-gradient(135deg,rgba(251,191,36,0.15),rgba(236,72,153,0.15),rgba(139,92,246,0.1));border:1px solid rgba(251,191,36,0.4);border-radius:12px;padding:14px 16px;margin-bottom:' + (list.length > 1 ? '0' : '6px') + ';position:relative;overflow:hidden">';
+              nh += '<div style="position:absolute;top:0;right:0;font-size:60px;opacity:.08;line-height:1;pointer-events:none">🎂</div>';
+              nh += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">';
+              nh += '<div style="font-size:32px">🎂</div>';
+              nh += '<div>';
+              nh += '<div style="font-size:15px;font-weight:900;background:linear-gradient(135deg,#fbbf24,#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent">' + n.titulo + '</div>';
+              nh += '<div style="font-size:10px;color:rgba(251,191,36,0.7);font-weight:700;text-transform:uppercase;letter-spacing:.08em">🎉 ¡Hoy cumple años!</div>';
+              nh += '</div></div>';
+              nh += '<div style="font-size:13px;color:var(--text2);line-height:1.55;border-top:1px solid rgba(251,191,36,0.2);padding-top:8px">' + n.mensaje + '</div>';
+              nh += '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">';
+              nh += '<span style="font-size:16px">🎈</span><span style="font-size:16px">🎊</span><span style="font-size:16px">✨</span><span style="font-size:16px">🥳</span><span style="font-size:16px">🎁</span>';
+              nh += '</div>';
+              nh += '</div>';
+            } else {
+              // ── REGULAR NOTICIA CARD ──
+              nh += '<div style="' + slideStyle + 'background:var(--bg3);border-radius:8px;padding:11px 13px;margin-bottom:' + (list.length > 1 ? '0' : '6px') + ';border-left:3px solid ' + color + '">';
+              nh += '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:5px">';
+              nh += '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">';
+              nh += '<span style="font-size:18px">' + icon + '</span>';
+              nh += '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">' + (n.titulo || '') + '</div>';
+              destText = '';
+              if (n.destinatarios && Array.isArray(n.destinatarios) && n.destinatarios.length > 0) {
+                destText = ' &middot; 📍 ' + (n.destinatarios.length === 1 ? n.destinatarios[0] : n.destinatarios.length + ' puestos');
+              }
+              nh += '<div style="font-size:10px;color:var(--text3)">' + n.tipo + ' &middot; ' + formatTs(n.created_at || n.id) + (n.autor ? ' &middot; ' + n.autor : '') + destText + '</div></div>';
+              nh += '</div>';
+              if (n.importancia === 'Urgente') nh += '<span class="badge b-red">URGENTE</span>';
+              else if (n.importancia === 'Importante') nh += '<span class="badge b-yellow">IMPORTANTE</span>';
+              nh += '</div>';
+              nh += '<div style="font-size:12px;color:var(--text2);line-height:1.5">' + (n.mensaje || '') + '</div>';
+              if (canDelete && !n.es_automatico) {
+                nh += '<div style="margin-top:8px;text-align:right"><button onclick="deleteNoticia(&quot;' + n.id + '&quot;)" style="font-size:10px;padding:3px 8px;border-radius:4px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.1);color:#f87171;font-family:var(--font);cursor:pointer">Eliminar</button></div>';
+              }
+              nh += '</div>';
             }
-            nh += '<div style="font-size:10px;color:var(--text3)">' + n.tipo + ' &middot; ' + formatTs(n.created_at || n.id) + (n.autor ? ' &middot; ' + n.autor : '') + destText + '</div></div>';
-            nh += '</div>';
-            if (n.importancia === 'Urgente') nh += '<span class="badge b-red">URGENTE</span>';else if (n.importancia === 'Importante') nh += '<span class="badge b-yellow">IMPORTANTE</span>';
-            nh += '</div>';
-            nh += '<div style="font-size:12px;color:var(--text2);line-height:1.5">' + (n.mensaje || '') + '</div>';
-            if (canDelete && !n.es_automatico) {
-              nh += '<div style="margin-top:8px;text-align:right"><button onclick="deleteNoticia(&quot;' + n.id + '&quot;)" style="font-size:10px;padding:3px 8px;border-radius:4px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.1);color:#f87171;font-family:var(--font);cursor:pointer">Eliminar</button></div>';
+          }
+          if (list.length > 1) {
+            nh += '</div>'; // close slides
+            // Dots indicator
+            nh += '<div style="display:flex;justify-content:center;gap:6px;margin-top:8px">';
+            for (var di = 0; di < list.length; di++) {
+              nh += '<div class="noticia-dot" id="ndot-' + di + '" style="width:7px;height:7px;border-radius:50%;background:' + (di === 0 ? 'var(--accent3)' : 'rgba(255,255,255,0.2)') + ';cursor:pointer;transition:all .3s" onclick="goToNoticia(' + di + ')"></div>';
             }
-            nh += '</div>';
+            nh += '</div></div>'; // close carousel
           }
           document.getElementById('d-noticias').innerHTML = nh;
+          // Start carousel if multiple noticias
+          if (list.length > 1) {
+            setTimeout(function() { iniciarCarouselNoticias(list.length); }, 100);
+          }
           _context71.n = 4;
           break;
         case 3:
