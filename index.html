@@ -4475,11 +4475,9 @@ function initApp() {
     document.getElementById('nb-admin').style.display = 'flex';
     var siAdm = document.getElementById('si-admin');
     if (siAdm) siAdm.style.display = 'flex';
-    // Inmuebles visible SOLO para Administrador del sistema
-    if (USER.rol === 'ADMIN') {
-      if (nbInm) nbInm.style.display = 'flex';
-      if (siInm) siInm.style.display = 'flex';
-    }
+    // Inmuebles: visible para todos (cada puesto ve solo el suyo)
+    if (nbInm) nbInm.style.display = 'flex';
+    if (siInm) siInm.style.display = 'flex';
   }
   // Admin sees all sections like TODOS
   if (USER.rol === 'ADMIN' || USER.rol === 'TODOS') {
@@ -6333,10 +6331,9 @@ function goView(name) {
     if (name === 'estadisticas' && typeof loadStats === 'function') loadStats('dia');
     if (name === 'novedades' && typeof loadNovedades === 'function') loadNovedades();
     if (name === 'inmuebles') {
-      if (!USER || USER.rol !== 'ADMIN') { goView('dashboard'); return; }
       loadInmuebles();
       var iaPanel = document.getElementById('inm-panel-ia');
-      if (iaPanel) iaPanel.style.display = 'block';
+      if (iaPanel) iaPanel.style.display = (USER && USER.rol === 'ADMIN') ? 'block' : 'none';
     }
     if (name === 'objetivos' && typeof loadObjetivos === 'function') loadObjetivos();
     if (name === 'fichaje' && typeof loadFichajes === 'function') loadFichajes();
@@ -8711,8 +8708,30 @@ function inm_setTipo(tipo) {
 function loadInmuebles() {
   var el = document.getElementById('inm-lista');
   if (el) el.innerHTML = '<div class="empty"><span class="spinner"></span><p>Cargando...</p></div>';
-  db.from('inmuebles').select('*', {count:'exact'}).order('barrio').order('nombre_normalizado')
-    .then(function(res) {
+
+  // Roles that can see ALL barrios
+  var VE_TODO = ['Administración','Administrador','Gerencia','Responsable de turno','Jefe de departamento'];
+  var puedeVerTodo = USER && (USER.rol === 'ADMIN' || USER.rol === 'TODOS' || VE_TODO.includes(USER.puesto));
+
+  // For operational users: auto-set their barrio filter and hide the selector
+  var barrioFiltroEl = document.getElementById('inm-filtro-barrio');
+  var barrioWrapper = barrioFiltroEl ? barrioFiltroEl.parentElement.parentElement : null;
+
+  if (!puedeVerTodo && USER) {
+    // Set filter to their puesto and hide the selector
+    if (barrioFiltroEl) barrioFiltroEl.value = USER.puesto;
+    if (barrioWrapper) barrioWrapper.style.display = 'none';
+  } else {
+    if (barrioWrapper) barrioWrapper.style.display = '';
+  }
+
+  // Build query
+  var query = db.from('inmuebles').select('*', {count:'exact'}).order('barrio').order('nombre_normalizado');
+  if (!puedeVerTodo && USER) {
+    query = query.eq('barrio', USER.puesto);
+  }
+
+  query.then(function(res) {
       INM_CACHE = res.data || [];
       var total = res.count || 0;
       document.getElementById('inm-stat-total').textContent = total;
@@ -8767,9 +8786,13 @@ function renderInmueblesList(list) {
 }
 
 function buscarInmuebles() {
+  var VE_TODO = ['Administración','Administrador','Gerencia','Responsable de turno','Jefe de departamento'];
+  var puedeVerTodo = USER && (USER.rol === 'ADMIN' || USER.rol === 'TODOS' || VE_TODO.indexOf(USER.puesto) !== -1);
   var barrio = (document.getElementById('inm-filtro-barrio') || {}).value || '';
   var texto = ((document.getElementById('inm-filtro-texto') || {}).value || '').toLowerCase().trim();
   var filtered = INM_CACHE.filter(function(inm) {
+    // Puesto users can only see their own barrio
+    if (!puedeVerTodo && USER && inm.barrio !== USER.puesto) return false;
     if (barrio && inm.barrio !== barrio) return false;
     if (INM_TIPO_FILTRO && inm.tipo !== INM_TIPO_FILTRO) return false;
     if (texto) {
