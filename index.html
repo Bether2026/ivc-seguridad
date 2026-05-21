@@ -1682,6 +1682,9 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
                 <button onclick="detenerProcesamientoIA()" style="padding:10px 16px;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-family:var(--font);cursor:pointer">
                   ⏸ Pausar
                 </button>
+                <button onclick="resetearInmuebles()" style="padding:10px 16px;border-radius:8px;border:1px solid rgba(239,68,68,0.4);background:rgba(239,68,68,0.1);color:#f87171;font-family:var(--font);cursor:pointer">
+                  🗑 Reset
+                </button>
               </div>
             </div>
           </div>
@@ -8875,6 +8878,30 @@ function _iniciarProcesamientoIA() {
   return _iniciarProcesamientoIA.apply(this, arguments);
 }
 
+function resetearInmuebles() {
+  showConfirm('🗑 Reset', 'Resetear procesamiento', '¿Borrar todos los inmuebles y vínculos para reprocesar desde cero?', function() {
+    inm_ia_log('Reseteando...');
+    var badge = document.getElementById('inm-ia-badge');
+    if (badge) { badge.textContent = 'Reseteando...'; badge.className = 'badge b-yellow'; }
+    db.from('novedades_inmuebles').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+      .then(function() { return db.from('inmuebles').delete().neq('id', '00000000-0000-0000-0000-000000000000'); })
+      .then(function() { return db.from('novedades').update({ inmueble_procesado: false, inmueble_id: null }).eq('inmueble_procesado', true); })
+      .then(function() {
+        INM_IA_PROCESADAS = 0;
+        INM_IA_TOTAL = 0;
+        INM_CACHE = [];
+        var barra = document.getElementById('inm-ia-barra');
+        var txt = document.getElementById('inm-ia-progreso-txt');
+        if (barra) barra.style.width = '0%';
+        if (txt) txt.textContent = '0 / 0';
+        if (badge) { badge.textContent = 'Listo'; badge.className = 'badge b-blue'; }
+        inm_ia_log('✅ Reset completo — listo para reprocesar');
+        loadInmuebles();
+      })
+      .catch(function(e) { inm_ia_log('Error: ' + e.message); });
+  }, 'Resetear', '#ef4444');
+}
+
 function detenerProcesamientoIA() {
   INM_PROCESANDO = false;
   if (INM_IA_TIMER) clearTimeout(INM_IA_TIMER);
@@ -9255,4 +9282,3 @@ if ('serviceWorker' in navigator) {
 
 </body>
 </html>
-   
