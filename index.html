@@ -8885,7 +8885,7 @@ function resetearInmuebles() {
     if (badge) { badge.textContent = 'Reseteando...'; badge.className = 'badge b-yellow'; }
     db.from('novedades_inmuebles').delete().neq('id', '00000000-0000-0000-0000-000000000000')
       .then(function() { return db.from('inmuebles').delete().neq('id', '00000000-0000-0000-0000-000000000000'); })
-      .then(function() { return db.from('novedades').update({ inmueble_procesado: false, inmueble_id: null }).eq('inmueble_procesado', true); })
+      .then(function() { return db.from('novedades').update({ inmueble_procesado: false, inmueble_id: null }).neq('id', '00000000-0000-0000-0000-000000000000'); })
       .then(function() {
         INM_IA_PROCESADAS = 0;
         INM_IA_TOTAL = 0;
@@ -8940,8 +8940,6 @@ function _procesarSiguienteLote() {
           return db.from('novedades')
             .select('id, puesto, ubicacion, detalle, asunto, tipo')
             .eq('inmueble_procesado', false)
-            .not('ubicacion', 'is', null)
-            .neq('ubicacion', '')
             .order('created_at', {ascending: true})
             .limit(20);
         case 1:
@@ -8958,17 +8956,30 @@ function _procesarSiguienteLote() {
           inm_ia_log('Procesando lote de ' + lote.length + ' novedades...');
 
           // Build prompt for Claude
-          prompt = 'Analizá estas novedades de seguridad del IVC (Instituto de Vivienda de la Ciudad de Buenos Aires) y extraé la referencia al inmueble de cada una.\n\n' +
-            'Para cada novedad, identificá:\n' +
-            '- barrio: el barrio/conjunto habitacional (puede estar en "puesto" o en ubicacion/detalle)\n' +
-            '- tipo: "Módulo", "Manzana", "Orden", "Local", "Dirección", o "Otro"\n' +
-            '- referencia: el número principal (ej: "120", "4", "181")\n' +
-            '- sub_referencia: detalle adicional (ej: "local 1", "orden 181", "piso 3")\n' +
-            '- nombre_normalizado: forma canónica en español (ej: "Módulo 120 - Local 1", "Manzana 4 - Orden 181")\n' +
-            '- tiene_inmueble: true si hay una referencia clara a un inmueble específico, false si es algo genérico\n\n' +
-            'Respondé SOLO con un array JSON. Sin texto adicional.\n\n' +
-            'Novedades:\n' + JSON.stringify(lote.map(function(n) {
-              return { id: n.id, puesto: n.puesto, ubicacion: n.ubicacion, detalle: (n.detalle||'').substring(0,200) };
+          prompt = 'Sos un analizador de datos del IVC (Instituto de Vivienda de la Ciudad de Buenos Aires).\n' +
+            'Analizá cada novedad y respondé ÚNICAMENTE con un array JSON válido.\n\n' +
+            'REGLAS:\n' +
+            '- Si la novedad menciona un inmueble específico (módulo, manzana, orden, local, dirección, barrio+número), extraelo\n' +
+            '- Si es genérico (recorrida general, playon, reunion, sin referencia específica), pon tiene_inmueble:false\n' +
+            '- El barrio viene del campo "puesto" (Papa Francisco, Rodrigo Bueno, Fraga, etc.)\n\n' +
+            'EJEMPLOS DE UBICACIONES COMUNES:\n' +
+            '"Módulo 120 local 1" → tipo:"Módulo", referencia:"120", sub_referencia:"local 1", nombre_normalizado:"Módulo 120 - Local 1"\n' +
+            '"Mza4 orden 181" → tipo:"Manzana", referencia:"4", sub_referencia:"Orden 181", nombre_normalizado:"Manzana 4 - Orden 181"\n' +
+            '"Manzana 1 orden 48" → tipo:"Manzana", referencia:"1", sub_referencia:"Orden 48", nombre_normalizado:"Manzana 1 - Orden 48"\n' +
+            '"Brandsen 660" → tipo:"Dirección", referencia:"660", nombre_normalizado:"Brandsen 660"\n' +
+            '"120" → tipo:"Módulo", referencia:"120", nombre_normalizado:"Módulo 120"\n' +
+            '"Playon ivc" → tiene_inmueble:false\n\n' +
+            'FORMATO JSON requerido (un objeto por novedad en el array):\n' +
+            '[{"id":"...","tiene_inmueble":true,"barrio":"...","tipo":"...","referencia":"...","sub_referencia":"...","nombre_normalizado":"..."},\n' +
+            ' {"id":"...","tiene_inmueble":false}]\n\n' +
+            'NOVEDADES A ANALIZAR:\n' +
+            JSON.stringify(lote.map(function(n) {
+              return {
+                id: n.id,
+                puesto: n.puesto,
+                ubicacion: n.ubicacion || '',
+                detalle: (n.detalle || '').substring(0, 150)
+              };
             }));
 
           var _gk = ['gsk_eAkpOmoMsDPLJOpRK', 'g37WGdyb3FYJHkg3gap2', 'IJlwsMb6ry9cwLh'].join('');
