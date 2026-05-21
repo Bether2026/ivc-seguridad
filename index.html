@@ -9006,6 +9006,11 @@ function _procesarSiguienteLote() {
           return response.json();
         case 3:
           data = _ctx.v;
+          inm_ia_log('Respuesta Groq: status=' + response.status + ' ok=' + response.ok);
+          if (!response.ok) {
+            inm_ia_log('ERROR HTTP: ' + JSON.stringify(data).substring(0, 200));
+            resultados = [];
+          } else {
           // Parse response
           try {
             var rawText = data.choices && data.choices[0] ? data.choices[0].message.content : '[]';
@@ -9013,8 +9018,9 @@ function _procesarSiguienteLote() {
             resultados = JSON.parse(rawText);
             inm_ia_log('Groq devolvio ' + resultados.length + ' resultados');
           } catch(e) {
-            inm_ia_log('ERROR parseando: ' + e.message + ' | Raw: ' + (data.choices && data.choices[0] ? data.choices[0].message.content.substring(0,100) : JSON.stringify(data).substring(0,100)));
+            inm_ia_log('ERROR parseando: ' + e.message + ' | Raw: ' + (data.choices && data.choices[0] ? data.choices[0].message.content.substring(0,200) : JSON.stringify(data).substring(0,200)));
             resultados = [];
+          }
           }
 
           // Process results - save to DB
