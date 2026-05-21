@@ -8973,12 +8973,10 @@ function _procesarSiguienteLote() {
             var rawText = data.choices && data.choices[0] ? data.choices[0].message.content : '[]';
             rawText = rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
             resultados = JSON.parse(rawText);
+            inm_ia_log('Groq devolvio ' + resultados.length + ' resultados');
           } catch(e) {
-            inm_ia_log('Error parseando respuesta: ' + e.message);
-            // Mark as processed anyway to avoid infinite loop
-            var ids = lote.map(function(n) { return n.id; });
-            _ctx.n = 4;
-            return db.from('novedades').update({inmueble_procesado: true}).in('id', ids);
+            inm_ia_log('ERROR parseando: ' + e.message + ' | Raw: ' + (data.choices && data.choices[0] ? data.choices[0].message.content.substring(0,100) : JSON.stringify(data).substring(0,100)));
+            resultados = [];
           }
 
           // Process results - save to DB
@@ -9008,6 +9006,7 @@ function _procesarSiguienteLote() {
                   })
                   .then(function(inmId) {
                     if (!inmId || !r.id) return;
+                    inm_ia_log('  Vinculando: ' + r.nombre_normalizado + ' → novedad ' + r.id.substring(0,8));
                     return db.from('novedades_inmuebles').upsert({
                       novedad_id: r.id,
                       inmueble_id: inmId,
@@ -9256,3 +9255,4 @@ if ('serviceWorker' in navigator) {
 
 </body>
 </html>
+   
