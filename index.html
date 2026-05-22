@@ -5133,12 +5133,19 @@ function _loadDash() {
               bdNov.style.display = 'none';
             }
           }
-          // Objetivos en curso
+          // Objetivos en curso — solo mostrar si hay nuevos desde la última vez que el usuario entró
           var bdObj = document.getElementById('nb-badge-obj');
           if (bdObj) {
             var objActivos = objs ? objs.length : 0;
-            if (objActivos > 0) { bdObj.textContent = objActivos; bdObj.style.display = 'flex'; }
-            else bdObj.style.display = 'none';
+            var objVisto = false;
+            try { objVisto = localStorage.getItem('ivc_badge_obj') === null; } catch(e) {}
+            // Only show if there are active objetivos AND user hasn't cleared
+            if (objActivos > 0 && !objVisto) {
+              bdObj.textContent = objActivos;
+              bdObj.style.display = 'flex';
+            } else {
+              bdObj.style.display = 'none';
+            }
           }
           var bdRuta = document.getElementById('nb-badge-ruta');
           if (bdRuta) bdRuta.style.display = 'none';
@@ -6401,7 +6408,11 @@ function goView(name) {
       // Mark current count as seen
       try { localStorage.setItem('ivc_badge_nov_seen', novsHoy ? novsHoy.length : 0); } catch(e) {}
     }
-    if (name === 'objetivos') { clearBadge('nb-badge-obj', 'ivc_badge_obj'); }
+    if (name === 'objetivos') {
+      clearBadge('nb-badge-obj', 'ivc_badge_obj');
+      // Mark current obj count as seen so loadDash doesn't re-show
+      try { localStorage.removeItem('ivc_badge_obj'); } catch(e) {}
+    }
     if (name === 'choferes') { clearBadge('nb-badge-ruta', 'ivc_badge_ruta'); }
     if (name === 'admin') { setTimeout(checkPushStatus, 200); }
     if (name === 'inmuebles') {
@@ -9296,7 +9307,45 @@ function activarNotificaciones() {
   });
 }
 
+var SW_REGISTRATION = null;
+
+// Register Service Worker on load
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').then(function(reg) {
+    SW_REGISTRATION = reg;
+    console.log('SW registrado OK');
+  }).catch(function(e) {
+    console.log('SW no disponible:', e.message);
+  });
+}
+
 function enviarNotificacion(titulo, cuerpo, url) {
+  var urgent = titulo.indexOf('URGENTE') !== -1;
+  // Method 1: Via Service Worker (works in background)
+  if (SW_REGISTRATION) {
+    try {
+      SW_REGISTRATION.active && SW_REGISTRATION.active.postMessage({
+        type: 'SHOW_NOTIFICATION',
+        title: titulo,
+        body: cuerpo,
+        urgent: urgent
+      });
+    } catch(e) {}
+    // Also show via SW registration directly
+    try {
+      SW_REGISTRATION.showNotification(titulo, {
+        body: cuerpo,
+        icon: '/favicon.ico',
+        badge: '/favicon.ico',
+        tag: 'ivc-' + Date.now(),
+        renotify: true,
+        vibrate: urgent ? [300,100,300,100,300] : [200,100,200],
+        requireInteraction: urgent
+      });
+    } catch(e) {}
+    return;
+  }
+  // Method 2: Fallback — direct Notification API
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
   try {
     var n = new Notification(titulo, {
@@ -9304,10 +9353,11 @@ function enviarNotificacion(titulo, cuerpo, url) {
       icon: '/favicon.ico',
       badge: '/favicon.ico',
       tag: 'ivc-alerta',
-      renotify: true
+      renotify: true,
+      vibrate: urgent ? [300,100,300,100,300] : [200,100,200]
     });
     n.onclick = function() { window.focus(); n.close(); };
-    setTimeout(function() { n.close(); }, 8000);
+    setTimeout(function() { n.close(); }, 10000);
   } catch(e) {}
 }
 
@@ -9362,6 +9412,7 @@ function suscribirNotifNovedades() {
       event: 'INSERT', schema: 'public', table: 'objetivos'
     }, function(payload) {
       if (document.getElementById('view-objetivos') && document.getElementById('view-objetivos').style.display === 'none') {
+        try { localStorage.setItem('ivc_badge_obj', '1'); } catch(e) {}
         incrementBadge('nb-badge-obj', 'ivc_badge_obj');
       }
     }).subscribe();
