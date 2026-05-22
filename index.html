@@ -1795,9 +1795,11 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z"/><polyline points="14,2 14,8 20,8"/></svg><span>Novedades</span>
     </button>
     <button class="nav-btn" onclick="goView('objetivos')" id="nb-objetivos">
+      <div class="nav-badge" id="nb-badge-obj" style="display:none">0</div>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg><span>C. Objetivo</span>
     </button>
     <button class="nav-btn" onclick="goView('choferes')" id="nb-choferes">
+      <div class="nav-badge" id="nb-badge-ruta" style="display:none">0</div>
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg><span>Choferes</span>
     </button>
     <button class="nav-btn" onclick="goView('llaves')" id="nb-llaves" style="display:none">
@@ -2177,6 +2179,17 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
     <button class="btn-login" id="btn-save-llave" onclick="saveLlave()">🔑 Registrar Llave</button>
   </div>
 </div>
+
+<!-- BANNER ALERTA URGENTE -->
+<div id="alerta-banner" onclick="this.style.display='none'" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9998;padding:12px 16px;border-bottom:2px solid #ef4444;background:rgba(239,68,68,0.15);backdrop-filter:blur(10px);cursor:pointer;flex-direction:column;gap:4px;animation:slideDown .3s ease">
+  <div style="display:flex;align-items:center;justify-content:space-between">
+    <div id="alerta-banner-titulo" style="font-size:14px;font-weight:900;color:#fca5a5;letter-spacing:.02em"></div>
+    <span style="font-size:18px;color:rgba(255,255,255,0.5)">×</span>
+  </div>
+  <div id="alerta-banner-msg" style="font-size:12px;color:rgba(255,255,255,0.8)"></div>
+  <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:2px">Tocá para cerrar · Se cierra automáticamente</div>
+</div>
+@keyframes slideDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
 
 <!-- LIGHTBOX FOTOS -->
 <div id="ov-lightbox" onclick="cerrarFotoLightbox()" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.92);align-items:center;justify-content:center;cursor:zoom-out">
@@ -5102,14 +5115,14 @@ function _loadDash() {
           var licEl = document.getElementById('d-lic-act');
           if (licEl) licEl.textContent = licsAct.length;
 
-          // Badge novedades — contar las no leidas del día
+          // ── Badges nav ──
+          // Novedades: contar no leidas del día
           bd = document.getElementById('nb-badge');
           if (bd) {
             var totalNoLeidas = 0;
             var pendsHoy = pends || [];
             for (var bi2 = 0; bi2 < pendsHoy.length; bi2++) {
-              var nld = getNoLeidas(pendsHoy[bi2].id, 1);
-              if (nld > 0) totalNoLeidas++;
+              if (getNoLeidas(pendsHoy[bi2].id, 1) > 0) totalNoLeidas++;
             }
             if (totalNoLeidas > 0) {
               bd.textContent = totalNoLeidas > 99 ? '99+' : totalNoLeidas;
@@ -5117,6 +5130,23 @@ function _loadDash() {
             } else {
               bd.style.display = 'none';
             }
+          }
+          // Objetivos: recorridos activos hoy
+          var bdObj = document.getElementById('nb-badge-obj');
+          if (bdObj) {
+            var objActivos = objs ? objs.length : 0;
+            if (objActivos > 0) {
+              bdObj.textContent = objActivos > 99 ? '99+' : objActivos;
+              bdObj.style.display = 'flex';
+            } else {
+              bdObj.style.display = 'none';
+            }
+          }
+          // Rutas/Choferes: rutas activas hoy
+          var bdRuta = document.getElementById('nb-badge-ruta');
+          if (bdRuta) {
+            // pends here is novedades, we need rutas activas — use d-obj as proxy or query separately
+            bdRuta.style.display = 'none'; // Se actualiza via realtime
           }
 
           // ── Actividad por puesto (con modal al tocar) ──
@@ -6373,9 +6403,16 @@ function goView(name) {
     if (name === 'estadisticas' && typeof loadStats === 'function') loadStats('dia');
     if (name === 'novedades' && typeof loadNovedades === 'function') {
       loadNovedades();
-      // Clear badge when user opens novedades
       var bd3 = document.getElementById('nb-badge');
       if (bd3) bd3.style.display = 'none';
+    }
+    if (name === 'objetivos') {
+      var bdObj2 = document.getElementById('nb-badge-obj');
+      if (bdObj2) bdObj2.style.display = 'none';
+    }
+    if (name === 'choferes') {
+      var bdRuta2 = document.getElementById('nb-badge-ruta');
+      if (bdRuta2) bdRuta2.style.display = 'none';
     }
     if (name === 'admin') { setTimeout(checkPushStatus, 200); }
     if (name === 'inmuebles') {
@@ -8355,6 +8392,27 @@ function _solicitarPermisoNotif() {
   }));
   return _solicitarPermisoNotif.apply(this, arguments);
 }
+function mostrarBannerAlerta(titulo, mensaje, relevancia) {
+  var isUrgente = relevancia === 'Urgente';
+  var banner = document.getElementById('alerta-banner');
+  if (!banner) return;
+  var color = isUrgente ? '#ef4444' : '#f59e0b';
+  var colorBg = isUrgente ? 'rgba(239,68,68,0.15)' : 'rgba(245,158,11,0.12)';
+  var icono = isUrgente ? '🚨' : '⚠️';
+  banner.style.background = colorBg;
+  banner.style.borderColor = color;
+  banner.style.display = 'flex';
+  document.getElementById('alerta-banner-titulo').textContent = icono + ' ' + titulo;
+  document.getElementById('alerta-banner-msg').textContent = mensaje;
+  // Vibrate if supported
+  if (navigator.vibrate) navigator.vibrate(isUrgente ? [300,100,300,100,300] : [200,100,200]);
+  // Auto hide after 12 seconds
+  clearTimeout(window._bannerTimer);
+  window._bannerTimer = setTimeout(function() {
+    banner.style.display = 'none';
+  }, 12000);
+}
+
 function mostrarNotificacion(titulo, mensaje, url) {
   if (!('Notification' in window) || Notification.permission !== 'granted') return;
   try {
@@ -9276,20 +9334,51 @@ function suscribirNotifNovedades() {
       var nov = payload["new"];
       if (!nov) return;
       if (nov.relevancia === 'Alta' || nov.relevancia === 'Urgente') {
-        var prefijo = nov.relevancia === 'Urgente' ? '🚨 URGENTE' : '⚠ ALTA';
-        var titulo = prefijo + ' - ' + (nov.puesto || 'Novedad');
-        var msg = (nov.asunto || 'Nueva novedad') + (nov.cargado_por ? ' (por ' + nov.cargado_por + ')' : '');
+        var prefijo = nov.relevancia === 'Urgente' ? '🚨 URGENTE' : '⚠️ IMPORTANTE';
+        var titulo = prefijo + ' — ' + (nov.puesto || 'Novedad');
+        var msg = (nov.asunto || 'Nueva novedad') + (nov.cargado_por ? ' · ' + nov.cargado_por : '');
+        // In-app banner (always works, foreground or background)
+        mostrarBannerAlerta(titulo, msg, nov.relevancia);
+        // OS push notification (works when backgrounded)
         mostrarNotificacion(titulo, msg);
-        // Also send push notification to device
         enviarNotificacion(titulo, msg, '');
-      } else {
-        // For any new novedad, update badge
+      }
+      // Increment novedades badge if not on novedades view
+      if (document.getElementById('view-novedades') && document.getElementById('view-novedades').style.display === 'none') {
         var bd2 = document.getElementById('nb-badge');
         if (bd2) {
           var cur = parseInt(bd2.textContent) || 0;
-          var next = cur + 1;
-          bd2.textContent = next > 99 ? '99+' : next;
+          var nxt = cur + 1;
+          bd2.textContent = nxt > 99 ? '99+' : nxt;
           bd2.style.display = 'flex';
+        }
+      }
+    }).subscribe();
+
+    // Badge objetivos — nuevo recorrido iniciado
+    db.channel('notif-objetivos').on('postgres_changes', {
+      event: 'INSERT', schema: 'public', table: 'objetivos'
+    }, function(payload) {
+      if (document.getElementById('view-objetivos') && document.getElementById('view-objetivos').style.display === 'none') {
+        var bdO = document.getElementById('nb-badge-obj');
+        if (bdO) {
+          var c = parseInt(bdO.textContent) || 0;
+          bdO.textContent = (c + 1) > 99 ? '99+' : (c + 1);
+          bdO.style.display = 'flex';
+        }
+      }
+    }).subscribe();
+
+    // Badge rutas — nueva ruta iniciada
+    db.channel('notif-rutas').on('postgres_changes', {
+      event: 'INSERT', schema: 'public', table: 'rutas'
+    }, function(payload) {
+      if (document.getElementById('view-choferes') && document.getElementById('view-choferes').style.display === 'none') {
+        var bdR = document.getElementById('nb-badge-ruta');
+        if (bdR) {
+          var cr = parseInt(bdR.textContent) || 0;
+          bdR.textContent = (cr + 1) > 99 ? '99+' : (cr + 1);
+          bdR.style.display = 'flex';
         }
       }
     }).subscribe();
