@@ -288,6 +288,11 @@ body::after { display: none; }
   0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); border-color: rgba(239,68,68,0.5); }
   50% { box-shadow: 0 0 16px 4px rgba(239,68,68,0.25); border-color: rgba(239,68,68,0.9); }
 }
+@keyframes slideDown {
+  from { transform: translateY(-100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+#alerta-banner[style*="flex"] { animation: slideDown .25s ease; }
 .bottomnav {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
   height: calc(68px + env(safe-area-inset-bottom));
@@ -2181,15 +2186,14 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
 </div>
 
 <!-- BANNER ALERTA URGENTE -->
-<div id="alerta-banner" onclick="this.style.display='none'" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9998;padding:12px 16px;border-bottom:2px solid #ef4444;background:rgba(239,68,68,0.15);backdrop-filter:blur(10px);cursor:pointer;flex-direction:column;gap:4px;animation:slideDown .3s ease">
+<div id="alerta-banner" onclick="this.style.display='none'" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9998;padding:12px 16px;border-bottom:2px solid #ef4444;background:rgba(239,68,68,0.15);backdrop-filter:blur(10px);cursor:pointer;flex-direction:column;gap:4px">
   <div style="display:flex;align-items:center;justify-content:space-between">
     <div id="alerta-banner-titulo" style="font-size:14px;font-weight:900;color:#fca5a5;letter-spacing:.02em"></div>
     <span style="font-size:18px;color:rgba(255,255,255,0.5)">×</span>
   </div>
   <div id="alerta-banner-msg" style="font-size:12px;color:rgba(255,255,255,0.8)"></div>
-  <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:2px">Tocá para cerrar · Se cierra automáticamente</div>
+  <div style="font-size:10px;color:rgba(255,255,255,0.4);margin-top:2px">Tocá para cerrar</div>
 </div>
-@keyframes slideDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
 
 <!-- LIGHTBOX FOTOS -->
 <div id="ov-lightbox" onclick="cerrarFotoLightbox()" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.92);align-items:center;justify-content:center;cursor:zoom-out">
@@ -5116,38 +5120,28 @@ function _loadDash() {
           if (licEl) licEl.textContent = licsAct.length;
 
           // ── Badges nav ──
-          // Novedades: contar no leidas del día
-          bd = document.getElementById('nb-badge');
-          if (bd) {
-            var totalNoLeidas = 0;
-            var pendsHoy = pends || [];
-            for (var bi2 = 0; bi2 < pendsHoy.length; bi2++) {
-              if (getNoLeidas(pendsHoy[bi2].id, 1) > 0) totalNoLeidas++;
-            }
-            if (totalNoLeidas > 0) {
-              bd.textContent = totalNoLeidas > 99 ? '99+' : totalNoLeidas;
-              bd.style.display = 'flex';
+          var bdNov = document.getElementById('nb-badge');
+          if (bdNov) {
+            var novCount = novsHoy ? novsHoy.length : 0;
+            var leidas = 0;
+            try { leidas = parseInt(localStorage.getItem('ivc_badge_nov_seen') || '0'); } catch(e) {}
+            var noLeidas = Math.max(0, novCount - leidas);
+            if (noLeidas > 0) {
+              bdNov.textContent = noLeidas > 99 ? '99+' : noLeidas;
+              bdNov.style.display = 'flex';
             } else {
-              bd.style.display = 'none';
+              bdNov.style.display = 'none';
             }
           }
-          // Objetivos: recorridos activos hoy
+          // Objetivos en curso
           var bdObj = document.getElementById('nb-badge-obj');
           if (bdObj) {
             var objActivos = objs ? objs.length : 0;
-            if (objActivos > 0) {
-              bdObj.textContent = objActivos > 99 ? '99+' : objActivos;
-              bdObj.style.display = 'flex';
-            } else {
-              bdObj.style.display = 'none';
-            }
+            if (objActivos > 0) { bdObj.textContent = objActivos; bdObj.style.display = 'flex'; }
+            else bdObj.style.display = 'none';
           }
-          // Rutas/Choferes: rutas activas hoy
           var bdRuta = document.getElementById('nb-badge-ruta');
-          if (bdRuta) {
-            // pends here is novedades, we need rutas activas — use d-obj as proxy or query separately
-            bdRuta.style.display = 'none'; // Se actualiza via realtime
-          }
+          if (bdRuta) bdRuta.style.display = 'none';
 
           // ── Actividad por puesto (con modal al tocar) ──
           fichHoyList = fichHoyRes.data || [];
@@ -6403,17 +6397,12 @@ function goView(name) {
     if (name === 'estadisticas' && typeof loadStats === 'function') loadStats('dia');
     if (name === 'novedades' && typeof loadNovedades === 'function') {
       loadNovedades();
-      var bd3 = document.getElementById('nb-badge');
-      if (bd3) bd3.style.display = 'none';
+      clearBadge('nb-badge', 'ivc_badge_nov');
+      // Mark current count as seen
+      try { localStorage.setItem('ivc_badge_nov_seen', novsHoy ? novsHoy.length : 0); } catch(e) {}
     }
-    if (name === 'objetivos') {
-      var bdObj2 = document.getElementById('nb-badge-obj');
-      if (bdObj2) bdObj2.style.display = 'none';
-    }
-    if (name === 'choferes') {
-      var bdRuta2 = document.getElementById('nb-badge-ruta');
-      if (bdRuta2) bdRuta2.style.display = 'none';
-    }
+    if (name === 'objetivos') { clearBadge('nb-badge-obj', 'ivc_badge_obj'); }
+    if (name === 'choferes') { clearBadge('nb-badge-ruta', 'ivc_badge_ruta'); }
     if (name === 'admin') { setTimeout(checkPushStatus, 200); }
     if (name === 'inmuebles') {
       loadInmuebles();
@@ -9227,6 +9216,25 @@ function _procesarSiguienteLote() {
 
 var NOTIF_SUBSCRIPTION = null;
 
+// ── BADGE HELPERS ──
+function clearBadge(elemId, storageKey) {
+  var el = document.getElementById(elemId);
+  if (el) el.style.display = 'none';
+  try { localStorage.removeItem(storageKey); } catch(e) {}
+  try { sessionStorage.removeItem(storageKey); } catch(e) {}
+}
+
+function incrementBadge(elemId, storageKey) {
+  var el = document.getElementById(elemId);
+  if (!el) return;
+  var cur = 0;
+  try { cur = parseInt(localStorage.getItem(storageKey) || '0'); } catch(e) {}
+  var nxt = cur + 1;
+  try { localStorage.setItem(storageKey, nxt); } catch(e) {}
+  el.textContent = nxt > 99 ? '99+' : nxt;
+  el.style.display = 'flex';
+}
+
 // ── HISTORIAL DE SESIONES ──
 function loadHistorialSesiones() {
   var el = document.getElementById('sesiones-list');
@@ -9343,15 +9351,9 @@ function suscribirNotifNovedades() {
         mostrarNotificacion(titulo, msg);
         enviarNotificacion(titulo, msg, '');
       }
-      // Increment novedades badge if not on novedades view
+      // Increment badge if not viewing novedades
       if (document.getElementById('view-novedades') && document.getElementById('view-novedades').style.display === 'none') {
-        var bd2 = document.getElementById('nb-badge');
-        if (bd2) {
-          var cur = parseInt(bd2.textContent) || 0;
-          var nxt = cur + 1;
-          bd2.textContent = nxt > 99 ? '99+' : nxt;
-          bd2.style.display = 'flex';
-        }
+        incrementBadge('nb-badge', 'ivc_badge_nov');
       }
     }).subscribe();
 
@@ -9360,12 +9362,7 @@ function suscribirNotifNovedades() {
       event: 'INSERT', schema: 'public', table: 'objetivos'
     }, function(payload) {
       if (document.getElementById('view-objetivos') && document.getElementById('view-objetivos').style.display === 'none') {
-        var bdO = document.getElementById('nb-badge-obj');
-        if (bdO) {
-          var c = parseInt(bdO.textContent) || 0;
-          bdO.textContent = (c + 1) > 99 ? '99+' : (c + 1);
-          bdO.style.display = 'flex';
-        }
+        incrementBadge('nb-badge-obj', 'ivc_badge_obj');
       }
     }).subscribe();
 
@@ -9374,12 +9371,23 @@ function suscribirNotifNovedades() {
       event: 'INSERT', schema: 'public', table: 'rutas'
     }, function(payload) {
       if (document.getElementById('view-choferes') && document.getElementById('view-choferes').style.display === 'none') {
-        var bdR = document.getElementById('nb-badge-ruta');
-        if (bdR) {
-          var cr = parseInt(bdR.textContent) || 0;
-          bdR.textContent = (cr + 1) > 99 ? '99+' : (cr + 1);
-          bdR.style.display = 'flex';
-        }
+        incrementBadge('nb-badge-ruta', 'ivc_badge_ruta');
+      }
+    }).subscribe();
+
+    // Push para noticias/comunicaciones urgentes
+    db.channel('notif-noticias').on('postgres_changes', {
+      event: 'INSERT', schema: 'public', table: 'noticias'
+    }, function(payload) {
+      var noticia = payload["new"];
+      if (!noticia) return;
+      if (noticia.importancia === 'Urgente' || noticia.importancia === 'Importante') {
+        var prefijo = noticia.importancia === 'Urgente' ? '📢 URGENTE' : '📣 IMPORTANTE';
+        var titulo = prefijo + ' — Comunicación';
+        var msg = noticia.titulo || noticia.mensaje || 'Nueva comunicación';
+        mostrarBannerAlerta(titulo, msg, noticia.importancia === 'Urgente' ? 'Urgente' : 'Alta');
+        mostrarNotificacion(titulo, msg);
+        enviarNotificacion(titulo, msg, '');
       }
     }).subscribe();
   });
