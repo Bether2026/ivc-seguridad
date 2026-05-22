@@ -7,7 +7,7 @@
 <title>Seguridad y Emergencias — IVC</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3"></script>
 <style>
 /* ═══════════════════════════════════════════════════════
    IVC · SEGURIDAD Y EMERGENCIAS — DESIGN SYSTEM v2
@@ -1324,6 +1324,7 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
     </div>
     <div class="topbar-right">
       <div class="topbar-clock" id="tp-clock">00:00</div>
+      <div id="rt-status" title="Conectando..." style="width:8px;height:8px;border-radius:50%;background:#f59e0b;flex-shrink:0;transition:background .3s" title="Estado conexión en vivo"></div>
       <div class="btn-logout" onclick="doLogout()">⏏</div>
     </div>
   </div>
@@ -3895,7 +3896,11 @@ var SUPA_URL = 'https://cuwvmvmrmxprqozfnlva.supabase.co';
 var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1d3Ztdm1ybXhwcnFvemZubHZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5OTUyODYsImV4cCI6MjA5MjU3MTI4Nn0.l-k8ev4zdQBVCyBaEfe7KHCkl5DtUJMsyWHIqBZiNtw';
 var _supabase = supabase,
   createClient = _supabase.createClient;
-var db = createClient(SUPA_URL, SUPA_KEY);
+var db = createClient(SUPA_URL, SUPA_KEY, {
+  realtime: {
+    params: { eventsPerSecond: 10 }
+  }
+});
 var CREDS_HASH = {
   'Papa Francisco': 'b4f15bb4c0d7e8a31c7d2a3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a',
   'Rodrigo Bueno': 'a3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e',
@@ -4602,10 +4607,13 @@ function initApp() {
     }
   }).subscribe(function(status, err) {
     console.log('[Realtime] status:', status, err || '');
+    var indicator = document.getElementById('rt-status');
     if (status === 'SUBSCRIBED') {
-      console.log('[Realtime] OK — canal conectado');
+      console.log('[Realtime] ✅ canal conectado — actualizaciones en vivo activas');
+      if (indicator) { indicator.style.background = '#34d399'; indicator.title = 'En vivo'; }
     } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-      console.warn('[Realtime] fallo:', status, '— activando polling');
+      console.warn('[Realtime] ❌ fallo:', status, '— usando polling cada 15s');
+      if (indicator) { indicator.style.background = '#f59e0b'; indicator.title = 'Polling 15s'; }
       iniciarPolling();
     }
   });
@@ -4615,63 +4623,80 @@ function initApp() {
 
 var POLLING_TIMER = null;
 var POLLING_ULTIMAS = { novedades: null, fichajes: null, objetivos: null };
+var POLLING_INICIADO = false;
 
 function iniciarPolling() {
-  if (POLLING_TIMER) return; // ya activo
+  if (POLLING_TIMER) return;
   console.log('[Polling] iniciado cada 15s');
-  POLLING_TIMER = setInterval(function() {
-    if (!USER) { clearInterval(POLLING_TIMER); POLLING_TIMER = null; return; }
-    // Check novedades
-    db.from('novedades').select('id, relevancia, asunto, puesto, cargado_por')
-      .order('created_at', {ascending: false}).limit(1)
-      .then(function(res) {
-        var rows = res.data || [];
-        if (!rows.length) return;
-        var last = rows[0].id;
-        if (POLLING_ULTIMAS.novedades && POLLING_ULTIMAS.novedades !== last) {
-          // Nueva novedad detectada
-          loadNovedades(); loadDash();
-          var nov = rows[0];
-          if (nov.relevancia === 'Urgente' || nov.relevancia === 'Alta') {
-            var pref = nov.relevancia === 'Urgente' ? '🚨 URGENTE' : '⚠️ IMPORTANTE';
-            var tit = pref + ' — ' + (nov.puesto || 'Novedad');
-            var msg = nov.asunto || 'Nueva novedad';
-            mostrarBannerAlerta(tit, msg, nov.relevancia);
-            enviarNotificacion(tit, msg);
+
+  // Primera corrida: solo inicializar IDs sin disparar updates
+  db.from('novedades').select('id').order('created_at', {ascending: false}).limit(1)
+    .then(function(r) { POLLING_ULTIMAS.novedades = r.data && r.data[0] ? r.data[0].id : ''; });
+  db.from('fichajes').select('id').order('created_at', {ascending: false}).limit(1)
+    .then(function(r) { POLLING_ULTIMAS.fichajes = r.data && r.data[0] ? r.data[0].id : ''; });
+  db.from('objetivos').select('id').order('created_at', {ascending: false}).limit(1)
+    .then(function(r) { POLLING_ULTIMAS.objetivos = r.data && r.data[0] ? r.data[0].id : ''; });
+
+  // Esperar 5s para que los IDs iniciales queden guardados antes de empezar a comparar
+  setTimeout(function() {
+    POLLING_INICIADO = true;
+    POLLING_TIMER = setInterval(function() {
+      if (!USER) { clearInterval(POLLING_TIMER); POLLING_TIMER = null; POLLING_INICIADO = false; return; }
+
+      // Check novedades
+      db.from('novedades').select('id, relevancia, asunto, puesto, cargado_por')
+        .order('created_at', {ascending: false}).limit(1)
+        .then(function(res) {
+          var rows = res.data || [];
+          if (!rows.length) return;
+          var last = rows[0].id;
+          if (POLLING_ULTIMAS.novedades !== null && POLLING_ULTIMAS.novedades !== last) {
+            loadNovedades(); loadDash();
+            var nov = rows[0];
+            if (nov.relevancia === 'Urgente' || nov.relevancia === 'Alta') {
+              var pref = nov.relevancia === 'Urgente' ? '🚨 URGENTE' : '⚠️ IMPORTANTE';
+              var tit = pref + ' — ' + (nov.puesto || 'Novedad');
+              var msg = nov.asunto || 'Nueva novedad';
+              mostrarBannerAlerta(tit, msg, nov.relevancia);
+              enviarNotificacion(tit, msg);
+            }
+            var vNov = document.getElementById('view-novedades');
+            if (vNov && vNov.style.display === 'none') incrementBadge('nb-badge', 'ivc_badge_nov');
           }
-          var vNov = document.getElementById('view-novedades');
-          if (vNov && vNov.style.display === 'none') incrementBadge('nb-badge', 'ivc_badge_nov');
-        }
-        POLLING_ULTIMAS.novedades = last;
-      });
-    // Check fichajes
-    db.from('fichajes').select('id').order('created_at', {ascending: false}).limit(1)
-      .then(function(res) {
-        var rows = res.data || [];
-        if (!rows.length) return;
-        var last = rows[0].id;
-        if (POLLING_ULTIMAS.fichajes && POLLING_ULTIMAS.fichajes !== last) {
-          loadFichajes(); loadDash();
-        }
-        POLLING_ULTIMAS.fichajes = last;
-      });
-    // Check objetivos
-    db.from('objetivos').select('id').order('created_at', {ascending: false}).limit(1)
-      .then(function(res) {
-        var rows = res.data || [];
-        if (!rows.length) return;
-        var last = rows[0].id;
-        if (POLLING_ULTIMAS.objetivos && POLLING_ULTIMAS.objetivos !== last) {
-          loadObjetivos(); loadDash();
-          var vObj = document.getElementById('view-objetivos');
-          if (vObj && vObj.style.display === 'none') {
-            try { localStorage.setItem('ivc_badge_obj', '1'); } catch(e) {}
-            incrementBadge('nb-badge-obj', 'ivc_badge_obj');
+          POLLING_ULTIMAS.novedades = last;
+        });
+
+      // Check fichajes
+      db.from('fichajes').select('id').order('created_at', {ascending: false}).limit(1)
+        .then(function(res) {
+          var rows = res.data || [];
+          if (!rows.length) return;
+          var last = rows[0].id;
+          if (POLLING_ULTIMAS.fichajes !== null && POLLING_ULTIMAS.fichajes !== last) {
+            loadFichajes(); loadDash();
           }
-        }
-        POLLING_ULTIMAS.objetivos = last;
-      });
-  }, 15000); // cada 15 segundos
+          POLLING_ULTIMAS.fichajes = last;
+        });
+
+      // Check objetivos
+      db.from('objetivos').select('id').order('created_at', {ascending: false}).limit(1)
+        .then(function(res) {
+          var rows = res.data || [];
+          if (!rows.length) return;
+          var last = rows[0].id;
+          if (POLLING_ULTIMAS.objetivos !== null && POLLING_ULTIMAS.objetivos !== last) {
+            loadObjetivos(); loadDash();
+            var vObj = document.getElementById('view-objetivos');
+            if (vObj && vObj.style.display === 'none') {
+              try { localStorage.setItem('ivc_badge_obj', '1'); } catch(e) {}
+              incrementBadge('nb-badge-obj', 'ivc_badge_obj');
+            }
+          }
+          POLLING_ULTIMAS.objetivos = last;
+        });
+
+    }, 15000);
+  }, 5000);
 }
 // ─── TOGGLE ÚLTIMAS NOVEDADES INLINE ───
 function toggleUltNov(id) {
