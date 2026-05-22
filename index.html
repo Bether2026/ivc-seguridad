@@ -1345,7 +1345,7 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
 <div onclick="goView('objetivos')" style="cursor:pointer;background:var(--bg2);border:1px solid rgba(255,255,255,0.07);border-bottom:3px solid #60a5fa;border-radius:16px;padding:14px 16px;box-shadow:0 4px 24px rgba(0,0,0,0.2),0 1px 0 rgba(255,255,255,0.04) inset"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,0.45)">En curso</div><div style="width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;font-size:16px">🎯</div></div><div style="font-size:36px;font-weight:900;font-family:var(--mono);color:#60a5fa;line-height:1;text-shadow:0 0 16px rgba(96,165,250,0.25)" id="d-obj">—</div><div style="font-size:10px;color:var(--text3);margin-top:4px">recorridos</div></div>
 <div onclick="goView('objetivos')" style="cursor:pointer;background:var(--bg2);border:1px solid rgba(255,255,255,0.07);border-bottom:3px solid #a78bfa;border-radius:16px;padding:14px 16px;box-shadow:0 4px 24px rgba(0,0,0,0.2),0 1px 0 rgba(255,255,255,0.04) inset"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,0.45)">Finalizados</div><div style="width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;font-size:16px">✅</div></div><div style="font-size:36px;font-weight:900;font-family:var(--mono);color:#a78bfa;line-height:1;text-shadow:0 0 16px rgba(167,139,250,0.25)" id="d-pend">—</div><div style="font-size:10px;color:var(--text3);margin-top:4px">hoy</div></div>
 <div onclick="goView('novedades')" style="cursor:pointer;background:var(--bg2);border:1px solid rgba(255,255,255,0.07);border-bottom:3px solid #f472b6;border-radius:16px;padding:14px 16px;box-shadow:0 4px 24px rgba(0,0,0,0.2),0 1px 0 rgba(255,255,255,0.04) inset"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,0.45)">Novedades</div><div style="width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;font-size:16px">📋</div></div><div style="font-size:36px;font-weight:900;font-family:var(--mono);color:#f472b6;line-height:1;text-shadow:0 0 16px rgba(244,114,182,0.25)" id="d-nov">—</div><div style="font-size:10px;color:var(--text3);margin-top:4px">registradas hoy</div></div>
-<div id="widget-agenda" onclick="abrirAgendaHoy()" style="cursor:pointer;background:var(--bg2);border:1px solid rgba(255,255,255,0.07);border-bottom:3px solid #fbbf24;border-radius:16px;padding:14px 16px;box-shadow:0 4px 24px rgba(0,0,0,0.2),0 1px 0 rgba(255,255,255,0.04) inset"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,0.45)">Operativos</div><div style="width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;font-size:16px">📅</div></div><div style="font-size:36px;font-weight:900;font-family:var(--mono);color:#fbbf24;line-height:1;text-shadow:0 0 16px rgba(251,191,36,0.25)" id="d-agenda-cant">—</div><div style="font-size:10px;color:var(--text3);margin-top:4px">hoy</div></div>
+<div id="widget-agenda" onclick="abrirAgendaHoy()" style="cursor:pointer;display:none;background:var(--bg2);border:1px solid rgba(255,255,255,0.07);border-bottom:3px solid #fbbf24;border-radius:16px;padding:14px 16px;box-shadow:0 4px 24px rgba(0,0,0,0.2),0 1px 0 rgba(255,255,255,0.04) inset"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,0.45)">Operativos</div><div style="width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;font-size:16px">📅</div></div><div style="font-size:36px;font-weight:900;font-family:var(--mono);color:#fbbf24;line-height:1;text-shadow:0 0 16px rgba(251,191,36,0.25)" id="d-agenda-cant">—</div><div style="font-size:10px;color:var(--text3);margin-top:4px">hoy</div></div>
 <div id="widget-agenda-empty" style="display:none"></div>
 </div>
 <div class="card">
@@ -1694,6 +1694,32 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
       <div class="page-header">
         <h2><span style="color:#f87171;margin-right:8px;text-shadow:0 0 12px rgba(248,113,113,0.5)">⚙️</span>Panel de Administración</h2>
         <p>Gestión y limpieza de datos del sistema</p>
+      </div>
+
+      <!-- HISTORIAL DE SESIONES -->
+      <div class="card" style="border-left:3px solid var(--accent3);margin-bottom:14px">
+        <div class="card-head">
+          <span class="card-lbl">👥 Historial de Sesiones</span>
+          <button onclick="loadHistorialSesiones()" style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--accent3);font-family:var(--font);font-weight:600;cursor:pointer">Actualizar</button>
+        </div>
+        <div id="sesiones-list" style="max-height:300px;overflow-y:auto">
+          <div style="font-size:12px;color:var(--text3);padding:8px 0">Tocá "Actualizar" para cargar el historial</div>
+        </div>
+      </div>
+
+      <!-- NOTIFICACIONES PUSH -->
+      <div class="card" style="border-left:3px solid #a78bfa;margin-bottom:14px">
+        <div class="card-head">
+          <span class="card-lbl">🔔 Notificaciones Push</span>
+          <span class="badge" id="push-status-badge" style="background:rgba(255,255,255,0.1)">Inactivo</span>
+        </div>
+        <div style="font-size:12px;color:var(--text2);margin-bottom:10px;line-height:1.6">
+          Recibí alertas en tu celular cuando haya novedades urgentes o comunicaciones importantes, incluso con la app cerrada.
+        </div>
+        <button id="btn-push-activar" onclick="activarNotificaciones()" style="width:100%;padding:11px;border-radius:8px;border:1px solid rgba(167,139,250,0.4);background:rgba(167,139,250,0.1);color:#a78bfa;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">
+          🔔 Activar notificaciones
+        </button>
+        <div id="push-info" style="font-size:11px;color:var(--text3);margin-top:8px;text-align:center"></div>
       </div>
 
       <!-- PIN TOKEN - 2FA -->
@@ -4438,11 +4464,14 @@ function initApp() {
   if (['Administración', 'Administrador'].includes(USER.puesto)) {
     var nbRr = document.getElementById('nb-rrhh');
     var siRr = document.getElementById('si-rrhh');
-    var nbInm = document.getElementById('nb-inmuebles');
-    var siInm = document.getElementById('si-inmuebles');
     if (nbRr) nbRr.style.display = 'flex';
     if (siRr) siRr.style.display = 'flex';
   }
+  // Inmuebles: visible para TODOS los usuarios (cada puesto ve solo el suyo)
+  var nbInm = document.getElementById('nb-inmuebles');
+  var siInm = document.getElementById('si-inmuebles');
+  if (nbInm) nbInm.style.display = 'flex';
+  if (siInm) siInm.style.display = 'flex';
   var sel = $('f-sel');
   sel.innerHTML = '<option value="">— Seleccionar agente —</option>';
   AGENTES.forEach(function (a) {
@@ -4475,9 +4504,6 @@ function initApp() {
     document.getElementById('nb-admin').style.display = 'flex';
     var siAdm = document.getElementById('si-admin');
     if (siAdm) siAdm.style.display = 'flex';
-    // Inmuebles: visible para todos (cada puesto ve solo el suyo)
-    if (nbInm) nbInm.style.display = 'flex';
-    if (siInm) siInm.style.display = 'flex';
   }
   // Admin sees all sections like TODOS
   if (USER.rol === 'ADMIN' || USER.rol === 'TODOS') {
@@ -4494,8 +4520,14 @@ function initApp() {
     // Mostrar widget agenda en el panel
     var wa = document.getElementById('widget-agenda');
     var waEmpty = document.getElementById('widget-agenda-empty');
-    if (wa) wa.style.display = 'flex';
+    if (wa) wa.style.display = 'block';
     if (waEmpty) waEmpty.style.display = 'none';
+  } else {
+    // For puesto users: hide agenda widget, show empty placeholder
+    var wa2 = document.getElementById('widget-agenda');
+    var waEmpty2 = document.getElementById('widget-agenda-empty');
+    if (wa2) wa2.style.display = 'none';
+    if (waEmpty2) waEmpty2.style.display = 'block';
   }
   loadAll();
   loadNoticias();
@@ -5070,11 +5102,21 @@ function _loadDash() {
           var licEl = document.getElementById('d-lic-act');
           if (licEl) licEl.textContent = licsAct.length;
 
-          // Badge novedades pendientes
+          // Badge novedades — contar las no leidas del día
           bd = document.getElementById('nb-badge');
           if (bd) {
-            bd.textContent = pends.length;
-            bd.style.display = pends.length > 0 ? 'flex' : 'none';
+            var totalNoLeidas = 0;
+            var pendsHoy = pends || [];
+            for (var bi2 = 0; bi2 < pendsHoy.length; bi2++) {
+              var nld = getNoLeidas(pendsHoy[bi2].id, 1);
+              if (nld > 0) totalNoLeidas++;
+            }
+            if (totalNoLeidas > 0) {
+              bd.textContent = totalNoLeidas > 99 ? '99+' : totalNoLeidas;
+              bd.style.display = 'flex';
+            } else {
+              bd.style.display = 'none';
+            }
           }
 
           // ── Actividad por puesto (con modal al tocar) ──
@@ -6329,7 +6371,13 @@ function goView(name) {
       loadAdminStats();
     }
     if (name === 'estadisticas' && typeof loadStats === 'function') loadStats('dia');
-    if (name === 'novedades' && typeof loadNovedades === 'function') loadNovedades();
+    if (name === 'novedades' && typeof loadNovedades === 'function') {
+      loadNovedades();
+      // Clear badge when user opens novedades
+      var bd3 = document.getElementById('nb-badge');
+      if (bd3) bd3.style.display = 'none';
+    }
+    if (name === 'admin') { setTimeout(checkPushStatus, 200); }
     if (name === 'inmuebles') {
       loadInmuebles();
       var iaPanel = document.getElementById('inm-panel-ia');
@@ -7974,7 +8022,7 @@ function _saveLicencia() {
   return _saveLicencia.apply(this, arguments);
 }
 var SESSION_KEY = 'ivc_session';
-var SESSION_MAX_HOURS = 6;
+var SESSION_MAX_HOURS = 2160; // 90 días = 3 meses, igual que el token 2FA
 function saveSession() {
   if (!USER) return;
   var session = {
@@ -7982,29 +8030,30 @@ function saveSession() {
     rol: USER.rol,
     timestamp: Date.now()
   };
-  try {
-    localStorage.setItem(SESSION_KEY, JSON.stringify(session));
-  } catch (e) {}
+  try { localStorage.setItem(SESSION_KEY, JSON.stringify(session)); } catch(e) {}
+  try { sessionStorage.setItem(SESSION_KEY, JSON.stringify(session)); } catch(e) {}
 }
 function loadSession() {
-  try {
-    var raw = localStorage.getItem(SESSION_KEY);
-    if (!raw) return null;
-    var session = JSON.parse(raw);
-    var horasTranscurridas = (Date.now() - session.timestamp) / (1000 * 60 * 60);
-    if (horasTranscurridas > SESSION_MAX_HOURS) {
-      localStorage.removeItem(SESSION_KEY);
-      return null;
-    }
-    return session;
-  } catch (e) {
-    return null;
+  // Try localStorage first, then sessionStorage as fallback
+  var sources = [localStorage, sessionStorage];
+  for (var si = 0; si < sources.length; si++) {
+    try {
+      var raw = sources[si].getItem(SESSION_KEY);
+      if (!raw) continue;
+      var session = JSON.parse(raw);
+      var horasTranscurridas = (Date.now() - session.timestamp) / (1000 * 60 * 60);
+      if (horasTranscurridas > SESSION_MAX_HOURS) {
+        try { sources[si].removeItem(SESSION_KEY); } catch(e) {}
+        continue;
+      }
+      return session;
+    } catch(e) { continue; }
   }
+  return null;
 }
 function clearSession() {
-  try {
-    localStorage.removeItem(SESSION_KEY);
-  } catch (e) {}
+  try { localStorage.removeItem(SESSION_KEY); } catch(e) {}
+  try { sessionStorage.removeItem(SESSION_KEY); } catch(e) {}
 }
 function refreshSession() {
   if (USER) saveSession();
@@ -9119,6 +9168,98 @@ function _procesarSiguienteLote() {
 }
 
 var NOTIF_SUBSCRIPTION = null;
+
+// ── HISTORIAL DE SESIONES ──
+function loadHistorialSesiones() {
+  var el = document.getElementById('sesiones-list');
+  if (el) el.innerHTML = '<div class="empty"><span class="spinner"></span></div>';
+  db.from('bitacora')
+    .select('*')
+    .in('tipo', ['LOGIN_OK','LOGOUT','LOGIN_BLOQUEADO','LOGIN_FALLIDO'])
+    .order('created_at', {ascending: false})
+    .limit(50)
+    .then(function(res) {
+      var rows = res.data || [];
+      if (!rows.length) { el.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0">Sin registros</div>'; return; }
+      var html = '';
+      for (var i = 0; i < rows.length; i++) {
+        var r = rows[i];
+        var icon = r.tipo === 'LOGIN_OK' ? '🟢' : r.tipo === 'LOGOUT' ? '🔴' : r.tipo === 'LOGIN_BLOQUEADO' ? '🚫' : '⚠️';
+        var color = r.tipo === 'LOGIN_OK' ? 'var(--green)' : r.tipo === 'LOGOUT' ? 'var(--text3)' : r.tipo === 'LOGIN_BLOQUEADO' ? '#f87171' : 'var(--yellow)';
+        var fechaObj = new Date(r.created_at);
+        var fechaStr = fechaObj.toLocaleDateString('es-AR', {day:'numeric',month:'short'}) + ' ' + fechaObj.toLocaleTimeString('es-AR', {hour:'2-digit',minute:'2-digit'});
+        html += '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05)">';
+        html += '<span style="font-size:16px">' + icon + '</span>';
+        html += '<div style="flex:1;min-width:0">';
+        html += '<div style="font-size:12px;font-weight:700;color:' + color + '">' + r.puesto + '</div>';
+        html += '<div style="font-size:10px;color:var(--text3)">' + (r.detalle || r.tipo) + '</div>';
+        html += '</div>';
+        html += '<div style="font-size:10px;color:var(--text3);white-space:nowrap">' + fechaStr + '</div>';
+        html += '</div>';
+      }
+      el.innerHTML = html;
+    })
+    .catch(function(e) { el.innerHTML = '<div style="color:#f87171;font-size:12px">Error: ' + e.message + '</div>'; });
+}
+
+// ── NOTIFICACIONES PUSH ──
+function activarNotificaciones() {
+  var btn = document.getElementById('btn-push-activar');
+  var info = document.getElementById('push-info');
+  var badge = document.getElementById('push-status-badge');
+  if (!('Notification' in window)) {
+    if (info) info.textContent = 'Tu navegador no soporta notificaciones push.';
+    return;
+  }
+  if (Notification.permission === 'granted') {
+    if (info) info.textContent = '✅ Las notificaciones ya están activadas en este dispositivo.';
+    if (badge) { badge.textContent = 'Activo'; badge.style.background = 'rgba(52,211,153,0.2)'; badge.style.color = 'var(--green)'; }
+    return;
+  }
+  Notification.requestPermission().then(function(permission) {
+    if (permission === 'granted') {
+      if (badge) { badge.textContent = 'Activo'; badge.style.background = 'rgba(52,211,153,0.2)'; badge.style.color = 'var(--green)'; }
+      if (btn) btn.textContent = '✅ Notificaciones activadas';
+      if (info) info.textContent = 'Recibirás alertas de novedades urgentes en este dispositivo.';
+      try { localStorage.setItem('ivc_push_enabled', '1'); } catch(e) {}
+      setTimeout(function() { enviarNotificacion('🔔 IVC Seguridad', 'Las notificaciones están activadas correctamente.', ''); }, 500);
+    } else {
+      if (info) info.textContent = 'Permiso denegado. Activá las notificaciones desde la configuración del navegador → Configuración del sitio.';
+      if (badge) { badge.textContent = 'Denegado'; badge.style.background = 'rgba(239,68,68,0.15)'; badge.style.color = '#f87171'; }
+    }
+  });
+}
+
+function enviarNotificacion(titulo, cuerpo, url) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  try {
+    var n = new Notification(titulo, {
+      body: cuerpo,
+      icon: '/favicon.ico',
+      badge: '/favicon.ico',
+      tag: 'ivc-alerta',
+      renotify: true
+    });
+    n.onclick = function() { window.focus(); n.close(); };
+    setTimeout(function() { n.close(); }, 8000);
+  } catch(e) {}
+}
+
+function checkPushStatus() {
+  var badge = document.getElementById('push-status-badge');
+  var btn = document.getElementById('btn-push-activar');
+  var info = document.getElementById('push-info');
+  if (!badge || !('Notification' in window)) return;
+  if (Notification.permission === 'granted') {
+    badge.textContent = 'Activo'; badge.style.background = 'rgba(52,211,153,0.2)'; badge.style.color = 'var(--green)';
+    if (btn) btn.textContent = '✅ Notificaciones activadas';
+    if (info) info.textContent = 'Recibirás alertas de novedades urgentes en este dispositivo.';
+  } else if (Notification.permission === 'denied') {
+    badge.textContent = 'Denegado'; badge.style.background = 'rgba(239,68,68,0.15)'; badge.style.color = '#f87171';
+    if (info) info.textContent = 'Activá las notificaciones desde configuración del navegador → Configuración del sitio.';
+  }
+}
+
 function suscribirNotifNovedades() {
   var canRecibir = ['Gerencia', 'Administración', 'Administrador', 'Jefe de departamento', 'Responsable de turno', 'Emergencias'].includes(USER.puesto);
   if (!canRecibir) return;
@@ -9139,6 +9280,17 @@ function suscribirNotifNovedades() {
         var titulo = prefijo + ' - ' + (nov.puesto || 'Novedad');
         var msg = (nov.asunto || 'Nueva novedad') + (nov.cargado_por ? ' (por ' + nov.cargado_por + ')' : '');
         mostrarNotificacion(titulo, msg);
+        // Also send push notification to device
+        enviarNotificacion(titulo, msg, '');
+      } else {
+        // For any new novedad, update badge
+        var bd2 = document.getElementById('nb-badge');
+        if (bd2) {
+          var cur = parseInt(bd2.textContent) || 0;
+          var next = cur + 1;
+          bd2.textContent = next > 99 ? '99+' : next;
+          bd2.style.display = 'flex';
+        }
       }
     }).subscribe();
   });
