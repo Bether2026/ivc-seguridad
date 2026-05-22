@@ -4556,32 +4556,50 @@ function initApp() {
     }, 100);
   }
   db.channel('realtime-all').on('postgres_changes', {
-    event: '*',
-    schema: 'public',
-    table: 'fichajes'
-  }, function () {
-    loadFichajes();
-    loadDash();
+    event: '*', schema: 'public', table: 'fichajes'
+  }, function() {
+    loadFichajes(); loadDash();
   }).on('postgres_changes', {
-    event: '*',
-    schema: 'public',
-    table: 'novedades'
-  }, function () {
-    loadNovedades();
-    loadDash();
+    event: '*', schema: 'public', table: 'novedades'
+  }, function(payload) {
+    loadNovedades(); loadDash();
+    // Push para urgente/alta
+    var nov = payload && payload.new;
+    if (nov && (nov.relevancia === 'Urgente' || nov.relevancia === 'Alta')) {
+      var pref = nov.relevancia === 'Urgente' ? '\ud83d\udea8 URGENTE' : '\u26a0\ufe0f IMPORTANTE';
+      var tit = pref + ' \u2014 ' + (nov.puesto || 'Novedad');
+      var msg = (nov.asunto || 'Nueva novedad') + (nov.cargado_por ? ' \u00b7 ' + nov.cargado_por : '');
+      mostrarBannerAlerta(tit, msg, nov.relevancia);
+      enviarNotificacion(tit, msg);
+    }
+    // Badge novedades
+    var vNov = document.getElementById('view-novedades');
+    if (vNov && vNov.style.display === 'none') incrementBadge('nb-badge', 'ivc_badge_nov');
   }).on('postgres_changes', {
-    event: '*',
-    schema: 'public',
-    table: 'objetivos'
-  }, function () {
-    loadObjetivos();
-    loadDash();
+    event: '*', schema: 'public', table: 'objetivos'
+  }, function(payload) {
+    loadObjetivos(); loadDash();
+    var vObj = document.getElementById('view-objetivos');
+    if (payload && payload.eventType === 'INSERT' && vObj && vObj.style.display === 'none') {
+      try { localStorage.setItem('ivc_badge_obj', '1'); } catch(e) {}
+      incrementBadge('nb-badge-obj', 'ivc_badge_obj');
+    }
   }).on('postgres_changes', {
-    event: '*',
-    schema: 'public',
-    table: 'rutas'
-  }, function () {
+    event: '*', schema: 'public', table: 'rutas'
+  }, function() {
     loadChoferes();
+  }).on('postgres_changes', {
+    event: 'INSERT', schema: 'public', table: 'noticias'
+  }, function(payload) {
+    loadNoticias();
+    var n2 = payload && payload.new;
+    if (n2 && (n2.importancia === 'Urgente' || n2.importancia === 'Importante')) {
+      var pref2 = n2.importancia === 'Urgente' ? '\ud83d\udce2 URGENTE' : '\ud83d\udce3 IMPORTANTE';
+      var tit2 = pref2 + ' \u2014 Comunicaci\u00f3n';
+      var msg2 = n2.titulo || n2.mensaje || 'Nueva comunicaci\u00f3n';
+      mostrarBannerAlerta(tit2, msg2, n2.importancia === 'Urgente' ? 'Urgente' : 'Alta');
+      enviarNotificacion(tit2, msg2);
+    }
   }).subscribe();
 }
 // ─── TOGGLE ÚLTIMAS NOVEDADES INLINE ───
