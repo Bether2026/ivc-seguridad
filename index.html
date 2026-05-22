@@ -4554,6 +4554,17 @@ function initApp() {
   loadAll();
   loadNoticias();
   suscribirNotifNovedades();
+  // Pedir permiso de notificaciones automáticamente si no fue decidido
+  if ('Notification' in window && Notification.permission === 'default') {
+    setTimeout(function() {
+      Notification.requestPermission().then(function(p) {
+        if (p === 'granted') {
+          try { localStorage.setItem('ivc_push_enabled', '1'); } catch(e) {}
+          toast('🔔 Notificaciones activadas', 'ok');
+        }
+      });
+    }, 2000);
+  }
   // Aplicar permisos configurados por el Administrador
   if (USER.rol !== 'ADMIN') {
     setTimeout(function () {
@@ -9435,17 +9446,22 @@ if ('serviceWorker' in navigator) {
 
 function enviarNotificacion(titulo, cuerpo, url) {
   var urgent = titulo.indexOf('URGENTE') !== -1;
-  // Method 1: Via Service Worker (works in background)
-  if (SW_REGISTRATION) {
+  // Solo intentar si hay permiso
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  // Method 1: Via Service Worker
+  if (SW_REGISTRATION && SW_REGISTRATION.active) {
     try {
-      SW_REGISTRATION.active && SW_REGISTRATION.active.postMessage({
+      SW_REGISTRATION.active.postMessage({
         type: 'SHOW_NOTIFICATION',
         title: titulo,
         body: cuerpo,
         urgent: urgent
       });
+      return;
     } catch(e) {}
-    // Also show via SW registration directly
+  }
+  // Method 2: Direct SW showNotification
+  if (SW_REGISTRATION) {
     try {
       SW_REGISTRATION.showNotification(titulo, {
         body: cuerpo,
@@ -9456,19 +9472,16 @@ function enviarNotificacion(titulo, cuerpo, url) {
         vibrate: urgent ? [300,100,300,100,300] : [200,100,200],
         requireInteraction: urgent
       });
+      return;
     } catch(e) {}
-    return;
   }
-  // Method 2: Fallback — direct Notification API
-  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  // Method 3: Fallback directo
   try {
     var n = new Notification(titulo, {
       body: cuerpo,
       icon: '/favicon.ico',
-      badge: '/favicon.ico',
       tag: 'ivc-alerta',
-      renotify: true,
-      vibrate: urgent ? [300,100,300,100,300] : [200,100,200]
+      renotify: true
     });
     n.onclick = function() { window.focus(); n.close(); };
     setTimeout(function() { n.close(); }, 10000);
