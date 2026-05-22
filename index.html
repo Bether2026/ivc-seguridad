@@ -4600,7 +4600,78 @@ function initApp() {
       mostrarBannerAlerta(tit2, msg2, n2.importancia === 'Urgente' ? 'Urgente' : 'Alta');
       enviarNotificacion(tit2, msg2);
     }
-  }).subscribe();
+  }).subscribe(function(status, err) {
+    console.log('[Realtime] status:', status, err || '');
+    if (status === 'SUBSCRIBED') {
+      console.log('[Realtime] OK — canal conectado');
+    } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+      console.warn('[Realtime] fallo:', status, '— activando polling');
+      iniciarPolling();
+    }
+  });
+  // Polling de respaldo — por si Realtime no conecta
+  iniciarPolling();
+}
+
+var POLLING_TIMER = null;
+var POLLING_ULTIMAS = { novedades: null, fichajes: null, objetivos: null };
+
+function iniciarPolling() {
+  if (POLLING_TIMER) return; // ya activo
+  console.log('[Polling] iniciado cada 15s');
+  POLLING_TIMER = setInterval(function() {
+    if (!USER) { clearInterval(POLLING_TIMER); POLLING_TIMER = null; return; }
+    // Check novedades
+    db.from('novedades').select('id, relevancia, asunto, puesto, cargado_por')
+      .order('created_at', {ascending: false}).limit(1)
+      .then(function(res) {
+        var rows = res.data || [];
+        if (!rows.length) return;
+        var last = rows[0].id;
+        if (POLLING_ULTIMAS.novedades && POLLING_ULTIMAS.novedades !== last) {
+          // Nueva novedad detectada
+          loadNovedades(); loadDash();
+          var nov = rows[0];
+          if (nov.relevancia === 'Urgente' || nov.relevancia === 'Alta') {
+            var pref = nov.relevancia === 'Urgente' ? '🚨 URGENTE' : '⚠️ IMPORTANTE';
+            var tit = pref + ' — ' + (nov.puesto || 'Novedad');
+            var msg = nov.asunto || 'Nueva novedad';
+            mostrarBannerAlerta(tit, msg, nov.relevancia);
+            enviarNotificacion(tit, msg);
+          }
+          var vNov = document.getElementById('view-novedades');
+          if (vNov && vNov.style.display === 'none') incrementBadge('nb-badge', 'ivc_badge_nov');
+        }
+        POLLING_ULTIMAS.novedades = last;
+      });
+    // Check fichajes
+    db.from('fichajes').select('id').order('created_at', {ascending: false}).limit(1)
+      .then(function(res) {
+        var rows = res.data || [];
+        if (!rows.length) return;
+        var last = rows[0].id;
+        if (POLLING_ULTIMAS.fichajes && POLLING_ULTIMAS.fichajes !== last) {
+          loadFichajes(); loadDash();
+        }
+        POLLING_ULTIMAS.fichajes = last;
+      });
+    // Check objetivos
+    db.from('objetivos').select('id').order('created_at', {ascending: false}).limit(1)
+      .then(function(res) {
+        var rows = res.data || [];
+        if (!rows.length) return;
+        var last = rows[0].id;
+        if (POLLING_ULTIMAS.objetivos && POLLING_ULTIMAS.objetivos !== last) {
+          loadObjetivos(); loadDash();
+          var vObj = document.getElementById('view-objetivos');
+          if (vObj && vObj.style.display === 'none') {
+            try { localStorage.setItem('ivc_badge_obj', '1'); } catch(e) {}
+            incrementBadge('nb-badge-obj', 'ivc_badge_obj');
+          }
+        }
+        POLLING_ULTIMAS.objetivos = last;
+      });
+  }, 15000); // cada 15 segundos
 }
 // ─── TOGGLE ÚLTIMAS NOVEDADES INLINE ───
 function toggleUltNov(id) {
