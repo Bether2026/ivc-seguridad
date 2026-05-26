@@ -1606,15 +1606,22 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
 
       <!-- SUB-TAB: GPS -->
       <div id="chof-sub-gps" style="display:none">
-        <div class="card" style="margin-bottom:10px">
-          <div class="card-head">
-            <span class="card-lbl">📡 Móviles activos</span>
-            <span class="badge b-green" id="gps-count">0 activos</span>
+        <div class="card" style="margin-bottom:10px;background:linear-gradient(135deg,rgba(16,185,129,0.06),transparent)">
+          <div class="card-head" style="margin-bottom:8px">
+            <span class="card-lbl">📡 Rastreo GPS en tiempo real</span>
+            <span class="badge b-green" id="gps-count" style="font-size:12px">0 activos</span>
+          </div>
+          <div style="font-size:11px;color:var(--text3);margin-bottom:10px;display:flex;align-items:center;gap:6px">
+            <span class="pulse" style="background:var(--green);flex-shrink:0"></span>
+            Se actualiza cada 30 seg &middot; Transmite cada 5 min o al moverse +50m
           </div>
           <div id="gps-moviles-list"></div>
         </div>
         <div class="card" style="padding:0;overflow:hidden">
-          <div id="gps-map-frame" style="width:100%;height:320px"></div>
+          <div style="padding:8px 12px;background:var(--bg3);font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">
+            🗺️ <strong>Mapa de móviles</strong> &mdash; tocá un marcador para ver detalle
+          </div>
+          <div id="gps-map-frame" style="width:100%;height:380px;background:var(--bg2)"></div>
         </div>
       </div>
     </div>
@@ -6630,7 +6637,15 @@ function _loadChoferes() {
             }
             // Actions
             if (isAct) {
-              chtml += '<div class="obj-actions" style="margin-top:10px">';
+              var esEsteMovil = (GPS_MOVIL_ACTUAL && GPS_MOVIL_ACTUAL === r.movil);
+              chtml += '<div style="margin-top:8px;padding:7px 10px;border-radius:10px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.18);font-size:11px;display:flex;align-items:center;gap:6px">';
+              if (esEsteMovil) {
+                chtml += '<span id="gps-status-badge" style="display:flex;align-items:center;gap:5px;color:var(--green)"><span class="pulse" style="background:var(--green)"></span>GPS transmitiendo en tiempo real</span>';
+              } else {
+                chtml += '<span style="color:var(--text3);opacity:0.7">📡 GPS: activo al iniciar desde este dispositivo</span>';
+              }
+              chtml += '</div>';
+              chtml += '<div class="obj-actions" style="margin-top:8px">';
               chtml += '<button class="btn-sm" onclick="abrirParadaRuta(\'' + r.id + '\')">📍 Registrar parada</button>';
               chtml += '</div>';
             }
@@ -6884,6 +6899,12 @@ function _saveChof() {
           document.getElementById('c-fotos-preview').innerHTML = '';
           closeOv('ov-chof');
           toast('🚗 Hoja de ruta iniciada');
+          // Iniciar transmisión GPS automáticamente con el ID de ruta
+          if (insertRes.data && insertRes.data.id) {
+            startGPSTransmission(chofer, movil, insertRes.data.id);
+          } else {
+            startGPSTransmission(chofer, movil, null);
+          }
           loadChoferes(); loadDash();
           return _ctx42.a(2);
       }
@@ -8260,162 +8281,387 @@ function _finalizarTaller() {
   }));
   return _finalizarTaller.apply(this, arguments);
 }
+// ══════════════════════════════════════════════════════════
+//  GPS — SISTEMA COMPLETO v2
+//  - watchPosition (movimiento real) + timer 5min (parado)
+//  - Mapa Leaflet con marcadores reales
+//  - Indicador de estado en ruta activa
+//  - Auto-geocodificación inversa
+// ══════════════════════════════════════════════════════════
 var GPS_INTERVAL = null;
+var GPS_WATCH_ID = null;
 var GPS_TRACKING = false;
+var GPS_CHOFER_ACTUAL = null;
+var GPS_MOVIL_ACTUAL = null;
+var GPS_RUTA_ID_ACTUAL = null;
+var GPS_LAST_LAT = null;
+var GPS_LAST_LNG = null;
+var GPS_MAP_INSTANCE = null;
+var GPS_MARKERS_LAYER = null;
+var GPS_REFRESH_INTERVAL = null;
+
+// ── Distancia en metros entre dos puntos GPS ──
+function gpsDistancia(lat1, lng1, lat2, lng2) {
+  var R = 6371000;
+  var dLat = (lat2 - lat1) * Math.PI / 180;
+  var dLng = (lng2 - lng1) * Math.PI / 180;
+  var a = Math.sin(dLat/2)*Math.sin(dLat/2) +
+          Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*
+          Math.sin(dLng/2)*Math.sin(dLng/2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+// ── Transmitir posición a Supabase (posición actual + punto de track) ──
+function gpsTransmitirPosicion(lat, lng) {
+  if (!GPS_TRACKING || !GPS_MOVIL_ACTUAL) return;
+  getAddress(lat, lng).then(function(direccion) {
+    var ts = new Date().toISOString();
+
+    // 1) Actualizar posición actual del móvil (upsert — solo guarda la última)
+    db.from('gps_moviles').upsert({
+      chofer: GPS_CHOFER_ACTUAL,
+      movil: GPS_MOVIL_ACTUAL,
+      ruta_id: GPS_RUTA_ID_ACTUAL,
+      lat: lat,
+      lng: lng,
+      direccion: direccion || '',
+      activo: true,
+      updated_at: ts
+    }, { onConflict: 'movil' }).then(function(res) {
+      if (!res.error) {
+        GPS_LAST_LAT = lat;
+        GPS_LAST_LNG = lng;
+        gpsActualizarIndicador(direccion, lat, lng);
+      }
+    });
+
+    // 2) Insertar punto en el historial de track (cada punto se acumula)
+    db.from('gps_track').insert({
+      chofer: GPS_CHOFER_ACTUAL,
+      movil: GPS_MOVIL_ACTUAL,
+      ruta_id: GPS_RUTA_ID_ACTUAL,
+      lat: lat,
+      lng: lng,
+      direccion: direccion || '',
+      ts: ts
+    }).then(function() {});
+  });
+}
+
+// ── Actualizar el badge de estado GPS en la tarjeta de ruta activa ──
+function gpsActualizarIndicador(dir, lat, lng) {
+  var el = document.getElementById('gps-status-badge');
+  if (el) {
+    var hora = fechaHoyAR().split(' ')[1] || '';
+    el.innerHTML = '<span class="pulse" style="background:var(--green)"></span> GPS activo · ' + (dir || (lat.toFixed(5) + ', ' + lng.toFixed(5)));
+    el.title = 'Última transmisión: ' + hora;
+  }
+}
+
+// ── INICIAR transmisión GPS ──
+function startGPSTransmission(chofer, movil, rutaId) {
+  if (GPS_TRACKING) return;
+  if (!navigator.geolocation) {
+    toast('GPS no disponible en este dispositivo', 'err');
+    return;
+  }
+  GPS_TRACKING = true;
+  GPS_CHOFER_ACTUAL = chofer;
+  GPS_MOVIL_ACTUAL = movil;
+  GPS_RUTA_ID_ACTUAL = rutaId || null;
+
+  // Primera transmisión inmediata
+  navigator.geolocation.getCurrentPosition(function(pos) {
+    gpsTransmitirPosicion(pos.coords.latitude, pos.coords.longitude);
+  }, function() {}, { enableHighAccuracy: true, timeout: 15000 });
+
+  // watchPosition — dispara cuando el dispositivo se mueve más de ~50m
+  GPS_WATCH_ID = navigator.geolocation.watchPosition(
+    function(pos) {
+      var lat = pos.coords.latitude;
+      var lng = pos.coords.longitude;
+      // Solo transmite si se movió más de 50 metros respecto a última posición
+      if (GPS_LAST_LAT !== null) {
+        var dist = gpsDistancia(GPS_LAST_LAT, GPS_LAST_LNG, lat, lng);
+        if (dist < 50) return; // menos de 50m, ignorar
+      }
+      gpsTransmitirPosicion(lat, lng);
+    },
+    function(err) { console.warn('GPS watch error:', err.message); },
+    { enableHighAccuracy: true, maximumAge: 30000, timeout: 30000 }
+  );
+
+  // Timer de respaldo cada 5 minutos (por si el vehículo está parado)
+  GPS_INTERVAL = setInterval(function() {
+    if (!GPS_TRACKING) return;
+    navigator.geolocation.getCurrentPosition(function(pos) {
+      gpsTransmitirPosicion(pos.coords.latitude, pos.coords.longitude);
+    }, function() {}, { enableHighAccuracy: true, timeout: 15000 });
+  }, 300000); // 5 minutos
+
+  toast('📡 GPS activado — transmitiendo cada 5 min o al moverse', 'info');
+}
+
+// ── DETENER transmisión GPS ──
+function stopGPSTransmission(movil) {
+  GPS_TRACKING = false;
+  GPS_CHOFER_ACTUAL = null;
+  GPS_RUTA_ID_ACTUAL = null;
+
+  if (GPS_WATCH_ID !== null) {
+    navigator.geolocation.clearWatch(GPS_WATCH_ID);
+    GPS_WATCH_ID = null;
+  }
+  if (GPS_INTERVAL) {
+    clearInterval(GPS_INTERVAL);
+    GPS_INTERVAL = null;
+  }
+
+  var mv = movil || GPS_MOVIL_ACTUAL;
+  GPS_MOVIL_ACTUAL = null;
+  GPS_LAST_LAT = null;
+  GPS_LAST_LNG = null;
+
+  if (mv) {
+    db.from('gps_moviles').update({ activo: false }).eq('movil', mv).then(function() {
+      toast('GPS desactivado');
+    });
+  }
+}
+
+// ── CARGAR vista GPS con tracks de huella ──
 function loadGPS() {
-  return _loadGPS.apply(this, arguments);
-}
-function _loadGPS() {
-  _loadGPS = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee65() {
-    var _yield$db$from$select6, positions, list, first, markers, avgLat, avgLng;
-    return _regenerator().w(function (_context65) {
-      while (1) switch (_context65.n) {
-        case 0:
-          _context65.n = 1;
-          return db.from('gps_moviles').select('*').eq('activo', true).order('updated_at', {
-            ascending: false
-          });
-        case 1:
-          _yield$db$from$select6 = _context65.v;
-          positions = _yield$db$from$select6.data;
-          list = positions || [];
-          document.getElementById('gps-count').textContent = "".concat(list.length, " activo").concat(list.length !== 1 ? 's' : '');
-          if (list.length) {
-            _context65.n = 2;
-            break;
-          }
-          document.getElementById('gps-moviles-list').innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0">Sin móviles transmitiendo GPS ahora</div>';
-          document.getElementById('gps-map-frame').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text3);font-size:13px">Sin móviles activos con GPS</div>';
-          return _context65.a(2);
-        case 2:
-          document.getElementById('gps-moviles-list').innerHTML = list.map(function (p) {
-            return "\n<div class=\"agent-row\">\n<div class=\"agent-av\" style=\"background:var(--greeng);color:var(--green)\">[Movil]</div>\n<div class=\"agent-info\">\n<div class=\"agent-name\">".concat(p.movil || p.chofer, "</div>\n<div class=\"agent-sub\">[Ubic] ").concat(p.direccion || 'Ubicando...', "</div>\n</div>\n<div style=\"text-align:right\">\n<span class=\"badge b-green\"><span class=\"pulse\"></span> Activo</span>\n<div style=\"font-size:10px;color:var(--text3);margin-top:3px\">").concat(formatTs(p.updated_at), "</div>\n</div>\n</div>");
-          }).join('');
-          first = list[0];
-          markers = list.map(function (p) {
-            return "".concat(p.lat, ",").concat(p.lng);
-          }).join('|');
-          if (list.length === 1) {
-            document.getElementById('gps-map-frame').innerHTML = "\n<iframe src=\"https://www.openstreetmap.org/export/embed.html?bbox=".concat(first.lng - 0.005, ",").concat(first.lat - 0.005, ",").concat(first.lng + 0.005, ",").concat(first.lat + 0.005, "&layer=mapnik&marker=").concat(first.lat, ",").concat(first.lng, "\"\nstyle=\"width:100%;height:320px;border:none\" loading=\"lazy\"></iframe>\n<div style=\"padding:8px 12px;background:var(--bg3);font-size:11px;color:var(--text3)\">\n").concat(list.map(function (p) {
-              return "[Movil] <strong>".concat(p.movil || p.chofer, "</strong> \u2014 ").concat(p.direccion || '');
-            }).join(' &nbsp;·&nbsp; '), "\n</div>");
-          } else {
-            avgLat = list.reduce(function (s, p) {
-              return s + p.lat;
-            }, 0) / list.length;
-            avgLng = list.reduce(function (s, p) {
-              return s + p.lng;
-            }, 0) / list.length;
-            document.getElementById('gps-map-frame').innerHTML = "\n<iframe src=\"https://www.openstreetmap.org/export/embed.html?bbox=".concat(avgLng - 0.02, ",").concat(avgLat - 0.02, ",").concat(avgLng + 0.02, ",").concat(avgLat + 0.02, "&layer=mapnik\"\nstyle=\"width:100%;height:320px;border:none\" loading=\"lazy\"></iframe>\n<div style=\"padding:8px 12px;background:var(--bg3);font-size:11px;color:var(--text3)\">\n").concat(list.map(function (p) {
-              return "[Movil] <strong>".concat(p.movil || p.chofer, "</strong> \u2014 ").concat(p.direccion || '');
-            }).join('<br>'), "\n</div>");
-          }
-        case 3:
-          return _context65.a(2);
+  db.from('gps_moviles').select('*').eq('activo', true).order('updated_at', { ascending: false })
+    .then(function(res) {
+      var list = res.data || [];
+      var countEl = document.getElementById('gps-count');
+      if (countEl) countEl.textContent = list.length + ' activo' + (list.length !== 1 ? 's' : '');
+
+      var listEl = document.getElementById('gps-moviles-list');
+      var mapEl  = document.getElementById('gps-map-frame');
+      if (!listEl || !mapEl) return;
+
+      if (!list.length) {
+        listEl.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:12px 0;text-align:center">📡 Sin móviles transmitiendo GPS en este momento</div>';
+        mapEl.innerHTML  = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text3);gap:8px"><span style="font-size:32px">🗺️</span><span style="font-size:13px">Sin móviles activos</span></div>';
+        return;
       }
-    }, _callee65);
-  }));
-  return _loadGPS.apply(this, arguments);
-}
-function startGPSTransmission(_x24, _x25) {
-  return _startGPSTransmission.apply(this, arguments);
-}
-function _startGPSTransmission() {
-  _startGPSTransmission = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee67(chofer, movil) {
-    var transmit;
-    return _regenerator().w(function (_context67) {
-      while (1) switch (_context67.n) {
-        case 0:
-          if (!GPS_TRACKING) {
-            _context67.n = 1;
-            break;
-          }
-          return _context67.a(2);
-        case 1:
-          GPS_TRACKING = true;
-          transmit = /*#__PURE__*/function () {
-            var _ref16 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee66() {
-              var geo, direccion;
-              return _regenerator().w(function (_context66) {
-                while (1) switch (_context66.n) {
-                  case 0:
-                    _context66.n = 1;
-                    return getGeoSilent();
-                  case 1:
-                    geo = _context66.v;
-                    if (geo) {
-                      _context66.n = 2;
-                      break;
-                    }
-                    return _context66.a(2);
-                  case 2:
-                    _context66.n = 3;
-                    return getAddress(geo.lat, geo.lng);
-                  case 3:
-                    direccion = _context66.v;
-                    _context66.n = 4;
-                    return db.from('gps_moviles').upsert({
-                      chofer: chofer,
-                      movil: movil,
-                      lat: geo.lat,
-                      lng: geo.lng,
-                      direccion: direccion,
-                      activo: true,
-                      updated_at: new Date().toISOString()
-                    }, {
-                      onConflict: 'movil'
-                    });
-                  case 4:
-                    return _context66.a(2);
-                }
-              }, _callee66);
-            }));
-            return function transmit() {
-              return _ref16.apply(this, arguments);
-            };
-          }();
-          _context67.n = 2;
-          return transmit();
-        case 2:
-          GPS_INTERVAL = setInterval(transmit, 60000); // every 60 seconds
-          toast('[GPS] GPS activado — transmitiendo ubicación', 'info');
-        case 3:
-          return _context67.a(2);
+
+      // Renderizar lista de móviles
+      var ahora = new Date();
+      var html = '';
+      for (var i = 0; i < list.length; i++) {
+        var p = list[i];
+        var upd = p.updated_at ? new Date(p.updated_at) : null;
+        var minutos = upd ? Math.floor((ahora - upd) / 60000) : 999;
+        var estadoColor = minutos < 6 ? 'var(--green)' : minutos < 15 ? '#f59e0b' : 'var(--red)';
+        var estadoLabel = minutos < 6 ? 'En línea' : minutos < 15 ? 'Hace ' + minutos + ' min' : 'Sin señal';
+        var badgeClass  = minutos < 6 ? 'b-green' : minutos < 15 ? 'b-yellow' : 'b-red';
+        html += '<div class="agent-row" style="cursor:pointer" onclick="gpsCentrarMapa(' + p.lat + ',' + p.lng + ')">';
+        html += '<div class="agent-av" style="background:' + estadoColor + '20;color:' + estadoColor + ';font-size:18px">🚗</div>';
+        html += '<div class="agent-info">';
+        html += '<div class="agent-name">' + (p.movil || '—') + '</div>';
+        html += '<div class="agent-sub" style="font-size:11px">👤 ' + (p.chofer || '—') + '</div>';
+        html += '<div class="agent-sub" style="font-size:10px;color:var(--text3)">📍 ' + (p.direccion || p.lat.toFixed(5) + ', ' + p.lng.toFixed(5)) + '</div>';
+        html += '</div>';
+        html += '<div style="text-align:right;flex-shrink:0">';
+        html += '<span class="badge ' + badgeClass + '">';
+        if (minutos < 6) html += '<span class="pulse"></span> ';
+        html += estadoLabel + '</span>';
+        if (upd) html += '<div style="font-size:10px;color:var(--text3);margin-top:3px">' + formatTs(p.updated_at) + '</div>';
+        html += '</div>';
+        html += '</div>';
       }
-    }, _callee67);
-  }));
-  return _startGPSTransmission.apply(this, arguments);
-}
-function stopGPSTransmission(_x26) {
-  return _stopGPSTransmission.apply(this, arguments);
-}
-function _stopGPSTransmission() {
-  _stopGPSTransmission = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee68(movil) {
-    return _regenerator().w(function (_context68) {
-      while (1) switch (_context68.n) {
-        case 0:
-          GPS_TRACKING = false;
-          if (GPS_INTERVAL) {
-            clearInterval(GPS_INTERVAL);
-            GPS_INTERVAL = null;
+      listEl.innerHTML = html;
+
+      // Cargar tracks de huellas (puntos de las últimas 12 horas)
+      var hace12h = new Date(Date.now() - 12 * 3600 * 1000).toISOString();
+      var movilesActivos = [];
+      for (var j = 0; j < list.length; j++) movilesActivos.push(list[j].movil);
+
+      db.from('gps_track').select('movil,lat,lng,ts,chofer')
+        .in('movil', movilesActivos)
+        .gte('ts', hace12h)
+        .order('ts', { ascending: true })
+        .then(function(trackRes) {
+          var tracks = trackRes.data || [];
+          var tracksPorMovil = {};
+          for (var t = 0; t < tracks.length; t++) {
+            var pt = tracks[t];
+            if (!tracksPorMovil[pt.movil]) tracksPorMovil[pt.movil] = [];
+            tracksPorMovil[pt.movil].push([pt.lat, pt.lng, pt.ts]);
           }
-          _context68.n = 1;
-          return db.from('gps_moviles').update({
-            activo: false
-          }).eq('movil', movil);
-        case 1:
-          toast('GPS desactivado');
-        case 2:
-          return _context68.a(2);
-      }
-    }, _callee68);
-  }));
-  return _stopGPSTransmission.apply(this, arguments);
+          gpsRenderizarMapa(mapEl, list, tracksPorMovil);
+        }).catch(function() {
+          // Si la tabla gps_track no existe todavía, igual renderiza sin huellas
+          gpsRenderizarMapa(mapEl, list, {});
+        });
+    });
 }
+
+// Paleta de colores para múltiples móviles
+var GPS_COLORES = ['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ef4444','#06b6d4','#f97316'];
+
+// ── Renderizar mapa Leaflet con marcadores + huellas de recorrido ──
+function gpsRenderizarMapa(mapEl, list, tracksPorMovil) {
+  if (!tracksPorMovil) tracksPorMovil = {};
+
+  // Si Leaflet no está cargado, cargarlo dinámicamente
+  if (typeof L === 'undefined') {
+    var link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    document.head.appendChild(link);
+    var script = document.createElement('script');
+    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    script.onload = function() { gpsRenderizarMapa(mapEl, list, tracksPorMovil); };
+    document.head.appendChild(script);
+    mapEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text3);font-size:13px">⏳ Cargando mapa...</div>';
+    return;
+  }
+
+  // Contenedor del mapa
+  if (!document.getElementById('leaflet-map-container')) {
+    mapEl.innerHTML = '<div id="leaflet-map-container" style="width:100%;height:380px"></div>';
+  }
+
+  // Destruir mapa anterior si existe
+  if (GPS_MAP_INSTANCE) {
+    try { GPS_MAP_INSTANCE.remove(); } catch(e) {}
+    GPS_MAP_INSTANCE = null;
+  }
+
+  // Calcular centro
+  var avgLat = 0, avgLng = 0;
+  for (var ci = 0; ci < list.length; ci++) { avgLat += list[ci].lat; avgLng += list[ci].lng; }
+  avgLat /= list.length; avgLng /= list.length;
+  var zoom = list.length === 1 ? 15 : 13;
+
+  var map = L.map('leaflet-map-container', {
+    center: [avgLat, avgLng],
+    zoom: zoom,
+    zoomControl: true
+  });
+  GPS_MAP_INSTANCE = map;
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap',
+    maxZoom: 19
+  }).addTo(map);
+
+  // Para cada móvil: dibujar huella + marcador actual
+  var ahora = new Date();
+  for (var i = 0; i < list.length; i++) {
+    var p = list[i];
+    var colorMovil = GPS_COLORES[i % GPS_COLORES.length];
+    var upd = p.updated_at ? new Date(p.updated_at) : null;
+    var minutos = upd ? Math.floor((ahora - upd) / 60000) : 999;
+    var colorEstado = minutos < 6 ? '#10b981' : minutos < 15 ? '#f59e0b' : '#ef4444';
+
+    // Dibujar huella del recorrido
+    var puntos = tracksPorMovil[p.movil] || [];
+    if (puntos.length >= 2) {
+      // Línea principal del recorrido
+      var latlngs = [];
+      for (var k = 0; k < puntos.length; k++) latlngs.push([puntos[k][0], puntos[k][1]]);
+
+      // Sombra blanca debajo para legibilidad
+      L.polyline(latlngs, {
+        color: 'rgba(255,255,255,0.3)',
+        weight: 6,
+        opacity: 1,
+        lineJoin: 'round',
+        lineCap: 'round'
+      }).addTo(map);
+
+      // Línea de color del móvil
+      L.polyline(latlngs, {
+        color: colorMovil,
+        weight: 4,
+        opacity: 0.85,
+        lineJoin: 'round',
+        lineCap: 'round',
+        dashArray: null
+      }).addTo(map);
+
+      // Marcador de inicio del recorrido (bandera)
+      var inicioIcon = L.divIcon({
+        html: '<div style="background:' + colorMovil + ';width:10px;height:10px;border-radius:50%;border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.5)"></div>',
+        iconSize: [10, 10],
+        iconAnchor: [5, 5],
+        className: ''
+      });
+      L.marker([puntos[0][0], puntos[0][1]], { icon: inicioIcon })
+        .addTo(map)
+        .bindPopup('<b>Inicio de ruta</b><br><span style="font-size:11px;color:#555">' + (puntos[0][2] ? new Date(puntos[0][2]).toLocaleTimeString('es-AR') : '') + '</span>');
+
+      // Puntos intermedios pequeños sobre la línea
+      var cadaN = Math.max(1, Math.floor(puntos.length / 8)); // max 8 puntos intermedios
+      for (var m = cadaN; m < puntos.length - 1; m += cadaN) {
+        var ptIcon = L.divIcon({
+          html: '<div style="background:' + colorMovil + ';width:7px;height:7px;border-radius:50%;border:1.5px solid white;opacity:0.8"></div>',
+          iconSize: [7, 7],
+          iconAnchor: [3, 3],
+          className: ''
+        });
+        var hora = puntos[m][2] ? new Date(puntos[m][2]).toLocaleTimeString('es-AR') : '';
+        L.marker([puntos[m][0], puntos[m][1]], { icon: ptIcon })
+          .addTo(map)
+          .bindPopup('<span style="font-size:11px">' + (p.movil || p.chofer) + '<br>' + hora + '</span>');
+      }
+    }
+
+    // Marcador actual del móvil (al final del recorrido)
+    var svgIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="38" height="46" viewBox="0 0 38 46">' +
+      '<ellipse cx="19" cy="42" rx="9" ry="3.5" fill="rgba(0,0,0,0.25)"/>' +
+      '<path d="M19 0 C8 0 0 8.5 0 19 C0 32 19 46 19 46 C19 46 38 32 38 19 C38 8.5 30 0 19 0Z" fill="' + colorEstado + '" stroke="white" stroke-width="2.5"/>' +
+      '<circle cx="19" cy="18" r="11" fill="rgba(0,0,0,0.15)"/>' +
+      '<text x="19" y="23" font-size="14" text-anchor="middle" fill="white">🚗</text>' +
+      '</svg>';
+    var icon = L.divIcon({
+      html: svgIcon,
+      iconSize: [38, 46],
+      iconAnchor: [19, 46],
+      popupAnchor: [0, -46],
+      className: ''
+    });
+    var label = minutos < 6 ? 'En línea' : 'Hace ' + minutos + ' min';
+    var nPuntos = (tracksPorMovil[p.movil] || []).length;
+    var popup = '<div style="font-family:sans-serif;min-width:170px">' +
+      '<b style="font-size:13px">🚗 ' + (p.movil || '—') + '</b><br>' +
+      '<span style="font-size:11px;color:#555">👤 ' + (p.chofer || '—') + '</span><br>' +
+      '<span style="font-size:10px;color:#777">📍 ' + (p.direccion || p.lat.toFixed(5) + ', ' + p.lng.toFixed(5)) + '</span><br>' +
+      '<span style="font-size:10px;color:' + colorEstado + '">● ' + label + '</span>' +
+      (nPuntos > 1 ? '<br><span style="font-size:10px;color:#888">📈 ' + nPuntos + ' puntos registrados</span>' : '') +
+      '</div>';
+    L.marker([p.lat, p.lng], { icon: icon, zIndexOffset: 1000 }).addTo(map).bindPopup(popup);
+  }
+
+  // Ajustar el mapa para que entren todos los tracks
+  var allPoints = [];
+  for (var ai = 0; ai < list.length; ai++) {
+    allPoints.push([list[ai].lat, list[ai].lng]);
+    var tr = tracksPorMovil[list[ai].movil] || [];
+    for (var ti = 0; ti < tr.length; ti++) allPoints.push([tr[ti][0], tr[ti][1]]);
+  }
+  if (allPoints.length > 1) {
+    try { map.fitBounds(L.latLngBounds(allPoints), { padding: [30, 30], maxZoom: 16 }); } catch(e) {}
+  }
+}
+
+// ── Centrar mapa en un móvil al hacer clic en la lista ──
+function gpsCentrarMapa(lat, lng) {
+  if (GPS_MAP_INSTANCE) {
+    GPS_MAP_INSTANCE.setView([lat, lng], 16);
+  }
+}
+
+// ── Refresh automático de la vista GPS cada 30 segundos ──
 function startGPSRefresh() {
-  return setInterval(function () {
+  if (GPS_REFRESH_INTERVAL) clearInterval(GPS_REFRESH_INTERVAL);
+  GPS_REFRESH_INTERVAL = setInterval(function() {
     if (CUR_CHOF_SUBTAB === 'gps') loadGPS();
-  }, 60000);
+  }, 30000); // 30 segundos (el mapa se recarga con datos frescos)
 }
 var LIC_FILE = null;
 var CUR_FICH_TAB = 'fichaje';
