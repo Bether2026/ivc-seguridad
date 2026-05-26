@@ -4640,10 +4640,10 @@ function initApp() {
     // Already have permission — make sure we're subscribed
     setTimeout(function() { suscribirPushServer(SW_REGISTRATION); }, 1000);
   }
-  // Aplicar permisos de visibilidad para todos los roles
-  setTimeout(function() {
+  // Cargar permisos desde Supabase y aplicar visibilidad
+  cargarPermisosDesdeSupabase().then(function() {
     aplicarPermisosAlLogin();
-  }, 100);
+  });
   db.channel('realtime-all').on('postgres_changes', {
     event: '*', schema: 'public', table: 'fichajes'
   }, function() {
@@ -7081,18 +7081,43 @@ var DEFAULT_PERMISOS = {
     inmuebles: 0
   }
 };
+// Cache local para no hacer múltiples queries
+var PERMISOS_CACHE = null;
+
 function getPermisos() {
-  try {
-    var raw = localStorage.getItem('ivc_permisos_v3');
-    if (raw) return JSON.parse(raw);
-  } catch (e) {}
-  return JSON.parse(JSON.stringify(DEFAULT_PERMISOS)); // copia profunda
+  // Retorna cache si disponible
+  if (PERMISOS_CACHE) return PERMISOS_CACHE;
+  // Fallback a defaults mientras carga
+  return JSON.parse(JSON.stringify(DEFAULT_PERMISOS));
 }
+
 function savePermisos(permisos) {
-  try {
-    localStorage.setItem('ivc_permisos_v3', JSON.stringify(permisos));
-  } catch (e) {}
+  PERMISOS_CACHE = permisos;
+  // Guardar en Supabase
+  db.from('configuracion').upsert({
+    clave: 'permisos_usuarios',
+    valor: JSON.stringify(permisos),
+    updated_at: new Date().toISOString()
+  }, { onConflict: 'clave' }).then(function() {
+    console.log('[Permisos] guardado en Supabase OK');
+  }).catch(function(e) {
+    console.error('[Permisos] error guardando:', e);
+  });
 }
+
+function cargarPermisosDesdeSupabase() {
+  return db.from('configuracion').select('valor').eq('clave', 'permisos_usuarios').single()
+    .then(function(res) {
+      if (res.data && res.data.valor) {
+        PERMISOS_CACHE = JSON.parse(res.data.valor);
+      } else {
+        PERMISOS_CACHE = JSON.parse(JSON.stringify(DEFAULT_PERMISOS));
+      }
+    }).catch(function() {
+      PERMISOS_CACHE = JSON.parse(JSON.stringify(DEFAULT_PERMISOS));
+    });
+}
+
 function getPermisosUsuario(puesto) {
   var permisos = getPermisos();
   return permisos[puesto] || DEFAULT_PERMISOS[puesto] || {};
@@ -7167,11 +7192,13 @@ function togglePermiso(usuario, seccion, valor) {
     permisos[usuario] = DEFAULT_PERMISOS[usuario] ? JSON.parse(JSON.stringify(DEFAULT_PERMISOS[usuario])) : {};
   }
   permisos[usuario][seccion] = valor ? 1 : 0;
+  PERMISOS_CACHE = permisos;
   savePermisos(permisos);
-  toast('Permiso actualizado — ' + usuario);
+  toast('✅ Permiso actualizado — ' + usuario + ' · ' + seccion);
 }
 function resetPermisos() {
-  localStorage.removeItem('ivc_permisos_v3');
+  PERMISOS_CACHE = JSON.parse(JSON.stringify(DEFAULT_PERMISOS));
+  savePermisos(PERMISOS_CACHE);
   loadPermisosAdmin();
   toast('Permisos restablecidos a valores por defecto');
 }
