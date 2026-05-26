@@ -1284,7 +1284,7 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
           <option value="Complejo Orma|POR PUESTO">Complejo Orma</option>
           <option value="Alvarado|POR PUESTO">Alvarado</option>
           <option value="Padre Mugica|POR PUESTO">Padre Mugica</option>
-          <option value="Choferes|puesto">Choferes 🚗</option>
+          <option value="Choferes|POR PUESTO">Choferes 🚗</option>
           <option value="Administración|TODOS">Administración ★</option>
           <option value="Gerencia|TODOS">Gerencia ★</option>
           <option value="Responsable de turno|TODOS">Responsable de Turno ★</option>
@@ -4534,7 +4534,7 @@ function doLogout() {
 }
 function initApp() {
   // Usuario Choferes: solo ve Fichaje y Choferes
-  if (USER.puesto === 'Choferes' && USER.rol === 'puesto') {
+  if (USER.puesto === 'Choferes' && USER.rol === 'POR PUESTO') {
     var ocultarChof = ['nb-novedades','nb-objetivos','nb-llaves','nb-estadisticas','nb-rrhh','nb-agenda','nb-inmuebles','nb-admin'];
     var ocultarChofSi = ['si-novedades','si-objetivos','si-llaves','si-estadisticas','si-rrhh','si-agenda','si-inmuebles','si-admin'];
     ocultarChof.forEach(function(id) { var el = document.getElementById(id); if (el) el.style.display = 'none'; });
@@ -6923,7 +6923,7 @@ var SECCIONES_PERMISOS = [{
 }];
 
 // Usuarios operativos (puestos que tienen restricciones)
-var USUARIOS_OPERATIVOS = ['Papa Francisco', 'Rodrigo Bueno', 'Fraga', 'Base Castañares', 'Obrador Savio', 'CAV', 'Necochea', 'Complejo Orma', 'Alvarado', 'Padre Mugica', 'Administración', 'Gerencia', 'Responsable de turno', 'Jefe de departamento', 'Emergencias'];
+var USUARIOS_OPERATIVOS = ['Papa Francisco', 'Rodrigo Bueno', 'Fraga', 'Base Castañares', 'Obrador Savio', 'CAV', 'Necochea', 'Complejo Orma', 'Alvarado', 'Padre Mugica', 'Choferes', 'Administración', 'Gerencia', 'Responsable de turno', 'Jefe de departamento', 'Emergencias'];
 
 // Permisos por defecto: todos los operativos ven Fichaje, Novedades, Objetivos, Choferes
 var DEFAULT_PERMISOS = {
@@ -7022,6 +7022,16 @@ var DEFAULT_PERMISOS = {
     novedades: 1,
     objetivos: 1,
     choferes: 0,
+    llaves: 0,
+    estadisticas: 0,
+    rrhh: 0,
+    agenda: 0
+  },
+  'Choferes': {
+    fichaje: 1,
+    novedades: 0,
+    objetivos: 0,
+    choferes: 1,
     llaves: 0,
     estadisticas: 0,
     rrhh: 0,
