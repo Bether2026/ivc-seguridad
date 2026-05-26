@@ -4,7 +4,15 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="theme-color" content="#061b34">
-<title>Seguridad y Emergencias — IVC</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="IVC Seguridad">
+<title>IVC — Seguridad y Emergencias</title>
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/icon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/icon-16x16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="manifest" href="/manifest.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3"></script>
@@ -4580,26 +4588,27 @@ function initApp() {
     event: '*', schema: 'public', table: 'fichajes'
   }, function() {
     loadFichajes(); loadDash();
+    recargarVistaActual('fichaje');
   }).on('postgres_changes', {
     event: '*', schema: 'public', table: 'novedades'
   }, function(payload) {
     loadNovedades(); loadDash();
-    // Banner in-app para urgente/alta (sin push — el push lo maneja el webhook)
+    recargarVistaActual('novedades');
+    // Banner in-app para urgente/alta
     var nov = payload && payload.new;
     if (nov && (nov.relevancia === 'Urgente' || nov.relevancia === 'Alta')) {
       var pref = nov.relevancia === 'Urgente' ? '\ud83d\udea8 URGENTE' : '\u26a0\ufe0f IMPORTANTE';
       var tit = pref + ' \u2014 ' + (nov.puesto || 'Novedad');
       var msg = (nov.asunto || 'Nueva novedad') + (nov.cargado_por ? ' \u00b7 ' + nov.cargado_por : '');
       mostrarBannerAlerta(tit, msg, nov.relevancia);
-      // NO enviarNotificacion — lo maneja el webhook de Supabase
     }
-    // Badge novedades
     var vNov = document.getElementById('view-novedades');
     if (vNov && vNov.style.display === 'none') incrementBadge('nb-badge', 'ivc_badge_nov');
   }).on('postgres_changes', {
     event: '*', schema: 'public', table: 'objetivos'
   }, function(payload) {
     loadObjetivos(); loadDash();
+    recargarVistaActual('objetivos');
     var vObj = document.getElementById('view-objetivos');
     if (payload && payload.eventType === 'INSERT' && vObj && vObj.style.display === 'none') {
       try { localStorage.setItem('ivc_badge_obj', '1'); } catch(e) {}
@@ -4609,17 +4618,18 @@ function initApp() {
     event: '*', schema: 'public', table: 'rutas'
   }, function() {
     loadChoferes();
+    recargarVistaActual('choferes');
   }).on('postgres_changes', {
-    event: 'INSERT', schema: 'public', table: 'noticias'
+    event: '*', schema: 'public', table: 'noticias'
   }, function(payload) {
     loadNoticias();
+    recargarVistaActual('dashboard');
     var n2 = payload && payload.new;
     if (n2 && (n2.importancia === 'Urgente' || n2.importancia === 'Importante')) {
       var pref2 = n2.importancia === 'Urgente' ? '\ud83d\udce2 URGENTE' : '\ud83d\udce3 IMPORTANTE';
       var tit2 = pref2 + ' \u2014 Comunicaci\u00f3n';
       var msg2 = n2.titulo || n2.mensaje || 'Nueva comunicaci\u00f3n';
       mostrarBannerAlerta(tit2, msg2, n2.importancia === 'Urgente' ? 'Urgente' : 'Alta');
-      // NO enviarNotificacion — lo maneja el webhook de Supabase
     }
   }).subscribe(function(status, err) {
     console.log('[Realtime] status:', status, err || '');
@@ -4668,6 +4678,7 @@ function iniciarPolling() {
           var last = rows[0].id;
           if (POLLING_ULTIMAS.novedades !== null && POLLING_ULTIMAS.novedades !== last) {
             loadNovedades(); loadDash();
+            recargarVistaActual('novedades');
             var nov = rows[0];
             if (nov.relevancia === 'Urgente' || nov.relevancia === 'Alta') {
               var pref = nov.relevancia === 'Urgente' ? '🚨 URGENTE' : '⚠️ IMPORTANTE';
@@ -9356,6 +9367,30 @@ function _procesarSiguienteLote() {
 }
 
 var NOTIF_SUBSCRIPTION = null;
+
+// ── RECARGA LA VISTA ACTUALMENTE VISIBLE ──
+function recargarVistaActual(origen) {
+  var views = ['dashboard','fichaje','novedades','objetivos','choferes','estadisticas','rrhh','agenda','admin','inmuebles'];
+  for (var vi = 0; vi < views.length; vi++) {
+    var el = document.getElementById('view-' + views[vi]);
+    if (el && el.style.display !== 'none') {
+      // Esta vista está visible — refrescarla si corresponde
+      switch(views[vi]) {
+        case 'dashboard':
+          loadDash(); loadNoticias(); break;
+        case 'fichaje':
+          if (origen !== 'fichaje') loadFichajes(); break;
+        case 'novedades':
+          if (origen !== 'novedades') loadNovedades(); break;
+        case 'objetivos':
+          if (origen !== 'objetivos') loadObjetivos(); break;
+        case 'choferes':
+          if (origen !== 'choferes') loadChoferes(); break;
+      }
+      break;
+    }
+  }
+}
 
 // ── BADGE HELPERS ──
 function clearBadge(elemId, storageKey) {
