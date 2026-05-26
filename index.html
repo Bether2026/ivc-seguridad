@@ -10151,12 +10151,20 @@ function abrirABMChofer() {
 
   // Load all personal from agentes and existing choferes_lista
   Promise.all([
-    db.from('agentes').select('nombre').eq('activo', true).order('nombre'),
+    db.from('agentes').select('nombre').order('nombre'),
     db.from('choferes_lista').select('nombre').eq('activo', true)
   ]).then(function(results) {
     PERSONAL_CACHE = (results[0].data || []).map(function(r) { return r.nombre; });
     CHOFERES_IDS_ACTIVOS = (results[1].data || []).map(function(r) { return r.nombre; });
+    console.log('[ABM Choferes] personal cargado:', PERSONAL_CACHE.length, 'agentes');
+    if (!PERSONAL_CACHE.length) {
+      document.getElementById('abm-personal-list').innerHTML = '<div style="padding:12px;font-size:12px;color:#f87171;text-align:center">Error: no se pudo cargar el personal. Revisá la tabla agentes.</div>';
+      return;
+    }
     renderPersonalList(PERSONAL_CACHE);
+  }).catch(function(e) {
+    console.error('[ABM Choferes] error:', e);
+    document.getElementById('abm-personal-list').innerHTML = '<div style="padding:12px;font-size:12px;color:#f87171">Error: ' + e.message + '</div>';
   });
 }
 
