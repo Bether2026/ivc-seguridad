@@ -4562,23 +4562,8 @@ function initApp() {
     relevWrap.style.display = 'none';
   }
 
-  if (['Gerencia', 'Administración', 'Administrador'].includes(USER.puesto)) {
-    var nbLl = document.getElementById('nb-llaves');
-    var siLl = document.getElementById('si-llaves');
-    if (nbLl) nbLl.style.display = 'flex';
-    if (siLl) siLl.style.display = 'flex';
-  }
-  if (['Administración', 'Administrador'].includes(USER.puesto)) {
-    var nbRr = document.getElementById('nb-rrhh');
-    var siRr = document.getElementById('si-rrhh');
-    if (nbRr) nbRr.style.display = 'flex';
-    if (siRr) siRr.style.display = 'flex';
-  }
-  // Inmuebles: visible para TODOS los usuarios (cada puesto ve solo el suyo)
-  var nbInm = document.getElementById('nb-inmuebles');
-  var siInm = document.getElementById('si-inmuebles');
-  if (nbInm) nbInm.style.display = 'flex';
-  if (siInm) siInm.style.display = 'flex';
+  // La visibilidad de todas las secciones la maneja aplicarPermisosAlLogin()
+  // No hardcodear displays acá para no sobreescribir los permisos configurados
   var sel = $('f-sel');
   sel.innerHTML = '<option value="">— Seleccionar agente —</option>';
   AGENTES.forEach(function (a) {
@@ -4655,12 +4640,10 @@ function initApp() {
     // Already have permission — make sure we're subscribed
     setTimeout(function() { suscribirPushServer(SW_REGISTRATION); }, 1000);
   }
-  // Aplicar permisos configurados por el Administrador
-  if (USER.rol !== 'ADMIN') {
-    setTimeout(function () {
-      aplicarPermisosAlLogin();
-    }, 100);
-  }
+  // Aplicar permisos de visibilidad para todos los roles
+  setTimeout(function() {
+    aplicarPermisosAlLogin();
+  }, 100);
   db.channel('realtime-all').on('postgres_changes', {
     event: '*', schema: 'public', table: 'fichajes'
   }, function() {
@@ -7116,10 +7099,34 @@ function getPermisosUsuario(puesto) {
 }
 function aplicarPermisosAlLogin() {
   if (!USER) return;
-  // Administrador: ve todo, no aplicar restricciones
-  if (USER.rol === 'ADMIN') return;
+  // Administrador: ve todo
+  if (USER.rol === 'ADMIN') {
+    SECCIONES_PERMISOS.forEach(function(sec) {
+      var nb = document.getElementById('nb-' + sec.id);
+      var si = document.getElementById('si-' + sec.id);
+      if (nb) nb.style.display = 'flex';
+      if (si) si.style.display = 'flex';
+    });
+    // Admin también ve nb-admin
+    var nbAdm = document.getElementById('nb-admin');
+    var siAdm = document.getElementById('si-admin');
+    if (nbAdm) nbAdm.style.display = 'flex';
+    if (siAdm) siAdm.style.display = 'flex';
+    return;
+  }
+  // TODOS: ven todo excepto admin panel
+  if (USER.rol === 'TODOS') {
+    SECCIONES_PERMISOS.forEach(function(sec) {
+      var nb = document.getElementById('nb-' + sec.id);
+      var si = document.getElementById('si-' + sec.id);
+      if (nb) nb.style.display = 'flex';
+      if (si) si.style.display = 'flex';
+    });
+    return;
+  }
+  // POR PUESTO: aplicar permisos configurados
   var perms = getPermisosUsuario(USER.puesto);
-  SECCIONES_PERMISOS.forEach(function (sec) {
+  SECCIONES_PERMISOS.forEach(function(sec) {
     var nb = document.getElementById('nb-' + sec.id);
     var si = document.getElementById('si-' + sec.id);
     var visible = perms[sec.id] ? true : false;
