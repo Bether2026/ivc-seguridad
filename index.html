@@ -4561,9 +4561,14 @@ function initApp() {
         if (p === 'granted') {
           try { localStorage.setItem('ivc_push_enabled', '1'); } catch(e) {}
           toast('🔔 Notificaciones activadas', 'ok');
+          // Subscribe to push server
+          if (SW_REGISTRATION) suscribirPushServer(SW_REGISTRATION);
         }
       });
     }, 2000);
+  } else if ('Notification' in window && Notification.permission === 'granted' && SW_REGISTRATION) {
+    // Already have permission — make sure we're subscribed
+    setTimeout(function() { suscribirPushServer(SW_REGISTRATION); }, 1000);
   }
   // Aplicar permisos configurados por el Administrador
   if (USER.rol !== 'ADMIN') {
@@ -9424,6 +9429,8 @@ function activarNotificaciones() {
       if (btn) btn.textContent = '✅ Notificaciones activadas';
       if (info) info.textContent = 'Recibirás alertas de novedades urgentes en este dispositivo.';
       try { localStorage.setItem('ivc_push_enabled', '1'); } catch(e) {}
+      // Subscribe to push server for background notifications
+      if (SW_REGISTRATION) suscribirPushServer(SW_REGISTRATION);
       setTimeout(function() { enviarNotificacion('🔔 IVC Seguridad', 'Las notificaciones están activadas correctamente.', ''); }, 500);
     } else {
       if (info) info.textContent = 'Permiso denegado. Activá las notificaciones desde la configuración del navegador → Configuración del sitio.';
@@ -9433,14 +9440,53 @@ function activarNotificaciones() {
 }
 
 var SW_REGISTRATION = null;
+var PUSH_SERVER_URL = 'https://ivc-push.vercel.app';
+var VAPID_PUBLIC_KEY = 'BB3Ty4AcIDZVKuVYMBWARXqi5GjXzyfWU0_XqBdBpTlDFlpyjOf7759pLL_uGfu1lGCJR66D_3E8kmfw8C5VU64';
+
+function urlBase64ToUint8Array(base64String) {
+  var padding = '='.repeat((4 - base64String.length % 4) % 4);
+  var base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  var rawData = window.atob(base64);
+  var outputArray = new Uint8Array(rawData.length);
+  for (var i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+  return outputArray;
+}
+
+function suscribirPushServer(registration) {
+  if (!USER) return;
+  registration.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+  }).then(function(subscription) {
+    var sub = subscription.toJSON();
+    fetch(PUSH_SERVER_URL + '/api/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        endpoint: sub.endpoint,
+        p256dh: sub.keys.p256dh,
+        auth: sub.keys.auth,
+        puesto: USER.puesto
+      })
+    }).then(function() {
+      console.log('[Push] suscripción registrada en servidor');
+    });
+  }).catch(function(e) {
+    console.log('[Push] no se pudo suscribir:', e.message);
+  });
+}
 
 // Register Service Worker on load
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').then(function(reg) {
     SW_REGISTRATION = reg;
-    console.log('SW registrado OK');
+    console.log('[SW] registrado OK');
+    // Subscribe to push server if permission granted
+    if (Notification.permission === 'granted') {
+      suscribirPushServer(reg);
+    }
   }).catch(function(e) {
-    console.log('SW no disponible:', e.message);
+    console.log('[SW] no disponible:', e.message);
   });
 }
 
