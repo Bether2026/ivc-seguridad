@@ -6897,29 +6897,23 @@ function _loadStats() {
   return _loadStats.apply(this, arguments);
 }
 var SECCIONES_PERMISOS = [{
-  id: 'fichaje',
-  label: 'Fichaje'
+  id: 'fichaje', label: 'Fichaje'
 }, {
-  id: 'novedades',
-  label: 'Novedades'
+  id: 'novedades', label: 'Novedades'
 }, {
-  id: 'objetivos',
-  label: 'C. Objetivo'
+  id: 'objetivos', label: 'C. Objetivo'
 }, {
-  id: 'choferes',
-  label: 'Choferes'
+  id: 'choferes', label: 'Choferes'
 }, {
-  id: 'llaves',
-  label: 'Llaves'
+  id: 'llaves', label: 'Llaves'
 }, {
-  id: 'estadisticas',
-  label: 'Estadísticas'
+  id: 'estadisticas', label: 'Estadísticas'
 }, {
-  id: 'rrhh',
-  label: 'RRHH'
+  id: 'rrhh', label: 'RRHH'
 }, {
-  id: 'agenda',
-  label: 'Agenda'
+  id: 'agenda', label: 'Agenda'
+}, {
+  id: 'inmuebles', label: 'Inmuebles'
 }];
 
 // Usuarios operativos (puestos que tienen restricciones)
@@ -6935,7 +6929,8 @@ var DEFAULT_PERMISOS = {
     llaves: 0,
     estadisticas: 0,
     rrhh: 0,
-    agenda: 0
+    agenda: 0,
+    inmuebles: 0
   },
   'Rodrigo Bueno': {
     fichaje: 1,
@@ -6945,7 +6940,8 @@ var DEFAULT_PERMISOS = {
     llaves: 0,
     estadisticas: 0,
     rrhh: 0,
-    agenda: 0
+    agenda: 0,
+    inmuebles: 0
   },
   'Fraga': {
     fichaje: 1,
@@ -6955,7 +6951,8 @@ var DEFAULT_PERMISOS = {
     llaves: 0,
     estadisticas: 0,
     rrhh: 0,
-    agenda: 0
+    agenda: 0,
+    inmuebles: 0
   },
   'Base Castañares': {
     fichaje: 1,
@@ -6965,7 +6962,8 @@ var DEFAULT_PERMISOS = {
     llaves: 0,
     estadisticas: 0,
     rrhh: 0,
-    agenda: 0
+    agenda: 0,
+    inmuebles: 0
   },
   'Obrador Savio': {
     fichaje: 1,
@@ -6975,7 +6973,8 @@ var DEFAULT_PERMISOS = {
     llaves: 0,
     estadisticas: 0,
     rrhh: 0,
-    agenda: 0
+    agenda: 0,
+    inmuebles: 0
   },
   'CAV': {
     fichaje: 1,
@@ -6985,7 +6984,8 @@ var DEFAULT_PERMISOS = {
     llaves: 0,
     estadisticas: 0,
     rrhh: 0,
-    agenda: 0
+    agenda: 0,
+    inmuebles: 0
   },
   'Necochea': {
     fichaje: 1,
@@ -6995,7 +6995,8 @@ var DEFAULT_PERMISOS = {
     llaves: 0,
     estadisticas: 0,
     rrhh: 0,
-    agenda: 0
+    agenda: 0,
+    inmuebles: 0
   },
   'Complejo Orma': {
     fichaje: 1,
@@ -7005,7 +7006,8 @@ var DEFAULT_PERMISOS = {
     llaves: 0,
     estadisticas: 0,
     rrhh: 0,
-    agenda: 0
+    agenda: 0,
+    inmuebles: 0
   },
   'Alvarado': {
     fichaje: 1,
@@ -7015,7 +7017,8 @@ var DEFAULT_PERMISOS = {
     llaves: 0,
     estadisticas: 0,
     rrhh: 0,
-    agenda: 0
+    agenda: 0,
+    inmuebles: 0
   },
   'Padre Mugica': {
     fichaje: 1,
@@ -7025,7 +7028,8 @@ var DEFAULT_PERMISOS = {
     llaves: 0,
     estadisticas: 0,
     rrhh: 0,
-    agenda: 0
+    agenda: 0,
+    inmuebles: 0
   },
   'Choferes': {
     fichaje: 1,
@@ -7035,7 +7039,8 @@ var DEFAULT_PERMISOS = {
     llaves: 0,
     estadisticas: 0,
     rrhh: 0,
-    agenda: 0
+    agenda: 0,
+    inmuebles: 0
   },
   'Administración': {
     fichaje: 1,
@@ -7045,7 +7050,8 @@ var DEFAULT_PERMISOS = {
     llaves: 1,
     estadisticas: 1,
     rrhh: 1,
-    agenda: 1
+    agenda: 1,
+    inmuebles: 1
   },
   'Gerencia': {
     fichaje: 1,
@@ -7055,7 +7061,8 @@ var DEFAULT_PERMISOS = {
     llaves: 1,
     estadisticas: 1,
     rrhh: 0,
-    agenda: 1
+    agenda: 1,
+    inmuebles: 1
   },
   'Responsable de turno': {
     fichaje: 1,
@@ -7065,7 +7072,8 @@ var DEFAULT_PERMISOS = {
     llaves: 0,
     estadisticas: 1,
     rrhh: 0,
-    agenda: 1
+    agenda: 1,
+    inmuebles: 1
   },
   'Jefe de departamento': {
     fichaje: 1,
@@ -7075,7 +7083,8 @@ var DEFAULT_PERMISOS = {
     llaves: 0,
     estadisticas: 1,
     rrhh: 1,
-    agenda: 1
+    agenda: 1,
+    inmuebles: 1
   },
   'Emergencias': {
     fichaje: 1,
@@ -7085,19 +7094,20 @@ var DEFAULT_PERMISOS = {
     llaves: 0,
     estadisticas: 0,
     rrhh: 0,
-    agenda: 0
+    agenda: 0,
+    inmuebles: 0
   }
 };
 function getPermisos() {
   try {
-    var raw = localStorage.getItem('ivc_permisos_v2');
+    var raw = localStorage.getItem('ivc_permisos_v3');
     if (raw) return JSON.parse(raw);
   } catch (e) {}
   return JSON.parse(JSON.stringify(DEFAULT_PERMISOS)); // copia profunda
 }
 function savePermisos(permisos) {
   try {
-    localStorage.setItem('ivc_permisos_v2', JSON.stringify(permisos));
+    localStorage.setItem('ivc_permisos_v3', JSON.stringify(permisos));
   } catch (e) {}
 }
 function getPermisosUsuario(puesto) {
@@ -7154,7 +7164,7 @@ function togglePermiso(usuario, seccion, valor) {
   toast('Permiso actualizado — ' + usuario);
 }
 function resetPermisos() {
-  localStorage.removeItem('ivc_permisos_v2');
+  localStorage.removeItem('ivc_permisos_v3');
   loadPermisosAdmin();
   toast('Permisos restablecidos a valores por defecto');
 }
