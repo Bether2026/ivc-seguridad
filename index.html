@@ -4584,14 +4584,14 @@ function initApp() {
     event: '*', schema: 'public', table: 'novedades'
   }, function(payload) {
     loadNovedades(); loadDash();
-    // Push para urgente/alta
+    // Banner in-app para urgente/alta (sin push — el push lo maneja el webhook)
     var nov = payload && payload.new;
     if (nov && (nov.relevancia === 'Urgente' || nov.relevancia === 'Alta')) {
       var pref = nov.relevancia === 'Urgente' ? '\ud83d\udea8 URGENTE' : '\u26a0\ufe0f IMPORTANTE';
       var tit = pref + ' \u2014 ' + (nov.puesto || 'Novedad');
       var msg = (nov.asunto || 'Nueva novedad') + (nov.cargado_por ? ' \u00b7 ' + nov.cargado_por : '');
       mostrarBannerAlerta(tit, msg, nov.relevancia);
-      enviarNotificacion(tit, msg);
+      // NO enviarNotificacion — lo maneja el webhook de Supabase
     }
     // Badge novedades
     var vNov = document.getElementById('view-novedades');
@@ -4619,7 +4619,7 @@ function initApp() {
       var tit2 = pref2 + ' \u2014 Comunicaci\u00f3n';
       var msg2 = n2.titulo || n2.mensaje || 'Nueva comunicaci\u00f3n';
       mostrarBannerAlerta(tit2, msg2, n2.importancia === 'Urgente' ? 'Urgente' : 'Alta');
-      enviarNotificacion(tit2, msg2);
+      // NO enviarNotificacion — lo maneja el webhook de Supabase
     }
   }).subscribe(function(status, err) {
     console.log('[Realtime] status:', status, err || '');
@@ -4674,7 +4674,7 @@ function iniciarPolling() {
               var tit = pref + ' — ' + (nov.puesto || 'Novedad');
               var msg = nov.asunto || 'Nueva novedad';
               mostrarBannerAlerta(tit, msg, nov.relevancia);
-              enviarNotificacion(tit, msg);
+              // NO enviarNotificacion — lo maneja el webhook
             }
             var vNov = document.getElementById('view-novedades');
             if (vNov && vNov.style.display === 'none') incrementBadge('nb-badge', 'ivc_badge_nov');
