@@ -1922,6 +1922,7 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
           <button class="btn-sm danger-btn" onclick="clearTable('objetivos','Objetivos')">🗑️ Limpiar Objetivos</button>
           <button class="btn-sm danger-btn" onclick="clearTable('rutas','Rutas')">🗑️ Limpiar Rutas</button>
         </div>
+        <button onclick="clearChoferes()" style="width:100%;margin-top:8px;padding:11px;border-radius:var(--radius-xs);border:2px solid rgba(251,146,60,.4);background:rgba(251,146,60,.1);color:#fb923c;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.02em">🚗 Limpiar TODO el módulo Choferes (rutas, GPS, taller, combustible, incidencias)</button>
         <button onclick="clearAll()" style="width:100%;margin-top:10px;padding:12px;border-radius:var(--radius-xs);border:2px solid rgba(239,68,68,.4);background:rgba(239,68,68,.1);color:#f87171;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.02em">⚠️ LIMPIAR TODO EL SISTEMA</button>
       </div>
       <div class="card" style="border-left:3px solid var(--red)">
@@ -7854,6 +7855,35 @@ function _clearAll() {
     }, _callee54);
   }));
   return _clearAll.apply(this, arguments);
+}
+function clearChoferes() {
+  showConfirm('🚗', 'Limpiar módulo Choferes', '¿Borrar TODAS las rutas, GPS, taller, combustible e incidencias? No se puede deshacer.', function() {
+    var tablas = ['rutas', 'combustible', 'incidencias', 'taller', 'gps_moviles'];
+    var promesas = tablas.map(function(t) {
+      return db.from(t)['delete']().neq('id', 0).then(function() {}).catch(function() {});
+    });
+    // gps_track usa id bigserial (integer)
+    promesas.push(
+      db.from('gps_track')['delete']().gte('id', 0).then(function() {}).catch(function() {})
+    );
+    Promise.all(promesas).then(function() {
+      // Limpiar estado GPS local
+      GPS_TRACKING = false;
+      GPS_MOVIL_ACTUAL = null;
+      GPS_CHOFER_ACTUAL = null;
+      GPS_RUTA_ID_ACTUAL = null;
+      GPS_LAST_LAT = null;
+      GPS_LAST_LNG = null;
+      if (GPS_WATCH_ID !== null) {
+        try { navigator.geolocation.clearWatch(GPS_WATCH_ID); } catch(e) {}
+        GPS_WATCH_ID = null;
+      }
+      if (GPS_INTERVAL) { clearInterval(GPS_INTERVAL); GPS_INTERVAL = null; }
+      toast('🚗 Módulo Choferes limpiado completamente');
+      loadAdminStats();
+      if (CUR_VIEW === 'choferes') loadChoferes();
+    });
+  }, 'Limpiar todo', 'var(--red)');
 }
 var SKIP_EDIT_FIELDS = ['id', 'created_at', 'actualizaciones', 'fotos', 'foto_inicio'];
 var ADMIN_ROWS_CACHE = {}; // tabla -> {id -> row}
