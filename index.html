@@ -4344,6 +4344,7 @@ var CREDS = {
   'Complejo Orma': 'Orma1234',
   'Alvarado': 'Alvarado123',
   'Padre Mugica': 'Mugica2025',
+  'Choferes': 'Chofer26',
   'Administración': '124578',
   'Gerencia': 'Coco2025',
   'Responsable de turno': 'RT2024',
@@ -4531,6 +4532,17 @@ function doLogout() {
   }, 'Salir', 'var(--red)');
 }
 function initApp() {
+  // Usuario Choferes: solo ve Fichaje y Choferes
+  if (USER.puesto === 'Choferes' && USER.rol === 'puesto') {
+    var ocultarChof = ['nb-novedades','nb-objetivos','nb-llaves','nb-estadisticas','nb-rrhh','nb-agenda','nb-inmuebles','nb-admin'];
+    var ocultarChofSi = ['si-novedades','si-objetivos','si-llaves','si-estadisticas','si-rrhh','si-agenda','si-inmuebles','si-admin'];
+    ocultarChof.forEach(function(id) { var el = document.getElementById(id); if (el) el.style.display = 'none'; });
+    ocultarChofSi.forEach(function(id) { var el = document.getElementById(id); if (el) el.style.display = 'none'; });
+    // Mostrar explícitamente fichaje y choferes
+    var showIds = ['nb-fichaje','nb-choferes','si-fichaje','si-choferes'];
+    showIds.forEach(function(id) { var el = document.getElementById(id); if (el) el.style.display = 'flex'; });
+  }
+
   // Puestos operativos: solo ven Panel, Fichaje, Novedades, C.Objetivo
   // Choferes solo lo ven: Administración, Administrador, Gerencia, Emergencias, RT, Jefe, Choferes
   var CAN_SEE_CHOFERES = ['Administración', 'Administrador', 'Gerencia', 'Emergencias',
