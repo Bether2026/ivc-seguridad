@@ -2362,13 +2362,14 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
 <div class="overlay" id="ov-abm-chofer">
   <div class="modal">
     <div class="modal-head"><span class="modal-title">🚗 Agregar Chofer</span><button class="btn-close" onclick="closeOv('ov-abm-chofer')">×</button></div>
-    <input type="hidden" id="abm-chofer-id">
-    <div class="form-group"><label class="form-label">Nombre completo *</label>
-      <input class="form-input" id="abm-chofer-nombre" placeholder="Ej: PEREZ JUAN CARLOS"/>
+    <div class="form-group"><label class="form-label">Seleccionar del personal *</label>
+      <input class="form-input" id="abm-chofer-search" placeholder="Buscar por nombre..." oninput="filtrarPersonalChofer(this.value)" style="margin-bottom:8px"/>
+      <div id="abm-personal-list" style="max-height:260px;overflow-y:auto;border:1px solid var(--border);border-radius:10px;background:var(--bg3)"></div>
     </div>
-    <div class="form-group"><label class="form-label">Legajo</label>
+    <div class="form-group"><label class="form-label">Legajo (opcional)</label>
       <input class="form-input" id="abm-chofer-legajo" placeholder="Ej: 12345"/>
     </div>
+    <input type="hidden" id="abm-chofer-nombre">
     <button class="btn-login" onclick="saveABMChofer()">Guardar Chofer</button>
   </div>
 </div>
@@ -10138,35 +10139,72 @@ function cargarChoferesEnDropdown() {
     });
 }
 
-function abrirABMChofer(id) {
-  document.getElementById('abm-chofer-id').value = id || '';
-  document.getElementById('abm-chofer-nombre').value = '';
+var PERSONAL_CACHE = [];
+var CHOFERES_IDS_ACTIVOS = [];
+
+function abrirABMChofer() {
+  document.getElementById('abm-chofer-search').value = '';
   document.getElementById('abm-chofer-legajo').value = '';
-  if (id) {
-    db.from('choferes_lista').select('*').eq('id', id).single().then(function(res) {
-      if (res.data) {
-        document.getElementById('abm-chofer-nombre').value = res.data.nombre;
-        document.getElementById('abm-chofer-legajo').value = res.data.legajo || '';
-      }
-    });
-  }
+  document.getElementById('abm-chofer-nombre').value = '';
+  document.getElementById('abm-personal-list').innerHTML = '<div style="padding:12px;text-align:center"><span class="spinner"></span></div>';
   openOv('ov-abm-chofer');
+
+  // Load all personal from agentes and existing choferes_lista
+  Promise.all([
+    db.from('agentes').select('nombre').eq('activo', true).order('nombre'),
+    db.from('choferes_lista').select('nombre').eq('activo', true)
+  ]).then(function(results) {
+    PERSONAL_CACHE = (results[0].data || []).map(function(r) { return r.nombre; });
+    CHOFERES_IDS_ACTIVOS = (results[1].data || []).map(function(r) { return r.nombre; });
+    renderPersonalList(PERSONAL_CACHE);
+  });
+}
+
+function renderPersonalList(lista) {
+  var el = document.getElementById('abm-personal-list');
+  if (!lista.length) { el.innerHTML = '<div style="padding:12px;font-size:12px;color:var(--text3);text-align:center">Sin resultados</div>'; return; }
+  var html = '';
+  lista.forEach(function(nombre) {
+    var yaEsChofer = CHOFERES_IDS_ACTIVOS.indexOf(nombre) !== -1;
+    var seleccionado = document.getElementById('abm-chofer-nombre').value === nombre;
+    html += '<div onclick="seleccionarPersonal(\'' + nombre.replace(/'/g, "\\'") + '\')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;background:' + (seleccionado ? 'rgba(96,165,250,0.1)' : 'transparent') + '">';
+    html += '<span style="font-size:13px;' + (yaEsChofer ? 'color:var(--text3)' : '') + '">' + nombre + '</span>';
+    if (yaEsChofer) html += '<span style="font-size:10px;padding:2px 8px;border-radius:20px;background:rgba(52,211,153,0.1);color:var(--green)">Ya es chofer</span>';
+    else if (seleccionado) html += '<span style="font-size:16px">✅</span>';
+    html += '</div>';
+  });
+  el.innerHTML = html;
+}
+
+function seleccionarPersonal(nombre) {
+  document.getElementById('abm-chofer-nombre').value = nombre;
+  renderPersonalList(
+    PERSONAL_CACHE.filter(function(n) {
+      var q = document.getElementById('abm-chofer-search').value.toLowerCase();
+      return !q || n.toLowerCase().indexOf(q) !== -1;
+    })
+  );
+}
+
+function filtrarPersonalChofer(q) {
+  var filtrado = PERSONAL_CACHE.filter(function(n) {
+    return n.toLowerCase().indexOf(q.toLowerCase()) !== -1;
+  });
+  renderPersonalList(filtrado);
 }
 
 function saveABMChofer() {
-  var id = document.getElementById('abm-chofer-id').value;
-  var nombre = document.getElementById('abm-chofer-nombre').value.trim().toUpperCase();
+  var nombre = document.getElementById('abm-chofer-nombre').value.trim();
   var legajo = document.getElementById('abm-chofer-legajo').value.trim();
-  if (!nombre) { toast('Ingresá el nombre', 'err'); return; }
-  var data = { nombre: nombre, legajo: legajo, activo: true };
-  var query = id ? db.from('choferes_lista').update(data).eq('id', id)
-                 : db.from('choferes_lista').insert(data);
-  query.then(function() {
-    closeOv('ov-abm-chofer');
-    toast('✅ Chofer guardado');
-    loadABMChoferes();
-    cargarChoferesEnDropdown();
-  }).catch(function(e) { toast('Error: ' + e.message, 'err'); });
+  if (!nombre) { toast('Seleccioná una persona de la lista', 'err'); return; }
+  if (CHOFERES_IDS_ACTIVOS.indexOf(nombre) !== -1) { toast(nombre + ' ya está en la lista de choferes', 'err'); return; }
+  db.from('choferes_lista').insert({ nombre: nombre, legajo: legajo, activo: true })
+    .then(function() {
+      closeOv('ov-abm-chofer');
+      toast('✅ ' + nombre + ' agregado como chofer');
+      loadABMChoferes();
+      cargarChoferesEnDropdown();
+    }).catch(function(e) { toast('Error: ' + e.message, 'err'); });
 }
 
 function loadABMChoferes() {
