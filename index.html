@@ -301,6 +301,33 @@ body::after { display: none; }
   to { transform: translateY(0); opacity: 1; }
 }
 #alerta-banner[style*="flex"] { animation: slideDown .25s ease; }
+
+/* Partículas animadas para fechas especiales */
+@keyframes caer {
+  0% { transform: translateY(-20px) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(110vh) rotate(720deg); opacity: 0; }
+}
+@keyframes flotar {
+  0%, 100% { transform: translateY(0) rotate(-5deg); }
+  50% { transform: translateY(-8px) rotate(5deg); }
+}
+@keyframes brillar {
+  0%, 100% { opacity: .6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+.particula {
+  position: fixed; pointer-events: none; z-index: 9990;
+  animation: caer linear infinite;
+  font-size: 18px; user-select: none;
+}
+.bandera-flotante {
+  animation: flotar 3s ease-in-out infinite;
+  display: inline-block;
+}
+.estrella-nav {
+  animation: brillar 1.5s ease-in-out infinite;
+  display: inline-block;
+}
 .bottomnav {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 50;
   height: calc(68px + env(safe-area-inset-bottom));
@@ -4047,85 +4074,68 @@ function cargarCumpleanosDB() {
 
 // Fechas especiales y feriados
 var FECHAS_ESPECIALES = [{
-  fecha: '01-01',
-  titulo: 'Año Nuevo',
-  tipo: 'Evento',
-  mensajes: ['🎉 ¡Feliz Año Nuevo! Que este nuevo año traiga éxito, salud y prosperidad para todo el equipo.', '✨ Comenzamos un nuevo año juntos. Gracias por el compromiso de todos los días.', '🥂 ¡Feliz Año Nuevo! Que sea un año lleno de logros y bienestar.']
+  fecha: '01-01', titulo: 'Año Nuevo', tipo: 'Evento', animacion: 'fuegos',
+  mensajes: ['🎉 ¡Feliz Año Nuevo! Que este 2025 traiga éxito, salud y prosperidad para todo el equipo del IVC.', '✨ Comenzamos un nuevo año juntos. Gracias por el compromiso de todos los días.', '🥂 ¡Feliz Año Nuevo! Que sea un año lleno de logros y bienestar para cada uno.']
 }, {
-  fecha: '03-08',
-  titulo: 'Día Internacional de la Mujer',
-  tipo: 'Evento',
+  fecha: '03-08', titulo: 'Día Internacional de la Mujer', tipo: 'Evento', animacion: 'corazones',
   mensajes: ['💜 Hoy celebramos a todas las mujeres del equipo. Su trabajo, dedicación y compromiso son fundamentales.', '🌷 Día Internacional de la Mujer. Reconocimiento a todas las compañeras del IVC.']
 }, {
-  fecha: '03-24',
-  titulo: 'Día Nacional de la Memoria',
-  tipo: 'Comunicacion',
-  mensajes: ['🕊️ Día Nacional de la Memoria por la Verdad y la Justicia. Recordamos para no olvidar.']
+  fecha: '03-12', titulo: 'Día del Escudo Nacional Argentino', tipo: 'Comunicacion', animacion: 'argentina',
+  mensajes: ['🇦🇷 Hoy celebramos el Día del Escudo Nacional Argentino. Símbolo de nuestra identidad y soberanía, el Escudo nos representa como Nación desde los albores de la Patria.']
 }, {
-  fecha: '04-02',
-  titulo: 'Día del Veterano',
-  tipo: 'Comunicacion',
-  mensajes: ['🇦🇷 Día del Veterano y de los Caídos en la Guerra de Malvinas. Honramos su memoria.']
+  fecha: '03-24', titulo: 'Día Nacional de la Memoria por la Verdad y la Justicia', tipo: 'Comunicacion', animacion: 'none',
+  mensajes: ['🕊️ Día Nacional de la Memoria por la Verdad y la Justicia. Recordamos para no olvidar. Nunca más.']
 }, {
-  fecha: '05-01',
-  titulo: 'Día del Trabajador',
-  tipo: 'Evento',
-  mensajes: ['👷 ¡Feliz Día del Trabajador! Reconocimiento al esfuerzo diario de todo el equipo.', '✊ Hoy celebramos a todos los que con su trabajo construyen día a día. ¡Gracias por su compromiso!', '🛠️ Día del Trabajador. Un saludo a todos los compañeros que hacen posible nuestra misión.']
+  fecha: '04-02', titulo: 'Día del Veterano de Malvinas', tipo: 'Comunicacion', animacion: 'argentina',
+  mensajes: ['🇦🇷 Día del Veterano y de los Caídos en la Guerra de Malvinas. Las Malvinas fueron, son y serán argentinas. Honramos su memoria y valentía.']
 }, {
-  fecha: '05-25',
-  titulo: 'Día de la Patria',
-  tipo: 'Evento',
-  mensajes: ['🇦🇷 ¡Feliz 25 de Mayo! Conmemoramos un día clave en la historia de nuestra patria.', '🎺 Día de la Revolución de Mayo. Honor a quienes forjaron nuestra independencia.']
+  fecha: '05-01', titulo: 'Día del Trabajador', tipo: 'Evento', animacion: 'confetti',
+  mensajes: ['👷 ¡Feliz Día del Trabajador! Reconocimiento al esfuerzo diario de todo el equipo del IVC.', '✊ Hoy celebramos a todos los que con su trabajo construyen día a día una ciudad más justa. ¡Gracias por su compromiso!']
 }, {
-  fecha: '06-20',
-  titulo: 'Día de la Bandera',
-  tipo: 'Evento',
-  mensajes: ['🇦🇷 ¡Feliz Día de la Bandera! Recordamos a Manuel Belgrano, su creador.', '💙🤍 Día de la Bandera Argentina. Símbolo de nuestra identidad nacional.']
+  fecha: '05-11', titulo: 'Día del Himno Nacional Argentino', tipo: 'Evento', animacion: 'argentina',
+  mensajes: ['🇦🇷 Hoy celebramos el Día del Himno Nacional Argentino. Entonado por primera vez el 11 de mayo de 1813, es el canto que nos une como pueblo y nos recuerda el valor de nuestra libertad. ¡Viva la Patria!']
 }, {
-  fecha: '07-09',
-  titulo: 'Día de la Independencia',
-  tipo: 'Evento',
-  mensajes: ['🇦🇷 ¡Feliz Día de la Independencia! Conmemoramos la libertad de nuestra Nación.', '🎆 9 de Julio. Día de la declaración de la Independencia Argentina.']
+  fecha: '05-25', titulo: '25 de Mayo — Día de la Patria', tipo: 'Evento', animacion: 'argentina',
+  mensajes: ['🇦🇷 ¡Feliz 25 de Mayo! En el aniversario de la Revolución de Mayo de 1810, recordamos a quienes dieron el primer gran paso hacia nuestra libertad. ¡Viva la Patria!', '🎺 Un nuevo aniversario de la Revolución de Mayo. Honor y gratitud a quienes forjaron nuestra identidad como Nación. ¡Viva la Argentina!']
 }, {
-  fecha: '08-17',
-  titulo: 'Aniversario General San Martín',
-  tipo: 'Comunicacion',
-  mensajes: ['🇦🇷 Aniversario del paso a la inmortalidad del General José de San Martín. Padre de la Patria.']
+  fecha: '05-18', titulo: 'Día de la Escarapela Nacional', tipo: 'Evento', animacion: 'argentina',
+  mensajes: ['🇦🇷 Hoy celebramos el Día de la Escarapela Nacional Argentina. Celeste y blanca, la escarapela es el símbolo de identidad que llevamos con orgullo desde 1812. ¡Viva la Patria!']
 }, {
-  fecha: '09-21',
-  titulo: 'Día de la Primavera',
-  tipo: 'Evento',
-  mensajes: ['🌸 ¡Feliz primavera! Que esta nueva estación traiga energía renovada al equipo.', '🌷 Comienza la primavera. Tiempo de florecimiento y nuevos proyectos.']
+  fecha: '06-17', titulo: 'Paso a la Inmortalidad del Gral. Martín Miguel de Güemes', tipo: 'Comunicacion', animacion: 'argentina',
+  mensajes: ['🇦🇷 Hoy recordamos el paso a la inmortalidad del General Martín Miguel de Güemes, héroe del Norte argentino. Su valentía y la de sus gauchos fueron escudo de la Patria. Eterno agradecimiento.']
 }, {
-  fecha: '10-12',
-  titulo: 'Día del Respeto a la Diversidad',
-  tipo: 'Comunicacion',
-  mensajes: ['🌎 Día del Respeto a la Diversidad Cultural. Reconocemos la riqueza de nuestras raíces.']
+  fecha: '06-20', titulo: 'Día de la Bandera', tipo: 'Evento', animacion: 'argentina',
+  mensajes: ['🇦🇷 ¡Feliz Día de la Bandera! En homenaje al General Manuel Belgrano, creador de nuestra enseña patria. Celeste y blanca, símbolo de nuestra identidad. ¡Viva la Patria!', '💙🤍 Día de la Bandera Argentina. Recordamos con orgullo el símbolo que nos une como pueblo. ¡Gloria al creador de la Bandera!']
 }, {
-  fecha: '11-20',
-  titulo: 'Día de la Soberanía',
-  tipo: 'Comunicacion',
-  mensajes: ['🇦🇷 Día de la Soberanía Nacional. Conmemoramos la Batalla de la Vuelta de Obligado.']
+  fecha: '07-09', titulo: '9 de Julio — Día de la Independencia', tipo: 'Evento', animacion: 'argentina',
+  mensajes: ['🇦🇷 ¡Feliz Día de la Independencia! El 9 de julio de 1816 la Argentina declaró su independencia ante el mundo. 209 años de libertad. ¡Viva la Patria!', '🎆 Un nuevo aniversario de nuestra Independencia. Celebramos con orgullo la soberanía de la República Argentina. ¡Viva la Argentina libre!']
 }, {
-  fecha: '12-08',
-  titulo: 'Inmaculada Concepción',
-  tipo: 'Comunicacion',
-  mensajes: ['✨ Día de la Inmaculada Concepción de María.']
+  fecha: '08-17', titulo: 'Paso a la Inmortalidad del Gral. San Martín', tipo: 'Comunicacion', animacion: 'argentina',
+  mensajes: ['🇦🇷 Hoy recordamos el paso a la inmortalidad del General José de San Martín, el Gran Capitán, Padre de la Patria. Su legado vive en cada argentino.']
 }, {
-  fecha: '12-24',
-  titulo: 'Nochebuena',
-  tipo: 'Evento',
-  mensajes: ['🎄 ¡Feliz Nochebuena! Que esta noche especial los reúna con sus seres queridos.', '⭐ En esta noche especial, deseamos paz y amor para todas las familias del IVC.']
+  fecha: '09-11', titulo: 'Día del Maestro', tipo: 'Evento', animacion: 'confetti',
+  mensajes: ['📚 Hoy celebramos el Día del Maestro en conmemoración del fallecimiento de Domingo Faustino Sarmiento. Un saludo a todos los docentes que con dedicación forman el futuro de nuestra sociedad. ¡Gracias, maestros!']
 }, {
-  fecha: '12-25',
-  titulo: 'Navidad',
-  tipo: 'Evento',
-  mensajes: ['🎄 ¡Feliz Navidad! Que la paz y la alegría llenen sus hogares.', '🎁 Felices fiestas a todo el equipo y sus familias.', '⭐ Navidad es momento de unión y reflexión. Felicidades a todos.']
+  fecha: '09-21', titulo: 'Día de la Primavera', tipo: 'Evento', animacion: 'flores',
+  mensajes: ['🌸 ¡Feliz primavera y Día del Estudiante! Que esta nueva estación traiga energía renovada, proyectos en flor y días soleados para todo el equipo.', '🌷 ¡Bienvenida la primavera! Tiempo de colores, renovación y nuevos comienzos.']
 }, {
-  fecha: '12-31',
-  titulo: 'Fin de Año',
-  tipo: 'Evento',
-  mensajes: ['🎆 ¡Feliz fin de año! Gracias por un año de trabajo en equipo.', '🥂 Cerramos un año más. Brindemos por lo logrado y por lo que viene.']
+  fecha: '10-12', titulo: 'Día del Respeto a la Diversidad Cultural', tipo: 'Comunicacion', animacion: 'none',
+  mensajes: ['🌎 Día del Respeto a la Diversidad Cultural. Reconocemos y celebramos la riqueza de nuestras raíces y la diversidad que nos hace más fuertes como pueblo.']
+}, {
+  fecha: '11-20', titulo: 'Día de la Soberanía Nacional', tipo: 'Evento', animacion: 'argentina',
+  mensajes: ['🇦🇷 Día de la Soberanía Nacional. Conmemoramos la Batalla de la Vuelta de Obligado, donde los argentinos defendieron nuestra soberanía con valentía. ¡Viva la Patria!']
+}, {
+  fecha: '12-08', titulo: 'Día de la Inmaculada Concepción', tipo: 'Comunicacion', animacion: 'none',
+  mensajes: ['✨ Día de la Inmaculada Concepción de María. Un saludo a todos los que celebran esta festividad.']
+}, {
+  fecha: '12-24', titulo: 'Nochebuena', tipo: 'Evento', animacion: 'navidad',
+  mensajes: ['🎄 ¡Feliz Nochebuena! Que esta noche especial los reúna con sus seres queridos. El equipo del IVC les desea una noche llena de amor y paz.', '⭐ En esta noche especial, deseamos paz, amor y felicidad para todas las familias del IVC.']
+}, {
+  fecha: '12-25', titulo: 'Navidad', tipo: 'Evento', animacion: 'navidad',
+  mensajes: ['🎄 ¡Feliz Navidad! Que la paz, la alegría y el amor llenen sus hogares. De todo el equipo del IVC, ¡Felices Fiestas!', '🎁 Felices fiestas a todo el equipo y sus familias. Que la Navidad les traiga alegría y descanso merecido.', '⭐ Navidad es momento de unión, gratitud y reflexión. Felicidades a todos los compañeros y sus familias.']
+}, {
+  fecha: '12-31', titulo: 'Fin de Año', tipo: 'Evento', animacion: 'fuegos',
+  mensajes: ['🎆 ¡Feliz fin de año! Gracias por otro año de trabajo en equipo, compromiso y dedicación. ¡Que el año que viene sea aún mejor!', '🥂 Cerramos un año más juntos. Brindemos por lo logrado y por todo lo que viene.']
 }];
 
 // Recordatorios mensuales especiales (por dia del mes)
@@ -4150,6 +4160,54 @@ function getFechaHoyMMDD() {
   var hoyAR = fechaHoyAR(); // "YYYY-MM-DD"
   return hoyAR.substring(5); // "MM-DD"
 }
+// ── ANIMACIONES FECHAS ESPECIALES ──
+var PARTICULAS_ACTIVAS = [];
+
+function limpiarParticulas() {
+  for (var pi = 0; pi < PARTICULAS_ACTIVAS.length; pi++) {
+    if (PARTICULAS_ACTIVAS[pi] && PARTICULAS_ACTIVAS[pi].parentNode) {
+      PARTICULAS_ACTIVAS[pi].parentNode.removeChild(PARTICULAS_ACTIVAS[pi]);
+    }
+  }
+  PARTICULAS_ACTIVAS = [];
+}
+
+function lanzarParticulas(tipo) {
+  limpiarParticulas();
+  var configs = {
+    argentina: { emojis: ['🇦🇷','🎺','⭐','💙','🤍'], cantidad: 18, duracion: [4,8] },
+    navidad:   { emojis: ['🎄','⭐','❄️','🎁','🔔','✨','🦌'], cantidad: 20, duracion: [4,9] },
+    fuegos:    { emojis: ['🎆','🎇','✨','🥂','🎉','🎊'], cantidad: 22, duracion: [3,7] },
+    flores:    { emojis: ['🌸','🌷','🌺','🌻','🦋','🌼'], cantidad: 18, duracion: [5,10] },
+    corazones: { emojis: ['💜','💜','🌷','✊','💜','🌸'], cantidad: 16, duracion: [4,8] },
+    confetti:  { emojis: ['🎊','🎉','✊','👷','🛠️','⭐'], cantidad: 20, duracion: [3,7] }
+  };
+  var cfg = configs[tipo];
+  if (!cfg) return;
+  for (var i = 0; i < cfg.cantidad; i++) {
+    (function(idx) {
+      setTimeout(function() {
+        var el = document.createElement('div');
+        el.className = 'particula';
+        el.textContent = cfg.emojis[idx % cfg.emojis.length];
+        var dur = cfg.duracion[0] + Math.random() * (cfg.duracion[1] - cfg.duracion[0]);
+        var delay = Math.random() * 3;
+        el.style.left = (Math.random() * 100) + 'vw';
+        el.style.top = '-30px';
+        el.style.animationDuration = dur + 's';
+        el.style.animationDelay = delay + 's';
+        el.style.fontSize = (14 + Math.random() * 14) + 'px';
+        document.body.appendChild(el);
+        PARTICULAS_ACTIVAS.push(el);
+        // Auto-remove
+        setTimeout(function() {
+          if (el.parentNode) el.parentNode.removeChild(el);
+        }, (dur + delay + 1) * 1000);
+      }, idx * 200);
+    })(i);
+  }
+}
+
 function pickMensajeAleatorio(arr) {
   if (!arr || !arr.length) return null;
   return arr[Math.floor(Math.random() * arr.length)];
@@ -4169,8 +4227,14 @@ function getMensajesAutomaticos() {
         mensaje: pickMensajeAleatorio(fe.mensajes),
         importancia: 'Normal',
         autor: 'Sistema',
-        es_automatico: true
+        es_automatico: true,
+        es_fecha_especial: true,
+        animacion: fe.animacion || 'none'
       });
+      // Lanzar partículas si tiene animación
+      if (fe.animacion && fe.animacion !== 'none') {
+        setTimeout(function() { lanzarParticulas(fe.animacion); }, 1000);
+      }
     }
   }
 
@@ -8315,7 +8379,39 @@ function _loadNoticias() {
             canDelete = canManage;
             var slideStyle = list.length > 1 ? 'min-width:100%;box-sizing:border-box;' : '';
 
-            if (n.es_cumple) {
+            if (n.es_fecha_especial) {
+              // ── FECHA ESPECIAL / FECHA PATRIA CARD ──
+              var isArg = n.animacion === 'argentina';
+              var isNav = n.animacion === 'navidad';
+              var isFuegos = n.animacion === 'fuegos';
+              var isFlores = n.animacion === 'flores';
+              var bgGrad = isArg ? 'linear-gradient(135deg,rgba(65,182,230,0.18),rgba(255,255,255,0.1),rgba(65,182,230,0.15))'
+                : isNav ? 'linear-gradient(135deg,rgba(34,150,70,0.18),rgba(200,0,0,0.12),rgba(255,215,0,0.1))'
+                : isFuegos ? 'linear-gradient(135deg,rgba(255,150,0,0.15),rgba(255,50,50,0.12),rgba(255,215,0,0.1))'
+                : isFlores ? 'linear-gradient(135deg,rgba(255,182,193,0.2),rgba(255,105,180,0.12),rgba(255,220,100,0.1))'
+                : 'linear-gradient(135deg,rgba(96,165,250,0.15),rgba(167,139,250,0.1))';
+              var borderCol = isArg ? 'rgba(65,182,230,0.5)' : isNav ? 'rgba(34,150,70,0.5)' : isFuegos ? 'rgba(255,150,0,0.5)' : isFlores ? 'rgba(255,105,180,0.5)' : 'rgba(96,165,250,0.4)';
+              var icono1 = isArg ? '🇦🇷' : isNav ? '🎄' : isFuegos ? '🎆' : isFlores ? '🌸' : '🗓️';
+              var icono2 = isArg ? '🎺' : isNav ? '⭐' : isFuegos ? '🎉' : isFlores ? '🦋' : '✨';
+              var icono3 = isArg ? '⭐' : isNav ? '🎁' : isFuegos ? '🥂' : isFlores ? '🌷' : '🌟';
+              nh += '<div style="' + slideStyle + 'background:' + bgGrad + ';border:1px solid ' + borderCol + ';border-radius:12px;padding:16px;margin-bottom:' + (list.length > 1 ? '0' : '6px') + ';position:relative;overflow:hidden;text-align:center">';
+              nh += '<div style="position:absolute;top:0;right:0;font-size:70px;opacity:.07;line-height:1;pointer-events:none">' + icono1 + '</div>';
+              // Animated icons row
+              nh += '<div style="font-size:28px;margin-bottom:8px">';
+              nh += '<span class="' + (isArg ? 'bandera-flotante' : isNav ? 'estrella-nav' : '') + '">' + icono1 + '</span> ';
+              nh += '<span class="' + (isArg || isNav ? 'estrella-nav' : '') + '">' + icono2 + '</span> ';
+              nh += '<span class="' + (isArg ? 'bandera-flotante' : '') + '">' + icono3 + '</span>';
+              nh += '</div>';
+              // Title
+              var titleColor = isArg ? 'linear-gradient(135deg,#41b6e6,#ffffff,#41b6e6)' : isNav ? 'linear-gradient(135deg,#22963e,#ffd700)' : isFuegos ? 'linear-gradient(135deg,#ffa500,#ff4444)' : isFlores ? 'linear-gradient(135deg,#ff69b4,#ff8c00)' : 'linear-gradient(135deg,#60a5fa,#a78bfa)';
+              nh += '<div style="font-size:15px;font-weight:900;background:' + titleColor + ';-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px">' + n.titulo + '</div>';
+              nh += '<div style="font-size:12px;color:var(--text2);line-height:1.6;border-top:1px solid rgba(255,255,255,0.1);padding-top:10px;margin-bottom:10px">' + n.mensaje + '</div>';
+              // Bottom emoji strip
+              nh += '<div style="display:flex;gap:8px;justify-content:center;font-size:18px">';
+              nh += '<span>' + icono1 + '</span><span>' + icono2 + '</span><span>' + icono3 + '</span><span>' + icono2 + '</span><span>' + icono1 + '</span>';
+              nh += '</div>';
+              nh += '</div>';
+            } else if (n.es_cumple) {
               // ── BIRTHDAY CARD ──
               nh += '<div style="' + slideStyle + 'background:linear-gradient(135deg,rgba(251,191,36,0.15),rgba(236,72,153,0.15),rgba(139,92,246,0.1));border:1px solid rgba(251,191,36,0.4);border-radius:12px;padding:16px;margin-bottom:' + (list.length > 1 ? '0' : '6px') + ';position:relative;overflow:hidden;text-align:center">';
               nh += '<div style="position:absolute;top:0;right:0;font-size:80px;opacity:.06;line-height:1;pointer-events:none">🎂</div>';
