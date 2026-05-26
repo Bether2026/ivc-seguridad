@@ -10188,7 +10188,8 @@ function seleccionarPersonal(nombre) {
 
 function filtrarPersonalChofer(q) {
   var filtrado = PERSONAL_CACHE.filter(function(n) {
-    return n.toLowerCase().indexOf(q.toLowerCase()) !== -1;
+    return n.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+      .indexOf(q.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'')) !== -1;
   });
   renderPersonalList(filtrado);
 }
