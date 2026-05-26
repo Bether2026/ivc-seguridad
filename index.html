@@ -1187,14 +1187,118 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
 </div>
 <div class="overlay" id="ov-chof">
   <div class="modal">
-    <div class="modal-head"><span class="modal-title">Nueva Hoja de Ruta</span><button class="btn-close" onclick="closeOv('ov-chof')">×</button></div>
-    <div class="form-group"><label class="form-label">Chofer</label>
-      <select class="form-select" id="c-chofer"><option>ACOSTA PAMELA</option><option>ALVAREZ OZON NICOLAS MARCELO</option><option>ARROYO LAURA</option><option>CASTILLO ANGEL HERNAN</option><option>CONTE LUCAS EZEQUIEL</option><option>DEL COLLE DAMIAN EZEQUIEL</option><option>GIMENEZ GREGORIO</option><option>LUACES JONATHAN RICARDO</option></select>
+    <div class="modal-head"><span class="modal-title">🚗 Nueva Hoja de Ruta</span><button class="btn-close" onclick="closeOv('ov-chof')">×</button></div>
+
+    <div class="form-group"><label class="form-label">Chofer *</label>
+      <select class="form-select" id="c-chofer"><option value="">— Seleccionar chofer —</option></select>
     </div>
-    <div class="form-group"><label class="form-label">Móvil / Vehículo</label><select class="form-select" id="c-movil"><option value="">— Seleccionar móvil —</option><option>S-10 · AA-909-LF</option><option>S-10 · AA-909-LD</option><option>Berlingo · MYH-863</option><option>S-10 vieja · EKT-637</option><option>Jumper · KWI-159</option></select></div>
-    <div class="form-group"><label class="form-label">Destino</label><input class="form-input" id="c-dest" placeholder="Ej: Papa Francisco → Base Castañares"/></div>
-    <div class="form-group"><label class="form-label">Observaciones</label><textarea class="form-textarea" id="c-obs" style="min-height:70px" placeholder="Detalle del servicio..."></textarea></div>
-    <button class="btn-login" id="btn-save-chof" onclick="saveChof()">Iniciar Hoja de Ruta</button>
+    <div class="form-group"><label class="form-label">Móvil / Vehículo *</label>
+      <select class="form-select" id="c-movil">
+        <option value="">— Seleccionar móvil —</option>
+        <option>S-10 · AA-909-LF</option>
+        <option>S-10 · AA-909-LD</option>
+        <option>Berlingo · MYH-863</option>
+        <option>S-10 vieja · EKT-637</option>
+        <option>Jumper · KWI-159</option>
+      </select>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="form-group"><label class="form-label">KM iniciales *</label>
+        <input class="form-input" id="c-km-ini" type="number" placeholder="Ej: 45230" min="0"/>
+      </div>
+      <div class="form-group"><label class="form-label">Combustible inicial *</label>
+        <select class="form-select" id="c-comb-ini">
+          <option value="">— Nivel —</option>
+          <option>Reserva</option>
+          <option>1/4</option>
+          <option>-1/2</option>
+          <option>1/2</option>
+          <option>-3/4</option>
+          <option>3/4</option>
+          <option>Lleno</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">Observaciones iniciales</label>
+      <textarea class="form-textarea" id="c-obs" style="min-height:65px" placeholder="Estado general del vehículo, novedades previas..."></textarea>
+    </div>
+    <div class="form-group"><label class="form-label">Fotos iniciales (hasta 4)</label>
+      <div id="c-fotos-wrap">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px" id="c-fotos-preview"></div>
+        <button type="button" onclick="agregarFotoRuta('inicio')" id="btn-add-foto-ini" style="font-size:12px;padding:7px 14px;border-radius:8px;border:1px dashed rgba(96,165,250,0.4);background:rgba(96,165,250,0.05);color:var(--accent3);font-family:var(--font);cursor:pointer">📷 Agregar foto</button>
+        <input type="file" id="c-foto-input" accept="image/*" style="display:none" onchange="onFotoRutaSelected(this,'inicio')">
+      </div>
+    </div>
+    <button class="btn-login" id="btn-save-chof" onclick="saveChof()">🚗 Iniciar Hoja de Ruta</button>
+  </div>
+</div>
+
+<!-- MODAL AGREGAR PARADA EN RUTA -->
+<div class="overlay" id="ov-parada-ruta">
+  <div class="modal">
+    <div class="modal-head"><span class="modal-title">📍 Registrar Parada</span><button class="btn-close" onclick="closeOv('ov-parada-ruta')">×</button></div>
+    <input type="hidden" id="parada-ruta-id">
+    <div class="form-group"><label class="form-label">Nombre del puesto / lugar *</label>
+      <input class="form-input" id="parada-puesto" placeholder="Ej: Papa Francisco, Base Castañares..."/>
+    </div>
+    <div class="form-group"><label class="form-label">Estado del móvil *</label>
+      <div style="display:flex;gap:10px">
+        <button type="button" id="btn-sin-inc" onclick="selIncidenciaRuta(false)" style="flex:1;padding:12px;border-radius:10px;border:2px solid var(--green);background:rgba(52,211,153,0.1);color:var(--green);font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">✅ Sin incidencia</button>
+        <button type="button" id="btn-con-inc" onclick="selIncidenciaRuta(true)" style="flex:1;padding:12px;border-radius:10px;border:2px solid rgba(255,255,255,0.1);background:var(--bg3);color:var(--text2);font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">⚠️ Con incidencia</button>
+      </div>
+    </div>
+    <div id="parada-inc-detalle" style="display:none">
+      <div class="form-group"><label class="form-label">Tipo de incidencia *</label>
+        <div style="display:flex;gap:8px">
+          <button type="button" id="btn-tipo-siniestro" onclick="selTipoInc('siniestro')" style="flex:1;padding:10px;border-radius:8px;border:2px solid rgba(255,255,255,0.1);background:var(--bg3);color:var(--text2);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">🚨 Siniestro vial</button>
+          <button type="button" id="btn-tipo-desperfecto" onclick="selTipoInc('desperfecto')" style="flex:1;padding:10px;border-radius:8px;border:2px solid rgba(255,255,255,0.1);background:var(--bg3);color:var(--text2);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">🔧 Desperfecto del móvil</button>
+        </div>
+        <input type="hidden" id="parada-tipo-inc">
+      </div>
+      <div class="form-group"><label class="form-label">Detalle de la incidencia *</label>
+        <textarea class="form-textarea" id="parada-detalle-inc" style="min-height:80px" placeholder="Detalle la incidencia que ocurrió con el móvil..."></textarea>
+      </div>
+      <div class="form-group"><label class="form-label">Fotos de la incidencia (hasta 4)</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px" id="parada-fotos-preview"></div>
+        <button type="button" onclick="agregarFotoRuta('parada')" id="btn-add-foto-parada" style="font-size:12px;padding:7px 14px;border-radius:8px;border:1px dashed rgba(239,68,68,0.4);background:rgba(239,68,68,0.05);color:#f87171;font-family:var(--font);cursor:pointer">📷 Agregar foto</button>
+        <input type="file" id="parada-foto-input" accept="image/*" style="display:none" onchange="onFotoRutaSelected(this,'parada')">
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button type="button" onclick="saveParada(false)" style="flex:1;padding:12px;border-radius:10px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">➡️ Continuar recorrido</button>
+      <button type="button" onclick="saveParada(true)" style="flex:1;padding:12px;border-radius:10px;border:1px solid rgba(52,211,153,0.4);background:rgba(52,211,153,0.1);color:var(--green);font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">🏁 Finalizar recorrido</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL FINALIZAR RUTA -->
+<div class="overlay" id="ov-fin-ruta">
+  <div class="modal">
+    <div class="modal-head"><span class="modal-title">🏁 Finalizar Hoja de Ruta</span><button class="btn-close" onclick="closeOv('ov-fin-ruta')">×</button></div>
+    <input type="hidden" id="fin-ruta-id">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="form-group"><label class="form-label">KM finales *</label>
+        <input class="form-input" id="fin-km" type="number" placeholder="Ej: 45380" min="0"/>
+      </div>
+      <div class="form-group"><label class="form-label">Combustible final *</label>
+        <select class="form-select" id="fin-comb">
+          <option value="">— Nivel —</option>
+          <option>Reserva</option>
+          <option>1/4</option>
+          <option>-1/2</option>
+          <option>1/2</option>
+          <option>-3/4</option>
+          <option>3/4</option>
+          <option>Lleno</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">Fotos finales (hasta 4) *</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px" id="fin-fotos-preview"></div>
+      <button type="button" onclick="agregarFotoRuta('fin')" id="btn-add-foto-fin" style="font-size:12px;padding:7px 14px;border-radius:8px;border:1px dashed rgba(96,165,250,0.4);background:rgba(96,165,250,0.05);color:var(--accent3);font-family:var(--font);cursor:pointer">📷 Agregar foto</button>
+      <input type="file" id="fin-foto-input" accept="image/*" style="display:none" onchange="onFotoRutaSelected(this,'fin')">
+    </div>
+    <button class="btn-login" id="btn-fin-ruta" onclick="confirmarFinRuta()" style="background:linear-gradient(135deg,#34d399,#059669)">🏁 Confirmar finalización</button>
   </div>
 </div>
 
@@ -1764,6 +1868,17 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
         <div id="push-info" style="font-size:11px;color:var(--text3);margin-top:8px;text-align:center"></div>
       </div>
 
+      <!-- ABM CHOFERES (solo Administrador) -->
+      <div id="abm-choferes-panel" style="display:none;margin-bottom:14px">
+        <div class="card" style="border-left:3px solid var(--green)">
+          <div class="card-head">
+            <span class="card-lbl">🚗 Gestión de Choferes</span>
+            <button onclick="abrirABMChofer()" style="font-size:11px;padding:5px 12px;border-radius:6px;border:1px solid var(--green);background:rgba(52,211,153,0.1);color:var(--green);font-family:var(--font);font-weight:700;cursor:pointer">+ Agregar</button>
+          </div>
+          <div id="abm-choferes-list"></div>
+        </div>
+      </div>
+
       <!-- PIN TOKEN - 2FA -->
       <div class="card" style="border-left:4px solid var(--accent2);margin-bottom:14px">
         <div class="card-head">
@@ -2240,6 +2355,21 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
       <a id="lightbox-download" href="" download="foto_ivc.jpg" onclick="event.stopPropagation()" style="display:flex;align-items:center;gap:6px;padding:8px 20px;background:rgba(37,99,235,0.85);border:1px solid rgba(96,165,250,0.4);border-radius:8px;color:#fff;font-size:13px;font-weight:700;text-decoration:none;cursor:pointer">⬇ Descargar</a>
       <button onclick="cerrarFotoLightbox()" style="padding:8px 20px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.1);color:white;font-size:13px;font-weight:700;cursor:pointer">✕ Cerrar</button>
     </div>
+  </div>
+</div>
+
+<!-- MODAL ABM CHOFER -->
+<div class="overlay" id="ov-abm-chofer">
+  <div class="modal">
+    <div class="modal-head"><span class="modal-title">🚗 Agregar Chofer</span><button class="btn-close" onclick="closeOv('ov-abm-chofer')">×</button></div>
+    <input type="hidden" id="abm-chofer-id">
+    <div class="form-group"><label class="form-label">Nombre completo *</label>
+      <input class="form-input" id="abm-chofer-nombre" placeholder="Ej: PEREZ JUAN CARLOS"/>
+    </div>
+    <div class="form-group"><label class="form-label">Legajo</label>
+      <input class="form-input" id="abm-chofer-legajo" placeholder="Ej: 12345"/>
+    </div>
+    <button class="btn-login" onclick="saveABMChofer()">Guardar Chofer</button>
   </div>
 </div>
 
@@ -6447,27 +6577,62 @@ function _loadChoferes() {
           return _context41.a(2);
         case 2:
           list = result.data || [];
-          if (list.length) {
-            _context41.n = 3;
-            break;
+          if (!list.length) {
+            document.getElementById('chof-list').innerHTML = '<div class="empty"><p>Sin hojas de ruta</p></div>';
+            return _context41.a(2);
           }
-          document.getElementById('chof-list').innerHTML = '<div class="empty"><p>Sin hojas de ruta</p></div>';
-          return _context41.a(2);
-        case 3:
           chtml = '';
           for (ci = 0; ci < list.length; ci++) {
             r = list[ci];
             isAct = r.estado === 'activo';
+            var paradas = r.paradas || [];
+            var conInc = paradas.filter(function(p) { return p.con_incidencia; }).length;
             chtml += '<div class="chofer-card">';
+            // Header
             chtml += '<div class="chofer-head"><div>';
-            chtml += '<div class="chofer-name">' + (r.chofer || '') + '</div>';
-            chtml += '<div class="chofer-sub">' + (r.movil || '') + ' — ' + (r.destino || '') + '</div>';
+            chtml += '<div class="chofer-name">🚗 ' + (r.chofer || '') + '</div>';
+            chtml += '<div class="chofer-sub">' + (r.movil || '') + '</div>';
             chtml += '</div><span class="badge ' + (isAct ? 'b-green' : 'b-gray') + '">' + (isAct ? 'En ruta' : 'Finalizado') + '</span></div>';
-            if (r.observaciones) chtml += '<div style="font-size:12px;color:var(--text2);margin-bottom:8px;line-height:1.5">' + r.observaciones + '</div>';
-            chtml += '<div style="font-size:11px;color:var(--text3)">Inicio: ' + formatTs(r.inicio || r.created_at);
+            // Stats row
+            chtml += '<div style="display:flex;gap:8px;margin:8px 0;flex-wrap:wrap">';
+            if (r.km_inicial) chtml += '<span style="font-size:11px;padding:3px 8px;border-radius:20px;background:rgba(96,165,250,0.1);color:var(--accent3)">🔢 KM ini: ' + r.km_inicial + '</span>';
+            if (r.combustible_inicial) chtml += '<span style="font-size:11px;padding:3px 8px;border-radius:20px;background:rgba(251,191,36,0.1);color:#fbbf24">⛽ ' + r.combustible_inicial + '</span>';
+            if (paradas.length) chtml += '<span style="font-size:11px;padding:3px 8px;border-radius:20px;background:rgba(167,139,250,0.1);color:#a78bfa">📍 ' + paradas.length + ' parada' + (paradas.length !== 1 ? 's' : '') + '</span>';
+            if (conInc) chtml += '<span style="font-size:11px;padding:3px 8px;border-radius:20px;background:rgba(239,68,68,0.1);color:#f87171">⚠️ ' + conInc + ' incidencia' + (conInc !== 1 ? 's' : '') + '</span>';
+            chtml += '</div>';
+            // Paradas list
+            if (paradas.length) {
+              chtml += '<div style="margin:6px 0;border-top:1px solid rgba(255,255,255,0.05);padding-top:6px">';
+              for (var pi = 0; pi < paradas.length; pi++) {
+                var par = paradas[pi];
+                var parColor = par.con_incidencia ? '#f87171' : 'var(--green)';
+                var parIcon = par.con_incidencia ? '⚠️' : '✅';
+                chtml += '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04)">';
+                chtml += '<span style="font-size:14px">' + parIcon + '</span>';
+                chtml += '<div style="flex:1"><div style="font-size:12px;font-weight:700;color:' + parColor + '">' + par.puesto + '</div>';
+                if (par.con_incidencia && par.detalle_inc) chtml += '<div style="font-size:11px;color:#fca5a5">' + (par.tipo_inc === 'siniestro' ? '🚨 ' : '🔧 ') + par.detalle_inc + '</div>';
+                chtml += '</div>';
+                chtml += '<span style="font-size:10px;color:var(--text3)">' + (par.hora || '') + '</span>';
+                chtml += '</div>';
+              }
+              chtml += '</div>';
+            }
+            // Timestamps
+            chtml += '<div style="font-size:11px;color:var(--text3);margin-top:4px">Inicio: ' + formatTs(r.inicio || r.created_at);
             if (r.fin) chtml += ' · Fin: ' + formatTs(r.fin);
             chtml += '</div>';
-            if (isAct) chtml += '<div style="margin-top:10px"><button class="btn-sm ok" onclick="finRuta(\'' + r.id + '\')">Finalizar hoja de ruta</button></div>';
+            // Final KMs if finished
+            if (!isAct && r.km_final) {
+              chtml += '<div style="font-size:11px;color:var(--text3);margin-top:2px">KM final: ' + r.km_final + ' · Combustible: ' + (r.combustible_final || '') + '</div>';
+              var kmRecorridos = r.km_final - (r.km_inicial || 0);
+              if (kmRecorridos > 0) chtml += '<div style="font-size:11px;color:var(--accent3);margin-top:2px">📏 ' + kmRecorridos + ' km recorridos</div>';
+            }
+            // Actions
+            if (isAct) {
+              chtml += '<div class="obj-actions" style="margin-top:10px">';
+              chtml += '<button class="btn-sm" onclick="abrirParadaRuta(\'' + r.id + '\')">📍 Registrar parada</button>';
+              chtml += '</div>';
+            }
             chtml += '</div>';
           }
           document.getElementById('chof-list').innerHTML = chtml;
@@ -6486,49 +6651,240 @@ function chofTab(tab, btn) {
   btn.classList.add('active');
   loadChoferes();
 }
+// ── FOTOS DE RUTA ──
+var RUTA_FOTOS = { inicio: [], parada: [], fin: [] };
+
+function agregarFotoRuta(tipo) {
+  var max = 4;
+  if (RUTA_FOTOS[tipo].length >= max) { toast('Máximo ' + max + ' fotos'); return; }
+  document.getElementById(tipo === 'inicio' ? 'c-foto-input' : tipo === 'parada' ? 'parada-foto-input' : 'fin-foto-input').click();
+}
+
+function onFotoRutaSelected(input, tipo) {
+  var file = input.files[0];
+  if (!file) return;
+  if (RUTA_FOTOS[tipo].length >= 4) { toast('Máximo 4 fotos'); return; }
+  RUTA_FOTOS[tipo].push({ file: file, url: null });
+  var idx = RUTA_FOTOS[tipo].length - 1;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var previewId = tipo === 'inicio' ? 'c-fotos-preview' : tipo === 'parada' ? 'parada-fotos-preview' : 'fin-fotos-preview';
+    var prev = document.getElementById(previewId);
+    if (prev) {
+      var img = document.createElement('div');
+      img.style.cssText = 'position:relative;width:70px;height:60px;border-radius:8px;overflow:hidden;flex-shrink:0';
+      img.innerHTML = '<img src="' + e.target.result + '" style="width:100%;height:100%;object-fit:cover">' +
+        '<button onclick="quitarFotoRuta(\'' + tipo + '\',' + idx + ',this.parentElement)" style="position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;background:rgba(0,0,0,0.7);color:white;border:none;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center">×</button>';
+      prev.appendChild(img);
+    }
+    // Show next foto button if under 4
+    var btnId = tipo === 'inicio' ? 'btn-add-foto-ini' : tipo === 'parada' ? 'btn-add-foto-parada' : 'btn-add-foto-fin';
+    var btn = document.getElementById(btnId);
+    if (btn) btn.style.display = RUTA_FOTOS[tipo].length >= 4 ? 'none' : 'inline-flex';
+  };
+  reader.readAsDataURL(file);
+  input.value = '';
+}
+
+function quitarFotoRuta(tipo, idx, el) {
+  RUTA_FOTOS[tipo].splice(idx, 1);
+  if (el && el.parentNode) el.parentNode.removeChild(el);
+  var btnId = tipo === 'inicio' ? 'btn-add-foto-ini' : tipo === 'parada' ? 'btn-add-foto-parada' : 'btn-add-foto-fin';
+  var btn = document.getElementById(btnId);
+  if (btn) btn.style.display = 'inline-flex';
+}
+
+function uploadFotosRuta(fotos, carpeta) {
+  var promises = fotos.map(function(f, i) {
+    if (f.url) return Promise.resolve(f.url);
+    return comprimirImagen(f.file).then(function(comp) {
+      var path = carpeta + '/' + Date.now() + '_' + i + '.jpg';
+      return db.storage.from('fotos').upload(path, comp, { contentType: 'image/jpeg', upsert: false })
+        .then(function(up) {
+          if (up.error) return null;
+          return db.storage.from('fotos').getPublicUrl(path).data.publicUrl;
+        });
+    });
+  });
+  return Promise.all(promises).then(function(urls) { return urls.filter(Boolean); });
+}
+
+// ── INCIDENCIA EN PARADA ──
+var PARADA_CON_INCIDENCIA = false;
+var PARADA_TIPO_INC = '';
+
+function selIncidenciaRuta(conInc) {
+  PARADA_CON_INCIDENCIA = conInc;
+  var btnSin = document.getElementById('btn-sin-inc');
+  var btnCon = document.getElementById('btn-con-inc');
+  var detalle = document.getElementById('parada-inc-detalle');
+  if (conInc) {
+    btnCon.style.borderColor = '#f59e0b'; btnCon.style.background = 'rgba(245,158,11,0.1)'; btnCon.style.color = '#f59e0b';
+    btnSin.style.borderColor = 'rgba(255,255,255,0.1)'; btnSin.style.background = 'var(--bg3)'; btnSin.style.color = 'var(--text2)';
+    detalle.style.display = 'block';
+  } else {
+    btnSin.style.borderColor = 'var(--green)'; btnSin.style.background = 'rgba(52,211,153,0.1)'; btnSin.style.color = 'var(--green)';
+    btnCon.style.borderColor = 'rgba(255,255,255,0.1)'; btnCon.style.background = 'var(--bg3)'; btnCon.style.color = 'var(--text2)';
+    detalle.style.display = 'none';
+  }
+}
+
+function selTipoInc(tipo) {
+  PARADA_TIPO_INC = tipo;
+  var btnS = document.getElementById('btn-tipo-siniestro');
+  var btnD = document.getElementById('btn-tipo-desperfecto');
+  if (tipo === 'siniestro') {
+    btnS.style.borderColor = '#f87171'; btnS.style.background = 'rgba(239,68,68,0.1)'; btnS.style.color = '#f87171';
+    btnD.style.borderColor = 'rgba(255,255,255,0.1)'; btnD.style.background = 'var(--bg3)'; btnD.style.color = 'var(--text2)';
+  } else {
+    btnD.style.borderColor = '#fbbf24'; btnD.style.background = 'rgba(251,191,36,0.1)'; btnD.style.color = '#fbbf24';
+    btnS.style.borderColor = 'rgba(255,255,255,0.1)'; btnS.style.background = 'var(--bg3)'; btnS.style.color = 'var(--text2)';
+  }
+}
+
+function abrirParadaRuta(rutaId) {
+  PARADA_CON_INCIDENCIA = false;
+  PARADA_TIPO_INC = '';
+  RUTA_FOTOS.parada = [];
+  document.getElementById('parada-ruta-id').value = rutaId;
+  document.getElementById('parada-puesto').value = '';
+  document.getElementById('parada-detalle-inc').value = '';
+  document.getElementById('parada-fotos-preview').innerHTML = '';
+  document.getElementById('parada-inc-detalle').style.display = 'none';
+  var btnSin = document.getElementById('btn-sin-inc');
+  var btnCon = document.getElementById('btn-con-inc');
+  if (btnSin) { btnSin.style.borderColor = 'rgba(255,255,255,0.1)'; btnSin.style.background = 'var(--bg3)'; btnSin.style.color = 'var(--text2)'; }
+  if (btnCon) { btnCon.style.borderColor = 'rgba(255,255,255,0.1)'; btnCon.style.background = 'var(--bg3)'; btnCon.style.color = 'var(--text2)'; }
+  openOv('ov-parada-ruta');
+}
+
+function saveParada(finalizar) {
+  var rutaId = document.getElementById('parada-ruta-id').value;
+  var puesto = document.getElementById('parada-puesto').value.trim();
+  if (!puesto) { toast('Ingresá el nombre del puesto', 'err'); return; }
+  if (PARADA_CON_INCIDENCIA && !PARADA_TIPO_INC) { toast('Seleccioná el tipo de incidencia', 'err'); return; }
+  if (PARADA_CON_INCIDENCIA && !document.getElementById('parada-detalle-inc').value.trim()) { toast('Detallá la incidencia', 'err'); return; }
+
+  var parada = {
+    puesto: puesto,
+    hora: new Date().toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'}),
+    con_incidencia: PARADA_CON_INCIDENCIA,
+    tipo_inc: PARADA_TIPO_INC || null,
+    detalle_inc: PARADA_CON_INCIDENCIA ? document.getElementById('parada-detalle-inc').value.trim() : null,
+    fotos: []
+  };
+
+  uploadFotosRuta(RUTA_FOTOS.parada, 'rutas/paradas').then(function(urls) {
+    parada.fotos = urls;
+    return db.from('rutas').select('paradas').eq('id', rutaId).single();
+  }).then(function(res) {
+    var paradas = (res.data && res.data.paradas) ? res.data.paradas : [];
+    paradas.push(parada);
+    return db.from('rutas').update({ paradas: paradas }).eq('id', rutaId);
+  }).then(function() {
+    closeOv('ov-parada-ruta');
+    RUTA_FOTOS.parada = [];
+    if (finalizar) {
+      // Abrir modal de fin de ruta
+      document.getElementById('fin-ruta-id').value = rutaId;
+      document.getElementById('fin-km').value = '';
+      document.getElementById('fin-comb').value = '';
+      document.getElementById('fin-fotos-preview').innerHTML = '';
+      RUTA_FOTOS.fin = [];
+      closeOv('ov-parada-ruta');
+      openOv('ov-fin-ruta');
+    } else {
+      toast('📍 Parada registrada');
+      loadChoferes();
+    }
+  }).catch(function(e) { toast('Error: ' + e.message, 'err'); });
+}
+
+function confirmarFinRuta() {
+  var rutaId = document.getElementById('fin-ruta-id').value;
+  var kmFin = parseInt(document.getElementById('fin-km').value);
+  var combFin = document.getElementById('fin-comb').value;
+  if (!kmFin) { toast('Ingresá los KM finales', 'err'); return; }
+  if (!combFin) { toast('Seleccioná el nivel de combustible final', 'err'); return; }
+  if (!RUTA_FOTOS.fin.length) { toast('Agregá al menos 1 foto final', 'err'); return; }
+
+  setLoading('btn-fin-ruta', true);
+  uploadFotosRuta(RUTA_FOTOS.fin, 'rutas/fin').then(function(urls) {
+    return db.from('rutas').update({
+      estado: 'finalizado',
+      fin: new Date().toISOString(),
+      km_final: kmFin,
+      combustible_final: combFin,
+      fotos_fin: urls
+    }).eq('id', rutaId);
+  }).then(function() {
+    setLoading('btn-fin-ruta', false);
+    closeOv('ov-fin-ruta');
+    RUTA_FOTOS.fin = [];
+    toast('🏁 Hoja de ruta finalizada');
+    loadChoferes();
+    loadDash();
+  }).catch(function(e) {
+    setLoading('btn-fin-ruta', false);
+    toast('Error: ' + e.message, 'err');
+  });
+}
+
 function saveChof() {
   return _saveChof.apply(this, arguments);
 }
 function _saveChof() {
   _saveChof = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee42() {
-    var chofer, movil, _yield$db$from$insert3, error;
-    return _regenerator().w(function (_context42) {
-      while (1) switch (_context42.n) {
+    var chofer, movil, kmIni, combIni, obs, fotosUrls, insertRes;
+    return _regenerator().w(function(_ctx42) {
+      while(1) switch(_ctx42.p = _ctx42.n) {
         case 0:
-          setLoading('btn-save-chof', true);
           chofer = $('c-chofer').value;
           movil = $('c-movil').value;
-          _context42.n = 1;
+          kmIni = parseInt(document.getElementById('c-km-ini').value) || 0;
+          combIni = document.getElementById('c-comb-ini').value;
+          obs = $('c-obs').value;
+          if (chofer) { _ctx42.n = 1; break; }
+          toast('Seleccioná un chofer', 'err'); return _ctx42.a(2);
+        case 1:
+          if (movil) { _ctx42.n = 2; break; }
+          toast('Seleccioná un móvil', 'err'); return _ctx42.a(2);
+        case 2:
+          if (kmIni) { _ctx42.n = 3; break; }
+          toast('Ingresá los KM iniciales', 'err'); return _ctx42.a(2);
+        case 3:
+          if (combIni) { _ctx42.n = 4; break; }
+          toast('Seleccioná el nivel de combustible', 'err'); return _ctx42.a(2);
+        case 4:
+          setLoading('btn-save-chof', true);
+          _ctx42.n = 5;
+          return uploadFotosRuta(RUTA_FOTOS.inicio, 'rutas/inicio');
+        case 5:
+          fotosUrls = _ctx42.v;
+          _ctx42.n = 6;
           return db.from('rutas').insert({
             chofer: chofer,
             movil: movil,
-            destino: $('c-dest').value,
-            origen: document.getElementById('c-origen') ? document.getElementById('c-origen').value : null,
-            km_inicio: document.getElementById('c-km-ini') ? parseInt(document.getElementById('c-km-ini').value) || null : null,
-            pasajeros: document.getElementById('c-pasajeros') ? document.getElementById('c-pasajeros').value : null,
-            observaciones: $('c-obs').value,
-            estado: 'activo'
-          });
-        case 1:
-          _yield$db$from$insert3 = _context42.v;
-          error = _yield$db$from$insert3.error;
+            km_inicial: kmIni,
+            combustible_inicial: combIni,
+            observaciones_inicio: obs,
+            fotos_inicio: fotosUrls,
+            paradas: [],
+            estado: 'activo',
+            inicio: new Date().toISOString()
+          }).select('id').single();
+        case 6:
+          insertRes = _ctx42.v;
           setLoading('btn-save-chof', false);
-          if (!error) {
-            _context42.n = 2;
-            break;
-          }
-          toast('Error: ' + error.message, 'err');
-          return _context42.a(2);
-        case 2:
+          if (!insertRes.error) { _ctx42.n = 7; break; }
+          toast('Error: ' + insertRes.error.message, 'err'); return _ctx42.a(2);
+        case 7:
+          RUTA_FOTOS.inicio = [];
+          document.getElementById('c-fotos-preview').innerHTML = '';
           closeOv('ov-chof');
-          toast('[Movil] Hoja de ruta iniciada');
-          ['c-movil', 'c-dest', 'c-obs'].forEach(function (id) {
-            return $(id) && ($(id).value = '');
-          });
-          if (movil && chofer) startGPSTransmission(chofer, movil);
-          loadChoferes();
-        case 3:
-          return _context42.a(2);
+          toast('🚗 Hoja de ruta iniciada');
+          loadChoferes(); loadDash();
+          return _ctx42.a(2);
       }
     }, _callee42);
   }));
@@ -6614,8 +6970,16 @@ function goView(name) {
       // Mark current obj count as seen so loadDash doesn't re-show
       try { localStorage.removeItem('ivc_badge_obj'); } catch(e) {}
     }
-    if (name === 'choferes') { clearBadge('nb-badge-ruta', 'ivc_badge_ruta'); }
-    if (name === 'admin') { setTimeout(checkPushStatus, 200); }
+    if (name === 'choferes') { clearBadge('nb-badge-ruta', 'ivc_badge_ruta'); cargarChoferesEnDropdown(); }
+    if (name === 'admin') {
+      setTimeout(checkPushStatus, 200);
+      // Show ABM choferes only for ADMIN
+      var abmPanel = document.getElementById('abm-choferes-panel');
+      if (abmPanel && USER && USER.rol === 'ADMIN') {
+        abmPanel.style.display = 'block';
+        loadABMChoferes();
+      }
+    }
     if (name === 'inmuebles') {
       loadInmuebles();
       var iaPanel = document.getElementById('inm-panel-ia');
@@ -9745,6 +10109,93 @@ function checkPushStatus() {
     badge.textContent = 'Denegado'; badge.style.background = 'rgba(239,68,68,0.15)'; badge.style.color = '#f87171';
     if (info) info.textContent = 'Activá las notificaciones desde configuración del navegador → Configuración del sitio.';
   }
+}
+
+// ── ABM CHOFERES ──
+function cargarChoferesEnDropdown() {
+  db.from('choferes_lista').select('*').eq('activo', true).order('nombre')
+    .then(function(res) {
+      var sel = document.getElementById('c-chofer');
+      if (!sel) return;
+      sel.innerHTML = '<option value="">— Seleccionar chofer —</option>';
+      (res.data || []).forEach(function(c) {
+        var opt = document.createElement('option');
+        opt.value = c.nombre;
+        opt.textContent = c.nombre + (c.legajo ? ' (' + c.legajo + ')' : '');
+        sel.appendChild(opt);
+      });
+      // También en incidencias
+      var selInc = document.getElementById('inc-chofer');
+      if (selInc) {
+        selInc.innerHTML = '<option value="">— Seleccionar —</option>';
+        (res.data || []).forEach(function(c) {
+          var opt = document.createElement('option');
+          opt.value = c.nombre;
+          opt.textContent = c.nombre;
+          selInc.appendChild(opt);
+        });
+      }
+    });
+}
+
+function abrirABMChofer(id) {
+  document.getElementById('abm-chofer-id').value = id || '';
+  document.getElementById('abm-chofer-nombre').value = '';
+  document.getElementById('abm-chofer-legajo').value = '';
+  if (id) {
+    db.from('choferes_lista').select('*').eq('id', id).single().then(function(res) {
+      if (res.data) {
+        document.getElementById('abm-chofer-nombre').value = res.data.nombre;
+        document.getElementById('abm-chofer-legajo').value = res.data.legajo || '';
+      }
+    });
+  }
+  openOv('ov-abm-chofer');
+}
+
+function saveABMChofer() {
+  var id = document.getElementById('abm-chofer-id').value;
+  var nombre = document.getElementById('abm-chofer-nombre').value.trim().toUpperCase();
+  var legajo = document.getElementById('abm-chofer-legajo').value.trim();
+  if (!nombre) { toast('Ingresá el nombre', 'err'); return; }
+  var data = { nombre: nombre, legajo: legajo, activo: true };
+  var query = id ? db.from('choferes_lista').update(data).eq('id', id)
+                 : db.from('choferes_lista').insert(data);
+  query.then(function() {
+    closeOv('ov-abm-chofer');
+    toast('✅ Chofer guardado');
+    loadABMChoferes();
+    cargarChoferesEnDropdown();
+  }).catch(function(e) { toast('Error: ' + e.message, 'err'); });
+}
+
+function loadABMChoferes() {
+  db.from('choferes_lista').select('*').order('nombre').then(function(res) {
+    var el = document.getElementById('abm-choferes-list');
+    if (!el) return;
+    var rows = res.data || [];
+    if (!rows.length) { el.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0">Sin choferes cargados</div>'; return; }
+    var html = '';
+    rows.forEach(function(c) {
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05)">';
+      html += '<div><div style="font-size:13px;font-weight:700">' + c.nombre + '</div>';
+      if (c.legajo) html += '<div style="font-size:11px;color:var(--text3)">Legajo: ' + c.legajo + '</div>';
+      html += '</div>';
+      html += '<div style="display:flex;gap:6px">';
+      html += '<button onclick="abrirABMChofer(\'' + c.id + '\')" style="font-size:11px;padding:4px 8px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--accent3);font-family:var(--font);cursor:pointer">✏️</button>';
+      html += '<button onclick="toggleActivoChofer(\'' + c.id + '\',' + c.activo + ')" style="font-size:11px;padding:4px 8px;border-radius:6px;border:1px solid ' + (c.activo ? 'rgba(239,68,68,0.3)' : 'rgba(52,211,153,0.3)') + ';background:' + (c.activo ? 'rgba(239,68,68,0.1)' : 'rgba(52,211,153,0.1)') + ';color:' + (c.activo ? '#f87171' : 'var(--green)') + ';font-family:var(--font);cursor:pointer">' + (c.activo ? 'Desactivar' : 'Activar') + '</button>';
+      html += '</div></div>';
+    });
+    el.innerHTML = html;
+  });
+}
+
+function toggleActivoChofer(id, activo) {
+  db.from('choferes_lista').update({ activo: !activo }).eq('id', id).then(function() {
+    loadABMChoferes();
+    cargarChoferesEnDropdown();
+    toast(activo ? 'Chofer desactivado' : 'Chofer activado');
+  });
 }
 
 function suscribirNotifNovedades() {
