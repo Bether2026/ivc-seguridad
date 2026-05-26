@@ -1937,10 +1937,28 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
           <span class="card-lbl">📋 Ver, editar y borrar registros</span>
           <div style="display:flex;gap:6px">
             <select id="admin-tabla-sel" class="form-select" style="padding:5px 10px;font-size:12px;width:auto" onchange="loadAdminTabla(this.value)">
-              <option value="fichajes">Fichajes</option>
-              <option value="novedades">Novedades</option>
-              <option value="objetivos">Objetivos</option>
-              <option value="rutas">Rutas</option>
+              <optgroup label="── Operaciones ──">
+                <option value="fichajes">Fichajes</option>
+                <option value="novedades">Novedades</option>
+                <option value="objetivos">Objetivos</option>
+                <option value="licencias">Licencias</option>
+                <option value="noticias">Noticias</option>
+              </optgroup>
+              <optgroup label="── Choferes ──">
+                <option value="rutas">Rutas / Hojas de ruta</option>
+                <option value="combustible">Combustible</option>
+                <option value="incidencias">Incidencias</option>
+                <option value="taller">Taller</option>
+                <option value="gps_moviles">GPS — Posiciones actuales</option>
+                <option value="gps_track">GPS — Historial de track</option>
+              </optgroup>
+              <optgroup label="── Sistema ──">
+                <option value="llaves">Llaves</option>
+                <option value="agentes">Agentes</option>
+                <option value="choferes_lista">Choferes lista</option>
+                <option value="bitacora">Bitácora</option>
+                <option value="push_subscriptions">Push suscripciones</option>
+              </optgroup>
             </select>
           </div>
         </div>
@@ -7713,7 +7731,7 @@ function _loadAdminTabla() {
           _context48.n = 1;
           return db.from(tabla).select('*').order('id', {
             ascending: false
-          }).limit(30);
+          }).limit(100);
         case 1:
           _yield$db$from$select = _context48.v;
           rows = _yield$db$from$select.data;
@@ -7741,7 +7759,7 @@ function _loadAdminTabla() {
             return "\n<tr style=\"border-bottom:1px solid var(--border)\" id=\"admin-row-".concat(r.id, "\">\n").concat(cols.map(function (c) {
               return "<td style=\"padding:7px 8px;color:var(--text2);white-space:nowrap;max-width:150px;overflow:hidden;text-overflow:ellipsis\">".concat(formatAdminVal(r[c]), "</td>");
             }).join(''), "\n<td style=\"padding:7px 8px;text-align:center\">\n<div style=\"display:flex;gap:4px;justify-content:center\">\n<button onclick=\"openEditRowById('").concat(tabla, "','").concat(r.id, "')\" style=\"padding:4px 10px;border-radius:4px;border:1px solid rgba(59,130,246,.3);background:rgba(59,130,246,.1);color:#93c5fd;font-family:var(--font);font-size:10px;font-weight:600;cursor:pointer\">[Edit] Editar</button>\n<button onclick=\"deleteRow('").concat(tabla, "','").concat(r.id, "')\" style=\"padding:4px 10px;border-radius:4px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.1);color:#f87171;font-family:var(--font);font-size:10px;font-weight:600;cursor:pointer\"> Borrar</button>\n</div>\n</td>\n</tr>");
-          }).join(''), "\n</tbody>\n</table>\n</div>\n<div style=\"font-size:11px;color:var(--text3);margin-top:8px;text-align:right\">Mostrando \xFAltimos ").concat(rows.length, " registros</div>");
+          }).join(''), "\n</tbody>\n</table>\n</div>\n<div style=\"font-size:11px;color:var(--text3);margin-top:8px;display:flex;justify-content:space-between;align-items:center\"><span>Mostrando \xFAltimos ").concat(rows.length, " registros</span><button onclick=\"loadAdminTabla(document.getElementById('admin-tabla-sel').value)\" style=\"font-size:11px;padding:3px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--accent3);font-family:var(--font);cursor:pointer\">\u21bb Actualizar</button></div>");
           ADMIN_ROWS_CACHE[tabla] = {};
           (rows || []).forEach(function (r) {
             ADMIN_ROWS_CACHE[tabla][r.id] = r;
@@ -7858,14 +7876,13 @@ function _clearAll() {
 }
 function clearChoferes() {
   showConfirm('🚗', 'Limpiar módulo Choferes', '¿Borrar TODAS las rutas, GPS, taller, combustible e incidencias? No se puede deshacer.', function() {
-    var tablas = ['rutas', 'combustible', 'incidencias', 'taller', 'gps_moviles'];
-    var promesas = tablas.map(function(t) {
-      return db.from(t)['delete']().neq('id', 0).then(function() {}).catch(function() {});
+    // Todas estas tablas usan id bigserial — usamos gte(id,0) para borrar todo
+    var tablasInt = ['rutas', 'combustible', 'incidencias', 'taller', 'gps_moviles', 'gps_track'];
+    var promesas = tablasInt.map(function(t) {
+      return db.from(t)['delete']().gte('id', 0).then(function(r) {
+        if (r.error) console.warn('Error limpiando ' + t + ':', r.error.message);
+      }).catch(function(e) { console.warn(e); });
     });
-    // gps_track usa id bigserial (integer)
-    promesas.push(
-      db.from('gps_track')['delete']().gte('id', 0).then(function() {}).catch(function() {})
-    );
     Promise.all(promesas).then(function() {
       // Limpiar estado GPS local
       GPS_TRACKING = false;
@@ -7879,9 +7896,12 @@ function clearChoferes() {
         GPS_WATCH_ID = null;
       }
       if (GPS_INTERVAL) { clearInterval(GPS_INTERVAL); GPS_INTERVAL = null; }
-      toast('🚗 Módulo Choferes limpiado completamente');
+      toast('🚗 Módulo Choferes limpiado');
       loadAdminStats();
       if (CUR_VIEW === 'choferes') loadChoferes();
+      // Recargar tabla si estamos viendo alguna de las afectadas
+      var sel = document.getElementById('admin-tabla-sel');
+      if (sel && tablasInt.indexOf(sel.value) >= 0) loadAdminTabla(sel.value);
     });
   }, 'Limpiar todo', 'var(--red)');
 }
@@ -7934,8 +7954,20 @@ function openEditRow(tabla, rowData) {
     if (col === 'detalle' || col === 'observaciones' || col === 'descripcion' || strVal.length > 80) {
       return "<div class=\"form-group\">\n<label class=\"form-label\">".concat(col, "</label>\n<textarea class=\"form-textarea\" id=\"").concat(inputId, "\" style=\"min-height:70px\">").concat(strVal, "</textarea>\n</div>");
     }
-    if (strVal.includes('T') && strVal.includes('Z')) {
-      return "<div class=\"form-group\">\n<label class=\"form-label\">".concat(col, "</label>\n<input class=\"form-input\" id=\"").concat(inputId, "\" value=\"").concat(formatTs(val), "\" placeholder=\"HH:MM\" style=\"color:var(--text3)\" readonly>\n<div style=\"font-size:10px;color:var(--text3);margin-top:3px\">Fecha/hora \u2014 solo lectura</div>\n</div>");
+    if (strVal.includes('T') && (strVal.includes('Z') || strVal.includes('+'))) {
+      // Convertir ISO a formato local para datetime-local input
+      var dtLocal = '';
+      try {
+        var dtObj = new Date(val);
+        // Ajustar a UTC-3 Argentina
+        var ar = new Date(dtObj.getTime() - 3*3600*1000);
+        dtLocal = ar.toISOString().slice(0,16); // YYYY-MM-DDTHH:MM
+      } catch(e) { dtLocal = ''; }
+      return "<div class=\"form-group\">" +
+        "<label class=\"form-label\">" + col + " <span style=\"font-size:10px;color:#f59e0b;font-weight:400\">(editable)</span></label>" +
+        "<input type=\"datetime-local\" class=\"form-input\" id=\"" + inputId + "\" value=\"" + dtLocal + "\" data-isots=\"1\" style=\"color:var(--text);\">" +
+        "<div style=\"font-size:10px;color:var(--text3);margin-top:3px\">Hora Argentina (UTC-3) — se guarda como UTC</div>" +
+        "</div>";
     }
     if (col === 'estado') {
       return "<div class=\"form-group\">\n<label class=\"form-label\">".concat(col, "</label>\n<select class=\"form-select\" id=\"").concat(inputId, "\">\n<option ").concat(val === 'activo' ? 'selected' : '', ">activo</option>\n<option ").concat(val === 'finalizado' ? 'selected' : '', ">finalizado</option>\n</select>\n</div>");
@@ -7968,7 +8000,18 @@ function _saveEdit() {
             var el = document.getElementById("edit-field-".concat(col));
             if (!el) return;
             if (el.readOnly) return;
-            if (el.type === 'checkbox') updates[col] = el.checked;else updates[col] = el.value;
+            if (el.type === 'checkbox') {
+              updates[col] = el.checked;
+            } else if (el.type === 'datetime-local' && el.dataset.isots) {
+              // Convertir de Argentina (UTC-3) a UTC para guardar en Supabase
+              if (el.value) {
+                var localDate = new Date(el.value + ':00');
+                var utcDate = new Date(localDate.getTime() + 3 * 3600 * 1000);
+                updates[col] = utcDate.toISOString();
+              }
+            } else {
+              updates[col] = el.value;
+            }
           });
           setLoading('btn-save-edit', true);
           _context56.n = 1;
