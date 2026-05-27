@@ -2462,6 +2462,47 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
   </div>
 </div>
 
+<!-- MODAL REGISTRAR PARTE (PD/PU) — solo Administración -->
+<div class="overlay" id="ov-parte-nov">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="modal-title">📋 Registrar Parte</span>
+      <button class="btn-close" onclick="closeOv('ov-parte-nov')">×</button>
+    </div>
+    <div id="parte-nov-titulo" style="font-size:13px;font-weight:700;color:var(--accent3);margin-bottom:12px;padding:8px 12px;background:var(--bg3);border-radius:8px"></div>
+    <input type="hidden" id="parte-nov-id">
+    <div class="form-group">
+      <label class="form-label">Tipo de parte <span style="color:var(--red)">*</span></label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <button id="btn-parte-pd" onclick="selTipoParte('PD')"
+          style="padding:12px;border-radius:10px;border:2px solid rgba(255,255,255,0.1);background:var(--bg3);color:var(--text2);font-family:var(--font);font-size:15px;font-weight:800;cursor:pointer;transition:all .2s">
+          📄 PD<br><span style="font-size:10px;font-weight:400;opacity:.7">Parte Diario</span>
+        </button>
+        <button id="btn-parte-pu" onclick="selTipoParte('PU')"
+          style="padding:12px;border-radius:10px;border:2px solid rgba(255,255,255,0.1);background:var(--bg3);color:var(--text2);font-family:var(--font);font-size:15px;font-weight:800;cursor:pointer;transition:all .2s">
+          ⚠️ PU<br><span style="font-size:10px;font-weight:400;opacity:.7">Parte Urgente</span>
+        </button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Número de parte <span style="color:var(--red)">*</span></label>
+      <input class="form-input" id="parte-nov-numero" type="number" min="1" placeholder="Ej: 42" style="font-size:20px;font-weight:700;text-align:center;letter-spacing:.1em"/>
+      <div style="font-size:10px;color:var(--text3);margin-top:4px">Número correlativo en el registro de Access</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">📄 Adjuntar PDF del parte (opcional)</label>
+      <input type="file" id="parte-pdf-input" accept="application/pdf,.pdf" style="display:none" onchange="previewPartePDF(this)">
+      <div onclick="document.getElementById('parte-pdf-input').click()"
+        style="border:2px dashed var(--border2);border-radius:8px;padding:16px;text-align:center;cursor:pointer;background:var(--bg3)">
+        <div style="font-size:22px;margin-bottom:4px">📄</div>
+        <div style="font-size:13px;color:var(--text3)">Tocá para adjuntar PDF</div>
+      </div>
+      <div id="parte-pdf-preview" style="margin-top:8px"></div>
+    </div>
+    <button class="btn-login" id="btn-save-parte" onclick="guardarParte()">📋 Guardar Parte</button>
+  </div>
+</div>
+
 <!-- MODAL NUEVO/EDITAR AGENTE -->
 <div class="overlay" id="ov-agente">
   <div class="modal">
@@ -3358,6 +3399,11 @@ function renderNovCard(n) {
   h += '<span class="badge ' + bc + '">' + (n.tipo || 'Otro') + '</span>';
   if (n.relevancia === 'Urgente') h += '<span class="badge b-red">URGENTE</span>';
   if (n.relevancia === 'Alta') h += '<span class="badge b-yellow">ALTA</span>';
+  // Badge PD/PU — visible solo para roles autorizados
+  if (n.parte_tipo && n.parte_numero && USER && ['Administración','Administrador','Gerencia','Responsable de turno','Emergencias','Jefe de departamento'].indexOf(USER.puesto) >= 0) {
+    var parteColor = n.parte_tipo === 'PU' ? 'background:rgba(239,68,68,.18);color:#fca5a5;border:1px solid rgba(239,68,68,.35)' : 'background:rgba(52,211,153,.15);color:#6ee7b7;border:1px solid rgba(16,185,129,.3)';
+    h += '<span class="badge" style="' + parteColor + ';font-weight:800">✓ ' + n.parte_tipo + '-' + String(n.parte_numero).padStart(4,'0') + '</span>';
+  }
   if (n.actualizaciones && n.actualizaciones.length) {
     h += '<span class="badge" style="background:rgba(5,150,105,0.2);color:#34d399;border:1px solid rgba(5,150,105,0.3)">&#128260; ACTUALIZADA</span>';
     var noLeidas = getNoLeidas(n.id, n.actualizaciones.length);
@@ -3422,15 +3468,149 @@ function renderNovCard(n) {
   h += '<button onclick="abrirActualizarNovedad(\'' + n.id + '\')" ';
   h += 'style="width:100%;padding:9px;background:rgba(37,99,235,0.12);border:1px solid rgba(37,99,235,0.3);border-radius:8px;color:var(--accent3);font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font)">';
   h += '+ Agregar actualizacion al seguimiento</button>';
+  // Botón Registrar Parte — solo para Administración
+  if (USER && USER.puesto === 'Administración') {
+    var labelParte = (n.parte_tipo && n.parte_numero) ? '✏️ Editar Parte (' + n.parte_tipo + '-' + String(n.parte_numero).padStart(4,'0') + ')' : '📋 Registrar Parte (PD/PU)';
+    var colorParte = (n.parte_tipo && n.parte_numero) ? 'background:rgba(16,185,129,.1);border-color:rgba(16,185,129,.35);color:#34d399' : 'background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.35);color:#fbbf24';
+    h += '<button onclick="abrirRegistrarParte(\'' + n.id + '\')" ';
+    h += 'style="width:100%;padding:9px;border:1px solid;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);margin-top:6px;' + colorParte + '">';
+    h += labelParte + '</button>';
+  }
+  // Sección de parte registrado (visible para roles autorizados, en el detalle)
+  if (n.parte_tipo && n.parte_numero && USER && ['Administración','Administrador','Gerencia','Responsable de turno','Emergencias','Jefe de departamento'].indexOf(USER.puesto) >= 0) {
+    h += '<div style="margin-top:10px;padding:10px 12px;border-radius:10px;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2)">';
+    h += '<div style="font-size:10px;font-weight:800;color:#34d399;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px">✓ Registrado en Access</div>';
+    h += '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">';
+    h += '<span style="font-size:16px;font-weight:900;font-family:var(--mono);color:#34d399">' + n.parte_tipo + '-' + String(n.parte_numero).padStart(4,'0') + '</span>';
+    if (n.parte_pdf_url) {
+      h += '<a href="' + n.parte_pdf_url + '" target="_blank" style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:7px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#fca5a5;font-size:11px;font-weight:700;text-decoration:none">📄 Ver PDF</a>';
+    }
+    h += '</div></div>';
+  }
   h += '</div>';
   h += '</div></div></div>';
 
   // Store novedad data in global cache for update modal
   if (!window.NOV_CARD_CACHE) window.NOV_CARD_CACHE = {};
-  window.NOV_CARD_CACHE[n.id] = { id: n.id, asunto: n.asunto, tipo: n.tipo, puesto: n.puesto, detalle: n.detalle, ubicacion: n.ubicacion };
+  window.NOV_CARD_CACHE[n.id] = { id: n.id, asunto: n.asunto, tipo: n.tipo, puesto: n.puesto, detalle: n.detalle, ubicacion: n.ubicacion, parte_tipo: n.parte_tipo || null, parte_numero: n.parte_numero || null, parte_pdf_url: n.parte_pdf_url || null };
 
   return h;
 }
+// ══════════════════════════════════════════════════════
+//  SISTEMA PD/PU — Registro de partes para Administración
+// ══════════════════════════════════════════════════════
+var PARTE_TIPO_ACTUAL = '';
+var PARTE_PDF_FILE = null;
+
+function selTipoParte(tipo) {
+  PARTE_TIPO_ACTUAL = tipo;
+  var pd = document.getElementById('btn-parte-pd');
+  var pu = document.getElementById('btn-parte-pu');
+  if (!pd || !pu) return;
+  if (tipo === 'PD') {
+    pd.style.borderColor = 'var(--green)'; pd.style.background = 'rgba(52,211,153,0.1)'; pd.style.color = '#34d399';
+    pu.style.borderColor = 'rgba(255,255,255,0.1)'; pu.style.background = 'var(--bg3)'; pu.style.color = 'var(--text2)';
+  } else {
+    pu.style.borderColor = 'var(--red)'; pu.style.background = 'rgba(239,68,68,0.1)'; pu.style.color = '#f87171';
+    pd.style.borderColor = 'rgba(255,255,255,0.1)'; pd.style.background = 'var(--bg3)'; pd.style.color = 'var(--text2)';
+  }
+}
+
+function previewPartePDF(input) {
+  PARTE_PDF_FILE = input.files[0] || null;
+  var prev = document.getElementById('parte-pdf-preview');
+  if (!prev) return;
+  if (PARTE_PDF_FILE) {
+    prev.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2)">' +
+      '<span style="font-size:18px">\U0001f4c4</span>' +
+      '<span style="font-size:12px;color:var(--text2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + PARTE_PDF_FILE.name + '</span>' +
+      '<span style="font-size:10px;color:var(--text3)">' + (PARTE_PDF_FILE.size / 1024).toFixed(0) + ' KB</span>' +
+      '</div>';
+  } else {
+    prev.innerHTML = '';
+  }
+}
+
+function abrirRegistrarParte(novId) {
+  // Solo para usuario Administración
+  if (!USER || USER.puesto !== 'Administración') return;
+  PARTE_TIPO_ACTUAL = '';
+  PARTE_PDF_FILE = null;
+  document.getElementById('parte-nov-id').value = novId;
+  document.getElementById('parte-nov-numero').value = '';
+  document.getElementById('parte-pdf-preview').innerHTML = '';
+  document.getElementById('parte-pdf-input').value = '';
+  // Reset botones
+  var pd = document.getElementById('btn-parte-pd');
+  var pu = document.getElementById('btn-parte-pu');
+  if (pd) { pd.style.borderColor = 'rgba(255,255,255,0.1)'; pd.style.background = 'var(--bg3)'; pd.style.color = 'var(--text2)'; }
+  if (pu) { pu.style.borderColor = 'rgba(255,255,255,0.1)'; pu.style.background = 'var(--bg3)'; pu.style.color = 'var(--text2)'; }
+  // Si ya tiene parte, pre-cargar datos
+  if (window.NOV_CARD_CACHE && window.NOV_CARD_CACHE[novId]) {
+    var cached = window.NOV_CARD_CACHE[novId];
+    if (cached.parte_tipo) { selTipoParte(cached.parte_tipo); }
+    if (cached.parte_numero) { document.getElementById('parte-nov-numero').value = cached.parte_numero; }
+    if (cached.parte_pdf_url) {
+      document.getElementById('parte-pdf-preview').innerHTML =
+        '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2)">' +
+        '<span style="font-size:18px">\U0001f4c4</span>' +
+        '<a href="' + cached.parte_pdf_url + '" target="_blank" style="font-size:12px;color:#fca5a5;flex:1">PDF adjunto (toc\u00e1 para ver)</a>' +
+        '<span style="font-size:10px;color:var(--text3)">ya subido</span></div>';
+    }
+  }
+  // Título
+  db.from('novedades').select('asunto').eq('id', novId).single().then(function(r) {
+    var tit = document.getElementById('parte-nov-titulo');
+    if (tit && r.data) tit.textContent = r.data.asunto || 'Novedad';
+  });
+  openOv('ov-parte-nov');
+}
+
+function guardarParte() {
+  var novId  = document.getElementById('parte-nov-id').value;
+  var numero = document.getElementById('parte-nov-numero').value;
+  if (!PARTE_TIPO_ACTUAL)  { toast('Seleccion\u00e1 PD o PU', 'err'); return; }
+  if (!numero || parseInt(numero) < 1) { toast('Ingres\u00e1 el n\u00famero de parte', 'err'); return; }
+  setLoading('btn-save-parte', true);
+
+  function finalizarGuardado(pdfUrl) {
+    var updates = {
+      parte_tipo: PARTE_TIPO_ACTUAL,
+      parte_numero: parseInt(numero),
+      parte_pdf_url: pdfUrl || null
+    };
+    db.from('novedades').update(updates).eq('id', novId).then(function(r) {
+      setLoading('btn-save-parte', false);
+      if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+      // Actualizar cache local
+      if (window.NOV_CARD_CACHE && window.NOV_CARD_CACHE[novId]) {
+        window.NOV_CARD_CACHE[novId].parte_tipo    = PARTE_TIPO_ACTUAL;
+        window.NOV_CARD_CACHE[novId].parte_numero  = parseInt(numero);
+        window.NOV_CARD_CACHE[novId].parte_pdf_url = pdfUrl || window.NOV_CARD_CACHE[novId].parte_pdf_url || null;
+      }
+      closeOv('ov-parte-nov');
+      toast('\u2713 ' + PARTE_TIPO_ACTUAL + '-' + String(numero).padStart(4,'0') + ' registrado');
+      PARTE_TIPO_ACTUAL = ''; PARTE_PDF_FILE = null;
+      loadNovedades();
+    });
+  }
+
+  if (PARTE_PDF_FILE) {
+    toast('Subiendo PDF...', 'info');
+    var path = 'partes/' + novId + '_' + PARTE_TIPO_ACTUAL + '_' + numero + '_' + Date.now() + '.pdf';
+    db.storage.from('fotos').upload(path, PARTE_PDF_FILE, { contentType: 'application/pdf', upsert: true })
+      .then(function(up) {
+        if (up.error) { toast('Error subiendo PDF: ' + up.error.message, 'err'); setLoading('btn-save-parte', false); return; }
+        var pdfUrl = db.storage.from('fotos').getPublicUrl(path).data.publicUrl;
+        finalizarGuardado(pdfUrl);
+      });
+  } else {
+    // Conservar PDF anterior si ya existe
+    var pdfPrev = (window.NOV_CARD_CACHE && window.NOV_CARD_CACHE[novId]) ? window.NOV_CARD_CACHE[novId].parte_pdf_url : null;
+    finalizarGuardado(pdfPrev);
+  }
+}
+
 function marcarSalidaDirecta(_x4, _x5) {
   return _marcarSalidaDirecta.apply(this, arguments);
 }
