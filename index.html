@@ -3357,7 +3357,10 @@ function renderNovCard(n) {
   h += '<div style="font-size:14px;font-weight:700;margin-bottom:4px;line-height:1.3">' + (n.asunto || 'Sin titulo') + '</div>';
   h += '<div style="font-size:11px;color:var(--text3)">' + hora + ' &middot; ' + ubic + '</div>';
   h += '</div>';
-  h += '<div style="font-size:18px;color:var(--text3);flex-shrink:0;transition:transform .25s;margin-top:2px" id="arr-' + n.id + '">&#9660;</div>';
+  h += '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0">';
+  h += adminEditBtn('novedades', n.id);
+  h += '<div style="font-size:18px;color:var(--text3);transition:transform .25s;margin-top:2px" id="arr-' + n.id + '">&#9660;</div>';
+  h += '</div>';
   h += '</div>';
 
   // Detalle — expandible
@@ -5391,6 +5394,7 @@ function _loadAgenda() {
                 if (op.telefono) h += '<div style="font-size:12px;color:var(--text2)">📞 ' + op.telefono + '</div>';
                 h += '</div>';
                 if (op.detalle) h += '<div style="font-size:11px;color:var(--text3);line-height:1.55;border-top:1px solid var(--border);padding-top:6px">' + op.detalle + '</div>';
+                h += '<div style="margin-top:8px">' + adminEditBtn('agenda_operativos', op.id) + '</div>';
                 h += '</div>';
               }
             }
@@ -5436,6 +5440,7 @@ function _loadAgenda() {
             if (op.telefono) h += '<div style="font-size:12px;color:var(--text2)">📞 ' + op.telefono + '</div>';
             h += '</div>';
             if (op.detalle) h += '<div style="font-size:12px;color:var(--text3);line-height:1.6;border-top:1px solid var(--border);padding-top:8px">' + op.detalle + '</div>';
+            h += '<div style="margin-top:8px">' + adminEditBtn('agenda_operativos', op.id) + '</div>';
             h += '</div>';
           }
           cont.innerHTML = h;
@@ -5821,6 +5826,7 @@ function _loadFichajes() {
               fhtml += '<span class="badge b-green"><span class="pulse"></span> Activo</span>';
               fhtml += '<span style="font-family:var(--mono);font-size:10px;color:var(--text2)">desde ' + formatTs(fr.entrada) + '</span>';
               fhtml += '<button data-fid="' + fr.id + '" data-fnombre="' + fr.agente.replace(/"/g, '').replace(/'/g, '') + '" onclick="var b=this;marcarSalidaDirecta(b.getAttribute(\'data-fid\'),b.getAttribute(\'data-fnombre\'))" style="padding:5px 10px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.5);border-radius:6px;color:#f87171;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font)">Marcar salida</button>';
+              fhtml += adminEditBtn('fichajes', fr.id);
               fhtml += '</div></div>';
             }
             document.getElementById('f-list').innerHTML = fhtml;
@@ -6663,10 +6669,15 @@ function _loadObjetivos() {
                 if (isAct) {
                   ohtml += '<div class="obj-actions" style="margin-top:10px">';
                   ohtml += '<button class="btn-sm" onclick="event.stopPropagation();openUpdObj(\'' + o.id + '\',' + prog + ')">📍 Registrar punto</button>';
-                  ohtml += '<button class="btn-sm ok" onclick="event.stopPropagation();finObj(\'' + o.id + '\')">✓ Finalizar</button>';
+                  ohtml += '<button class="btn-sm ok" onclick="event.stopPropagation();finObj(\'' + o.id + '\')">&#10003; Finalizar</button>';
+                  ohtml += adminEditBtn('objetivos', o.id);
                   ohtml += '</div>';
                 }
 
+                // Botón editar admin en objetivos finalizados
+                if (!isAct) {
+                  ohtml += '<div class="obj-actions" style="margin-top:8px">' + adminEditBtn('objetivos', o.id) + '</div>';
+                }
                 ohtml += '</div>'; // end collapsible body
                 ohtml += '</div>'; // end obj-item
               }
@@ -6762,7 +6773,11 @@ function _loadChoferes() {
             if (isAct) {
               chtml += '<div class="obj-actions" style="margin-top:10px">';
               chtml += '<button class="btn-sm" onclick="abrirParadaRuta(\'' + r.id + '\')">📍 Registrar parada</button>';
+              chtml += adminEditBtn('rutas', r.id);
               chtml += '</div>';
+            } else {
+              var adminBtnRuta = adminEditBtn('rutas', r.id);
+              if (adminBtnRuta) chtml += '<div style="margin-top:8px">' + adminBtnRuta + '</div>';
             }
             chtml += '</div>';
           }
@@ -8177,6 +8192,7 @@ function loadCombustible() {
         '<div style="background:var(--bg3);border-radius:6px;padding:8px;text-align:center"><div style="font-size:10px;color:var(--text3)">Km</div><div style="font-size:15px;font-weight:700;color:var(--yellow)">' + (r.km || '—') + '</div></div>' +
         '</div>' +
         (r.foto ? '<img src="' + r.foto + '" onclick="abrirFotoLightbox(\'' + r.foto + '\')" style="width:100%;max-height:140px;object-fit:cover;border-radius:8px;border:1px solid var(--border2);cursor:zoom-in;margin-top:4px" loading="lazy">' : '') +
+        '<div style="margin-top:6px">' + adminEditBtn('combustible', r.id) + '</div>' +
         '</div>';
     }).join('') : '<div class="empty"><div class="icon">⛽</div><p>Sin cargas registradas</p></div>');
   });
@@ -8281,6 +8297,7 @@ function loadIncidencias() {
           (r.ubicacion ? '<div style="font-size:11px;color:var(--text3);margin:6px 0;display:flex;align-items:center;gap:4px">📍 ' + r.ubicacion + '</div>' : '') +
           '<div style="font-size:13px;color:var(--text2);line-height:1.55;margin-bottom:8px">' + (r.descripcion || '') + '</div>' +
           (r.foto ? '<img src="' + r.foto + '" onclick="abrirFotoLightbox(\'' + r.foto + '\')" style="width:100%;max-height:180px;object-fit:cover;border-radius:8px;border:1px solid var(--border2);cursor:zoom-in" loading="lazy">' : '') +
+          '<div style="margin-top:6px">' + adminEditBtn('incidencias', r.id) + '</div>' +
           '</div>';
       }).join('') : '<div class="empty"><div class="icon">⚠️</div><p>Sin incidencias registradas</p></div>';
     });
@@ -8391,6 +8408,7 @@ function loadTaller() {
           '</div>' +
           (r.foto ? '<img src="' + r.foto + '" onclick="abrirFotoLightbox(\'' + r.foto + '\')" style="width:100%;max-height:160px;object-fit:cover;border-radius:8px;cursor:zoom-in;margin-top:8px" loading="lazy">' : '') +
           (enTaller ? '<div style="margin-top:10px"><button class="btn-sm ok" onclick="finalizarTaller(\'' + r.id + '\')">&#10003; Marcar como finalizado</button></div>' : '') +
+        '<div style="margin-top:6px">' + adminEditBtn('taller', r.id) + '</div>' +
           '</div>';
       }).join('') : '<div class="empty"><div class="icon">🔧</div><p>Sin registros de taller</p></div>';
     });
@@ -9618,6 +9636,16 @@ function abrirDetalleLlave(numero) {
 }
 
 function autocompletarLlave() { llOnChangeNumero(); }
+
+// ── HELPER GLOBAL: botón editar admin ──────────────────────────────
+// Retorna HTML del botón si el usuario es ADMIN, cadena vacía si no
+function adminEditBtn(tabla, id) {
+  if (!USER || USER.rol !== 'ADMIN') return '';
+  return '<button onclick="event.stopPropagation();openEditRowById(\'' + tabla + '\',\'' + id + '\')" ' +
+    'style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:6px;' +
+    'border:1px solid rgba(59,130,246,.35);background:rgba(59,130,246,.1);color:#93c5fd;' +
+    'font-family:var(--font);font-size:10px;font-weight:700;cursor:pointer">✏️ Editar</button>';
+}
 
 function filtrarLlaves() {
   var search = document.getElementById('llaves-search') ? document.getElementById('llaves-search').value.toLowerCase().trim() : '';
