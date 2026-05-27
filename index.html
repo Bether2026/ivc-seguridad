@@ -4204,37 +4204,27 @@ function _comprimirImagen() {
 function uploadToR2(file, folder) {
   var ext = (file.type && file.type.indexOf('pdf') >= 0) ? '.pdf' : '.jpg';
   var filename = folder + '/' + Date.now() + '_' + Math.random().toString(36).substr(2,6) + ext;
-  console.log('[R2] Iniciando upload:', filename, '|', file.type, '|', (file.size/1024).toFixed(0) + 'KB');
-  toast('📡 Subiendo foto a R2...', 'info');
-  return fetch('https://ivc-push.vercel.app/api/r2-sign', {
+  console.log('[R2] Subiendo via proxy:', filename, '|', (file.size/1024).toFixed(0) + 'KB');
+  return fetch('https://ivc-push.vercel.app/api/r2-upload', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ secret: 'ivc2024secure', filename: filename, contentType: file.type || 'image/jpeg' })
+    headers: {
+      'Content-Type': file.type || 'image/jpeg',
+      'X-IVC-Secret': 'ivc2024secure',
+      'X-IVC-Filename': filename
+    },
+    body: file
   }).then(function(r) {
-    console.log('[R2] r2-sign status:', r.status);
-    if (!r.ok) throw new Error('r2-sign HTTP ' + r.status);
+    if (!r.ok) throw new Error('Proxy error ' + r.status);
     return r.json();
   }).then(function(data) {
-    console.log('[R2] Presigned URL recibida:', data.uploadUrl ? 'OK' : 'FALTA', '| publicUrl:', data.publicUrl);
-    if (!data.uploadUrl) throw new Error('Sin uploadUrl — respuesta: ' + JSON.stringify(data));
-    return fetch(data.uploadUrl, {
-      method: 'PUT',
-      headers: { 'Content-Type': file.type || 'image/jpeg' },
-      body: file
-    }).then(function(res) {
-      console.log('[R2] PUT a R2 status:', res.status);
-      if (!res.ok) throw new Error('R2 PUT error: ' + res.status);
-      console.log('[R2] Upload OK! URL pública:', data.publicUrl);
-      toast('✅ Foto subida a R2', 'ok');
-      return data.publicUrl;
-    });
+    if (!data.publicUrl) throw new Error('Sin publicUrl');
+    console.log('[R2] OK:', data.publicUrl);
+    return data.publicUrl;
   }).catch(function(e) {
     console.error('[R2] ERROR:', e.message);
-    toast('❌ Error R2: ' + e.message, 'err');
     throw e;
   });
 }
-
 function uploadToR2Comprimido(fileOrig, folder) {
   return comprimirImagen(fileOrig).then(function(file) {
     return uploadToR2(file, folder);
