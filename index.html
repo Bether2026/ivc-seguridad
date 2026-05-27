@@ -1468,6 +1468,13 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
       <div class="btn-logout" onclick="doLogout()">⏏</div>
     </div>
   </div>
+  <!-- BARRA DE ESTADO OFFLINE — solo visible para puestos con señal débil -->
+  <div id="offline-bar" style="display:none;align-items:center;gap:8px;padding:8px 16px;background:rgba(245,158,11,0.12);border-bottom:1px solid rgba(245,158,11,0.3);font-size:12px">
+    <span id="offline-badge" style="display:none;align-items:center;gap:6px;color:#f59e0b;font-weight:600">
+      <span class="pulse" style="background:#f59e0b"></span>0 pendientes de sincronizar
+    </span>
+    <button onclick="offlineSync()" style="margin-left:auto;font-size:11px;padding:3px 12px;border-radius:6px;border:1px solid rgba(245,158,11,0.4);background:rgba(245,158,11,0.15);color:#f59e0b;font-family:var(--font);cursor:pointer">↻ Sincronizar ahora</button>
+  </div>
   <main class="content" id="main-content">
     <div class="view active" id="view-dashboard">
       <div class="page-header">
@@ -1590,26 +1597,51 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
       </div>
 
       <!-- SUB-TAB: COMBUSTIBLE -->
+      <!-- SUB-TAB: COMBUSTIBLE -->
       <div id="chof-sub-combustible" style="display:none">
-        <div id="combustible-list"></div>
+        <div class="card" style="margin-bottom:10px;background:linear-gradient(135deg,rgba(251,146,60,0.06),transparent)">
+          <div class="card-head">
+            <span class="card-lbl">⛽ Cargas de combustible</span>
+            <select id="comb-filtro-movil" class="form-select" style="padding:4px 8px;font-size:11px;width:auto" onchange="loadCombustible()">
+              <option value="">Todos los móviles</option>
+              <option>S-10 · AA-909-LF</option><option>S-10 · AA-909-LD</option>
+              <option>Berlingo · MYH-863</option><option>S-10 vieja · EKT-637</option><option>Jumper · KWI-159</option>
+            </select>
+          </div>
+          <div id="combustible-list"></div>
+        </div>
       </div>
 
       <!-- SUB-TAB: INCIDENCIAS -->
       <div id="chof-sub-incidencias" style="display:none">
-        <div id="incidencias-list"></div>
+        <div class="card" style="margin-bottom:10px;background:linear-gradient(135deg,rgba(251,191,36,0.06),transparent)">
+          <div class="card-head">
+            <span class="card-lbl">⚠️ Incidencias registradas</span>
+            <span class="badge b-yellow" id="inc-count" style="font-size:11px">0</span>
+          </div>
+          <div id="incidencias-list"></div>
+        </div>
       </div>
 
       <!-- SUB-TAB: TALLER -->
       <div id="chof-sub-taller" style="display:none">
-        <div id="taller-list"></div>
+        <div class="card" style="margin-bottom:10px;background:linear-gradient(135deg,rgba(99,102,241,0.06),transparent)">
+          <div class="card-head">
+            <span class="card-lbl">🔧 Registros de taller</span>
+            <div style="display:flex;gap:6px">
+              <span class="badge b-yellow" id="tal-activos-count" style="font-size:11px">En taller: 0</span>
+            </div>
+          </div>
+          <div id="taller-list"></div>
+        </div>
       </div>
 
       <!-- SUB-TAB: GPS -->
       <div id="chof-sub-gps" style="display:none">
         <div class="card" style="margin-bottom:10px;background:linear-gradient(135deg,rgba(16,185,129,0.06),transparent)">
-          <div class="card-head" style="margin-bottom:8px">
+          <div class="card-head" style="margin-bottom:6px">
             <span class="card-lbl">📡 Rastreo GPS en tiempo real</span>
-            <span class="badge b-green" id="gps-count" style="font-size:12px">0 activos</span>
+            <span class="badge b-green" id="gps-count" style="font-size:11px">0 activos</span>
           </div>
           <div style="font-size:11px;color:var(--text3);margin-bottom:10px;display:flex;align-items:center;gap:6px">
             <span class="pulse" style="background:var(--green);flex-shrink:0"></span>
@@ -1621,7 +1653,11 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
           <div style="padding:8px 12px;background:var(--bg3);font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">
             🗺️ <strong>Mapa de móviles</strong> &mdash; tocá un marcador para ver detalle
           </div>
-          <div id="gps-map-frame" style="width:100%;height:380px;background:var(--bg2)"></div>
+          <div id="gps-map-frame" style="width:100%;height:380px;background:var(--bg2)">
+            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text3);gap:8px">
+              <span style="font-size:32px">🗺️</span><span style="font-size:13px">Sin móviles activos</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -1922,7 +1958,7 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
           <button class="btn-sm danger-btn" onclick="clearTable('objetivos','Objetivos')">🗑️ Limpiar Objetivos</button>
           <button class="btn-sm danger-btn" onclick="clearTable('rutas','Rutas')">🗑️ Limpiar Rutas</button>
         </div>
-        <button onclick="clearChoferes()" style="width:100%;margin-top:8px;padding:11px;border-radius:var(--radius-xs);border:2px solid rgba(251,146,60,.4);background:rgba(251,146,60,.1);color:#fb923c;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.02em">🚗 Limpiar TODO el módulo Choferes (rutas, GPS, taller, combustible, incidencias)</button>
+        <button onclick="clearChoferes()" style="width:100%;margin-top:8px;padding:11px;border-radius:var(--radius-xs);border:2px solid rgba(251,146,60,.4);background:rgba(251,146,60,.1);color:#fb923c;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">🚗 Limpiar TODO módulo Choferes (rutas, GPS, taller, combustible, incidencias)</button>
         <button onclick="clearAll()" style="width:100%;margin-top:10px;padding:12px;border-radius:var(--radius-xs);border:2px solid rgba(239,68,68,.4);background:rgba(239,68,68,.1);color:#f87171;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.02em">⚠️ LIMPIAR TODO EL SISTEMA</button>
       </div>
       <div class="card" style="border-left:3px solid var(--red)">
@@ -1937,27 +1973,27 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
           <span class="card-lbl">📋 Ver, editar y borrar registros</span>
           <div style="display:flex;gap:6px">
             <select id="admin-tabla-sel" class="form-select" style="padding:5px 10px;font-size:12px;width:auto" onchange="loadAdminTabla(this.value)">
-              <optgroup label="── Operaciones ──">
+              <optgroup label="─ Operaciones ─">
                 <option value="fichajes">Fichajes</option>
                 <option value="novedades">Novedades</option>
                 <option value="objetivos">Objetivos</option>
                 <option value="licencias">Licencias</option>
                 <option value="noticias">Noticias</option>
               </optgroup>
-              <optgroup label="── Choferes ──">
+              <optgroup label="─ Choferes ─">
                 <option value="rutas">Rutas / Hojas de ruta</option>
                 <option value="combustible">Combustible</option>
                 <option value="incidencias">Incidencias</option>
                 <option value="taller">Taller</option>
-                <option value="gps_moviles">GPS — Posiciones actuales</option>
-                <option value="gps_track">GPS — Historial de track</option>
+                <option value="gps_moviles">GPS — Posición actual</option>
+                <option value="gps_track">GPS — Historial track</option>
               </optgroup>
-              <optgroup label="── Sistema ──">
+              <optgroup label="─ Sistema ─">
                 <option value="llaves">Llaves</option>
                 <option value="agentes">Agentes</option>
                 <option value="choferes_lista">Choferes lista</option>
-                <option value="bitacora">Bitácora</option>
                 <option value="push_subscriptions">Push suscripciones</option>
+                <option value="bitacora">Bitácora</option>
               </optgroup>
             </select>
           </div>
@@ -4094,6 +4130,126 @@ var db = createClient(SUPA_URL, SUPA_KEY, {
     params: { eventsPerSecond: 10 }
   }
 });
+
+// ══════════════════════════════════════════════════════════
+//  SISTEMA OFFLINE — Cola local para puestos con mala señal
+//  Puestos cubiertos: Fraga, Rodrigo Bueno, Papa Francisco
+// ══════════════════════════════════════════════════════════
+var PUESTOS_OFFLINE = ['Fraga', 'Rodrigo Bueno', 'Papa Francisco'];
+var OFFLINE_QUEUE_KEY = 'ivc_offline_queue_v1';
+var OFFLINE_SYNC_RUNNING = false;
+
+function esPuestoOffline() {
+  return USER && PUESTOS_OFFLINE.indexOf(USER.puesto) >= 0;
+}
+
+function offlineQueueGet() {
+  try { return JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY) || '[]'); } catch(e) { return []; }
+}
+
+function offlineQueueSave(q) {
+  try { localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(q)); } catch(e) {}
+}
+
+function offlineQueueAdd(tabla, payload) {
+  var q = offlineQueueGet();
+  q.push({ tabla: tabla, payload: payload, ts: new Date().toISOString(), id: Date.now() });
+  offlineQueueSave(q);
+  offlineActualizarBadge();
+}
+
+function offlineActualizarBadge() {
+  var q = offlineQueueGet();
+  var badge = document.getElementById('offline-badge');
+  var bar = document.getElementById('offline-bar');
+  if (!badge) return;
+  if (q.length > 0) {
+    badge.style.display = 'flex';
+    badge.textContent = q.length + ' pendiente' + (q.length !== 1 ? 's' : '') + ' de sincronizar';
+    if (bar) bar.style.display = 'flex';
+  } else {
+    badge.style.display = 'none';
+    if (bar) bar.style.display = 'none';
+  }
+}
+
+function offlineSync() {
+  if (OFFLINE_SYNC_RUNNING) return;
+  if (!navigator.onLine) return;
+  var q = offlineQueueGet();
+  if (!q.length) return;
+  OFFLINE_SYNC_RUNNING = true;
+  var bar = document.getElementById('offline-bar');
+  if (bar) bar.innerHTML = '<span class="pulse" style="background:var(--yellow)"></span><span style="font-size:12px;color:var(--yellow)">⏳ Sincronizando ' + q.length + ' registro' + (q.length !== 1 ? 's' : '') + '...</span>';
+
+  var item = q[0];
+  db.from(item.tabla).insert(item.payload).then(function(res) {
+    if (!res.error) {
+      q.shift();
+      offlineQueueSave(q);
+      OFFLINE_SYNC_RUNNING = false;
+      offlineActualizarBadge();
+      if (q.length > 0) {
+        setTimeout(offlineSync, 500);
+      } else {
+        toast('✅ Todo sincronizado', 'ok');
+        if (bar) bar.innerHTML = '<span style="font-size:12px;color:var(--green)">✅ Sincronizado</span>';
+        setTimeout(function() { if (bar) bar.style.display = 'none'; }, 3000);
+        recargarVistaActual();
+      }
+    } else {
+      OFFLINE_SYNC_RUNNING = false;
+      console.warn('Offline sync error:', res.error.message);
+    }
+  }).catch(function() { OFFLINE_SYNC_RUNNING = false; });
+}
+
+// Escuchar cambios de conectividad
+window.addEventListener('online', function() {
+  if (esPuestoOffline()) {
+    toast('🟢 Conexión recuperada — sincronizando...', 'info');
+    setTimeout(offlineSync, 1000);
+  }
+  var dot = document.getElementById('conn-dot');
+  if (dot) { dot.style.background = 'var(--green)'; dot.title = 'En línea'; }
+});
+
+window.addEventListener('offline', function() {
+  var dot = document.getElementById('conn-dot');
+  if (dot) { dot.style.background = '#f59e0b'; dot.title = 'Sin conexión'; }
+  if (esPuestoOffline()) toast('🟡 Sin internet — los registros se guardan localmente', 'info');
+});
+
+// Función para insertar con fallback offline
+function dbInsertOffline(tabla, payload, onOk, onErr) {
+  if (!navigator.onLine && esPuestoOffline()) {
+    offlineQueueAdd(tabla, payload);
+    toast('🟡 Sin conexión — guardado localmente', 'info');
+    if (onOk) onOk({ data: payload, offline: true });
+    return;
+  }
+  db.from(tabla).insert(payload).then(function(res) {
+    if (res.error) {
+      if (!navigator.onLine && esPuestoOffline()) {
+        offlineQueueAdd(tabla, payload);
+        toast('🟡 Error de red — guardado localmente', 'info');
+        if (onOk) onOk({ data: payload, offline: true });
+      } else {
+        if (onErr) onErr(res.error); else toast('Error: ' + res.error.message, 'err');
+      }
+    } else {
+      if (onOk) onOk(res);
+    }
+  }).catch(function(e) {
+    if (esPuestoOffline()) {
+      offlineQueueAdd(tabla, payload);
+      toast('🟡 Sin conexión — guardado localmente', 'info');
+      if (onOk) onOk({ data: payload, offline: true });
+    } else {
+      if (onErr) onErr(e);
+    }
+  });
+}
 var CREDS_HASH = {
   'Papa Francisco': 'b4f15bb4c0d7e8a31c7d2a3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a',
   'Rodrigo Bueno': 'a3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e',
@@ -4746,6 +4902,13 @@ function initApp() {
   var canSeeGPS = ['Gerencia', 'Administración', 'Administrador', 'Jefe de departamento'].includes(USER.puesto);
   if (canSeeGPS && $('tab-gps')) $('tab-gps').style.display = 'flex';
   if (canSeeGPS) startGPSRefresh();
+  // Inicializar sistema offline para puestos con señal débil
+  if (esPuestoOffline()) {
+    offlineActualizarBadge();
+    var offBar = document.getElementById('offline-bar');
+    if (offBar) offBar.style.display = 'flex';
+    if (navigator.onLine) setTimeout(offlineSync, 2000);
+  }
   var isAdminUser = ['Administración', 'Administrador', 'Gerencia', 'Jefe de departamento'].includes(USER.puesto);
   if (isAdminUser && $('tab-licencias')) $('tab-licencias').style.display = 'block';
   if (isAdminUser && $('f-puesto-wrap')) $('f-puesto-wrap').style.display = 'block';
@@ -5860,22 +6023,15 @@ function _doEntrada() {
             activo: true
           };
           if (geoData) payload.geo_entrada = geoData;
-          _context35.n = 5;
-          return db.from('fichajes').insert(payload);
-        case 5:
-          _yield$db$from$insert = _context35.v;
-          error = _yield$db$from$insert.error;
+          // Fichaje con soporte offline para puestos con señal débil
           setLoading('btn-entrada', false);
-          if (!error) {
-            _context35.n = 6;
-            break;
-          }
-          toast('Error al registrar: ' + error.message, 'err');
+          dbInsertOffline('fichajes', payload, function(res) {
+            toast(res.offline ? '🟡 Entrada guardada (sin conexión)' : 'OK Entrada registrada — ' + SEL_AGENT);
+            if (!res.offline) { loadFichajes(); loadDash(); }
+          }, function(err) { toast('Error al registrar: ' + err.message, 'err'); });
           return _context35.a(2);
-        case 6:
-          toast("OK Entrada registrada \u2014 ".concat(SEL_AGENT));
-          loadFichajes();
-          loadDash();
+        case 5:
+          return _context35.a(2);
         case 7:
           return _context35.a(2);
       }
@@ -6656,15 +6812,7 @@ function _loadChoferes() {
             }
             // Actions
             if (isAct) {
-              var esEsteMovil = (GPS_MOVIL_ACTUAL && GPS_MOVIL_ACTUAL === r.movil);
-              chtml += '<div style="margin-top:8px;padding:7px 10px;border-radius:10px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.18);font-size:11px;display:flex;align-items:center;gap:6px">';
-              if (esEsteMovil) {
-                chtml += '<span id="gps-status-badge" style="display:flex;align-items:center;gap:5px;color:var(--green)"><span class="pulse" style="background:var(--green)"></span>GPS transmitiendo en tiempo real</span>';
-              } else {
-                chtml += '<span style="color:var(--text3);opacity:0.7">📡 GPS: activo al iniciar desde este dispositivo</span>';
-              }
-              chtml += '</div>';
-              chtml += '<div class="obj-actions" style="margin-top:8px">';
+              chtml += '<div class="obj-actions" style="margin-top:10px">';
               chtml += '<button class="btn-sm" onclick="abrirParadaRuta(\'' + r.id + '\')">📍 Registrar parada</button>';
               chtml += '</div>';
             }
@@ -6918,12 +7066,6 @@ function _saveChof() {
           document.getElementById('c-fotos-preview').innerHTML = '';
           closeOv('ov-chof');
           toast('🚗 Hoja de ruta iniciada');
-          // Iniciar transmisión GPS automáticamente con el ID de ruta
-          if (insertRes.data && insertRes.data.id) {
-            startGPSTransmission(chofer, movil, insertRes.data.id);
-          } else {
-            startGPSTransmission(chofer, movil, null);
-          }
           loadChoferes(); loadDash();
           return _ctx42.a(2);
       }
@@ -7759,7 +7901,7 @@ function _loadAdminTabla() {
             return "\n<tr style=\"border-bottom:1px solid var(--border)\" id=\"admin-row-".concat(r.id, "\">\n").concat(cols.map(function (c) {
               return "<td style=\"padding:7px 8px;color:var(--text2);white-space:nowrap;max-width:150px;overflow:hidden;text-overflow:ellipsis\">".concat(formatAdminVal(r[c]), "</td>");
             }).join(''), "\n<td style=\"padding:7px 8px;text-align:center\">\n<div style=\"display:flex;gap:4px;justify-content:center\">\n<button onclick=\"openEditRowById('").concat(tabla, "','").concat(r.id, "')\" style=\"padding:4px 10px;border-radius:4px;border:1px solid rgba(59,130,246,.3);background:rgba(59,130,246,.1);color:#93c5fd;font-family:var(--font);font-size:10px;font-weight:600;cursor:pointer\">[Edit] Editar</button>\n<button onclick=\"deleteRow('").concat(tabla, "','").concat(r.id, "')\" style=\"padding:4px 10px;border-radius:4px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.1);color:#f87171;font-family:var(--font);font-size:10px;font-weight:600;cursor:pointer\"> Borrar</button>\n</div>\n</td>\n</tr>");
-          }).join(''), "\n</tbody>\n</table>\n</div>\n<div style=\"font-size:11px;color:var(--text3);margin-top:8px;display:flex;justify-content:space-between;align-items:center\"><span>Mostrando \xFAltimos ").concat(rows.length, " registros</span><button onclick=\"loadAdminTabla(document.getElementById('admin-tabla-sel').value)\" style=\"font-size:11px;padding:3px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--accent3);font-family:var(--font);cursor:pointer\">\u21bb Actualizar</button></div>");
+          }).join(''), "\n</tbody>\n</table>\n</div>\n<div style=\"font-size:11px;color:var(--text3);margin-top:8px;text-align:right\">Mostrando \xFAltimos ").concat(rows.length, " registros</div>");
           ADMIN_ROWS_CACHE[tabla] = {};
           (rows || []).forEach(function (r) {
             ADMIN_ROWS_CACHE[tabla][r.id] = r;
@@ -7876,35 +8018,30 @@ function _clearAll() {
 }
 function clearChoferes() {
   showConfirm('🚗', 'Limpiar módulo Choferes', '¿Borrar TODAS las rutas, GPS, taller, combustible e incidencias? No se puede deshacer.', function() {
-    // Todas estas tablas usan id bigserial — usamos gte(id,0) para borrar todo
-    var tablasInt = ['rutas', 'combustible', 'incidencias', 'taller', 'gps_moviles', 'gps_track'];
-    var promesas = tablasInt.map(function(t) {
-      return db.from(t)['delete']().gte('id', 0).then(function(r) {
-        if (r.error) console.warn('Error limpiando ' + t + ':', r.error.message);
-      }).catch(function(e) { console.warn(e); });
-    });
-    Promise.all(promesas).then(function() {
-      // Limpiar estado GPS local
-      GPS_TRACKING = false;
-      GPS_MOVIL_ACTUAL = null;
-      GPS_CHOFER_ACTUAL = null;
-      GPS_RUTA_ID_ACTUAL = null;
-      GPS_LAST_LAT = null;
-      GPS_LAST_LNG = null;
-      if (GPS_WATCH_ID !== null) {
-        try { navigator.geolocation.clearWatch(GPS_WATCH_ID); } catch(e) {}
-        GPS_WATCH_ID = null;
-      }
+    var tablasInt = ['rutas', 'combustible', 'incidencias', 'taller', 'gps_moviles'];
+    var done = 0;
+    var total = tablasInt.length + 1;
+    function check() {
+      done++;
+      if (done < total) return;
+      // limpiar gps_track
+      db.from('gps_track')['delete']().gte('id', 0).then(function() {}).catch(function() {});
+      // reset estado GPS local
+      GPS_TRACKING = false; GPS_MOVIL_ACTUAL = null; GPS_CHOFER_ACTUAL = null; GPS_RUTA_ID_ACTUAL = null; GPS_LAST_LAT = null; GPS_LAST_LNG = null;
+      if (GPS_WATCH_ID !== null) { try { navigator.geolocation.clearWatch(GPS_WATCH_ID); } catch(e) {} GPS_WATCH_ID = null; }
       if (GPS_INTERVAL) { clearInterval(GPS_INTERVAL); GPS_INTERVAL = null; }
       toast('🚗 Módulo Choferes limpiado');
       loadAdminStats();
       if (CUR_VIEW === 'choferes') loadChoferes();
-      // Recargar tabla si estamos viendo alguna de las afectadas
       var sel = document.getElementById('admin-tabla-sel');
       if (sel && tablasInt.indexOf(sel.value) >= 0) loadAdminTabla(sel.value);
+    }
+    tablasInt.forEach(function(t) {
+      db.from(t)['delete']().gte('id', 0).then(check).catch(check);
     });
   }, 'Limpiar todo', 'var(--red)');
 }
+
 var SKIP_EDIT_FIELDS = ['id', 'created_at', 'actualizaciones', 'fotos', 'foto_inicio'];
 var ADMIN_ROWS_CACHE = {}; // tabla -> {id -> row}
 function openEditRowById(_x21, _x22) {
@@ -7955,19 +8092,16 @@ function openEditRow(tabla, rowData) {
       return "<div class=\"form-group\">\n<label class=\"form-label\">".concat(col, "</label>\n<textarea class=\"form-textarea\" id=\"").concat(inputId, "\" style=\"min-height:70px\">").concat(strVal, "</textarea>\n</div>");
     }
     if (strVal.includes('T') && (strVal.includes('Z') || strVal.includes('+'))) {
-      // Convertir ISO a formato local para datetime-local input
       var dtLocal = '';
       try {
         var dtObj = new Date(val);
-        // Ajustar a UTC-3 Argentina
-        var ar = new Date(dtObj.getTime() - 3*3600*1000);
-        dtLocal = ar.toISOString().slice(0,16); // YYYY-MM-DDTHH:MM
-      } catch(e) { dtLocal = ''; }
+        var arDate = new Date(dtObj.getTime() - 3*3600*1000);
+        dtLocal = arDate.toISOString().slice(0,16);
+      } catch(ex) {}
       return "<div class=\"form-group\">" +
         "<label class=\"form-label\">" + col + " <span style=\"font-size:10px;color:#f59e0b;font-weight:400\">(editable)</span></label>" +
-        "<input type=\"datetime-local\" class=\"form-input\" id=\"" + inputId + "\" value=\"" + dtLocal + "\" data-isots=\"1\" style=\"color:var(--text);\">" +
-        "<div style=\"font-size:10px;color:var(--text3);margin-top:3px\">Hora Argentina (UTC-3) — se guarda como UTC</div>" +
-        "</div>";
+        "<input type=\"datetime-local\" class=\"form-input\" id=\"" + inputId + "\" value=\"" + dtLocal + "\" data-isots=\"1\">" +
+        "<div style=\"font-size:10px;color:var(--text3);margin-top:3px\">Hora Argentina UTC-3 — se guarda como UTC</div></div>";
     }
     if (col === 'estado') {
       return "<div class=\"form-group\">\n<label class=\"form-label\">".concat(col, "</label>\n<select class=\"form-select\" id=\"").concat(inputId, "\">\n<option ").concat(val === 'activo' ? 'selected' : '', ">activo</option>\n<option ").concat(val === 'finalizado' ? 'selected' : '', ">finalizado</option>\n</select>\n</div>");
@@ -8003,11 +8137,10 @@ function _saveEdit() {
             if (el.type === 'checkbox') {
               updates[col] = el.checked;
             } else if (el.type === 'datetime-local' && el.dataset.isots) {
-              // Convertir de Argentina (UTC-3) a UTC para guardar en Supabase
               if (el.value) {
-                var localDate = new Date(el.value + ':00');
-                var utcDate = new Date(localDate.getTime() + 3 * 3600 * 1000);
-                updates[col] = utcDate.toISOString();
+                var ld = new Date(el.value + ':00');
+                var ud = new Date(ld.getTime() + 3*3600*1000);
+                updates[col] = ud.toISOString();
               }
             } else {
               updates[col] = el.value;
@@ -8062,31 +8195,36 @@ function previewSingleFoto(input, previewId, varName) {
   wrap.innerHTML = "<div style=\"position:relative;width:80px;height:80px;border-radius:8px;overflow:hidden;border:1px solid var(--border2)\">\n<img src=\"".concat(url, "\" style=\"width:100%;height:100%;object-fit:cover\">\n<button onclick=\"").concat(varName, "=null;document.getElementById('").concat(previewId, "').innerHTML=''\" style=\"position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;border:none;background:rgba(0,0,0,.7);color:white;font-size:11px;cursor:pointer\">\xD7</button>\n</div>");
 }
 function loadCombustible() {
-  return _loadCombustible.apply(this, arguments);
-}
-function _loadCombustible() {
-  _loadCombustible = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee57() {
-    var _yield$db$from$select3, rows, list;
-    return _regenerator().w(function (_context57) {
-      while (1) switch (_context57.n) {
-        case 0:
-          _context57.n = 1;
-          return db.from('combustible').select('*').order('created_at', {
-            ascending: false
-          }).limit(30);
-        case 1:
-          _yield$db$from$select3 = _context57.v;
-          rows = _yield$db$from$select3.data;
-          list = rows || [];
-          document.getElementById('combustible-list').innerHTML = list.length ? list.map(function (r) {
-            return "\n<div class=\"chofer-card\">\n<div class=\"chofer-head\">\n<div>\n<div class=\"chofer-name\">\u26FD ".concat(r.movil || '', "</div>\n<div class=\"chofer-sub\">").concat(r.chofer, " \xB7 ").concat(r.estacion || '', "</div>\n</div>\n<span class=\"badge b-blue\">").concat(formatTs(r.created_at), "</span>\n</div>\n<div style=\"display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px\">\n<div style=\"background:var(--bg3);border-radius:6px;padding:8px;text-align:center\">\n<div style=\"font-size:10px;color:var(--text3)\">Litros</div>\n<div style=\"font-size:16px;font-weight:700;color:var(--accent3)\">").concat(r.litros || 0, "L</div>\n</div>\n<div style=\"background:var(--bg3);border-radius:6px;padding:8px;text-align:center\">\n<div style=\"font-size:10px;color:var(--text3)\">Importe</div>\n<div style=\"font-size:16px;font-weight:700;color:var(--green)\">$").concat(r.importe || 0, "</div>\n</div>\n<div style=\"background:var(--bg3);border-radius:6px;padding:8px;text-align:center\">\n<div style=\"font-size:10px;color:var(--text3)\">Km</div>\n<div style=\"font-size:16px;font-weight:700;color:var(--yellow)\">").concat(r.km || '—', "</div>\n</div>\n</div>\n").concat(r.foto ? "<img src=\"".concat(r.foto, "\" onclick=\"abrirFotoLightbox('").concat(r.foto, "')\" style=\"width:100%;max-height:120px;object-fit:cover;border-radius:8px;border:1px solid var(--border2);cursor:zoom-in\" loading=\"lazy\">") : '', "\n</div>");
-          }).join('') : '<div class="empty"><div class="icon">⛽</div><p>Sin cargas registradas</p></div>';
-        case 2:
-          return _context57.a(2);
-      }
-    }, _callee57);
-  }));
-  return _loadCombustible.apply(this, arguments);
+  var filtroMovil = document.getElementById('comb-filtro-movil');
+  var movFiltro = filtroMovil ? filtroMovil.value : '';
+  var q = db.from('combustible').select('*').order('created_at', { ascending: false }).limit(50);
+  if (movFiltro) q = q.eq('movil', movFiltro);
+  q.then(function(res) {
+    var list = res.data || [];
+    var el = document.getElementById('combustible-list');
+    if (!el) return;
+    var totalL = 0, total$ = 0;
+    list.forEach(function(r) { totalL += (r.litros || 0); total$ += (r.importe || 0); });
+    var resumen = list.length ? '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">' +
+      '<div style="background:var(--bg3);border-radius:8px;padding:10px;text-align:center"><div style="font-size:10px;color:var(--text3)">Total litros</div><div style="font-size:18px;font-weight:700;color:#f97316">' + totalL.toFixed(1) + 'L</div></div>' +
+      '<div style="background:var(--bg3);border-radius:8px;padding:10px;text-align:center"><div style="font-size:10px;color:var(--text3)">Total gasto</div><div style="font-size:18px;font-weight:700;color:var(--green)">$' + total$.toLocaleString('es-AR') + '</div></div>' +
+      '<div style="background:var(--bg3);border-radius:8px;padding:10px;text-align:center"><div style="font-size:10px;color:var(--text3)">Cargas</div><div style="font-size:18px;font-weight:700;color:var(--accent3)">' + list.length + '</div></div>' +
+      '</div>' : '';
+    el.innerHTML = resumen + (list.length ? list.map(function(r) {
+      return '<div class="chofer-card">' +
+        '<div class="chofer-head"><div>' +
+        '<div class="chofer-name">⛽ ' + (r.movil || '') + '</div>' +
+        '<div class="chofer-sub">' + (r.chofer || '') + (r.estacion ? ' · ' + r.estacion : '') + '</div>' +
+        '</div><span class="badge b-blue" style="font-size:10px">' + formatTs(r.created_at) + '</span></div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:8px 0">' +
+        '<div style="background:var(--bg3);border-radius:6px;padding:8px;text-align:center"><div style="font-size:10px;color:var(--text3)">Litros</div><div style="font-size:15px;font-weight:700;color:#f97316">' + (r.litros || 0) + 'L</div></div>' +
+        '<div style="background:var(--bg3);border-radius:6px;padding:8px;text-align:center"><div style="font-size:10px;color:var(--text3)">Importe</div><div style="font-size:15px;font-weight:700;color:var(--green)">$' + (r.importe || 0).toLocaleString('es-AR') + '</div></div>' +
+        '<div style="background:var(--bg3);border-radius:6px;padding:8px;text-align:center"><div style="font-size:10px;color:var(--text3)">Km</div><div style="font-size:15px;font-weight:700;color:var(--yellow)">' + (r.km || '—') + '</div></div>' +
+        '</div>' +
+        (r.foto ? '<img src="' + r.foto + '" onclick="abrirFotoLightbox(\'' + r.foto + '\')" style="width:100%;max-height:140px;object-fit:cover;border-radius:8px;border:1px solid var(--border2);cursor:zoom-in;margin-top:4px" loading="lazy">' : '') +
+        '</div>';
+    }).join('') : '<div class="empty"><div class="icon">⛽</div><p>Sin cargas registradas</p></div>');
+  });
 }
 function saveCombustible() {
   return _saveCombustible.apply(this, arguments);
@@ -8157,31 +8295,26 @@ function _saveCombustible() {
   return _saveCombustible.apply(this, arguments);
 }
 function loadIncidencias() {
-  return _loadIncidencias.apply(this, arguments);
-}
-function _loadIncidencias() {
-  _loadIncidencias = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee59() {
-    var _yield$db$from$select4, rows, list;
-    return _regenerator().w(function (_context59) {
-      while (1) switch (_context59.n) {
-        case 0:
-          _context59.n = 1;
-          return db.from('incidencias').select('*').order('created_at', {
-            ascending: false
-          }).limit(30);
-        case 1:
-          _yield$db$from$select4 = _context59.v;
-          rows = _yield$db$from$select4.data;
-          list = rows || [];
-          document.getElementById('incidencias-list').innerHTML = list.length ? list.map(function (r) {
-            return "\n<div class=\"chofer-card\">\n<div class=\"chofer-head\">\n<div>\n<div class=\"chofer-name\">[!] ".concat(r.tipo || 'Incidencia', "</div>\n<div class=\"chofer-sub\">").concat(r.movil || '', " \xB7 ").concat(r.chofer, "</div>\n</div>\n<span class=\"badge b-yellow\">").concat(formatTs(r.created_at), "</span>\n</div>\n<div style=\"font-size:13px;color:var(--text2);line-height:1.55;margin-bottom:8px\">").concat(r.descripcion || '', "</div>\n").concat(r.ubicacion ? "<div style=\"font-size:11px;color:var(--text3);margin-bottom:8px\">[Ubic] ".concat(r.ubicacion, "</div>") : '', "\n").concat(r.foto ? "<img src=\"".concat(r.foto, "\" onclick=\"abrirFotoLightbox('").concat(r.foto, "')\" style=\"width:100%;max-height:160px;object-fit:cover;border-radius:8px;border:1px solid var(--border2);cursor:zoom-in\" loading=\"lazy\">") : '', "\n</div>");
-          }).join('') : '<div class="empty"><div class="icon">[!]</div><p>Sin incidencias registradas</p></div>';
-        case 2:
-          return _context59.a(2);
-      }
-    }, _callee59);
-  }));
-  return _loadIncidencias.apply(this, arguments);
+  db.from('incidencias').select('*').order('created_at', { ascending: false }).limit(50)
+    .then(function(res) {
+      var list = res.data || [];
+      var el = document.getElementById('incidencias-list');
+      var cnt = document.getElementById('inc-count');
+      if (cnt) cnt.textContent = list.length;
+      if (!el) return;
+      el.innerHTML = list.length ? list.map(function(r) {
+        var tipoBadge = r.tipo === 'Choque / colión' || r.tipo === 'Choque / colisión' ? 'b-red' : 'b-yellow';
+        return '<div class="chofer-card">' +
+          '<div class="chofer-head"><div>' +
+          '<div class="chofer-name" style="color:var(--yellow)">⚠️ ' + (r.tipo || 'Incidencia') + '</div>' +
+          '<div class="chofer-sub">' + (r.movil || '') + (r.chofer ? ' · ' + r.chofer : '') + '</div>' +
+          '</div><span class="badge ' + tipoBadge + '" style="font-size:10px">' + formatTs(r.created_at) + '</span></div>' +
+          (r.ubicacion ? '<div style="font-size:11px;color:var(--text3);margin:6px 0;display:flex;align-items:center;gap:4px">📍 ' + r.ubicacion + '</div>' : '') +
+          '<div style="font-size:13px;color:var(--text2);line-height:1.55;margin-bottom:8px">' + (r.descripcion || '') + '</div>' +
+          (r.foto ? '<img src="' + r.foto + '" onclick="abrirFotoLightbox(\'' + r.foto + '\')" style="width:100%;max-height:180px;object-fit:cover;border-radius:8px;border:1px solid var(--border2);cursor:zoom-in" loading="lazy">' : '') +
+          '</div>';
+      }).join('') : '<div class="empty"><div class="icon">⚠️</div><p>Sin incidencias registradas</p></div>';
+    });
 }
 function saveIncidencia() {
   return _saveIncidencia.apply(this, arguments);
@@ -8251,31 +8384,33 @@ function _saveIncidencia() {
   return _saveIncidencia.apply(this, arguments);
 }
 function loadTaller() {
-  return _loadTaller.apply(this, arguments);
-}
-function _loadTaller() {
-  _loadTaller = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee61() {
-    var _yield$db$from$select5, rows, list;
-    return _regenerator().w(function (_context61) {
-      while (1) switch (_context61.n) {
-        case 0:
-          _context61.n = 1;
-          return db.from('taller').select('*').order('created_at', {
-            ascending: false
-          }).limit(30);
-        case 1:
-          _yield$db$from$select5 = _context61.v;
-          rows = _yield$db$from$select5.data;
-          list = rows || [];
-          document.getElementById('taller-list').innerHTML = list.length ? list.map(function (r) {
-            return "\n<div class=\"chofer-card\">\n<div class=\"chofer-head\">\n<div>\n<div class=\"chofer-name\">[Taller] ".concat(r.movil || '', "</div>\n<div class=\"chofer-sub\">").concat(r.tipo || '', " \xB7 ").concat(r.taller_nombre || '', "</div>\n</div>\n<span class=\"badge ").concat(r.estado === 'activo' ? 'b-yellow' : 'b-gray', "\">").concat(r.estado === 'activo' ? 'En taller' : 'Finalizado', "</span>\n</div>\n<div style=\"font-size:12px;color:var(--text2);line-height:1.55;margin-bottom:8px\">").concat(r.descripcion || '', "</div>\n<div style=\"display:flex;gap:12px;font-size:11px;color:var(--text3)\">\n").concat(r.km_ingreso ? "<span>Km: ".concat(r.km_ingreso, "</span>") : '', "\n").concat(r.costo_estimado ? "<span>Costo est.: $".concat(r.costo_estimado, "</span>") : '', "\n<span>").concat(formatTs(r.created_at), "</span>\n</div>\n").concat(r.estado === 'activo' ? "<div style=\"margin-top:10px\"><button class=\"btn-sm ok\" onclick=\"finalizarTaller('".concat(r.id, "')\">OK Marcar como finalizado</button></div>") : '', "\n</div>");
-          }).join('') : '<div class="empty"><div class="icon">[Taller]</div><p>Sin registros de taller</p></div>';
-        case 2:
-          return _context61.a(2);
-      }
-    }, _callee61);
-  }));
-  return _loadTaller.apply(this, arguments);
+  db.from('taller').select('*').order('created_at', { ascending: false }).limit(50)
+    .then(function(res) {
+      var list = res.data || [];
+      var el = document.getElementById('taller-list');
+      var actCnt = document.getElementById('tal-activos-count');
+      var nActivos = list.filter(function(r) { return r.estado === 'activo'; }).length;
+      if (actCnt) actCnt.textContent = 'En taller: ' + nActivos;
+      if (actCnt) actCnt.className = 'badge ' + (nActivos > 0 ? 'b-yellow' : 'b-gray');
+      if (!el) return;
+      el.innerHTML = list.length ? list.map(function(r) {
+        var enTaller = r.estado === 'activo';
+        return '<div class="chofer-card" style="border-left:3px solid ' + (enTaller ? 'var(--yellow)' : 'var(--border2)') + '">' +
+          '<div class="chofer-head"><div>' +
+          '<div class="chofer-name">🔧 ' + (r.movil || '') + '</div>' +
+          '<div class="chofer-sub">' + (r.tipo || '') + (r.taller_nombre ? ' · ' + r.taller_nombre : '') + '</div>' +
+          '</div><span class="badge ' + (enTaller ? 'b-yellow' : 'b-gray') + '">' + (enTaller ? 'En taller' : 'Finalizado') + '</span></div>' +
+          (r.descripcion ? '<div style="font-size:12px;color:var(--text2);line-height:1.55;margin:6px 0">' + r.descripcion + '</div>' : '') +
+          '<div style="display:flex;gap:16px;font-size:11px;color:var(--text3);flex-wrap:wrap">' +
+          (r.km_ingreso ? '<span>🚗 Km ingreso: <b>' + r.km_ingreso + '</b></span>' : '') +
+          (r.costo_estimado ? '<span>💰 Est.: <b>$' + r.costo_estimado.toLocaleString('es-AR') + '</b></span>' : '') +
+          '<span>📅 ' + formatTs(r.created_at) + '</span>' +
+          (r.fecha_salida ? '<span>✅ Salida: ' + formatTs(r.fecha_salida) + '</span>' : '') +
+          '</div>' +
+          (enTaller ? '<div style="margin-top:10px"><button class="btn-sm ok" onclick="finalizarTaller(\'' + r.id + '\')">&#10003; Marcar como finalizado</button></div>' : '') +
+          '</div>';
+      }).join('') : '<div class="empty"><div class="icon">🔧</div><p>Sin registros de taller</p></div>';
+    });
 }
 function saveTaller() {
   return _saveTaller.apply(this, arguments);
@@ -8355,11 +8490,7 @@ function _finalizarTaller() {
   return _finalizarTaller.apply(this, arguments);
 }
 // ══════════════════════════════════════════════════════════
-//  GPS — SISTEMA COMPLETO v2
-//  - watchPosition (movimiento real) + timer 5min (parado)
-//  - Mapa Leaflet con marcadores reales
-//  - Indicador de estado en ruta activa
-//  - Auto-geocodificación inversa
+//  GPS v2 — watchPosition + track + Leaflet + offline-safe
 // ══════════════════════════════════════════════════════════
 var GPS_INTERVAL = null;
 var GPS_WATCH_ID = null;
@@ -8370,372 +8501,201 @@ var GPS_RUTA_ID_ACTUAL = null;
 var GPS_LAST_LAT = null;
 var GPS_LAST_LNG = null;
 var GPS_MAP_INSTANCE = null;
-var GPS_MARKERS_LAYER = null;
 var GPS_REFRESH_INTERVAL = null;
+var GPS_COLORES = ['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ef4444','#06b6d4','#f97316'];
+var GPS_LEAFLET_LOADING = false;
 
-// ── Distancia en metros entre dos puntos GPS ──
 function gpsDistancia(lat1, lng1, lat2, lng2) {
   var R = 6371000;
   var dLat = (lat2 - lat1) * Math.PI / 180;
   var dLng = (lng2 - lng1) * Math.PI / 180;
-  var a = Math.sin(dLat/2)*Math.sin(dLat/2) +
-          Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*
-          Math.sin(dLng/2)*Math.sin(dLng/2);
+  var a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2);
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
-// ── Transmitir posición a Supabase (posición actual + punto de track) ──
 function gpsTransmitirPosicion(lat, lng) {
   if (!GPS_TRACKING || !GPS_MOVIL_ACTUAL) return;
-  getAddress(lat, lng).then(function(direccion) {
-    var ts = new Date().toISOString();
-
-    // 1) Actualizar posición actual del móvil (upsert — solo guarda la última)
+  var ts = new Date().toISOString();
+  getAddress(lat, lng).then(function(dir) {
     db.from('gps_moviles').upsert({
-      chofer: GPS_CHOFER_ACTUAL,
-      movil: GPS_MOVIL_ACTUAL,
-      ruta_id: GPS_RUTA_ID_ACTUAL,
-      lat: lat,
-      lng: lng,
-      direccion: direccion || '',
-      activo: true,
-      updated_at: ts
-    }, { onConflict: 'movil' }).then(function(res) {
-      if (!res.error) {
-        GPS_LAST_LAT = lat;
-        GPS_LAST_LNG = lng;
-        gpsActualizarIndicador(direccion, lat, lng);
-      }
+      chofer: GPS_CHOFER_ACTUAL, movil: GPS_MOVIL_ACTUAL, ruta_id: GPS_RUTA_ID_ACTUAL,
+      lat: lat, lng: lng, direccion: dir || '', activo: true, updated_at: ts
+    }, { onConflict: 'movil' }).then(function(r) {
+      if (!r.error) { GPS_LAST_LAT = lat; GPS_LAST_LNG = lng; gpsActualizarBadge(dir, lat, lng); }
     });
-
-    // 2) Insertar punto en el historial de track (cada punto se acumula)
     db.from('gps_track').insert({
-      chofer: GPS_CHOFER_ACTUAL,
-      movil: GPS_MOVIL_ACTUAL,
-      ruta_id: GPS_RUTA_ID_ACTUAL,
-      lat: lat,
-      lng: lng,
-      direccion: direccion || '',
-      ts: ts
+      chofer: GPS_CHOFER_ACTUAL, movil: GPS_MOVIL_ACTUAL, ruta_id: GPS_RUTA_ID_ACTUAL,
+      lat: lat, lng: lng, direccion: dir || '', ts: ts
     }).then(function() {});
   });
 }
 
-// ── Actualizar el badge de estado GPS en la tarjeta de ruta activa ──
-function gpsActualizarIndicador(dir, lat, lng) {
+function gpsActualizarBadge(dir, lat, lng) {
   var el = document.getElementById('gps-status-badge');
   if (el) {
-    var hora = fechaHoyAR().split(' ')[1] || '';
     el.innerHTML = '<span class="pulse" style="background:var(--green)"></span> GPS activo · ' + (dir || (lat.toFixed(5) + ', ' + lng.toFixed(5)));
-    el.title = 'Última transmisión: ' + hora;
   }
 }
 
-// ── INICIAR transmisión GPS ──
 function startGPSTransmission(chofer, movil, rutaId) {
   if (GPS_TRACKING) return;
-  if (!navigator.geolocation) {
-    toast('GPS no disponible en este dispositivo', 'err');
-    return;
-  }
-  GPS_TRACKING = true;
-  GPS_CHOFER_ACTUAL = chofer;
-  GPS_MOVIL_ACTUAL = movil;
-  GPS_RUTA_ID_ACTUAL = rutaId || null;
-
-  // Primera transmisión inmediata
-  navigator.geolocation.getCurrentPosition(function(pos) {
-    gpsTransmitirPosicion(pos.coords.latitude, pos.coords.longitude);
+  if (!navigator.geolocation) { toast('GPS no disponible', 'err'); return; }
+  GPS_TRACKING = true; GPS_CHOFER_ACTUAL = chofer; GPS_MOVIL_ACTUAL = movil; GPS_RUTA_ID_ACTUAL = rutaId || null;
+  navigator.geolocation.getCurrentPosition(function(p) {
+    gpsTransmitirPosicion(p.coords.latitude, p.coords.longitude);
   }, function() {}, { enableHighAccuracy: true, timeout: 15000 });
-
-  // watchPosition — dispara cuando el dispositivo se mueve más de ~50m
-  GPS_WATCH_ID = navigator.geolocation.watchPosition(
-    function(pos) {
-      var lat = pos.coords.latitude;
-      var lng = pos.coords.longitude;
-      // Solo transmite si se movió más de 50 metros respecto a última posición
-      if (GPS_LAST_LAT !== null) {
-        var dist = gpsDistancia(GPS_LAST_LAT, GPS_LAST_LNG, lat, lng);
-        if (dist < 50) return; // menos de 50m, ignorar
-      }
-      gpsTransmitirPosicion(lat, lng);
-    },
-    function(err) { console.warn('GPS watch error:', err.message); },
-    { enableHighAccuracy: true, maximumAge: 30000, timeout: 30000 }
-  );
-
-  // Timer de respaldo cada 5 minutos (por si el vehículo está parado)
+  GPS_WATCH_ID = navigator.geolocation.watchPosition(function(p) {
+    var lat = p.coords.latitude, lng = p.coords.longitude;
+    if (GPS_LAST_LAT !== null && gpsDistancia(GPS_LAST_LAT, GPS_LAST_LNG, lat, lng) < 50) return;
+    gpsTransmitirPosicion(lat, lng);
+  }, function(e) { console.warn('GPS watch:', e.message); }, { enableHighAccuracy: true, maximumAge: 30000, timeout: 30000 });
   GPS_INTERVAL = setInterval(function() {
     if (!GPS_TRACKING) return;
-    navigator.geolocation.getCurrentPosition(function(pos) {
-      gpsTransmitirPosicion(pos.coords.latitude, pos.coords.longitude);
+    navigator.geolocation.getCurrentPosition(function(p) {
+      gpsTransmitirPosicion(p.coords.latitude, p.coords.longitude);
     }, function() {}, { enableHighAccuracy: true, timeout: 15000 });
-  }, 300000); // 5 minutos
-
-  toast('📡 GPS activado — transmitiendo cada 5 min o al moverse', 'info');
+  }, 300000);
+  toast('📡 GPS activado — transmitiendo', 'info');
 }
 
-// ── DETENER transmisión GPS ──
 function stopGPSTransmission(movil) {
   GPS_TRACKING = false;
-  GPS_CHOFER_ACTUAL = null;
-  GPS_RUTA_ID_ACTUAL = null;
-
-  if (GPS_WATCH_ID !== null) {
-    navigator.geolocation.clearWatch(GPS_WATCH_ID);
-    GPS_WATCH_ID = null;
-  }
-  if (GPS_INTERVAL) {
-    clearInterval(GPS_INTERVAL);
-    GPS_INTERVAL = null;
-  }
-
+  if (GPS_WATCH_ID !== null) { try { navigator.geolocation.clearWatch(GPS_WATCH_ID); } catch(e) {} GPS_WATCH_ID = null; }
+  if (GPS_INTERVAL) { clearInterval(GPS_INTERVAL); GPS_INTERVAL = null; }
   var mv = movil || GPS_MOVIL_ACTUAL;
-  GPS_MOVIL_ACTUAL = null;
-  GPS_LAST_LAT = null;
-  GPS_LAST_LNG = null;
-
-  if (mv) {
-    db.from('gps_moviles').update({ activo: false }).eq('movil', mv).then(function() {
-      toast('GPS desactivado');
-    });
-  }
+  GPS_MOVIL_ACTUAL = null; GPS_CHOFER_ACTUAL = null; GPS_RUTA_ID_ACTUAL = null; GPS_LAST_LAT = null; GPS_LAST_LNG = null;
+  if (mv) db.from('gps_moviles').update({ activo: false }).eq('movil', mv).then(function() { toast('GPS desactivado'); });
 }
 
-// ── CARGAR vista GPS con tracks de huella ──
 function loadGPS() {
   db.from('gps_moviles').select('*').eq('activo', true).order('updated_at', { ascending: false })
     .then(function(res) {
       var list = res.data || [];
       var countEl = document.getElementById('gps-count');
       if (countEl) countEl.textContent = list.length + ' activo' + (list.length !== 1 ? 's' : '');
-
       var listEl = document.getElementById('gps-moviles-list');
       var mapEl  = document.getElementById('gps-map-frame');
       if (!listEl || !mapEl) return;
-
-      if (!list.length) {
-        listEl.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:12px 0;text-align:center">📡 Sin móviles transmitiendo GPS en este momento</div>';
-        mapEl.innerHTML  = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text3);gap:8px"><span style="font-size:32px">🗺️</span><span style="font-size:13px">Sin móviles activos</span></div>';
-        return;
-      }
-
-      // Renderizar lista de móviles
       var ahora = new Date();
       var html = '';
       for (var i = 0; i < list.length; i++) {
         var p = list[i];
         var upd = p.updated_at ? new Date(p.updated_at) : null;
-        var minutos = upd ? Math.floor((ahora - upd) / 60000) : 999;
-        var estadoColor = minutos < 6 ? 'var(--green)' : minutos < 15 ? '#f59e0b' : 'var(--red)';
-        var estadoLabel = minutos < 6 ? 'En línea' : minutos < 15 ? 'Hace ' + minutos + ' min' : 'Sin señal';
-        var badgeClass  = minutos < 6 ? 'b-green' : minutos < 15 ? 'b-yellow' : 'b-red';
+        var min = upd ? Math.floor((ahora - upd) / 60000) : 999;
+        var sc = min < 6 ? 'var(--green)' : min < 15 ? '#f59e0b' : 'var(--red)';
+        var sl = min < 6 ? 'En línea' : min < 15 ? 'Hace ' + min + ' min' : 'Sin señal';
+        var bc = min < 6 ? 'b-green' : min < 15 ? 'b-yellow' : 'b-red';
         html += '<div class="agent-row" style="cursor:pointer" onclick="gpsCentrarMapa(' + p.lat + ',' + p.lng + ')">';
-        html += '<div class="agent-av" style="background:' + estadoColor + '20;color:' + estadoColor + ';font-size:18px">🚗</div>';
-        html += '<div class="agent-info">';
-        html += '<div class="agent-name">' + (p.movil || '—') + '</div>';
+        html += '<div class="agent-av" style="background:' + sc + '20;color:' + sc + ';font-size:18px">🚗</div>';
+        html += '<div class="agent-info"><div class="agent-name">' + (p.movil || '—') + '</div>';
         html += '<div class="agent-sub" style="font-size:11px">👤 ' + (p.chofer || '—') + '</div>';
-        html += '<div class="agent-sub" style="font-size:10px;color:var(--text3)">📍 ' + (p.direccion || p.lat.toFixed(5) + ', ' + p.lng.toFixed(5)) + '</div>';
-        html += '</div>';
-        html += '<div style="text-align:right;flex-shrink:0">';
-        html += '<span class="badge ' + badgeClass + '">';
-        if (minutos < 6) html += '<span class="pulse"></span> ';
-        html += estadoLabel + '</span>';
+        html += '<div class="agent-sub" style="font-size:10px;color:var(--text3)">📍 ' + (p.direccion || p.lat.toFixed(5) + ', ' + p.lng.toFixed(5)) + '</div></div>';
+        html += '<div style="text-align:right;flex-shrink:0"><span class="badge ' + bc + '">';
+        if (min < 6) html += '<span class="pulse"></span> ';
+        html += sl + '</span>';
         if (upd) html += '<div style="font-size:10px;color:var(--text3);margin-top:3px">' + formatTs(p.updated_at) + '</div>';
-        html += '</div>';
-        html += '</div>';
+        html += '</div></div>';
+      }
+      if (!list.length) {
+        html = '<div style="font-size:12px;color:var(--text3);padding:12px 0;text-align:center">📡 Sin móviles transmitiendo GPS en este momento</div>';
+        mapEl.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text3);gap:8px"><span style="font-size:32px">🗺️</span><span style="font-size:13px">Sin móviles activos</span></div>';
+        listEl.innerHTML = html;
+        return;
       }
       listEl.innerHTML = html;
-
-      // Cargar tracks de huellas (puntos de las últimas 12 horas)
-      var hace12h = new Date(Date.now() - 12 * 3600 * 1000).toISOString();
-      var movilesActivos = [];
-      for (var j = 0; j < list.length; j++) movilesActivos.push(list[j].movil);
-
-      db.from('gps_track').select('movil,lat,lng,ts,chofer')
-        .in('movil', movilesActivos)
-        .gte('ts', hace12h)
-        .order('ts', { ascending: true })
-        .then(function(trackRes) {
-          var tracks = trackRes.data || [];
-          var tracksPorMovil = {};
-          for (var t = 0; t < tracks.length; t++) {
-            var pt = tracks[t];
-            if (!tracksPorMovil[pt.movil]) tracksPorMovil[pt.movil] = [];
-            tracksPorMovil[pt.movil].push([pt.lat, pt.lng, pt.ts]);
-          }
-          gpsRenderizarMapa(mapEl, list, tracksPorMovil);
-        }).catch(function() {
-          // Si la tabla gps_track no existe todavía, igual renderiza sin huellas
-          gpsRenderizarMapa(mapEl, list, {});
-        });
+      // Cargar tracks
+      var hace12h = new Date(Date.now() - 12*3600*1000).toISOString();
+      var movs = list.map(function(x) { return x.movil; });
+      db.from('gps_track').select('movil,lat,lng,ts').in('movil', movs).gte('ts', hace12h).order('ts', { ascending: true })
+        .then(function(tr) {
+          var tracks = tr.data || {};
+          var byMovil = {};
+          (tr.data || []).forEach(function(pt) {
+            if (!byMovil[pt.movil]) byMovil[pt.movil] = [];
+            byMovil[pt.movil].push([pt.lat, pt.lng, pt.ts]);
+          });
+          gpsCargarLeaflet(mapEl, list, byMovil);
+        }).catch(function() { gpsCargarLeaflet(mapEl, list, {}); });
     });
 }
 
-// Paleta de colores para múltiples móviles
-var GPS_COLORES = ['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ef4444','#06b6d4','#f97316'];
-
-// ── Renderizar mapa Leaflet con marcadores + huellas de recorrido ──
-function gpsRenderizarMapa(mapEl, list, tracksPorMovil) {
-  if (!tracksPorMovil) tracksPorMovil = {};
-
-  // Si Leaflet no está cargado, cargarlo dinámicamente
-  if (typeof L === 'undefined') {
-    var link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-    document.head.appendChild(link);
-    var script = document.createElement('script');
-    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-    script.onload = function() { gpsRenderizarMapa(mapEl, list, tracksPorMovil); };
-    document.head.appendChild(script);
-    mapEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text3);font-size:13px">⏳ Cargando mapa...</div>';
+function gpsCargarLeaflet(mapEl, list, byMovil) {
+  if (typeof L !== 'undefined') {
+    gpsRenderMapa(mapEl, list, byMovil);
     return;
   }
+  if (GPS_LEAFLET_LOADING) { setTimeout(function() { gpsCargarLeaflet(mapEl, list, byMovil); }, 500); return; }
+  GPS_LEAFLET_LOADING = true;
+  var lnk = document.createElement('link');
+  lnk.rel = 'stylesheet'; lnk.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+  document.head.appendChild(lnk);
+  var scr = document.createElement('script');
+  scr.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+  scr.onload = function() { GPS_LEAFLET_LOADING = false; gpsRenderMapa(mapEl, list, byMovil); };
+  scr.onerror = function() { GPS_LEAFLET_LOADING = false; gpsFallbackMapa(mapEl, list); };
+  document.head.appendChild(scr);
+  mapEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text3);font-size:13px">⏳ Cargando mapa...</div>';
+}
 
-  // Contenedor del mapa
-  if (!document.getElementById('leaflet-map-container')) {
-    mapEl.innerHTML = '<div id="leaflet-map-container" style="width:100%;height:380px"></div>';
+function gpsFallbackMapa(mapEl, list) {
+  var p = list[0];
+  mapEl.innerHTML = '<iframe src="https://www.openstreetmap.org/export/embed.html?bbox=' + (p.lng-0.008) + ',' + (p.lat-0.008) + ',' + (p.lng+0.008) + ',' + (p.lat+0.008) + '&layer=mapnik&marker=' + p.lat + ',' + p.lng + '" style="width:100%;height:380px;border:none" loading="lazy"></iframe>';
+}
+
+function gpsRenderMapa(mapEl, list, byMovil) {
+  if (!document.getElementById('leaflet-mc')) {
+    mapEl.innerHTML = '<div id="leaflet-mc" style="width:100%;height:380px"></div>';
   }
-
-  // Destruir mapa anterior si existe
-  if (GPS_MAP_INSTANCE) {
-    try { GPS_MAP_INSTANCE.remove(); } catch(e) {}
-    GPS_MAP_INSTANCE = null;
-  }
-
-  // Calcular centro
+  if (GPS_MAP_INSTANCE) { try { GPS_MAP_INSTANCE.remove(); } catch(e) {} GPS_MAP_INSTANCE = null; }
   var avgLat = 0, avgLng = 0;
-  for (var ci = 0; ci < list.length; ci++) { avgLat += list[ci].lat; avgLng += list[ci].lng; }
+  list.forEach(function(x) { avgLat += x.lat; avgLng += x.lng; });
   avgLat /= list.length; avgLng /= list.length;
-  var zoom = list.length === 1 ? 15 : 13;
-
-  var map = L.map('leaflet-map-container', {
-    center: [avgLat, avgLng],
-    zoom: zoom,
-    zoomControl: true
-  });
+  var map = L.map('leaflet-mc', { center: [avgLat, avgLng], zoom: list.length === 1 ? 15 : 13, zoomControl: true });
   GPS_MAP_INSTANCE = map;
-
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap',
-    maxZoom: 19
-  }).addTo(map);
-
-  // Para cada móvil: dibujar huella + marcador actual
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OSM', maxZoom: 19 }).addTo(map);
   var ahora = new Date();
-  for (var i = 0; i < list.length; i++) {
-    var p = list[i];
-    var colorMovil = GPS_COLORES[i % GPS_COLORES.length];
+  var allPts = [];
+  list.forEach(function(p, i) {
+    var color = GPS_COLORES[i % GPS_COLORES.length];
     var upd = p.updated_at ? new Date(p.updated_at) : null;
-    var minutos = upd ? Math.floor((ahora - upd) / 60000) : 999;
-    var colorEstado = minutos < 6 ? '#10b981' : minutos < 15 ? '#f59e0b' : '#ef4444';
-
-    // Dibujar huella del recorrido
-    var puntos = tracksPorMovil[p.movil] || [];
-    if (puntos.length >= 2) {
-      // Línea principal del recorrido
-      var latlngs = [];
-      for (var k = 0; k < puntos.length; k++) latlngs.push([puntos[k][0], puntos[k][1]]);
-
-      // Sombra blanca debajo para legibilidad
-      L.polyline(latlngs, {
-        color: 'rgba(255,255,255,0.3)',
-        weight: 6,
-        opacity: 1,
-        lineJoin: 'round',
-        lineCap: 'round'
-      }).addTo(map);
-
-      // Línea de color del móvil
-      L.polyline(latlngs, {
-        color: colorMovil,
-        weight: 4,
-        opacity: 0.85,
-        lineJoin: 'round',
-        lineCap: 'round',
-        dashArray: null
-      }).addTo(map);
-
-      // Marcador de inicio del recorrido (bandera)
-      var inicioIcon = L.divIcon({
-        html: '<div style="background:' + colorMovil + ';width:10px;height:10px;border-radius:50%;border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,0.5)"></div>',
-        iconSize: [10, 10],
-        iconAnchor: [5, 5],
-        className: ''
-      });
-      L.marker([puntos[0][0], puntos[0][1]], { icon: inicioIcon })
-        .addTo(map)
-        .bindPopup('<b>Inicio de ruta</b><br><span style="font-size:11px;color:#555">' + (puntos[0][2] ? new Date(puntos[0][2]).toLocaleTimeString('es-AR') : '') + '</span>');
-
-      // Puntos intermedios pequeños sobre la línea
-      var cadaN = Math.max(1, Math.floor(puntos.length / 8)); // max 8 puntos intermedios
-      for (var m = cadaN; m < puntos.length - 1; m += cadaN) {
-        var ptIcon = L.divIcon({
-          html: '<div style="background:' + colorMovil + ';width:7px;height:7px;border-radius:50%;border:1.5px solid white;opacity:0.8"></div>',
-          iconSize: [7, 7],
-          iconAnchor: [3, 3],
-          className: ''
-        });
-        var hora = puntos[m][2] ? new Date(puntos[m][2]).toLocaleTimeString('es-AR') : '';
-        L.marker([puntos[m][0], puntos[m][1]], { icon: ptIcon })
-          .addTo(map)
-          .bindPopup('<span style="font-size:11px">' + (p.movil || p.chofer) + '<br>' + hora + '</span>');
+    var min = upd ? Math.floor((ahora - upd) / 60000) : 999;
+    var ec = min < 6 ? '#10b981' : min < 15 ? '#f59e0b' : '#ef4444';
+    // Huella
+    var pts = byMovil[p.movil] || [];
+    if (pts.length >= 2) {
+      var ll = pts.map(function(x) { return [x[0], x[1]]; });
+      L.polyline(ll, { color: 'rgba(255,255,255,0.25)', weight: 6, lineJoin: 'round', lineCap: 'round' }).addTo(map);
+      L.polyline(ll, { color: color, weight: 4, opacity: 0.85, lineJoin: 'round', lineCap: 'round' }).addTo(map);
+      L.circleMarker([pts[0][0], pts[0][1]], { radius: 5, color: color, fillColor: color, fillOpacity: 1, weight: 2 }).addTo(map).bindPopup('<b>Inicio</b><br><span style="font-size:11px">' + (pts[0][2] ? new Date(pts[0][2]).toLocaleTimeString('es-AR') : '') + '</span>');
+      var step = Math.max(1, Math.floor(pts.length / 6));
+      for (var m = step; m < pts.length - 1; m += step) {
+        L.circleMarker([pts[m][0], pts[m][1]], { radius: 4, color: color, fillColor: '#fff', fillOpacity: 0.8, weight: 1.5 }).addTo(map);
       }
+      pts.forEach(function(x) { allPts.push([x[0], x[1]]); });
     }
-
-    // Marcador actual del móvil (al final del recorrido)
-    var svgIcon = '<svg xmlns="http://www.w3.org/2000/svg" width="38" height="46" viewBox="0 0 38 46">' +
-      '<ellipse cx="19" cy="42" rx="9" ry="3.5" fill="rgba(0,0,0,0.25)"/>' +
-      '<path d="M19 0 C8 0 0 8.5 0 19 C0 32 19 46 19 46 C19 46 38 32 38 19 C38 8.5 30 0 19 0Z" fill="' + colorEstado + '" stroke="white" stroke-width="2.5"/>' +
-      '<circle cx="19" cy="18" r="11" fill="rgba(0,0,0,0.15)"/>' +
-      '<text x="19" y="23" font-size="14" text-anchor="middle" fill="white">🚗</text>' +
-      '</svg>';
-    var icon = L.divIcon({
-      html: svgIcon,
-      iconSize: [38, 46],
-      iconAnchor: [19, 46],
-      popupAnchor: [0, -46],
-      className: ''
-    });
-    var label = minutos < 6 ? 'En línea' : 'Hace ' + minutos + ' min';
-    var nPuntos = (tracksPorMovil[p.movil] || []).length;
-    var popup = '<div style="font-family:sans-serif;min-width:170px">' +
-      '<b style="font-size:13px">🚗 ' + (p.movil || '—') + '</b><br>' +
-      '<span style="font-size:11px;color:#555">👤 ' + (p.chofer || '—') + '</span><br>' +
-      '<span style="font-size:10px;color:#777">📍 ' + (p.direccion || p.lat.toFixed(5) + ', ' + p.lng.toFixed(5)) + '</span><br>' +
-      '<span style="font-size:10px;color:' + colorEstado + '">● ' + label + '</span>' +
-      (nPuntos > 1 ? '<br><span style="font-size:10px;color:#888">📈 ' + nPuntos + ' puntos registrados</span>' : '') +
-      '</div>';
-    L.marker([p.lat, p.lng], { icon: icon, zIndexOffset: 1000 }).addTo(map).bindPopup(popup);
-  }
-
-  // Ajustar el mapa para que entren todos los tracks
-  var allPoints = [];
-  for (var ai = 0; ai < list.length; ai++) {
-    allPoints.push([list[ai].lat, list[ai].lng]);
-    var tr = tracksPorMovil[list[ai].movil] || [];
-    for (var ti = 0; ti < tr.length; ti++) allPoints.push([tr[ti][0], tr[ti][1]]);
-  }
-  if (allPoints.length > 1) {
-    try { map.fitBounds(L.latLngBounds(allPoints), { padding: [30, 30], maxZoom: 16 }); } catch(e) {}
-  }
+    allPts.push([p.lat, p.lng]);
+    // Marcador actual
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="38" height="46" viewBox="0 0 38 46"><ellipse cx="19" cy="42" rx="9" ry="3" fill="rgba(0,0,0,0.2)"/><path d="M19 0C8 0 0 8.5 0 19c0 13 19 27 19 27s19-14 19-27C38 8.5 30 0 19 0z" fill="' + ec + '" stroke="#fff" stroke-width="2"/><text x="19" y="23" font-size="14" text-anchor="middle" fill="#fff">🚗</text></svg>';
+    var ico = L.divIcon({ html: svg, iconSize: [38,46], iconAnchor: [19,46], popupAnchor: [0,-46], className: '' });
+    var popup = '<b>🚗 ' + (p.movil||'—') + '</b><br><span style="font-size:11px">👤 ' + (p.chofer||'—') + '</span><br><span style="font-size:10px;color:#777">📍 ' + (p.direccion||(p.lat.toFixed(5)+', '+p.lng.toFixed(5))) + '</span><br><span style="font-size:10px;color:' + ec + '">● ' + (min < 6 ? 'En línea' : 'Hace '+min+' min') + '</span>' + (pts.length > 1 ? '<br><span style="font-size:10px;color:#888">📈 ' + pts.length + ' puntos</span>' : '');
+    L.marker([p.lat, p.lng], { icon: ico, zIndexOffset: 1000 }).addTo(map).bindPopup(popup);
+  });
+  if (allPts.length > 1) { try { map.fitBounds(L.latLngBounds(allPts), { padding: [30,30], maxZoom: 16 }); } catch(e) {} }
+  // fix: invalidar size luego de render por si el div no tenia dimensiones al init
+  setTimeout(function() { try { map.invalidateSize(); } catch(e) {} }, 300);
 }
 
-// ── Centrar mapa en un móvil al hacer clic en la lista ──
 function gpsCentrarMapa(lat, lng) {
-  if (GPS_MAP_INSTANCE) {
-    GPS_MAP_INSTANCE.setView([lat, lng], 16);
-  }
+  if (GPS_MAP_INSTANCE) GPS_MAP_INSTANCE.setView([lat, lng], 16);
 }
 
-// ── Refresh automático de la vista GPS cada 30 segundos ──
 function startGPSRefresh() {
   if (GPS_REFRESH_INTERVAL) clearInterval(GPS_REFRESH_INTERVAL);
   GPS_REFRESH_INTERVAL = setInterval(function() {
     if (CUR_CHOF_SUBTAB === 'gps') loadGPS();
-  }, 30000); // 30 segundos (el mapa se recarga con datos frescos)
+  }, 30000);
 }
+
 var LIC_FILE = null;
 var CUR_FICH_TAB = 'fichaje';
 function fichTab(tab, btn) {
