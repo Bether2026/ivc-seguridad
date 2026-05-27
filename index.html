@@ -8109,7 +8109,14 @@ function _saveEdit() {
           return _context56.a(2);
         case 2:
           closeOv('ov-edit');
-          toast('[OK] Registro actualizado');
+          toast('✅ Registro actualizado');
+          // Si editamos una llave, sincronizar el diccionario local
+          if (tabla === 'llaves') {
+            db.from('llaves').select('numero_tablero,nombre').eq('id', id).single().then(function(r) {
+              if (!r.error && r.data && r.data.nombre) LLAVES_DATA[parseInt(r.data.numero_tablero)] = r.data.nombre;
+              if (CUR_VIEW === 'llaves') loadLlaves();
+            });
+          }
           loadAdminTabla(tabla);
         case 3:
           return _context56.a(2);
@@ -9656,9 +9663,57 @@ function filtrarLlaves() {
     }
     html += '<div style="display:flex;gap:6px;margin-top:8px">';
     html += '<button class="btn-sm" onclick="abrirDetalleLlave(' + r.n + ')">📋 Movimiento</button>';
+    // Botón editar solo para ADMIN
+    if (!r.sinReg && r.llave && USER && USER.rol === 'ADMIN') {
+      html += '<button onclick="editarLlave(\'' + r.llave.id + '\',' + r.n + ')" style="padding:5px 12px;border-radius:8px;border:1px solid rgba(59,130,246,.3);background:rgba(59,130,246,.1);color:#93c5fd;font-family:var(--font);font-size:11px;font-weight:600;cursor:pointer">✏️ Editar</button>';
+    }
     html += '</div></div></div></div>';
   }
   listEl.innerHTML = html;
+}
+
+// Editar llave directamente (nombre, observaciones) — solo ADMIN
+function editarLlave(id, numero) {
+  db.from('llaves').select('*').eq('id', id).single().then(function(res) {
+    if (res.error || !res.data) { toast('No se pudo cargar la llave', 'err'); return; }
+    var llave = res.data;
+    var html =
+      '<div class="form-group"><label class="form-label">Número de tablero</label>' +
+      '<div class="form-input" style="opacity:.6;pointer-events:none">' + numero + '</div></div>' +
+      '<div class="form-group"><label class="form-label">Nombre / Objetivo <span style="color:var(--red)">*</span></label>' +
+      '<input class="form-input" id="edit-llave-nombre" value="' + (llave.nombre || '').replace(/"/g,'&quot;') + '"/></div>' +
+      '<div class="form-group"><label class="form-label">Observaciones</label>' +
+      '<textarea class="form-textarea" id="edit-llave-obs" style="min-height:60px">' + (llave.observaciones || '') + '</textarea></div>';
+    document.getElementById('edit-fields').innerHTML = html;
+    document.getElementById('edit-fields').dataset.cols = '[]'; // no usar saveEdit genérico
+    document.getElementById('edit-tabla').value = '_llave_custom_';
+    document.getElementById('edit-id').value = id;
+    document.getElementById('edit-id').dataset.lnumero = numero;
+    // Override btn-save-edit para llaves
+    var btn = document.getElementById('btn-save-edit');
+    btn.onclick = function() { guardarEditLlave(id, numero); };
+    document.getElementById('edit-title') && (document.getElementById('edit-title').textContent = 'Editar Llave N°' + numero);
+    openOv('ov-edit');
+  });
+}
+
+function guardarEditLlave(id, numero) {
+  var nombre = (document.getElementById('edit-llave-nombre') || {}).value;
+  var obs    = (document.getElementById('edit-llave-obs') || {}).value;
+  if (!nombre || !nombre.trim()) { toast('El nombre no puede estar vacío', 'err'); return; }
+  setLoading('btn-save-edit', true);
+  db.from('llaves').update({ nombre: nombre.trim(), observaciones: obs || null }).eq('id', id).then(function(r) {
+    setLoading('btn-save-edit', false);
+    if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+    // Actualizar diccionario local
+    LLAVES_DATA[numero] = nombre.trim();
+    closeOv('ov-edit');
+    toast('✅ Llave N°' + numero + ' actualizada');
+    // Restaurar onclick del btn a saveEdit genérico
+    var btn = document.getElementById('btn-save-edit');
+    if (btn) btn.onclick = saveEdit;
+    loadLlaves();
+  });
 }
 
 function toggleMovFields() {
