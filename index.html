@@ -336,6 +336,7 @@ body::after { display: none; }
   backdrop-filter: blur(28px) saturate(180%); -webkit-backdrop-filter: blur(28px) saturate(180%);
   border-top: 1px solid rgba(255,255,255,0.06);
   display: flex;
+  justify-content: center;
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
@@ -1926,6 +1927,17 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
         <p>Gestión y limpieza de datos del sistema</p>
       </div>
 
+      <!-- ALMACENAMIENTO -->
+      <div class="card" style="border-left:3px solid #34d399;margin-bottom:14px">
+        <div class="card-head">
+          <span class="card-lbl">💾 Uso de almacenamiento</span>
+          <button onclick="loadStorageStats()" style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--accent3);font-family:var(--font);font-weight:600;cursor:pointer">Actualizar</button>
+        </div>
+        <div id="storage-stats">
+          <div style="font-size:12px;color:var(--text3);padding:8px 0">Tocá "Actualizar" para cargar los datos de almacenamiento</div>
+        </div>
+      </div>
+
       <!-- HISTORIAL DE SESIONES -->
       <div class="card" style="border-left:3px solid var(--accent3);margin-bottom:14px">
         <div class="card-head">
@@ -3358,7 +3370,7 @@ function renderNovCard(n) {
   h += '<div style="font-size:11px;color:var(--text3)">' + hora + ' &middot; ' + ubic + '</div>';
   h += '</div>';
   h += '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0">';
-  h += adminEditBtn('novedades', n.id);
+  h += adminEditBtn('novedades', n.id) + adminDelBtn('novedades', n.id, 'Novedad');
   h += '<div style="font-size:18px;color:var(--text3);transition:transform .25s;margin-top:2px" id="arr-' + n.id + '">&#9660;</div>';
   h += '</div>';
   h += '</div>';
@@ -5394,7 +5406,7 @@ function _loadAgenda() {
                 if (op.telefono) h += '<div style="font-size:12px;color:var(--text2)">📞 ' + op.telefono + '</div>';
                 h += '</div>';
                 if (op.detalle) h += '<div style="font-size:11px;color:var(--text3);line-height:1.55;border-top:1px solid var(--border);padding-top:6px">' + op.detalle + '</div>';
-                h += '<div style="margin-top:8px">' + adminEditBtn('agenda_operativos', op.id) + '</div>';
+                h += '<div style="margin-top:8px;display:flex;gap:6px">' + adminEditBtn('agenda_operativos', op.id) + adminDelBtn('agenda_operativos', op.id, 'Operativo') + '</div>';
                 h += '</div>';
               }
             }
@@ -5440,7 +5452,7 @@ function _loadAgenda() {
             if (op.telefono) h += '<div style="font-size:12px;color:var(--text2)">📞 ' + op.telefono + '</div>';
             h += '</div>';
             if (op.detalle) h += '<div style="font-size:12px;color:var(--text3);line-height:1.6;border-top:1px solid var(--border);padding-top:8px">' + op.detalle + '</div>';
-            h += '<div style="margin-top:8px">' + adminEditBtn('agenda_operativos', op.id) + '</div>';
+            h += '<div style="margin-top:8px;display:flex;gap:6px">' + adminEditBtn('agenda_operativos', op.id) + adminDelBtn('agenda_operativos', op.id, 'Operativo') + '</div>';
             h += '</div>';
           }
           cont.innerHTML = h;
@@ -5826,7 +5838,7 @@ function _loadFichajes() {
               fhtml += '<span class="badge b-green"><span class="pulse"></span> Activo</span>';
               fhtml += '<span style="font-family:var(--mono);font-size:10px;color:var(--text2)">desde ' + formatTs(fr.entrada) + '</span>';
               fhtml += '<button data-fid="' + fr.id + '" data-fnombre="' + fr.agente.replace(/"/g, '').replace(/'/g, '') + '" onclick="var b=this;marcarSalidaDirecta(b.getAttribute(\'data-fid\'),b.getAttribute(\'data-fnombre\'))" style="padding:5px 10px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.5);border-radius:6px;color:#f87171;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font)">Marcar salida</button>';
-              fhtml += adminEditBtn('fichajes', fr.id);
+              fhtml += adminEditBtn('fichajes', fr.id) + adminDelBtn('fichajes', fr.id, 'Fichaje');
               fhtml += '</div></div>';
             }
             document.getElementById('f-list').innerHTML = fhtml;
@@ -6670,13 +6682,13 @@ function _loadObjetivos() {
                   ohtml += '<div class="obj-actions" style="margin-top:10px">';
                   ohtml += '<button class="btn-sm" onclick="event.stopPropagation();openUpdObj(\'' + o.id + '\',' + prog + ')">📍 Registrar punto</button>';
                   ohtml += '<button class="btn-sm ok" onclick="event.stopPropagation();finObj(\'' + o.id + '\')">&#10003; Finalizar</button>';
-                  ohtml += adminEditBtn('objetivos', o.id);
+                  ohtml += adminEditBtn('objetivos', o.id) + adminDelBtn('objetivos', o.id, 'Objetivo');
                   ohtml += '</div>';
                 }
 
                 // Botón editar admin en objetivos finalizados
                 if (!isAct) {
-                  ohtml += '<div class="obj-actions" style="margin-top:8px">' + adminEditBtn('objetivos', o.id) + '</div>';
+                  ohtml += '<div class="obj-actions" style="margin-top:8px">' + adminEditBtn('objetivos', o.id) + adminDelBtn('objetivos', o.id, 'Objetivo') + '</div>';
                 }
                 ohtml += '</div>'; // end collapsible body
                 ohtml += '</div>'; // end obj-item
@@ -6773,11 +6785,11 @@ function _loadChoferes() {
             if (isAct) {
               chtml += '<div class="obj-actions" style="margin-top:10px">';
               chtml += '<button class="btn-sm" onclick="abrirParadaRuta(\'' + r.id + '\')">📍 Registrar parada</button>';
-              chtml += adminEditBtn('rutas', r.id);
+              chtml += adminEditBtn('rutas', r.id) + adminDelBtn('rutas', r.id, 'Ruta');
               chtml += '</div>';
             } else {
               var adminBtnRuta = adminEditBtn('rutas', r.id);
-              if (adminBtnRuta) chtml += '<div style="margin-top:8px">' + adminBtnRuta + '</div>';
+              if (adminBtnRuta) chtml += '<div style="margin-top:8px;display:flex;gap:6px">' + adminBtnRuta + adminDelBtn('rutas', r.id, 'Ruta') + '</div>';
             }
             chtml += '</div>';
           }
@@ -8192,7 +8204,7 @@ function loadCombustible() {
         '<div style="background:var(--bg3);border-radius:6px;padding:8px;text-align:center"><div style="font-size:10px;color:var(--text3)">Km</div><div style="font-size:15px;font-weight:700;color:var(--yellow)">' + (r.km || '—') + '</div></div>' +
         '</div>' +
         (r.foto ? '<img src="' + r.foto + '" onclick="abrirFotoLightbox(\'' + r.foto + '\')" style="width:100%;max-height:140px;object-fit:cover;border-radius:8px;border:1px solid var(--border2);cursor:zoom-in;margin-top:4px" loading="lazy">' : '') +
-        '<div style="margin-top:6px">' + adminEditBtn('combustible', r.id) + '</div>' +
+        '<div style="margin-top:6px;display:flex;gap:6px">' + adminEditBtn('combustible', r.id) + adminDelBtn('combustible', r.id, 'Combustible') + '</div>' +
         '</div>';
     }).join('') : '<div class="empty"><div class="icon">⛽</div><p>Sin cargas registradas</p></div>');
   });
@@ -8297,7 +8309,7 @@ function loadIncidencias() {
           (r.ubicacion ? '<div style="font-size:11px;color:var(--text3);margin:6px 0;display:flex;align-items:center;gap:4px">📍 ' + r.ubicacion + '</div>' : '') +
           '<div style="font-size:13px;color:var(--text2);line-height:1.55;margin-bottom:8px">' + (r.descripcion || '') + '</div>' +
           (r.foto ? '<img src="' + r.foto + '" onclick="abrirFotoLightbox(\'' + r.foto + '\')" style="width:100%;max-height:180px;object-fit:cover;border-radius:8px;border:1px solid var(--border2);cursor:zoom-in" loading="lazy">' : '') +
-          '<div style="margin-top:6px">' + adminEditBtn('incidencias', r.id) + '</div>' +
+          '<div style="margin-top:6px;display:flex;gap:6px">' + adminEditBtn('incidencias', r.id) + adminDelBtn('incidencias', r.id, 'Incidencia') + '</div>' +
           '</div>';
       }).join('') : '<div class="empty"><div class="icon">⚠️</div><p>Sin incidencias registradas</p></div>';
     });
@@ -8408,7 +8420,7 @@ function loadTaller() {
           '</div>' +
           (r.foto ? '<img src="' + r.foto + '" onclick="abrirFotoLightbox(\'' + r.foto + '\')" style="width:100%;max-height:160px;object-fit:cover;border-radius:8px;cursor:zoom-in;margin-top:8px" loading="lazy">' : '') +
           (enTaller ? '<div style="margin-top:10px"><button class="btn-sm ok" onclick="finalizarTaller(\'' + r.id + '\')">&#10003; Marcar como finalizado</button></div>' : '') +
-        '<div style="margin-top:6px">' + adminEditBtn('taller', r.id) + '</div>' +
+        '<div style="margin-top:6px;display:flex;gap:6px">' + adminEditBtn('taller', r.id) + adminDelBtn('taller', r.id, 'Taller') + '</div>' +
           '</div>';
       }).join('') : '<div class="empty"><div class="icon">🔧</div><p>Sin registros de taller</p></div>';
     });
@@ -9637,14 +9649,42 @@ function abrirDetalleLlave(numero) {
 
 function autocompletarLlave() { llOnChangeNumero(); }
 
-// ── HELPER GLOBAL: botón editar admin ──────────────────────────────
-// Retorna HTML del botón si el usuario es ADMIN, cadena vacía si no
+// ── HELPERS GLOBALES: botones editar y eliminar (solo ADMIN) ──────
 function adminEditBtn(tabla, id) {
   if (!USER || USER.rol !== 'ADMIN') return '';
   return '<button onclick="event.stopPropagation();openEditRowById(\'' + tabla + '\',\'' + id + '\')" ' +
     'style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:6px;' +
     'border:1px solid rgba(59,130,246,.35);background:rgba(59,130,246,.1);color:#93c5fd;' +
     'font-family:var(--font);font-size:10px;font-weight:700;cursor:pointer">✏️ Editar</button>';
+}
+
+function adminDelBtn(tabla, id, label) {
+  if (!USER || USER.rol !== 'ADMIN') return '';
+  var lbl = label || 'Eliminar';
+  return '<button onclick="event.stopPropagation();adminEliminar(\'' + tabla + '\',\'' + id + '\',\'' + lbl + '\')" ' +
+    'style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:6px;' +
+    'border:1px solid rgba(239,68,68,.35);background:rgba(239,68,68,.1);color:#f87171;' +
+    'font-family:var(--font);font-size:10px;font-weight:700;cursor:pointer">🗑️</button>';
+}
+
+function adminEliminar(tabla, id, label) {
+  showConfirm('🗑️', 'Eliminar registro', '¿Eliminar este registro de ' + (label || tabla) + '? No se puede deshacer.', function() {
+    db.from(tabla)['delete']().eq('id', id).then(function(r) {
+      if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+      toast('🗑️ Registro eliminado');
+      // Recargar la vista activa
+      if (CUR_VIEW === 'novedades') loadNovedades();
+      else if (CUR_VIEW === 'fichaje') loadFichajes();
+      else if (CUR_VIEW === 'objetivos') loadObjetivos();
+      else if (CUR_VIEW === 'agenda') loadAgenda();
+      else if (CUR_VIEW === 'choferes') loadChoferes();
+      else if (CUR_VIEW === 'llaves') loadLlaves();
+      // Actualizar stats del admin si está abierto
+      var sel = document.getElementById('admin-tabla-sel');
+      if (sel && sel.value) loadAdminTabla(sel.value);
+      loadAdminStats();
+    });
+  }, 'Eliminar', 'var(--red)');
 }
 
 function filtrarLlaves() {
@@ -9691,9 +9731,11 @@ function filtrarLlaves() {
     }
     html += '<div style="display:flex;gap:6px;margin-top:8px">';
     html += '<button class="btn-sm" onclick="abrirDetalleLlave(' + r.n + ')">📋 Movimiento</button>';
-    // Botón editar solo para ADMIN
+    // Botones editar y eliminar solo para ADMIN
     if (!r.sinReg && r.llave && USER && USER.rol === 'ADMIN') {
-      html += '<button onclick="editarLlave(\'' + r.llave.id + '\',' + r.n + ')" style="padding:5px 12px;border-radius:8px;border:1px solid rgba(59,130,246,.3);background:rgba(59,130,246,.1);color:#93c5fd;font-family:var(--font);font-size:11px;font-weight:600;cursor:pointer">✏️ Editar</button>';
+      html += adminEditBtn ? '' : '';
+      if (USER && USER.rol === 'ADMIN') html += '<button onclick="editarLlave(\'' + r.llave.id + '\',' + r.n + ')" style="padding:5px 12px;border-radius:8px;border:1px solid rgba(59,130,246,.3);background:rgba(59,130,246,.1);color:#93c5fd;font-family:var(--font);font-size:11px;font-weight:600;cursor:pointer">✏️ Editar</button>';
+      html += adminDelBtn('llaves', r.llave.id, 'Llave');
     }
     html += '</div></div></div></div>';
   }
@@ -10338,6 +10380,95 @@ function incrementBadge(elemId, storageKey) {
   try { localStorage.setItem(storageKey, nxt); } catch(e) {}
   el.textContent = nxt > 99 ? '99+' : nxt;
   el.style.display = 'flex';
+}
+
+// ── ALMACENAMIENTO — Supabase + Cloudflare R2 ──
+function loadStorageStats() {
+  var el = document.getElementById('storage-stats');
+  if (!el) return;
+  el.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0"><span class="spinner"></span> Calculando...</div>';
+
+  // Contar registros por tabla
+  var tablas = ['fichajes','novedades','objetivos','rutas','combustible','incidencias','taller','gps_moviles','gps_track','llaves','llaves_movimientos','agentes','choferes_lista','push_subscriptions','bitacora'];
+  var counts = {};
+  var pending = tablas.length;
+
+  tablas.forEach(function(t) {
+    db.from(t).select('id', { count: 'exact', head: true }).then(function(r) {
+      counts[t] = r.count || 0;
+      pending--;
+      if (pending === 0) renderStorageStats(counts, el);
+    }).catch(function() {
+      counts[t] = '?';
+      pending--;
+      if (pending === 0) renderStorageStats(counts, el);
+    });
+  });
+}
+
+function renderStorageStats(counts, el) {
+  var total = 0;
+  for (var k in counts) { if (typeof counts[k] === 'number') total += counts[k]; }
+
+  // Estimación de tamaño en Supabase (aprox 1-2KB por registro promedio)
+  var estimDB = Math.round(total * 1.5); // KB estimados
+  var estimDBLabel = estimDB > 1024 ? (estimDB/1024).toFixed(1) + ' MB' : estimDB + ' KB';
+
+  var rows = [
+    { t: 'fichajes',          label: 'Fichajes' },
+    { t: 'novedades',         label: 'Novedades' },
+    { t: 'objetivos',         label: 'C. Objetivo' },
+    { t: 'rutas',             label: 'Hojas de ruta' },
+    { t: 'combustible',       label: 'Combustible' },
+    { t: 'incidencias',       label: 'Incidencias' },
+    { t: 'taller',            label: 'Taller' },
+    { t: 'gps_moviles',       label: 'GPS posiciones' },
+    { t: 'gps_track',         label: 'GPS track' },
+    { t: 'llaves',            label: 'Llaves' },
+    { t: 'llaves_movimientos',label: 'Mov. llaves' },
+    { t: 'agentes',           label: 'Agentes' },
+    { t: 'push_subscriptions',label: 'Push subs.' },
+    { t: 'bitacora',          label: 'Bitácora' },
+  ];
+
+  var html = '';
+
+  // Resumen de Supabase
+  html += '<div style="margin-bottom:14px">';
+  html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">';
+  html += '<div style="font-size:13px;font-weight:800;color:var(--accent3)">🗄️ Supabase (base de datos)</div>';
+  html += '<span class="badge b-green" style="font-size:10px">' + total + ' registros totales</span>';
+  html += '</div>';
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">';
+  for (var i = 0; i < rows.length; i++) {
+    var r = rows[i];
+    var cnt = counts[r.t] || 0;
+    html += '<div style="background:var(--bg3);border-radius:8px;padding:8px 10px;display:flex;justify-content:space-between;align-items:center">';
+    html += '<span style="font-size:11px;color:var(--text2)">' + r.label + '</span>';
+    html += '<span style="font-size:13px;font-weight:700;font-family:var(--mono);color:var(--accent3)">' + cnt + '</span>';
+    html += '</div>';
+  }
+  html += '</div>';
+  html += '<div style="margin-top:10px;padding:8px 12px;border-radius:8px;background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.2);font-size:11px;color:var(--text2)">';
+  html += '📊 Estimación de uso DB: <strong>' + estimDBLabel + '</strong>';
+  html += ' <span style="color:var(--text3);font-size:10px">(&asymp;1.5 KB/registro promedio)</span>';
+  html += '</div>';
+  html += '</div>';
+
+  // Cloudflare R2
+  html += '<div>';
+  html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">';
+  html += '<div style="font-size:13px;font-weight:800;color:#f97316">☁️ Cloudflare R2 (fotos)</div>';
+  html += '</div>';
+  html += '<div style="padding:10px 14px;border-radius:10px;background:rgba(249,115,22,0.07);border:1px solid rgba(249,115,22,0.2)">';
+  html += '<div style="font-size:12px;color:var(--text2);margin-bottom:6px">Bucket: <strong style="font-family:var(--mono);color:#fb923c">ivcfotos</strong></div>';
+  html += '<div style="font-size:12px;color:var(--text2);margin-bottom:6px">Endpoint: <span style="font-family:var(--mono);font-size:10px;color:var(--text3)">r2.cloudflarestorage.com</span></div>';
+  html += '<div style="font-size:11px;color:var(--text3);margin-top:8px;border-top:1px solid var(--border);padding-top:8px">';
+  html += '⚠️ El uso exacto de R2 (GB y cantidad de objetos) solo se puede consultar desde el dashboard de Cloudflare ';
+  html += '&rarr; <a href="https://dash.cloudflare.com" target="_blank" style="color:#fb923c">dash.cloudflare.com</a>';
+  html += '</div></div></div>';
+
+  el.innerHTML = html;
 }
 
 // ── HISTORIAL DE SESIONES ──
