@@ -3252,16 +3252,10 @@ function _guardarActualizacionNovedad() {
           fileComp = _context14.v;
           path = 'novedades/' + id + '/upd_' + Date.now() + '.jpg';
           _context14.n = 4;
-          return db.storage.from('fotos').upload(path, fileComp, {
-            contentType: 'image/jpeg',
-            upsert: false
-          });
+          return uploadToR2(fileComp, 'novedades');
         case 4:
           upRes = _context14.v;
-          if (!upRes.error) {
-            urlRes = db.storage.from('fotos').getPublicUrl(path);
-            if (urlRes.data && urlRes.data.publicUrl) nuevaAct.foto = urlRes.data.publicUrl;
-          }
+          if (upRes) { nuevaAct.foto = upRes; }
         case 5:
           acts.push(nuevaAct);
 
@@ -4206,64 +4200,43 @@ function _comprimirImagen() {
   }));
   return _comprimirImagen.apply(this, arguments);
 }
-function uploadFotosToSupabase(_x8) {
-  return _uploadFotosToSupabase.apply(this, arguments);
+// ── Upload a Cloudflare R2 via presigned URL ──────────────────────
+function uploadToR2(file, folder) {
+  var ext = (file.type && file.type.indexOf('pdf') >= 0) ? '.pdf' : '.jpg';
+  var filename = folder + '/' + Date.now() + '_' + Math.random().toString(36).substr(2,6) + ext;
+  return fetch('https://ivc-push.vercel.app/api/r2-sign', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ secret: 'ivc2024secure', filename: filename, contentType: file.type || 'image/jpeg' })
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    if (!data.uploadUrl) throw new Error('Sin uploadUrl de R2');
+    return fetch(data.uploadUrl, {
+      method: 'PUT',
+      headers: { 'Content-Type': file.type || 'image/jpeg' },
+      body: file
+    }).then(function(res) {
+      if (!res.ok) throw new Error('R2 upload error: ' + res.status);
+      return data.publicUrl;
+    });
+  });
 }
-function _uploadFotosToSupabase() {
-  _uploadFotosToSupabase = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee22(novedadId) {
-    var urls, _iterator, _step, fileOrig, file, path, _yield$db$storage$fro, data, error, _db$storage$from$getP, urlData, _t6;
-    return _regenerator().w(function (_context22) {
-      while (1) switch (_context22.p = _context22.n) {
-        case 0:
-          urls = [];
-          _iterator = _createForOfIteratorHelper(FOTOS_PENDIENTES);
-          _context22.p = 1;
-          _iterator.s();
-        case 2:
-          if ((_step = _iterator.n()).done) {
-            _context22.n = 6;
-            break;
-          }
-          fileOrig = _step.value;
-          _context22.n = 3;
-          return comprimirImagen(fileOrig);
-        case 3:
-          file = _context22.v;
-          path = "novedades/" + novedadId + "/" + Date.now() + "_" + Math.random().toString(36).substr(2, 6) + ".jpg";
-          _context22.n = 4;
-          return db.storage.from('fotos').upload(path, file, {
-            contentType: 'image/jpeg',
-            upsert: false
-          });
-        case 4:
-          _yield$db$storage$fro = _context22.v;
-          data = _yield$db$storage$fro.data;
-          error = _yield$db$storage$fro.error;
-          if (!error) {
-            _db$storage$from$getP = db.storage.from('fotos').getPublicUrl(path), urlData = _db$storage$from$getP.data;
-            urls.push(urlData && urlData.publicUrl ? urlData.publicUrl : path);
-          }
-        case 5:
-          _context22.n = 2;
-          break;
-        case 6:
-          _context22.n = 8;
-          break;
-        case 7:
-          _context22.p = 7;
-          _t6 = _context22.v;
-          _iterator.e(_t6);
-        case 8:
-          _context22.p = 8;
-          _iterator.f();
-          return _context22.f(8);
-        case 9:
-          return _context22.a(2, urls);
-      }
-    }, _callee22, null, [[1, 7, 8, 9]]);
-  }));
-  return _uploadFotosToSupabase.apply(this, arguments);
+
+function uploadToR2Comprimido(fileOrig, folder) {
+  return comprimirImagen(fileOrig).then(function(file) {
+    return uploadToR2(file, folder);
+  });
 }
+
+// Subida de fotos de novedades → R2
+function uploadFotosToSupabase(novedadId) {
+  var promises = FOTOS_PENDIENTES.map(function(f) {
+    return uploadToR2Comprimido(f, 'novedades').catch(function(e) {
+      console.error('Error subiendo foto novedad:', e); return null;
+    });
+  });
+  return Promise.all(promises).then(function(urls) { return urls.filter(Boolean); });
+}
+
 var SUPA_URL = 'https://cuwvmvmrmxprqozfnlva.supabase.co';
 var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1d3Ztdm1ybXhwcnFvemZubHZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5OTUyODYsImV4cCI6MjA5MjU3MTI4Nn0.l-k8ev4zdQBVCyBaEfe7KHCkl5DtUJMsyWHIqBZiNtw';
 var _supabase = supabase,
@@ -6511,14 +6484,7 @@ async function saveObj() {
   if (OBJ_FOTO_FILE) {
     try {
       var comp = await comprimirImagen(OBJ_FOTO_FILE);
-      var path = 'objetivos/ini_' + Date.now() + '_' + Math.random().toString(36).substr(2,5) + '.jpg';
-      var up = await db.storage.from('fotos').upload(path, comp, { contentType: 'image/jpeg', upsert: false });
-      if (up.error) {
-        console.error('Error foto inicio:', up.error);
-      } else {
-        var urlRes = db.storage.from('fotos').getPublicUrl(path);
-        if (urlRes && urlRes.data && urlRes.data.publicUrl) fotoUrl = urlRes.data.publicUrl;
-      }
+      fotoUrl = await uploadToR2(comp, 'objetivos').catch(function(e) { console.error('Foto obj ini:', e); return null; });
     } catch(e) { console.error('Foto inicio error:', e); }
   }
 
@@ -6643,18 +6609,9 @@ async function saveUpdObj() {
   if (OBJ_UPD_FOTO_FILE) {
     try {
       var comp = await comprimirImagen(OBJ_UPD_FOTO_FILE);
-      var path = 'objetivos/upd_' + Date.now() + '_' + Math.random().toString(36).substr(2,5) + '.jpg';
-      var up = await db.storage.from('fotos').upload(path, comp, { contentType: 'image/jpeg', upsert: false });
-      if (up.error) {
-        console.error('Error subiendo foto objetivo:', up.error);
-        toast('Foto no subida: ' + up.error.message, 'err');
-      } else {
-        var urlRes = db.storage.from('fotos').getPublicUrl(path);
-        if (urlRes && urlRes.data && urlRes.data.publicUrl) {
-          fotoUrl = urlRes.data.publicUrl;
-          console.log('Foto subida OK:', fotoUrl);
-        }
-      }
+      fotoUrl = await uploadToR2(comp, 'objetivos').catch(function(e) {
+        console.error('Foto obj upd:', e); toast('Error subiendo foto', 'err'); return null;
+      });
     } catch(e) {
       console.error('Error foto:', e);
     }
@@ -7033,15 +6990,12 @@ function quitarFotoRuta(tipo, idx, el) {
 }
 
 function uploadFotosRuta(fotos, carpeta) {
-  var promises = fotos.map(function(f, i) {
-    if (f.url) return Promise.resolve(f.url);
-    return comprimirImagen(f.file).then(function(comp) {
-      var path = carpeta + '/' + Date.now() + '_' + i + '.jpg';
-      return db.storage.from('fotos').upload(path, comp, { contentType: 'image/jpeg', upsert: false })
-        .then(function(up) {
-          if (up.error) return null;
-          return db.storage.from('fotos').getPublicUrl(path).data.publicUrl;
-        });
+  if (!fotos || !fotos.length) return Promise.resolve([]);
+  var promises = fotos.map(function(f) {
+    if (f && f.url) return Promise.resolve(f.url);
+    var fileObj = (f && f.file) ? f.file : f;
+    return uploadToR2Comprimido(fileObj, carpeta).catch(function(e) {
+      console.error('Error foto ruta:', e); return null;
     });
   });
   return Promise.all(promises).then(function(urls) { return urls.filter(Boolean); });
@@ -8441,7 +8395,7 @@ function _saveCombustible() {
           }
           toast('Subiendo foto...', 'info');
           _context58.n = 3;
-          return uploadSingleFoto(COMB_FOTO, "combustible/".concat(ins.id, "_").concat(Date.now(), ".jpg"));
+          return uploadToR2Comprimido(COMB_FOTO, 'combustible');
         case 3:
           url = _context58.v;
           if (!url) {
@@ -8543,7 +8497,7 @@ function _saveIncidencia() {
           }
           toast('Subiendo foto...', 'info');
           _context60.n = 3;
-          return uploadSingleFoto(INC_FOTO, "incidencias/".concat(ins.id, "_").concat(Date.now(), ".jpg"));
+          return uploadToR2Comprimido(INC_FOTO, 'incidencias');
         case 3:
           url = _context60.v;
           if (!url) {
@@ -8647,7 +8601,7 @@ function saveTaller() {
     };
     if (TAL_FOTO && res.data && res.data.id) {
       toast('Subiendo foto...', 'info');
-      uploadSingleFoto(TAL_FOTO, 'taller/' + res.data.id + '_' + Date.now() + '.jpg').then(function(url) {
+      uploadToR2Comprimido(TAL_FOTO, 'taller').then(function(url) {
         if (url) db.from('taller').update({ foto: url }).eq('id', res.data.id).then(afterFoto);
         else afterFoto();
       });
@@ -9127,30 +9081,16 @@ function _saveLicencia() {
           return comprimirImagen(LIC_FILE);
         case 7:
           fileToUpload = _context70.v;
-          contentType = 'image/jpeg';
-          finalPath = path.replace(/\.[^.]+$/, '.jpg');
+          finalPath = 'licencias/' + Date.now() + '_' + Math.random().toString(36).substr(2,6) + '.jpg';
         case 8:
           _context70.n = 9;
-          return db.storage.from('fotos').upload(finalPath, fileToUpload, {
-            contentType: contentType,
-            upsert: false
-          });
+          return uploadToR2(fileToUpload, 'licencias');
         case 9:
-          _yield$db$storage$fro2 = _context70.v;
-          upData = _yield$db$storage$fro2.data;
-          upErr = _yield$db$storage$fro2.error;
-          if (upErr) {
-            _context70.n = 10;
-            break;
-          }
-          _db$storage$from$getP2 = db.storage.from('fotos').getPublicUrl(finalPath), urlData = _db$storage$from$getP2.data;
-          if (!(urlData && urlData.publicUrl)) {
-            _context70.n = 10;
-            break;
-          }
+          urlData = _context70.v;
+          if (!urlData) { _context70.n = 10; break; }
           _context70.n = 10;
           return db.from('licencias').update({
-            archivo: urlData.publicUrl
+            archivo: urlData
           }).eq('id', ins.id);
         case 10:
           LIC_FILE = null;
