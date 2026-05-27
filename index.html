@@ -1303,23 +1303,32 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
 </div>
 
 <!-- MODAL COMBUSTIBLE -->
+<!-- MODAL COMBUSTIBLE -->
 <div class="overlay" id="ov-combustible">
   <div class="modal">
     <div class="modal-head"><span class="modal-title">⛽ Carga de Combustible</span><button class="btn-close" onclick="closeOv('ov-combustible')">×</button></div>
-    <div class="form-group"><label class="form-label">Chofer</label>
-      <select class="form-select" id="comb-chofer"><option value="">— Seleccionar —</option><option>ACOSTA PAMELA</option><option>ALVAREZ OZON NICOLAS MARCELO</option><option>ARROYO LAURA</option><option>CASTILLO ANGEL HERNAN</option><option>CONTE LUCAS EZEQUIEL</option><option>DEL COLLE DAMIAN EZEQUIEL</option><option>GIMENEZ GREGORIO</option><option>LUACES JONATHAN RICARDO</option></select>
-    </div>
-    <div class="form-group"><label class="form-label">Móvil / Vehículo</label><select class="form-select" id="comb-movil"><option value="">— Seleccionar móvil —</option><option>S-10 · AA-909-LF</option><option>S-10 · AA-909-LD</option><option>Berlingo · MYH-863</option><option>S-10 vieja · EKT-637</option><option>Jumper · KWI-159</option></select></div>
-    <div class="form-row">
-      <div class="form-group"><label class="form-label">Litros</label><input class="form-input" type="number" step="0.1" id="comb-litros" placeholder="Litros"/></div>
-      <div class="form-group"><label class="form-label">Importe ($)</label><input class="form-input" type="number" id="comb-importe" placeholder="Importe"/></div>
-    </div>
-    <div class="form-group"><label class="form-label">Estación de servicio</label><input class="form-input" id="comb-estacion" placeholder="Ej: YPF Av. Castañares 2400"/></div>
-    <div class="form-group"><label class="form-label">Kilómetros del vehículo</label><input class="form-input" type="number" id="comb-km" placeholder="Km actuales"/></div>
+    <div style="font-size:10px;color:var(--text3);margin-bottom:10px">Los campos marcados con <span style="color:var(--red)">*</span> son obligatorios</div>
     <div class="form-group">
-      <label class="form-label">📷 Foto del ticket (opcional)</label>
-      <input type="file" id="comb-foto-input" accept="image/*" capture="environment" style="display:none" onchange="previewSingleFoto(this, 'comb-foto-preview')">
-      <div onclick="document.getElementById('comb-foto-input').click()" style="border:2px dashed var(--border2);border-radius:8px;padding:14px;text-align:center;cursor:pointer">📷 Tocá para foto</div>
+      <label class="form-label">Chofer <span style="color:var(--red);margin-left:2px">*</span></label>
+      <select class="form-select" id="comb-chofer"><option value="">— Seleccionar chofer —</option></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Móvil / Vehículo <span style="color:var(--red);margin-left:2px">*</span></label>
+      <select class="form-select" id="comb-movil"><option value="">— Seleccionar móvil —</option><option>S-10 · AA-909-LF</option><option>S-10 · AA-909-LD</option><option>Berlingo · MYH-863</option><option>S-10 vieja · EKT-637</option><option>Jumper · KWI-159</option></select>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Litros <span style="color:var(--red);margin-left:2px">*</span></label><input class="form-input" type="number" step="0.1" min="0.1" id="comb-litros" placeholder="Ej: 45.5"/></div>
+      <div class="form-group"><label class="form-label">Importe ($) <span style="color:var(--red);margin-left:2px">*</span></label><input class="form-input" type="number" min="1" id="comb-importe" placeholder="Ej: 28000"/></div>
+    </div>
+    <div class="form-group"><label class="form-label">Estación de servicio <span style="color:var(--red);margin-left:2px">*</span></label><input class="form-input" id="comb-estacion" placeholder="Ej: YPF Av. Castañares 2400"/></div>
+    <div class="form-group"><label class="form-label">Kilómetros del vehículo <span style="color:var(--red);margin-left:2px">*</span></label><input class="form-input" type="number" min="0" id="comb-km" placeholder="Km actuales del vehículo"/></div>
+    <div class="form-group">
+      <label class="form-label">📷 Foto del ticket <span style="color:var(--red);margin-left:2px">*</span></label>
+      <input type="file" id="comb-foto-input" accept="image/*" capture="environment" style="display:none" onchange="previewSingleFoto(this,'comb-foto-preview');COMB_FOTO=this.files[0]">
+      <div onclick="document.getElementById('comb-foto-input').click()" style="border:2px dashed var(--border2);border-radius:8px;padding:16px;text-align:center;cursor:pointer;transition:border-color .2s" id="comb-foto-zone">
+        <div style="font-size:22px;margin-bottom:4px">📷</div>
+        <div style="font-size:13px;color:var(--text3)">Tocá para sacar foto del ticket</div>
+      </div>
       <div id="comb-foto-preview" style="margin-top:8px"></div>
     </div>
     <button class="btn-login" id="btn-save-comb" onclick="saveCombustible()">⛽ Registrar Carga</button>
@@ -1330,19 +1339,32 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
 <div class="overlay" id="ov-incidencia">
   <div class="modal">
     <div class="modal-head"><span class="modal-title">⚠️ Nueva Incidencia</span><button class="btn-close" onclick="closeOv('ov-incidencia')">×</button></div>
-    <div class="form-group"><label class="form-label">Chofer</label>
-      <select class="form-select" id="inc-chofer"><option value="">— Seleccionar —</option><option>ACOSTA PAMELA</option><option>ALVAREZ OZON NICOLAS MARCELO</option><option>ARROYO LAURA</option><option>CONTE LUCAS EZEQUIEL</option><option>LUACES JONATHAN RICARDO</option></select>
-    </div>
-    <div class="form-group"><label class="form-label">Móvil</label><select class="form-select" id="inc-movil"><option value="">— Seleccionar móvil —</option><option>S-10 · AA-909-LF</option><option>S-10 · AA-909-LD</option><option>Berlingo · MYH-863</option><option>S-10 vieja · EKT-637</option><option>Jumper · KWI-159</option></select></div>
-    <div class="form-group"><label class="form-label">Tipo de incidencia</label>
-      <select class="form-select" id="inc-tipo"><option>Pinchazo / rueda</option><option>Desperfecto mecánico</option><option>Choque / colisión</option><option>Falla eléctrica</option><option>Otra</option></select>
-    </div>
-    <div class="form-group"><label class="form-label">Ubicación</label><input class="form-input" id="inc-ubicacion" placeholder="Lugar del incidente"/></div>
-    <div class="form-group"><label class="form-label">Descripción</label><textarea class="form-textarea" id="inc-desc" style="min-height:80px" placeholder="Detalle del incidente..."></textarea></div>
+    <div style="font-size:10px;color:var(--text3);margin-bottom:10px">Los campos marcados con <span style="color:var(--red)">*</span> son obligatorios</div>
     <div class="form-group">
-      <label class="form-label">📷 Foto (opcional)</label>
-      <input type="file" id="inc-foto-input" accept="image/*" capture="environment" style="display:none" onchange="previewSingleFoto(this, 'inc-foto-preview')">
-      <div onclick="document.getElementById('inc-foto-input').click()" style="border:2px dashed var(--border2);border-radius:8px;padding:14px;text-align:center;cursor:pointer">📷 Tocá para foto</div>
+      <label class="form-label">Chofer <span style="color:var(--red);margin-left:2px">*</span></label>
+      <select class="form-select" id="inc-chofer"><option value="">— Seleccionar chofer —</option></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Móvil <span style="color:var(--red);margin-left:2px">*</span></label>
+      <select class="form-select" id="inc-movil"><option value="">— Seleccionar móvil —</option><option>S-10 · AA-909-LF</option><option>S-10 · AA-909-LD</option><option>Berlingo · MYH-863</option><option>S-10 vieja · EKT-637</option><option>Jumper · KWI-159</option></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Tipo de incidencia <span style="color:var(--red);margin-left:2px">*</span></label>
+      <select class="form-select" id="inc-tipo">
+        <option value="">— Seleccionar tipo —</option>
+        <option>Pinchazo / rueda</option><option>Desperfecto mecánico</option>
+        <option>Choque / colisión</option><option>Falla eléctrica</option><option>Otra</option>
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Ubicación <span style="color:var(--red);margin-left:2px">*</span></label><input class="form-input" id="inc-ubicacion" placeholder="Lugar exacto del incidente"/></div>
+    <div class="form-group"><label class="form-label">Descripción <span style="color:var(--red);margin-left:2px">*</span></label><textarea class="form-textarea" id="inc-desc" style="min-height:90px" placeholder="Detallá qué ocurrió..."></textarea></div>
+    <div class="form-group">
+      <label class="form-label">📷 Foto del incidente <span style="color:var(--red);margin-left:2px">*</span></label>
+      <input type="file" id="inc-foto-input" accept="image/*" capture="environment" style="display:none" onchange="previewSingleFoto(this,'inc-foto-preview');INC_FOTO=this.files[0]">
+      <div onclick="document.getElementById('inc-foto-input').click()" style="border:2px dashed var(--border2);border-radius:8px;padding:16px;text-align:center;cursor:pointer">
+        <div style="font-size:22px;margin-bottom:4px">📷</div>
+        <div style="font-size:13px;color:var(--text3)">Tocá para sacar foto del incidente</div>
+      </div>
       <div id="inc-foto-preview" style="margin-top:8px"></div>
     </div>
     <button class="btn-login" id="btn-save-inc" onclick="saveIncidencia()">⚠️ Registrar Incidencia</button>
@@ -1353,15 +1375,34 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
 <div class="overlay" id="ov-taller">
   <div class="modal">
     <div class="modal-head"><span class="modal-title">🔧 Ingreso a Taller</span><button class="btn-close" onclick="closeOv('ov-taller')">×</button></div>
-    <div class="form-group"><label class="form-label">Móvil</label><select class="form-select" id="tal-movil"><option value="">— Seleccionar móvil —</option><option>S-10 · AA-909-LF</option><option>S-10 · AA-909-LD</option><option>Berlingo · MYH-863</option><option>S-10 vieja · EKT-637</option><option>Jumper · KWI-159</option></select></div>
-    <div class="form-group"><label class="form-label">Tipo</label>
-      <select class="form-select" id="tal-tipo"><option>Service / Mantenimiento</option><option>Reparación mecánica</option><option>Reparación eléctrica</option><option>Carrocería / Pintura</option><option>Neumáticos</option><option>Otro</option></select>
+    <div style="font-size:10px;color:var(--text3);margin-bottom:10px">Los campos marcados con <span style="color:var(--red)">*</span> son obligatorios</div>
+    <div class="form-group">
+      <label class="form-label">Chofer <span style="color:var(--red);margin-left:2px">*</span></label>
+      <select class="form-select" id="tal-chofer"><option value="">— Seleccionar chofer —</option></select>
     </div>
-    <div class="form-group"><label class="form-label">Taller / Mecánico</label><input class="form-input" id="tal-nombre" placeholder="Nombre del taller"/></div>
-    <div class="form-group"><label class="form-label">Descripción del trabajo</label><textarea class="form-textarea" id="tal-desc" style="min-height:80px" placeholder="¿Qué se va a hacer?"></textarea></div>
-    <div class="form-row">
-      <div class="form-group"><label class="form-label">Km al ingreso</label><input class="form-input" type="number" id="tal-km" placeholder="Km"/></div>
-      <div class="form-group"><label class="form-label">Costo estimado ($)</label><input class="form-input" type="number" id="tal-costo" placeholder="Costo"/></div>
+    <div class="form-group">
+      <label class="form-label">Móvil <span style="color:var(--red);margin-left:2px">*</span></label>
+      <select class="form-select" id="tal-movil"><option value="">— Seleccionar móvil —</option><option>S-10 · AA-909-LF</option><option>S-10 · AA-909-LD</option><option>Berlingo · MYH-863</option><option>S-10 vieja · EKT-637</option><option>Jumper · KWI-159</option></select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Tipo de trabajo <span style="color:var(--red);margin-left:2px">*</span></label>
+      <select class="form-select" id="tal-tipo">
+        <option value="">— Seleccionar tipo —</option>
+        <option>Service / Mantenimiento</option><option>Reparación mecánica</option>
+        <option>Reparación eléctrica</option><option>Carrocería / Pintura</option>
+        <option>Neumáticos</option><option>Otro</option>
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Descripción del trabajo <span style="color:var(--red);margin-left:2px">*</span></label><textarea class="form-textarea" id="tal-desc" style="min-height:90px" placeholder="¿Qué se va a hacer? Detallá el problema..."></textarea></div>
+    <div class="form-group"><label class="form-label">Kilómetros al ingreso <span style="color:var(--red);margin-left:2px">*</span></label><input class="form-input" type="number" min="0" id="tal-km" placeholder="Km actuales del vehículo"/></div>
+    <div class="form-group">
+      <label class="form-label">📷 Foto del vehículo / daño (opcional)</label>
+      <input type="file" id="tal-foto-input" accept="image/*" capture="environment" style="display:none" onchange="previewSingleFoto(this,'tal-foto-preview');TAL_FOTO=this.files[0]">
+      <div onclick="document.getElementById('tal-foto-input').click()" style="border:2px dashed var(--border2);border-radius:8px;padding:16px;text-align:center;cursor:pointer">
+        <div style="font-size:22px;margin-bottom:4px">📷</div>
+        <div style="font-size:13px;color:var(--text3)">Tocá para sacar foto</div>
+      </div>
+      <div id="tal-foto-preview" style="margin-top:8px"></div>
     </div>
     <button class="btn-login" id="btn-save-tal" onclick="saveTaller()">🔧 Registrar Ingreso</button>
   </div>
@@ -2284,117 +2325,24 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
 <!-- MODAL NUEVA LLAVE -->
 <div class="overlay" id="ov-nueva-llave">
   <div class="modal">
-    <div class="modal-head"><span class="modal-title">🔑 Registrar Llave</span><button class="btn-close" onclick="closeOv('ov-nueva-llave')">×</button></div>
-
+    <div class="modal-head"><span class="modal-title">🔑 Registrar Llave en Tablero</span><button class="btn-close" onclick="closeOv('ov-nueva-llave')">×</button></div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:12px">📌 Ingresá el número y el nombre del inmueble/objetivo de esta llave</div>
     <div class="form-group">
-      <label class="form-label">Nro. de Tablero</label>
-      <select class="form-select" id="ll-numero" onchange="autocompletarLlave()">
+      <label class="form-label">Número de Tablero <span style="color:var(--red)">*</span></label>
+      <select class="form-select" id="ll-numero" onchange="llOnChangeNumero()">
         <option value="">— Seleccionar número —</option>
-        <option value="1">1 — La Rosadita</option>
-        <option value="2">2 — Almirante Brown 1242/44/46</option>
-        <option value="3">3 — Almirante Brown 633 PB°A</option>
-        <option value="4">4 — Alte Brown 500 (Portón de acceso)</option>
-        <option value="5">5 — Bonorino y Riestra</option>
-        <option value="6">6 — Brandsen 106</option>
-        <option value="7">7</option>
-        <option value="8">8</option>
-        <option value="9">9</option>
-        <option value="10">10 — Corrales 2783</option>
-        <option value="11">11 — Depto. Piedra Buena</option>
-        <option value="12">12 — Espinosa</option>
-        <option value="13">13 — Fraga (Of. Seguridad)</option>
-        <option value="14">14 — Portón Fraga</option>
-        <option value="15">15 — Fraga, Casa S/N (Puerta blanca)</option>
-        <option value="16">16</option>
-        <option value="17">17 — Macias Local</option>
-        <option value="18">18 — Jujuy 2044</option>
-        <option value="19">19 — Trailer Ministerio</option>
-        <option value="20">20 — Lagos</option>
-        <option value="21">21 — Lautaro 1496</option>
-        <option value="22">22 — Rivera Indarte 1617</option>
-        <option value="23">23 — Baigorria</option>
-        <option value="24">24 — Papa Francisco (O. Green Of. 1 y 3)</option>
-        <option value="25">25 — Papa Francisco (Trailer) L.1 Portón 12C y 9B</option>
-        <option value="26">26 — Olavarría 240</option>
-        <option value="27">27 — Portal Lamadrid</option>
-        <option value="28">28 — Av. La Plata</option>
-        <option value="29">29 — Hubac 4744</option>
-        <option value="30">30 — Orma (Of. Seguridad, Local 1 al 3264)</option>
-        <option value="31">31 — Rodrigo Bueno (Playa de estacionamiento)</option>
-        <option value="32">32 — Solon Blindey "K"</option>
-        <option value="33">33 — Portal Osvaldo Cruz (Azul)</option>
-        <option value="34">34 — Suarez 1061</option>
-        <option value="35">35 — Alvarado (Local)</option>
-        <option value="36">36 — Valparaiso</option>
-        <option value="37">37 — Complejo Orma</option>
-        <option value="38">38 — Suarez 58</option>
-        <option value="39">39 — Cerri 1150 (Conventillo)</option>
-        <option value="40">40 — Beron de Astrada</option>
-        <option value="41">41 — Complejo Alvarado (Local)</option>
-        <option value="42">42 — Padre Mugica (Platea 4)</option>
-        <option value="43">43 — Estación Buenos Aires</option>
-        <option value="44">44 — Santa Elena (Demolida 01/03/2024)</option>
-        <option value="45">45 — Salvadores 829</option>
-        <option value="46">46 — Suarez 479</option>
-        <option value="47">47 — Necochea 878</option>
-        <option value="48">48 — Zañartu 1522, 6°F</option>
-        <option value="49">49 — Zañartu 1520, 6°F</option>
-        <option value="50">50 — B. Olimpico Edif. 26 (Jeanette Campbell 4491, 1°E)</option>
-        <option value="51">51 — Acoyte 595, Piso 9°</option>
-        <option value="52">52</option>
-        <option value="53">53</option>
-        <option value="54">54</option>
-        <option value="55">55</option>
-        <option value="56">56 — Barrio Olimpico Torre 8</option>
-        <option value="57">57 — Lisandro de la Torre 5471/75/77/79 11°E</option>
-        <option value="58">58</option>
-        <option value="59">59</option>
-        <option value="60">60 — Estación de Bombeo Carrillo</option>
-        <option value="61">61 — Av. La Plata 2253</option>
-        <option value="62">62</option>
-        <option value="63">63</option>
-        <option value="64">64</option>
-        <option value="65">65</option>
-        <option value="66">66</option>
-        <option value="67">67</option>
-        <option value="68">68</option>
-        <option value="69">69</option>
-        <option value="70">70 — Brandsen 660</option>
-        <option value="71">71 — Varela Container Amarillo</option>
-        <option value="72">72</option>
-        <option value="73">73</option>
-        <option value="74">74</option>
-        <option value="75">75</option>
-        <option value="76">76</option>
-        <option value="77">77</option>
-        <option value="78">78</option>
-        <option value="79">79</option>
-        <option value="80">80</option>
-        <option value="81">81</option>
-        <option value="82">82</option>
-        <option value="83">83</option>
-        <option value="84">84</option>
-        <option value="85">85</option>
-        <option value="86">86</option>
-        <option value="87">87</option>
-        <option value="88">88</option>
-        <option value="89">89</option>
-        <option value="90">90</option>
-        <option value="91">91</option>
-        <option value="92">92</option>
       </select>
+      <div style="font-size:10px;color:var(--text3);margin-top:4px">Solo aparecen números disponibles (sin registrar)</div>
     </div>
-
     <div class="form-group">
-      <label class="form-label">Objetivo / Descripción</label>
-      <input class="form-input" id="ll-nombre" placeholder="Se completa automático al elegir número"/>
+      <label class="form-label">Objetivo / Descripción del inmueble <span style="color:var(--red)">*</span></label>
+      <input class="form-input" id="ll-nombre" placeholder="Ej: Suarez 479 — Piso 3°B"/>
+      <div style="font-size:10px;color:var(--text3);margin-top:4px">Este nombre queda guardado y aparece en el tablero</div>
     </div>
-
     <div class="form-group">
       <label class="form-label">Observaciones (opcional)</label>
       <textarea class="form-textarea" id="ll-obs" style="min-height:56px" placeholder="Detalle adicional..."></textarea>
     </div>
-
     <button class="btn-login" id="btn-save-llave" onclick="saveLlave()">🔑 Registrar Llave</button>
   </div>
 </div>
@@ -7193,7 +7141,7 @@ function chofSubTab(tab, btn) {
   if (tab === 'combustible') loadCombustible();else if (tab === 'incidencias') loadIncidencias();else if (tab === 'taller') loadTaller();else if (tab === 'gps') loadGPS();
 }
 function fabClick() {
-  if (CUR_VIEW === 'llaves') openOv('ov-nueva-llave');else if (CUR_VIEW === 'rrhh') abrirNuevoAgente();else if (CUR_VIEW === 'novedades') abrirNuevaNovedad();else if (CUR_VIEW === 'objetivos') abrirIniciarRecorrido();else if (CUR_VIEW === 'fichaje') {
+  if (CUR_VIEW === 'llaves') { poblarSelectorNumeros(); openOv('ov-nueva-llave'); }else if (CUR_VIEW === 'rrhh') abrirNuevoAgente();else if (CUR_VIEW === 'novedades') abrirNuevaNovedad();else if (CUR_VIEW === 'objetivos') abrirIniciarRecorrido();else if (CUR_VIEW === 'fichaje') {
     if (CUR_FICH_TAB === 'licencias') openOv('ov-licencia');else openOv('ov-nov'); // fallback
   } else if (CUR_VIEW === 'agenda') {
     var isAdminAgenda = ['Administración', 'Administrador', 'Gerencia', 'Jefe de departamento'].includes(USER ? USER.puesto : '');
@@ -8235,14 +8183,27 @@ function _saveCombustible() {
     return _regenerator().w(function (_context58) {
       while (1) switch (_context58.n) {
         case 0:
+          var combChofer = document.getElementById('comb-chofer').value;
+          var combMovil  = document.getElementById('comb-movil').value;
+          var combLitros = parseFloat(document.getElementById('comb-litros').value) || 0;
+          var combImp    = parseFloat(document.getElementById('comb-importe').value) || 0;
+          var combEst    = document.getElementById('comb-estacion').value.trim();
+          var combKm     = parseInt(document.getElementById('comb-km').value) || 0;
+          if (!combChofer) { toast('Seleccioná el chofer', 'err'); return _context58.a(2); }
+          if (!combMovil)  { toast('Seleccioná el móvil', 'err'); return _context58.a(2); }
+          if (!combLitros) { toast('Ingresá los litros cargados', 'err'); return _context58.a(2); }
+          if (!combImp)    { toast('Ingresá el importe', 'err'); return _context58.a(2); }
+          if (!combEst)    { toast('Ingresá la estación de servicio', 'err'); return _context58.a(2); }
+          if (!combKm)     { toast('Ingresá los km del vehículo', 'err'); return _context58.a(2); }
+          if (!COMB_FOTO)  { toast('Sacá una foto del ticket', 'err'); return _context58.a(2); }
           setLoading('btn-save-comb', true);
           payload = {
-            chofer: document.getElementById('comb-chofer').value,
-            movil: document.getElementById('comb-movil').value,
-            litros: parseFloat(document.getElementById('comb-litros').value) || 0,
-            importe: parseFloat(document.getElementById('comb-importe').value) || 0,
-            estacion: document.getElementById('comb-estacion').value,
-            km: parseInt(document.getElementById('comb-km').value) || null,
+            chofer: combChofer,
+            movil: combMovil,
+            litros: combLitros,
+            importe: combImp,
+            estacion: combEst,
+            km: combKm,
             puesto: USER.puesto
           };
           _context58.n = 1;
@@ -8282,10 +8243,11 @@ function _saveCombustible() {
           setLoading('btn-save-comb', false);
           closeOv('ov-combustible');
           toast('⛽ Carga registrada');
-          ['comb-movil', 'comb-litros', 'comb-importe', 'comb-estacion', 'comb-km'].forEach(function (id) {
-            return document.getElementById(id).value = '';
+          ['comb-chofer','comb-movil','comb-litros','comb-importe','comb-estacion','comb-km'].forEach(function(id){
+            var el=document.getElementById(id); if(el) el.value='';
           });
           document.getElementById('comb-foto-preview').innerHTML = '';
+          COMB_FOTO = null;
           loadCombustible();
         case 6:
           return _context58.a(2);
@@ -8325,13 +8287,24 @@ function _saveIncidencia() {
     return _regenerator().w(function (_context60) {
       while (1) switch (_context60.n) {
         case 0:
+          var incChofer = document.getElementById('inc-chofer').value;
+          var incMovil  = document.getElementById('inc-movil').value;
+          var incTipo   = document.getElementById('inc-tipo').value;
+          var incUbic   = document.getElementById('inc-ubicacion').value.trim();
+          var incDesc   = document.getElementById('inc-desc').value.trim();
+          if (!incChofer) { toast('Seleccioná el chofer', 'err'); return _context60.a(2); }
+          if (!incMovil)  { toast('Seleccioná el móvil', 'err'); return _context60.a(2); }
+          if (!incTipo)   { toast('Seleccioná el tipo de incidencia', 'err'); return _context60.a(2); }
+          if (!incUbic)   { toast('Ingresá la ubicación', 'err'); return _context60.a(2); }
+          if (!incDesc)   { toast('Ingresá la descripción', 'err'); return _context60.a(2); }
+          if (!INC_FOTO)  { toast('Sacá una foto del incidente', 'err'); return _context60.a(2); }
           setLoading('btn-save-inc', true);
           payload = {
-            chofer: document.getElementById('inc-chofer').value,
-            movil: document.getElementById('inc-movil').value,
-            tipo: document.getElementById('inc-tipo').value,
-            descripcion: document.getElementById('inc-desc').value,
-            ubicacion: document.getElementById('inc-ubicacion').value,
+            chofer: incChofer,
+            movil: incMovil,
+            tipo: incTipo,
+            descripcion: incDesc,
+            ubicacion: incUbic,
             puesto: USER.puesto
           };
           _context60.n = 1;
@@ -8371,10 +8344,12 @@ function _saveIncidencia() {
           setLoading('btn-save-inc', false);
           closeOv('ov-incidencia');
           toast('[!] Incidencia registrada');
-          ['inc-movil', 'inc-desc', 'inc-ubicacion'].forEach(function (id) {
-            return document.getElementById(id).value = '';
+          ['inc-chofer','inc-movil','inc-desc','inc-ubicacion'].forEach(function(id){
+            var el=document.getElementById(id); if(el) el.value='';
           });
+          document.getElementById('inc-tipo').value='';
           document.getElementById('inc-foto-preview').innerHTML = '';
+          INC_FOTO = null;
           loadIncidencias();
         case 6:
           return _context60.a(2);
@@ -8398,64 +8373,71 @@ function loadTaller() {
         return '<div class="chofer-card" style="border-left:3px solid ' + (enTaller ? 'var(--yellow)' : 'var(--border2)') + '">' +
           '<div class="chofer-head"><div>' +
           '<div class="chofer-name">🔧 ' + (r.movil || '') + '</div>' +
-          '<div class="chofer-sub">' + (r.tipo || '') + (r.taller_nombre ? ' · ' + r.taller_nombre : '') + '</div>' +
+          '<div class="chofer-sub">' + (r.tipo || '') + (r.chofer ? ' · ' + r.chofer : '') + '</div>' +
           '</div><span class="badge ' + (enTaller ? 'b-yellow' : 'b-gray') + '">' + (enTaller ? 'En taller' : 'Finalizado') + '</span></div>' +
           (r.descripcion ? '<div style="font-size:12px;color:var(--text2);line-height:1.55;margin:6px 0">' + r.descripcion + '</div>' : '') +
           '<div style="display:flex;gap:16px;font-size:11px;color:var(--text3);flex-wrap:wrap">' +
           (r.km_ingreso ? '<span>🚗 Km ingreso: <b>' + r.km_ingreso + '</b></span>' : '') +
-          (r.costo_estimado ? '<span>💰 Est.: <b>$' + r.costo_estimado.toLocaleString('es-AR') + '</b></span>' : '') +
+          
           '<span>📅 ' + formatTs(r.created_at) + '</span>' +
           (r.fecha_salida ? '<span>✅ Salida: ' + formatTs(r.fecha_salida) + '</span>' : '') +
           '</div>' +
+          (r.foto ? '<img src="' + r.foto + '" onclick="abrirFotoLightbox(\'' + r.foto + '\')" style="width:100%;max-height:160px;object-fit:cover;border-radius:8px;cursor:zoom-in;margin-top:8px" loading="lazy">' : '') +
           (enTaller ? '<div style="margin-top:10px"><button class="btn-sm ok" onclick="finalizarTaller(\'' + r.id + '\')">&#10003; Marcar como finalizado</button></div>' : '') +
           '</div>';
       }).join('') : '<div class="empty"><div class="icon">🔧</div><p>Sin registros de taller</p></div>';
     });
 }
+var TAL_FOTO = null;
 function saveTaller() {
-  return _saveTaller.apply(this, arguments);
-}
-function _saveTaller() {
-  _saveTaller = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee62() {
-    var _yield$db$from$insert6, error;
-    return _regenerator().w(function (_context62) {
-      while (1) switch (_context62.n) {
-        case 0:
-          setLoading('btn-save-tal', true);
-          _context62.n = 1;
-          return db.from('taller').insert({
-            movil: document.getElementById('tal-movil').value,
-            tipo: document.getElementById('tal-tipo').value,
-            taller_nombre: document.getElementById('tal-nombre').value,
-            descripcion: document.getElementById('tal-desc').value,
-            km_ingreso: parseInt(document.getElementById('tal-km').value) || null,
-            costo_estimado: parseFloat(document.getElementById('tal-costo').value) || null,
-            estado: 'activo',
-            puesto: USER.puesto
-          });
-        case 1:
-          _yield$db$from$insert6 = _context62.v;
-          error = _yield$db$from$insert6.error;
-          setLoading('btn-save-tal', false);
-          if (!error) {
-            _context62.n = 2;
-            break;
-          }
-          toast('Error: ' + error.message, 'err');
-          return _context62.a(2);
-        case 2:
-          closeOv('ov-taller');
-          toast('[Taller] Ingreso a taller registrado');
-          ['tal-movil', 'tal-nombre', 'tal-desc', 'tal-km', 'tal-costo'].forEach(function (id) {
-            return document.getElementById(id).value = '';
-          });
-          loadTaller();
-        case 3:
-          return _context62.a(2);
-      }
-    }, _callee62);
-  }));
-  return _saveTaller.apply(this, arguments);
+  var talChofer = document.getElementById('tal-chofer').value;
+  var talMovil  = document.getElementById('tal-movil').value;
+  var talTipo   = document.getElementById('tal-tipo').value;
+  var talDesc   = document.getElementById('tal-desc').value.trim();
+  var talKm     = parseInt(document.getElementById('tal-km').value) || 0;
+  if (!talChofer) { toast('Seleccioná el chofer', 'err'); return; }
+  if (!talMovil)  { toast('Seleccioná el móvil', 'err'); return; }
+  if (!talTipo)   { toast('Seleccioná el tipo de trabajo', 'err'); return; }
+  if (!talDesc)   { toast('Ingresá la descripción del trabajo', 'err'); return; }
+  if (!talKm)     { toast('Ingresá los km del vehículo', 'err'); return; }
+  setLoading('btn-save-tal', true);
+  db.from('taller').insert({
+    chofer: talChofer,
+    movil: talMovil,
+    tipo: talTipo,
+    descripcion: talDesc,
+    km_ingreso: talKm,
+    estado: 'activo',
+    puesto: USER.puesto
+  }).select().single().then(function(res) {
+    if (res.error) {
+      setLoading('btn-save-tal', false);
+      toast('Error: ' + res.error.message, 'err');
+      return;
+    }
+    var afterFoto = function() {
+      setLoading('btn-save-tal', false);
+      closeOv('ov-taller');
+      toast('🔧 Ingreso a taller registrado');
+      TAL_FOTO = null;
+      document.getElementById('tal-chofer').value = '';
+      document.getElementById('tal-movil').value = '';
+      document.getElementById('tal-tipo').value = '';
+      document.getElementById('tal-desc').value = '';
+      document.getElementById('tal-km').value = '';
+      document.getElementById('tal-foto-preview').innerHTML = '';
+      loadTaller();
+    };
+    if (TAL_FOTO && res.data && res.data.id) {
+      toast('Subiendo foto...', 'info');
+      uploadSingleFoto(TAL_FOTO, 'taller/' + res.data.id + '_' + Date.now() + '.jpg').then(function(url) {
+        if (url) db.from('taller').update({ foto: url }).eq('id', res.data.id).then(afterFoto);
+        else afterFoto();
+      });
+    } else {
+      afterFoto();
+    }
+  });
 }
 function finalizarTaller(_x23) {
   return _finalizarTaller.apply(this, arguments);
@@ -9456,7 +9438,7 @@ var LLAVES_DATA = {
   69: '',
   70: 'Brandsen 660',
   71: 'Varela Container Amarillo',
-  72: '',
+  72: 'Edif.4 - 1°A (Diaz Saenz Valiente 4527/31) Barrio Olimpico',
   73: '',
   74: '',
   75: '',
@@ -9495,44 +9477,92 @@ function llavesTab(tab, btn) {
 }
 
 function loadLlaves() {
-  var totalConNombre = 0;
-  for (var nn = 1; nn <= 92; nn++) { if (LLAVES_DATA[nn] && LLAVES_DATA[nn].trim() !== '') totalConNombre++; }
-  document.getElementById('llaves-total').textContent = totalConNombre;
-  renderTablero({});
+  renderTablero({}, {});
   db.from('llaves').select('*').order('numero_tablero', {ascending: true}).then(function(result) {
     if (result.error) {
-      console.error('Error cargando llaves:', result.error.message);
       document.getElementById('llaves-base').textContent = '—';
       document.getElementById('llaves-prestadas').textContent = '—';
-      document.getElementById('llaves-sa').textContent = totalConNombre;
+      document.getElementById('llaves-sa').textContent = '—';
       return;
     }
     LLAVES_CACHE = result.data || [];
     var enObrador = 0, retiradas = 0;
     var byNum = {};
+    // Sincronizar LLAVES_DATA con los nombres de Supabase
     for (var i = 0; i < LLAVES_CACHE.length; i++) {
       var l = LLAVES_CACHE[i];
-      byNum[parseInt(l.numero_tablero)] = l;
+      var n = parseInt(l.numero_tablero);
+      byNum[n] = l;
+      // Si la llave tiene nombre en Supabase, usarlo como fuente de verdad
+      if (l.nombre && l.nombre.trim()) LLAVES_DATA[n] = l.nombre;
       if (!l.estado_actual || l.estado_actual === 'base') enObrador++;
       else if (l.estado_actual === 'prestada') retiradas++;
     }
-    var sinRegistrar = totalConNombre - LLAVES_CACHE.length;
+    // Contar slots disponibles (1-92 sin registrar, con nombre en diccionario)
+    var sinRegistrar = 0;
+    for (var nn = 1; nn <= 92; nn++) {
+      if (LLAVES_DATA[nn] && LLAVES_DATA[nn].trim() && !byNum[nn]) sinRegistrar++;
+    }
+    document.getElementById('llaves-total').textContent = LLAVES_CACHE.length;
     document.getElementById('llaves-base').textContent = enObrador;
     document.getElementById('llaves-prestadas').textContent = retiradas;
-    document.getElementById('llaves-sa').textContent = sinRegistrar > 0 ? sinRegistrar : 0;
-    renderTablero(byNum);
+    document.getElementById('llaves-sa').textContent = sinRegistrar;
+    renderTablero(byNum, LLAVES_DATA);
     filtrarLlaves();
+    poblarSelectorNumeros(); // actualizar el selector con slots libres
   });
 }
 
-function renderTablero(byNum) {
+// Poblar el selector de números con slots disponibles (no registrados aún)
+function poblarSelectorNumeros() {
+  var sel = document.getElementById('ll-numero');
+  if (!sel) return;
+  var byNum = {};
+  for (var i = 0; i < LLAVES_CACHE.length; i++) byNum[parseInt(LLAVES_CACHE[i].numero_tablero)] = true;
+  var prev = sel.value;
+  sel.innerHTML = '<option value="">— Seleccionar n\u00famero —</option>';
+  for (var n = 1; n <= 92; n++) {
+    if (byNum[n]) continue; // ya registrada
+    var opt = document.createElement('option');
+    opt.value = String(n);
+    var nombre = LLAVES_DATA[n] && LLAVES_DATA[n].trim() ? n + ' \u2014 ' + LLAVES_DATA[n] : String(n);
+    opt.textContent = nombre;
+    sel.appendChild(opt);
+  }
+  if (prev) sel.value = prev;
+}
+
+function llOnChangeNumero() {
+  var sel = document.getElementById('ll-numero');
+  var nom = document.getElementById('ll-nombre');
+  if (!sel || !nom) return;
+  var n = parseInt(sel.value);
+  if (n && LLAVES_DATA[n] && LLAVES_DATA[n].trim()) {
+    nom.value = LLAVES_DATA[n];
+  } else {
+    nom.value = '';
+    if (nom) nom.focus();
+  }
+}
+
+function renderTablero(byNum, dataNombres) {
+  if (!dataNombres) dataNombres = LLAVES_DATA;
   var cont = document.getElementById('llaves-tablero-grid');
   if (!cont) return;
+  // Conjunto de todos los números a mostrar: diccionario + Supabase
+  var numeros = {};
+  for (var nn = 1; nn <= 92; nn++) {
+    if (dataNombres[nn] && dataNombres[nn].trim()) numeros[nn] = true;
+  }
+  for (var kk in byNum) { numeros[parseInt(kk)] = true; }
   var html = '';
-  for (var n = 1; n <= 92; n++) {
+  var sorted = Object.keys(numeros).map(Number).sort(function(a,b){ return a-b; });
+  for (var si = 0; si < sorted.length; si++) {
+    var n = sorted[si];
     var llave = byNum[n];
-    var objetivo = LLAVES_DATA[n] || '';
-    if (!objetivo) continue;
+    // Nombre: primero Supabase, luego diccionario
+    var objetivo = (llave && llave.nombre && llave.nombre.trim()) ? llave.nombre : (dataNombres[n] || '');
+    if (!objetivo && !llave) continue; // slot sin nombre y sin registro
     var retirada = llave && llave.estado_actual === 'prestada';
     var registrada = !!llave;
     var color = retirada ? '#f59e0b' : registrada ? '#34d399' : 'rgba(96,165,250,0.3)';
@@ -9556,6 +9586,7 @@ function abrirDetalleLlave(numero) {
   }
   var objetivo = LLAVES_DATA[numero] || 'Sin objetivo asignado';
   if (!llave) {
+    poblarSelectorNumeros();
     var selEl = document.getElementById('ll-numero');
     if (selEl) selEl.value = String(numero);
     var nomEl = document.getElementById('ll-nombre');
@@ -9579,14 +9610,7 @@ function abrirDetalleLlave(numero) {
   openOv('ov-mov-llave');
 }
 
-function autocompletarLlave() {
-  var sel = document.getElementById('ll-numero');
-  var nom = document.getElementById('ll-nombre');
-  if (!sel || !nom) return;
-  var num = parseInt(sel.value);
-  if (num && LLAVES_DATA[num]) nom.value = LLAVES_DATA[num];
-  else if (!num) nom.value = '';
-}
+function autocompletarLlave() { llOnChangeNumero(); }
 
 function filtrarLlaves() {
   var search = document.getElementById('llaves-search') ? document.getElementById('llaves-search').value.toLowerCase().trim() : '';
@@ -9596,8 +9620,9 @@ function filtrarLlaves() {
   var rows = [];
   for (var n = 1; n <= 92; n++) {
     var llave = byNum[n];
-    var obj = LLAVES_DATA[n] || '';
-    if (!obj) continue;
+    var ll2 = byNum[n];
+    var obj = (ll2 && ll2.nombre && ll2.nombre.trim()) ? ll2.nombre : (LLAVES_DATA[n] || '');
+    if (!obj && !ll2) continue;
     var estado = llave ? (llave.estado_actual || 'base') : 'sinregistrar';
     if (filtro === 'base' && estado !== 'base') continue;
     if (filtro === 'prestada' && estado !== 'prestada') continue;
@@ -9682,12 +9707,21 @@ function saveMovimiento() {
 
 function saveLlave() {
   var numEl = document.getElementById('ll-numero');
+  var nomEl = document.getElementById('ll-nombre');
   var numero = numEl ? parseInt(numEl.value) : 0;
+  var nombre = nomEl ? nomEl.value.trim() : '';
   if (!numero) { toast('Seleccioná el número del tablero', 'err'); return; }
-  var nombre = LLAVES_DATA[numero] || 'Llave ' + numero;
+  if (!nombre) { toast('Ingresá el nombre/objetivo de la llave', 'err'); return; }
+  // Verificar que no exista ya
+  var yaExiste = false;
+  for (var i = 0; i < LLAVES_CACHE.length; i++) {
+    if (parseInt(LLAVES_CACHE[i].numero_tablero) === numero) { yaExiste = true; break; }
+  }
+  if (yaExiste) { toast('La llave N°' + numero + ' ya está registrada', 'err'); return; }
   setLoading('btn-save-llave', true);
   db.from('llaves').insert({
-    numero_tablero: numero, nombre: nombre,
+    numero_tablero: numero,
+    nombre: nombre,
     codigo: 'T-' + (numero < 10 ? '0' : '') + numero,
     ubicacion_habitual: 'Obrador Savio — Tablero',
     ubicacion_actual: 'Obrador Savio — Tablero',
@@ -9696,8 +9730,13 @@ function saveLlave() {
   }).then(function(result) {
     setLoading('btn-save-llave', false);
     if (result.error) { toast('Error: ' + result.error.message, 'err'); return; }
+    // Actualizar el diccionario local para que aparezca inmediatamente
+    LLAVES_DATA[numero] = nombre;
     closeOv('ov-nueva-llave');
-    toast('Llave Nro. ' + numero + ' registrada');
+    if (nomEl) nomEl.value = '';
+    if (numEl) numEl.value = '';
+    var obsEl = document.getElementById('ll-obs'); if (obsEl) obsEl.value = '';
+    toast('🔑 Llave N°' + numero + ' registrada en tablero');
     loadLlaves();
   });
 }
@@ -10404,17 +10443,19 @@ function cargarChoferesEnDropdown() {
         opt.textContent = c.nombre + (c.legajo ? ' (' + c.legajo + ')' : '');
         sel.appendChild(opt);
       });
-      // También en incidencias
-      var selInc = document.getElementById('inc-chofer');
-      if (selInc) {
-        selInc.innerHTML = '<option value="">— Seleccionar —</option>';
+      // Poblar todos los selects de chofer de los módulos
+      var selectIds = ['inc-chofer', 'comb-chofer', 'tal-chofer'];
+      selectIds.forEach(function(selId) {
+        var selEl = document.getElementById(selId);
+        if (!selEl) return;
+        selEl.innerHTML = '<option value="">— Seleccionar chofer —</option>';
         (res.data || []).forEach(function(c) {
           var opt = document.createElement('option');
           opt.value = c.nombre;
-          opt.textContent = c.nombre;
-          selInc.appendChild(opt);
+          opt.textContent = c.nombre + (c.legajo ? ' (' + c.legajo + ')' : '');
+          selEl.appendChild(opt);
         });
-      }
+      });
     });
 }
 
