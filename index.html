@@ -6377,7 +6377,6 @@ function iniciarVoz() {
   var btnRef  = document.getElementById('btn-reformular');
 
   VOZ_TEXTO_ACUMULADO = detalle ? (detalle.value || '') : '';
-  var textoInterim = '';
 
   VOZ_RECOGNITION.onstart = function() {
     VOZ_ACTIVA = true;
@@ -6386,16 +6385,19 @@ function iniciarVoz() {
   };
 
   VOZ_RECOGNITION.onresult = function(e) {
-    textoInterim = '';
+    // Solo acumular resultados FINALES — los interim solo se muestran como preview
+    var textoFinal = VOZ_TEXTO_ACUMULADO;
+    var textoInterim = '';
     for (var i = e.resultIndex; i < e.results.length; i++) {
       if (e.results[i].isFinal) {
-        VOZ_TEXTO_ACUMULADO += (VOZ_TEXTO_ACUMULADO ? ' ' : '') + e.results[i][0].transcript;
+        textoFinal += (textoFinal ? ' ' : '') + e.results[i][0].transcript;
       } else {
-        textoInterim += e.results[i][0].transcript;
+        textoInterim = e.results[i][0].transcript;
       }
     }
-    if (detalle) detalle.value = VOZ_TEXTO_ACUMULADO + (textoInterim ? ' ' + textoInterim : '');
-    if (statusTxt) statusTxt.textContent = 'Escuchando... ' + (textoInterim ? '"' + textoInterim.slice(-40) + '"' : 'hablá con claridad');
+    VOZ_TEXTO_ACUMULADO = textoFinal;
+    if (detalle) detalle.value = textoFinal + (textoInterim ? ' ' + textoInterim : '');
+    if (statusTxt) statusTxt.textContent = 'Escuchando...' + (textoInterim ? ' "' + textoInterim.slice(-50) + '"' : ' hablá con claridad');
   };
 
   VOZ_RECOGNITION.onerror = function(e) {
