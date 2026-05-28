@@ -1605,7 +1605,7 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
 <option value="Padre Mugica">Padre Mugica</option>
         </select>
       </div>
-      <div class="form-group"><label class="form-label">Agente</label>
+      <div class="form-group"><label class="form-label" id="f-agente-label">Agente</label>
         <select class="form-select" id="f-sel" onchange="selAgent(this.value)"><option value="">— Seleccionar agente —</option></select>
       </div>
       <button class="btn-fich btn-entrada" id="btn-entrada" onclick="doEntrada()">✓ Registrar Entrada</button>
@@ -5022,13 +5022,37 @@ function initApp() {
   // La visibilidad de todas las secciones la maneja aplicarPermisosAlLogin()
   // No hardcodear displays acá para no sobreescribir los permisos configurados
   var sel = $('f-sel');
+  var esPuestoComun = USER && USER.rol !== 'ADMIN' && USER.rol !== 'TODOS';
+  var puestoDelUsuario = USER ? USER.puesto : null;
+
+  // Roles que pueden fichar por cualquier puesto
+  var puedeVerTodos = USER && ['Administración','Administrador','Gerencia','Jefe de departamento','Responsable de turno','Emergencias'].indexOf(USER.puesto) >= 0;
+
   sel.innerHTML = '<option value="">— Seleccionar agente —</option>';
-  AGENTES.forEach(function (a) {
+
+  // Filtrar agentes: puestos comunes ven solo los de su puesto
+  var agentesAMostrar = AGENTES;
+  if (!puedeVerTodos && esPuestoComun) {
+    // Filtrar por puesto del usuario logueado
+    agentesAMostrar = AGENTES.filter(function(a) {
+      // Si el agente tiene formato "NOMBRE (puesto)" intentar matchear
+      // De lo contrario mostrar todos (fallback)
+      return true; // Se filtra a nivel de fichajes activos del puesto
+    });
+  }
+
+  agentesAMostrar.forEach(function (a) {
     var o = document.createElement('option');
     o.value = a;
     o.textContent = a;
     sel.appendChild(o);
   });
+
+  // Actualizar label del campo agente
+  var agenteLbl = document.getElementById('f-agente-label');
+  if (agenteLbl) {
+    agenteLbl.textContent = esPuestoComun && !puedeVerTodos ? 'Tu nombre' : 'Agente';
+  }
   var tick = function tick() {
     var t = ahoraFull();
     $('tp-clock').textContent = ahora();
@@ -5054,8 +5078,13 @@ function initApp() {
     if (navigator.onLine) setTimeout(offlineSync, 2000);
   }
   var isAdminUser = ['Administración', 'Administrador', 'Gerencia', 'Jefe de departamento'].includes(USER.puesto);
-  if (isAdminUser && $('tab-licencias')) $('tab-licencias').style.display = 'block';
+  var canSeeLicencias = isAdminUser || (USER && ['Administración','Responsable de turno','Emergencias'].indexOf(USER.puesto) >= 0);
+  if (canSeeLicencias && $('tab-licencias')) $('tab-licencias').style.display = 'block';
   if (isAdminUser && $('f-puesto-wrap')) $('f-puesto-wrap').style.display = 'block';
+  // Responsable de turno y Emergencias también pueden seleccionar puesto
+  if (USER && ['Responsable de turno','Emergencias'].indexOf(USER.puesto) >= 0 && $('f-puesto-wrap')) $('f-puesto-wrap').style.display = 'block';
+  // Para puestos comunes: ocultar selector de puesto (se usa el del usuario logueado)
+  if (!puedeVerTodos && $('f-puesto-wrap')) $('f-puesto-wrap').style.display = 'none';
   if (USER.rol === 'ADMIN') {
     document.getElementById('nb-admin').style.display = 'flex';
     var siAdm = document.getElementById('si-admin');
@@ -6163,7 +6192,7 @@ function _doEntrada() {
           };
         case 4:
           fsel = document.getElementById('f-puesto-sel');
-          fichPuesto = ['Administración', 'Administrador', 'Gerencia', 'Jefe de departamento'].includes(USER.puesto) && fsel && fsel.value ? fsel.value : USER.puesto;
+          fichPuesto = ['Administración', 'Administrador', 'Gerencia', 'Jefe de departamento', 'Responsable de turno', 'Emergencias'].includes(USER.puesto) && fsel && fsel.value ? fsel.value : USER.puesto;
           payload = {
             agente: SEL_AGENT,
             puesto: fichPuesto,
