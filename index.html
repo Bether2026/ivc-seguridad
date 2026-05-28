@@ -1065,7 +1065,31 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
       <input class="form-input" id="n-asunto-otro" placeholder="Describa el asunto..."/>
     </div>
     <div class="form-group"><label class="form-label">Ubicación / Sector</label><input class="form-input" id="n-ubicacion" placeholder="Ej: Manzana 4, Orden 87..."/></div>
-    <div class="form-group"><label class="form-label">Detalle</label><textarea class="form-textarea" id="n-detalle" placeholder="Describa los hechos con detalle..."></textarea></div>
+    <div class="form-group">
+      <label class="form-label" style="display:flex;align-items:center;justify-content:space-between">
+        <span>Detalle</span>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button type="button" id="btn-voz" onclick="iniciarVoz()"
+            style="display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:8px;border:1px solid rgba(59,130,246,.35);background:rgba(59,130,246,.1);color:#93c5fd;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">
+            🎤 Hablar
+          </button>
+          <button type="button" id="btn-reformular" onclick="reformularConIA()" style="display:none;align-items:center;gap:5px;padding:5px 12px;border-radius:8px;border:1px solid rgba(139,92,246,.35);background:rgba(139,92,246,.1);color:#c4b5fd;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">
+            ✨ Reformular con IA
+          </button>
+        </div>
+      </label>
+      <!-- Indicador de grabación -->
+      <div id="voz-status" style="display:none;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);margin-bottom:6px;font-size:12px;color:#fca5a5">
+        <span class="pulse" style="background:var(--red);flex-shrink:0"></span>
+        <span id="voz-status-txt">Escuchando... hablá con claridad</span>
+        <button onclick="detenerVoz()" style="margin-left:auto;padding:3px 10px;border-radius:6px;border:1px solid rgba(239,68,68,.4);background:rgba(239,68,68,.15);color:#fca5a5;font-family:var(--font);font-size:11px;cursor:pointer">■ Detener</button>
+      </div>
+      <textarea class="form-textarea" id="n-detalle" placeholder="Describa los hechos con detalle... o usá el botón 🎤 para hablar"></textarea>
+      <!-- Estado IA -->
+      <div id="ia-status" style="display:none;font-size:11px;color:var(--text3);margin-top:4px;display:flex;align-items:center;gap:6px">
+        <span class="spinner" style="width:10px;height:10px;border-width:1.5px"></span> Reformulando con IA...
+      </div>
+    </div>
     <div class="form-group"><label class="form-label">Área</label><select class="form-select" id="n-area"><option value="">—</option><option>Seguridad</option><option>Social</option><option>Técnica</option><option>Coordinación</option></select></div>
     <div class="form-group" id="n-relev-wrap">
       <label class="form-label">Relevancia</label>
@@ -6293,6 +6317,176 @@ function toggleOtroAsunto() {
   var sel = document.getElementById('n-tipo');
   var wrap = document.getElementById('n-otro-wrap');
   if (wrap) wrap.style.display = (sel && sel.value === 'Otro') ? 'block' : 'none';
+}
+
+// ══════════════════════════════════════════════════════════
+//  VOZ + IA — Dictado y reformulación de novedades
+// ══════════════════════════════════════════════════════════
+var VOZ_RECOGNITION = null;
+var VOZ_ACTIVA = false;
+var VOZ_TEXTO_ACUMULADO = '';
+
+function iniciarVoz() {
+  var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    toast('Tu navegador no soporta reconocimiento de voz. Usá Chrome.', 'err');
+    return;
+  }
+
+  if (VOZ_ACTIVA) { detenerVoz(); return; }
+
+  VOZ_RECOGNITION = new SpeechRecognition();
+  VOZ_RECOGNITION.lang = 'es-AR';
+  VOZ_RECOGNITION.continuous = true;
+  VOZ_RECOGNITION.interimResults = true;
+  VOZ_RECOGNITION.maxAlternatives = 1;
+
+  var detalle = document.getElementById('n-detalle');
+  var status  = document.getElementById('voz-status');
+  var statusTxt = document.getElementById('voz-status-txt');
+  var btnVoz  = document.getElementById('btn-voz');
+  var btnRef  = document.getElementById('btn-reformular');
+
+  VOZ_TEXTO_ACUMULADO = detalle ? (detalle.value || '') : '';
+  var textoInterim = '';
+
+  VOZ_RECOGNITION.onstart = function() {
+    VOZ_ACTIVA = true;
+    if (status) status.style.display = 'flex';
+    if (btnVoz) { btnVoz.style.background = 'rgba(239,68,68,.15)'; btnVoz.style.borderColor = 'rgba(239,68,68,.4)'; btnVoz.style.color = '#fca5a5'; btnVoz.textContent = '■ Grabando'; }
+  };
+
+  VOZ_RECOGNITION.onresult = function(e) {
+    textoInterim = '';
+    for (var i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) {
+        VOZ_TEXTO_ACUMULADO += (VOZ_TEXTO_ACUMULADO ? ' ' : '') + e.results[i][0].transcript;
+      } else {
+        textoInterim += e.results[i][0].transcript;
+      }
+    }
+    if (detalle) detalle.value = VOZ_TEXTO_ACUMULADO + (textoInterim ? ' ' + textoInterim : '');
+    if (statusTxt) statusTxt.textContent = 'Escuchando... ' + (textoInterim ? '"' + textoInterim.slice(-40) + '"' : 'hablá con claridad');
+  };
+
+  VOZ_RECOGNITION.onerror = function(e) {
+    if (e.error === 'no-speech') return;
+    toast('Error de micrófono: ' + e.error, 'err');
+    detenerVoz();
+  };
+
+  VOZ_RECOGNITION.onend = function() {
+    VOZ_ACTIVA = false;
+    if (status) status.style.display = 'none';
+    if (btnVoz) { btnVoz.style.background = 'rgba(59,130,246,.1)'; btnVoz.style.borderColor = 'rgba(59,130,246,.35)'; btnVoz.style.color = '#93c5fd'; btnVoz.textContent = '🎤 Hablar'; }
+    // Mostrar botón reformular si hay texto
+    if (btnRef && detalle && detalle.value.trim().length > 10) {
+      btnRef.style.display = 'flex';
+    }
+  };
+
+  VOZ_RECOGNITION.start();
+}
+
+function detenerVoz() {
+  if (VOZ_RECOGNITION) {
+    try { VOZ_RECOGNITION.stop(); } catch(e) {}
+    VOZ_RECOGNITION = null;
+  }
+  VOZ_ACTIVA = false;
+}
+
+function reformularConIA() {
+  var detalle = document.getElementById('n-detalle');
+  var iaStatus = document.getElementById('ia-status');
+  var btnRef = document.getElementById('btn-reformular');
+  if (!detalle || !detalle.value.trim()) { toast('No hay texto para reformular', 'err'); return; }
+
+  var textoOriginal = detalle.value.trim();
+  var puesto = USER ? (USER.puesto || '') : '';
+  var tipo = '';
+  var tipoEl = document.getElementById('n-tipo');
+  if (tipoEl) tipo = tipoEl.value || '';
+
+  if (iaStatus) { iaStatus.style.display = 'flex'; }
+  if (btnRef) { btnRef.style.opacity = '.5'; btnRef.style.pointerEvents = 'none'; }
+
+  var GEMINI_KEY = 'AIzaSyA_eEOGtIjF1Ytac6ds6R3pF7VeFczshIc';
+  var GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + GEMINI_KEY;
+  var prompt = 'Sos un asistente de redacción para agentes de seguridad del Instituto de Vivienda de la Ciudad de Buenos Aires (IVC). '
+    + 'Reformulá el siguiente texto dictado por el agente en un lenguaje claro, formal y conciso, propio de un parte operativo de seguridad. '
+    + 'Conservá todos los datos importantes. No agregues información que no esté en el texto original. '
+    + 'Respondé SOLO con el texto reformulado, sin explicaciones ni comentarios.\n\n'
+    + 'Puesto: ' + puesto + '\n'
+    + 'Tipo de novedad: ' + (tipo || 'General') + '\n'
+    + 'Texto dictado:\n"' + textoOriginal + '"';
+
+  fetch(GEMINI_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { maxOutputTokens: 400, temperature: 0.3 }
+    })
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    if (iaStatus) iaStatus.style.display = 'none';
+    if (btnRef) { btnRef.style.opacity = '1'; btnRef.style.pointerEvents = 'auto'; }
+    var textoReformulado = data.candidates
+      && data.candidates[0]
+      && data.candidates[0].content
+      && data.candidates[0].content.parts
+      && data.candidates[0].content.parts[0]
+      && data.candidates[0].content.parts[0].text;
+    if (textoReformulado) {
+      mostrarComparacionVoz(textoOriginal, textoReformulado.trim());
+    } else {
+      toast('Error al reformular. Usá el texto original.', 'err');
+    }
+  }).catch(function(e) {
+    if (iaStatus) iaStatus.style.display = 'none';
+    if (btnRef) { btnRef.style.opacity = '1'; btnRef.style.pointerEvents = 'auto'; }
+    toast('Sin conexión para reformular. Guardá el texto original.', 'err');
+  });
+}
+
+function mostrarComparacionVoz(original, reformulado) {
+  // Crear overlay de comparación
+  var existing = document.getElementById('ov-voz-comp');
+  if (existing) existing.remove();
+
+  var ov = document.createElement('div');
+  ov.id = 'ov-voz-comp';
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  ov.innerHTML = '<div style="background:var(--bg2);border:1px solid var(--border2);border-radius:18px;padding:22px;width:100%;max-width:420px;max-height:80vh;overflow-y:auto">' +
+    '<div style="font-size:14px;font-weight:700;margin-bottom:16px;color:var(--text)">✨ IA reformuló el texto</div>' +
+    '<div style="margin-bottom:12px">' +
+    '<div style="font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--text3);margin-bottom:6px">Original (dictado)</div>' +
+    '<div style="font-size:12px;color:var(--text2);background:var(--bg3);border-radius:8px;padding:10px;line-height:1.6">' + original + '</div>' +
+    '</div>' +
+    '<div style="margin-bottom:18px">' +
+    '<div style="font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#c4b5fd;margin-bottom:6px">Reformulado por IA</div>' +
+    '<div style="font-size:13px;color:var(--text);background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);border-radius:8px;padding:10px;line-height:1.65">' + reformulado + '</div>' +
+    '</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' +
+    '<button onclick="usarTextoVoz(false)" style="padding:11px;border-radius:10px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-family:var(--font);font-size:13px;cursor:pointer">Usar original</button>' +
+    '<button onclick="usarTextoVoz(true)" style="padding:11px;border-radius:10px;border:1px solid rgba(139,92,246,.4);background:rgba(139,92,246,.15);color:#c4b5fd;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">✨ Usar reformulado</button>' +
+    '</div>' +
+    '</div>';
+  ov.setAttribute('data-original', original);
+  ov.setAttribute('data-reformulado', reformulado);
+  document.body.appendChild(ov);
+}
+
+function usarTextoVoz(usarReformulado) {
+  var ov = document.getElementById('ov-voz-comp');
+  if (!ov) return;
+  var texto = usarReformulado ? ov.getAttribute('data-reformulado') : ov.getAttribute('data-original');
+  var detalle = document.getElementById('n-detalle');
+  if (detalle) detalle.value = texto;
+  ov.remove();
+  var btnRef = document.getElementById('btn-reformular');
+  if (btnRef) btnRef.style.display = 'none';
+  toast(usarReformulado ? '✨ Texto reformulado aplicado' : 'Texto original conservado');
 }
 
 async function abrirNuevaNovedad() {
