@@ -8380,33 +8380,55 @@ function loadPermisosAdmin() {
   var permisos = getPermisos();
   var cont = document.getElementById('permisos-tabla');
   if (!cont) return;
-  var headers = '<div style="display:grid;grid-template-columns:140px repeat(' + SECCIONES_PERMISOS.length + ',1fr);gap:4px;margin-bottom:8px;align-items:center">';
+
+  // Columnas dinamicas segun cantidad de secciones
+  var colNombre = 130;
+  var colSec    = 72;
+  var minW      = colNombre + (SECCIONES_PERMISOS.length * colSec) + 24;
+  var colTpl    = colNombre + 'px repeat(' + SECCIONES_PERMISOS.length + ',' + colSec + 'px)';
+
+  // HEADER
+  var headers = '<div style="display:grid;grid-template-columns:' + colTpl + ';gap:3px;margin-bottom:6px;align-items:center;position:sticky;top:0;background:var(--bg2);padding:6px 0;border-bottom:1px solid var(--border2)">';
   headers += '<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">Usuario</div>';
-  SECCIONES_PERMISOS.forEach(function (s) {
-    headers += '<div style="font-size:9px;font-weight:700;color:var(--text3);text-align:center;line-height:1.2;transform:none">' + s.label + '</div>';
+  SECCIONES_PERMISOS.forEach(function(s) {
+    headers += '<div style="font-size:9px;font-weight:700;color:var(--text3);text-align:center;line-height:1.3;padding:0 2px">' + s.label + '</div>';
   });
   headers += '</div>';
+
+  // FILAS
   var rows = '';
-  USUARIOS_OPERATIVOS.forEach(function (usuario) {
+  USUARIOS_OPERATIVOS.forEach(function(usuario) {
     var guardado = permisos[usuario] || {};
     var base     = DEFAULT_PERMISOS[usuario] ? JSON.parse(JSON.stringify(DEFAULT_PERMISOS[usuario])) : {};
-    // Merge: base rellena keys nuevas (inventario), guardado tiene prioridad
     var up = {};
     Object.keys(base).forEach(function(k) { up[k] = base[k]; });
     Object.keys(guardado).forEach(function(k) { up[k] = guardado[k]; });
-    rows += '<div style="display:grid;grid-template-columns:140px repeat(' + SECCIONES_PERMISOS.length + ',1fr);gap:4px;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)">';
-    rows += '<div style="font-size:11px;font-weight:600;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + usuario + '</div>';
-    SECCIONES_PERMISOS.forEach(function (sec) {
-      var checked = up[sec.id] ? 'checked' : '';
-      var uid = 'perm-' + usuario.replace(/\s/g, '_').replace(/[^a-zA-Z0-9_]/g, '') + '-' + sec.id;
-      rows += '<div style="display:flex;justify-content:center">';
-      rows += '<input type="checkbox" id="' + uid + '" ' + checked + ' style="width:18px;height:18px;accent-color:var(--accent2);cursor:pointer" ';
-      rows += 'onchange="togglePermiso(\'' + usuario.replace(/'/g, "\\'") + '\',\'' + sec.id + '\',this.checked)">';
+    rows += '<div style="display:grid;grid-template-columns:' + colTpl + ';gap:3px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">';
+    rows += '<div style="font-size:12px;font-weight:600;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:6px">' + usuario + '</div>';
+    SECCIONES_PERMISOS.forEach(function(sec) {
+      // Valor con fallback al default si la key es nueva
+      var val = (up[sec.id] !== undefined) ? up[sec.id] : 0;
+      var checked = val ? 'checked' : '';
+      var uid = 'perm-' + usuario.replace(/\s/g,'_').replace(/[^a-zA-Z0-9_]/g,'') + '-' + sec.id;
+      rows += '<div style="display:flex;justify-content:center;align-items:center">';
+      rows += '<input type="checkbox" id="' + uid + '" ' + checked + ' ';
+      rows += 'style="width:18px;height:18px;accent-color:var(--accent2);cursor:pointer" ';
+      rows += 'onchange="togglePermiso(\'' + usuario.replace(/'/g,"\\'") + '\',\'' + sec.id + '\',this.checked)">';
       rows += '</div>';
     });
     rows += '</div>';
   });
-  cont.innerHTML = '<div style="overflow-x:auto;-webkit-overflow-scrolling:touch">' + '<div style="min-width:500px">' + headers + rows + '</div>' + '</div>' + '<div style="margin-top:10px;padding:8px 10px;background:rgba(37,99,235,0.08);border-radius:8px;border:1px solid rgba(37,99,235,0.2)">' + '<div style="font-size:10px;color:var(--text3)">✅ Los cambios se guardan automáticamente. El usuario debe cerrar sesión y volver a entrar para que los cambios tengan efecto.</div>' + '</div>';
+
+  cont.innerHTML =
+    '<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:12px;border:1px solid var(--border)">' +
+    '<div style="min-width:' + minW + 'px;padding:0 12px">' +
+    headers + rows +
+    '</div></div>' +
+    '<div style="margin-top:10px;padding:10px 12px;background:rgba(37,99,235,.08);border-radius:8px;border:1px solid rgba(37,99,235,.2);display:flex;align-items:flex-start;gap:8px">' +
+    '<span style="font-size:14px;flex-shrink:0">✅</span>' +
+    '<div style="font-size:11px;color:var(--text3);line-height:1.6">' +
+    'Los cambios se guardan automáticamente. <strong style="color:var(--text2)">Cada nueva sección</strong> del sistema aparece aquí automáticamente — solo tildá los usuarios que deben verla.' +
+    '</div></div>';
 }
 function togglePermiso(usuario, seccion, valor) {
   var permisos = getPermisos();
