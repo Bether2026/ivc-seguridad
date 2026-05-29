@@ -1558,7 +1558,7 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
 <option value="Padre Mugica">Padre Mugica</option>
         </select>
       </div>
-      <div class="form-group"><label class="form-label">Agente</label>
+      <div class="form-group"><label class="form-label" id="f-agente-label">Agente</label>
         <select class="form-select" id="f-sel" onchange="selAgent(this.value)"><option value="">— Seleccionar agente —</option></select>
       </div>
       <button class="btn-fich btn-entrada" id="btn-entrada" onclick="doEntrada()">✓ Registrar Entrada</button>
@@ -5071,7 +5071,14 @@ function initApp() {
   // La visibilidad de todas las secciones la maneja aplicarPermisosAlLogin()
   // No hardcodear displays acá para no sobreescribir los permisos configurados
   var sel = $('f-sel');
-  sel.innerHTML = '<option value="">— Seleccionar agente —</option>';
+  var ROLES_GESTION_FICH = ['Administración', 'Administrador', 'Gerencia', 'Jefe de departamento', 'Responsable de turno', 'Emergencias'];
+  var esGestionFich = ROLES_GESTION_FICH.includes(USER.puesto) || USER.rol === 'ADMIN';
+
+  // Label del campo: puestos comunes ven "Tu nombre", gestión ve "Agente"
+  var lbl = document.getElementById('f-agente-label');
+  if (lbl) lbl.textContent = esGestionFich ? 'Agente' : 'Tu nombre';
+
+  sel.innerHTML = '<option value="">' + (esGestionFich ? '— Seleccionar agente —' : '— Seleccioná tu nombre —') + '</option>';
   AGENTES.forEach(function (a) {
     var o = document.createElement('option');
     o.value = a;
@@ -5095,9 +5102,12 @@ function initApp() {
   var canSeeGPS = ['Gerencia', 'Administración', 'Administrador', 'Jefe de departamento'].includes(USER.puesto);
   if (canSeeGPS && $('tab-gps')) $('tab-gps').style.display = 'flex';
   if (canSeeGPS) startGPSRefresh();
-  var isAdminUser = ['Administración', 'Administrador', 'Gerencia', 'Jefe de departamento'].includes(USER.puesto);
-  if (isAdminUser && $('tab-licencias')) $('tab-licencias').style.display = 'block';
-  if (isAdminUser && $('f-puesto-wrap')) $('f-puesto-wrap').style.display = 'block';
+  var isAdminUser = ['Administración', 'Administrador', 'Gerencia', 'Jefe de departamento'].includes(USER.puesto) || USER.rol === 'ADMIN';
+  // Roles que pueden ver licencias y elegir puesto manualmente
+  var ROLES_GESTION = ['Administración', 'Administrador', 'Gerencia', 'Jefe de departamento', 'Responsable de turno', 'Emergencias'];
+  var esGestion = ROLES_GESTION.includes(USER.puesto) || USER.rol === 'ADMIN';
+  if (esGestion && $('tab-licencias')) $('tab-licencias').style.display = 'block';
+  if (esGestion && $('f-puesto-wrap')) $('f-puesto-wrap').style.display = 'block';
   if (USER.rol === 'ADMIN') {
     document.getElementById('nb-admin').style.display = 'flex';
     var siAdm = document.getElementById('si-admin');
@@ -6643,7 +6653,7 @@ function _doEntrada() {
           };
         case 4:
           fsel = document.getElementById('f-puesto-sel');
-          fichPuesto = ['Administración', 'Administrador', 'Gerencia', 'Jefe de departamento'].includes(USER.puesto) && fsel && fsel.value ? fsel.value : USER.puesto;
+          fichPuesto = ['Administración', 'Administrador', 'Gerencia', 'Jefe de departamento', 'Responsable de turno', 'Emergencias'].includes(USER.puesto) && fsel && fsel.value ? fsel.value : USER.puesto;
           payload = {
             agente: SEL_AGENT,
             puesto: fichPuesto,
