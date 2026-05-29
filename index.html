@@ -2185,6 +2185,33 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
     <div id="mapa-frame" style="border-radius:var(--radius-sm);overflow:hidden;border:1px solid var(--border2)"></div>
   </div>
 </div>
+<!-- OVERLAY: Editar fichaje — SOLO ADMIN SISTEMA -->
+<div class="overlay" id="ov-editar-fichaje">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="modal-title">&#x1F552; Editar horario de fichaje</span>
+      <button class="btn-close" onclick="closeOv('ov-editar-fichaje')">&#xD7;</button>
+    </div>
+    <div id="ov-ef-agente" style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:16px;padding:12px 14px;background:var(--bg3);border-radius:10px;border:1px solid var(--border2)"></div>
+    <div style="background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:12px;color:#fcd34d;display:flex;gap:8px;align-items:flex-start">
+      <span style="flex-shrink:0;font-size:16px">&#x26A0;&#xFE0F;</span>
+      <span>Esta acci&#xF3;n queda registrada en la bit&#xE1;cora del sistema.</span>
+    </div>
+    <div class="form-group">
+      <label class="form-label">&#x1F7E2; Hora de entrada</label>
+      <input type="time" class="form-input" id="ef-hora-entrada" style="font-family:var(--mono);font-size:18px"/>
+    </div>
+    <div class="form-group" id="ef-salida-wrap">
+      <label class="form-label">&#x1F534; Hora de salida (si ya sali&#xF3;)</label>
+      <input type="time" class="form-input" id="ef-hora-salida" style="font-family:var(--mono);font-size:18px"/>
+      <div style="font-size:11px;color:var(--text3);margin-top:4px">Dej&#xE1; en blanco si el agente sigue activo</div>
+    </div>
+    <button class="btn-login" id="btn-save-ef" onclick="guardarEditarFichaje()">
+      &#x2713; Guardar cambios
+    </button>
+  </div>
+</div>
+
 <div class="overlay" id="ov-licencia">
   <div class="modal">
     <div class="modal-head"><span class="modal-title">📋 Nueva Licencia</span><button class="btn-close" onclick="closeOv('ov-licencia')">×</button></div>
@@ -6539,6 +6566,10 @@ function _loadFichajes() {
               fhtml += '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">';
               fhtml += '<span class="badge b-green"><span class="pulse"></span> Activo</span>';
               fhtml += '<span style="font-family:var(--mono);font-size:10px;color:var(--text2)">desde ' + formatTs(fr.entrada) + '</span>';
+              // Botón editar hora — solo ADMIN sistema
+              if (USER.rol === 'ADMIN') {
+                fhtml += '<button onclick="abrirEditarFichaje(' + fr.id + ',\'' + (fr.agente||'').replace(/'/g,'') + '\',\'' + (fr.entrada||'') + '\',\'' + (fr.salida||'') + '\')" style="padding:4px 10px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.35);border-radius:6px;color:#fcd34d;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font)">&#x1F552; Editar hora</button>';
+              }
               fhtml += '<button data-fid="' + fr.id + '" data-fnombre="' + fr.agente.replace(/"/g, '').replace(/'/g, '') + '" onclick="var b=this;marcarSalidaDirecta(b.getAttribute(\'data-fid\'),b.getAttribute(\'data-fnombre\'))" style="padding:5px 10px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.5);border-radius:6px;color:#f87171;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font)">Marcar salida</button>';
               fhtml += '</div></div>';
             }
@@ -6553,6 +6584,96 @@ function _loadFichajes() {
   return _loadFichajes.apply(this, arguments);
 }
 // ── HORA OVERRIDE (solo Administrador de sistema) ──────────
+// ── EDITAR FICHAJE YA REGISTRADO (solo Administrador de sistema) ──
+var EF_ID = null;
+var EF_AGENTE = '';
+var EF_ENTRADA_ORIG = '';
+var EF_SALIDA_ORIG = '';
+
+function abrirEditarFichaje(id, agente, entradaISO, salidaISO) {
+  if (!USER || USER.rol !== 'ADMIN') { toast('Solo el Administrador de sistema puede editar fichajes', 'err'); return; }
+  EF_ID = id;
+  EF_AGENTE = agente;
+  EF_ENTRADA_ORIG = entradaISO;
+  EF_SALIDA_ORIG = salidaISO;
+
+  // Mostrar nombre del agente
+  var lblEl = document.getElementById('ov-ef-agente');
+  if (lblEl) lblEl.innerHTML = '&#x1F464; ' + agente;
+
+  // Setear hora de entrada
+  var entEl = document.getElementById('ef-hora-entrada');
+  if (entEl && entradaISO) {
+    // Convertir ISO a hora local Argentina
+    var dEnt = new Date(entradaISO);
+    var hh = String(dEnt.getUTCHours() - 3).padStart(2,'0'); // UTC-3
+    if (parseInt(hh) < 0) hh = String(parseInt(hh) + 24).padStart(2,'0');
+    var mm = String(dEnt.getUTCMinutes()).padStart(2,'0');
+    entEl.value = hh + ':' + mm;
+  }
+
+  // Setear hora de salida si existe
+  var salEl = document.getElementById('ef-hora-salida');
+  if (salEl) {
+    if (salidaISO) {
+      var dSal = new Date(salidaISO);
+      var hhs = String(dSal.getUTCHours() - 3).padStart(2,'0');
+      if (parseInt(hhs) < 0) hhs = String(parseInt(hhs) + 24).padStart(2,'0');
+      var mms = String(dSal.getUTCMinutes()).padStart(2,'0');
+      salEl.value = hhs + ':' + mms;
+    } else {
+      salEl.value = '';
+    }
+  }
+
+  openOv('ov-editar-fichaje');
+}
+
+function guardarEditarFichaje() {
+  if (!EF_ID) return;
+  var entEl = document.getElementById('ef-hora-entrada');
+  var salEl = document.getElementById('ef-hora-salida');
+  if (!entEl || !entEl.value) { toast('Ingresá la hora de entrada', 'err'); return; }
+
+  setLoading('btn-save-ef', true);
+
+  // Construir fechas ISO — tomar la fecha del registro original y reemplazar la hora
+  var fechaBase = EF_ENTRADA_ORIG ? EF_ENTRADA_ORIG.slice(0, 10) : new Date().toISOString().slice(0, 10);
+
+  // Convertir hora AR (UTC-3) a UTC sumando 3 horas
+  function arToUTC(fechaStr, horaStr) {
+    var partes = horaStr.split(':');
+    var hh = parseInt(partes[0]) + 3; // AR → UTC
+    var mm = parseInt(partes[1] || 0);
+    if (hh >= 24) { hh -= 24; } // no manejar día siguiente por ahora
+    return fechaStr + 'T' + String(hh).padStart(2,'0') + ':' + String(mm).padStart(2,'0') + ':00.000Z';
+  }
+
+  var nuevaEntrada = arToUTC(fechaBase, entEl.value);
+  var updates = { entrada: nuevaEntrada };
+
+  if (salEl && salEl.value) {
+    var fechaBaseSal = EF_SALIDA_ORIG ? EF_SALIDA_ORIG.slice(0, 10) : fechaBase;
+    updates.salida = arToUTC(fechaBaseSal, salEl.value);
+    updates.activo = false;
+  }
+
+  db.from('fichajes').update(updates).eq('id', EF_ID).then(function(r) {
+    setLoading('btn-save-ef', false);
+    if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+
+    // Registrar en bitácora
+    var detalle = 'Fichaje de ' + EF_AGENTE + ' editado. Entrada: ' + entEl.value + 'hs';
+    if (salEl && salEl.value) detalle += ' · Salida: ' + salEl.value + 'hs';
+    registrarEvento('EDICION_FICHAJE', USER.puesto, detalle);
+
+    closeOv('ov-editar-fichaje');
+    toast('\u2713 Fichaje actualizado \u2014 ' + EF_AGENTE);
+    loadFichajes();
+    loadDash();
+  });
+}
+
 function resetHoraOverride() {
   var input = document.getElementById('f-hora-override');
   if (!input) return;
