@@ -1800,13 +1800,14 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
 
         <div class="form-group">
           <label class="form-label">&#xC1;rea <span style="color:var(--red)">*</span></label>
-          <select class="form-select" id="inv-area">
+          <select class="form-select" id="inv-area" onchange="toggleAreaOtro(this.value)">
             <option value="">&#x2014; Seleccion&#xE1; el &#xE1;rea &#x2014;</option>
             <option>Activo fijo</option>
             <option>Servicios internos</option>
             <option>Mantenimiento</option>
-            <option>Otro</option>
+            <option value="Otro">Otro</option>
           </select>
+          <input class="form-input" id="inv-area-otro" placeholder="Especific&#xE1; el &#xE1;rea..." style="display:none;margin-top:8px;margin-bottom:0"/>
         </div>
 
         <div class="form-group">
@@ -1823,7 +1824,14 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
               + &#xCD;tem
             </button>
           </label>
-          <div id="inv-items-list" style="display:flex;flex-direction:column;gap:8px;margin-top:6px"></div>
+          <div id="inv-items-list" style="display:flex;flex-direction:column;gap:10px;margin-top:6px"></div>
+          <!-- Botón agregar otro ítem al pie -->
+          <button type="button" onclick="agregarItemInv()"
+            style="width:100%;margin-top:10px;padding:11px;border-radius:10px;border:1px dashed var(--border2);background:transparent;color:var(--text3);font-family:var(--font);font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .2s"
+            onmouseover="this.style.borderColor='rgba(59,130,246,.4)';this.style.color='#93c5fd'"
+            onmouseout="this.style.borderColor='var(--border2)';this.style.color='var(--text3)'">
+            <span style="font-size:18px">+</span> Agregar otro &#xED;tem
+          </button>
         </div>
 
         <div class="form-group">
@@ -5517,6 +5525,13 @@ function _saveAgenda() {
 var INV_TIPO = '';
 var INV_FOTO_ITEMS = {};
 
+function toggleAreaOtro(val) {
+  var otro = document.getElementById('inv-area-otro');
+  if (!otro) return;
+  otro.style.display = val === 'Otro' ? 'block' : 'none';
+  if (val !== 'Otro') otro.value = '';
+}
+
 function selTipoMov(tipo) {
   INV_TIPO = tipo;
   var btnI = document.getElementById('btn-inv-ingresa');
@@ -5544,21 +5559,103 @@ function agregarItemInv() {
   if (!list) return;
   var idx = list.children.length;
   var div = document.createElement('div');
-  div.style.cssText = 'background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px;position:relative';
+  div.id = 'inv-item-' + idx;
+  div.style.cssText = 'background:var(--bg3);border:1px solid var(--border2);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;position:relative';
   div.innerHTML =
-    '<button type="button" onclick="this.parentElement.remove()" style="position:absolute;top:6px;right:8px;background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer;line-height:1">&#xD7;</button>' +
-    '<input class="form-input" placeholder="Nombre del \xEDtem *" id="inv-item-nom-' + idx + '" style="margin-bottom:0"/>' +
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' +
-      '<input class="form-input" placeholder="Cantidad *" type="number" min="1" id="inv-item-cant-' + idx + '" style="margin-bottom:0"/>' +
-      '<input class="form-input" placeholder="N\xB0 Inventario" id="inv-item-ninv-' + idx + '" style="margin-bottom:0"/>' +
+    // Botón eliminar ítem
+    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px">' +
+      '<span style="font-size:11px;font-weight:700;color:var(--text3);letter-spacing:.08em;text-transform:uppercase">\xCDtem ' + (idx + 1) + '</span>' +
+      '<button type="button" onclick="document.getElementById(\'inv-item-' + idx + '\').remove();renumerarItems()" style="background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer;line-height:1;padding:0">&#xD7;</button>' +
     '</div>' +
-    '<input class="form-input" placeholder="N\xB0 SAP (opcional)" id="inv-item-sap-' + idx + '" style="margin-bottom:0"/>' +
+    // Nombre
+    '<input class="form-input" placeholder="Nombre del \xEDtem *" id="inv-item-nom-' + idx + '" style="margin-bottom:0"/>' +
+    // Cantidad
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' +
+      '<div>' +
+        '<label style="font-size:10px;color:var(--text3);display:block;margin-bottom:4px;letter-spacing:.06em">CANTIDAD *</label>' +
+        '<input class="form-input" placeholder="Ej: 3" type="number" min="1" id="inv-item-cant-' + idx + '" oninput="actualizarNInv(' + idx + ',this.value)" style="margin-bottom:0"/>' +
+      '</div>' +
+      '<div>' +
+        '<label style="font-size:10px;color:var(--text3);display:block;margin-bottom:4px;letter-spacing:.06em">N\xB0 SAP</label>' +
+        '<input class="form-input" placeholder="Opcional" id="inv-item-sap-' + idx + '" style="margin-bottom:0"/>' +
+      '</div>' +
+    '</div>' +
+    // N° de inventario por unidad (se genera dinámico)
+    '<div id="inv-item-ninv-wrap-' + idx + '">' +
+      '<label style="font-size:10px;color:var(--text3);display:block;margin-bottom:4px;letter-spacing:.06em">N\xB0 INVENTARIO (por unidad)</label>' +
+      '<input class="form-input" placeholder="N\xB0 Inventario" id="inv-item-ninv-0-' + idx + '" style="margin-bottom:0"/>' +
+    '</div>' +
+    // Fotos
     '<div>' +
-      '<label style="font-size:11px;color:var(--text3);margin-bottom:4px;display:block">Fotos del \xEDtem (hasta 3)</label>' +
-      '<input type="file" accept="image/*" multiple id="inv-item-foto-' + idx + '" onchange="prevFotoItemInv(' + idx + ',this)" style="font-size:11px;color:var(--text2)">' +
+      '<label style="font-size:10px;color:var(--text3);display:block;margin-bottom:6px;letter-spacing:.06em">FOTOS DEL \xCDTEM (hasta 3)</label>' +
+      '<input type="file" accept="image/*" multiple id="inv-item-foto-' + idx + '" onchange="prevFotoItemInv(' + idx + ',this)" style="display:none">' +
+      '<button type="button" onclick="abrirSelectorFotoInv(\'inv-item-foto-' + idx + '\')" style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:8px;border:1px dashed var(--border2);background:var(--bg2);color:var(--text3);font-family:var(--font);font-size:12px;cursor:pointer;width:100%">' +
+        '<span style="font-size:18px">&#128247;</span>Tocar para agregar foto \xB7 C\xE1mara o Galer\xEDa' +
+      '</button>' +
       '<div id="inv-item-fprev-' + idx + '" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"></div>' +
     '</div>';
   list.appendChild(div);
+}
+
+function renumerarItems() {
+  var list = document.getElementById('inv-items-list');
+  if (!list) return;
+  Array.from(list.children).forEach(function(div, i) {
+    var lbl = div.querySelector('span');
+    if (lbl) lbl.textContent = 'Ítem ' + (i + 1);
+  });
+}
+
+function actualizarNInv(idx, cantStr) {
+  var cant = parseInt(cantStr) || 1;
+  cant = Math.min(cant, 20); // máximo 20 campos
+  var wrap = document.getElementById('inv-item-ninv-wrap-' + idx);
+  if (!wrap) return;
+  var html = '<label style="font-size:10px;color:var(--text3);display:block;margin-bottom:4px;letter-spacing:.06em">N\xB0 INVENTARIO' + (cant > 1 ? ' (una por unidad)' : '') + '</label>';
+  if (cant <= 1) {
+    html += '<input class="form-input" placeholder="N\xB0 Inventario" id="inv-item-ninv-0-' + idx + '" style="margin-bottom:0"/>';
+  } else {
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">';
+    for (var i = 0; i < cant; i++) {
+      html += '<input class="form-input" placeholder="Unidad ' + (i+1) + '" id="inv-item-ninv-' + i + '-' + idx + '" style="margin-bottom:0;font-size:12px"/>';
+    }
+    html += '</div>';
+  }
+  wrap.innerHTML = html;
+}
+
+function abrirSelectorFotoInv(inputId) {
+  var existing = document.getElementById('foto-selector-modal');
+  if (existing) existing.remove();
+  var modal = document.createElement('div');
+  modal.id = 'foto-selector-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:flex-end;justify-content:center;padding:0 0 24px';
+  modal.onclick = function(e) { if (e.target === modal) modal.remove(); };
+  modal.innerHTML =
+    '<div style="background:var(--bg2);border-radius:18px 18px 0 0;padding:20px 16px;width:100%;max-width:420px;border-top:1px solid var(--border2)">' +
+    '<div style="width:40px;height:4px;border-radius:2px;background:var(--border2);margin:0 auto 18px"></div>' +
+    '<div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:14px;text-align:center">Agregar foto al \xEDtem</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">' +
+    '<button onclick="usarCamaraInv(\'' + inputId + '\')" style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:18px;border-radius:12px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer"><span style="font-size:28px">&#128247;</span>Tomar foto</button>' +
+    '<button onclick="usarGaleriaInv(\'' + inputId + '\')" style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:18px;border-radius:12px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer"><span style="font-size:28px">&#128444;&#65039;</span>Desde galer\xEDa</button>' +
+    '</div>' +
+    '<button onclick="document.getElementById(\'foto-selector-modal\').remove()" style="width:100%;margin-top:10px;padding:12px;border-radius:10px;border:1px solid var(--border2);background:transparent;color:var(--text3);font-family:var(--font);font-size:13px;cursor:pointer">Cancelar</button>' +
+    '</div>';
+  document.body.appendChild(modal);
+}
+
+function usarCamaraInv(inputId) {
+  var m = document.getElementById('foto-selector-modal'); if (m) m.remove();
+  var input = document.getElementById(inputId); if (!input) return;
+  input.setAttribute('capture', 'environment');
+  input.click();
+  setTimeout(function() { input.removeAttribute('capture'); }, 500);
+}
+function usarGaleriaInv(inputId) {
+  var m = document.getElementById('foto-selector-modal'); if (m) m.remove();
+  var input = document.getElementById(inputId); if (!input) return;
+  input.removeAttribute('capture');
+  input.click();
 }
 
 function prevFotoItemInv(idx, input) {
@@ -5581,9 +5678,10 @@ function prevFotoItemInv(idx, input) {
 function abrirNuevoMovimiento() {
   INV_TIPO = '';
   INV_FOTO_ITEMS = {};
-  var campos = ['inv-persona', 'inv-destino', 'inv-obs'];
+  var campos = ['inv-persona', 'inv-destino', 'inv-obs', 'inv-area-otro'];
   campos.forEach(function(id) { var el = document.getElementById(id); if (el) el.value = ''; });
   var area = document.getElementById('inv-area'); if (area) area.value = '';
+  var areaOtro = document.getElementById('inv-area-otro'); if (areaOtro) areaOtro.style.display = 'none';
   var list = document.getElementById('inv-items-list'); if (list) list.innerHTML = '';
   var btnI = document.getElementById('btn-inv-ingresa');
   var btnR = document.getElementById('btn-inv-retira');
@@ -5596,29 +5694,37 @@ function abrirNuevoMovimiento() {
 function guardarMovimientoInv() {
   if (!INV_TIPO) { toast('Seleccion\xE1 INGRESAN o RETIRAN', 'err'); return; }
   var persona = (document.getElementById('inv-persona') || {}).value;
-  var area    = (document.getElementById('inv-area')    || {}).value;
+  var areaSel = (document.getElementById('inv-area')    || {}).value;
+  var areaOtroEl = document.getElementById('inv-area-otro');
+  var area = areaSel === 'Otro' ? (areaOtroEl && areaOtroEl.value.trim() ? areaOtroEl.value.trim() : 'Otro') : areaSel;
   var destino = (document.getElementById('inv-destino') || {}).value;
   var obs     = (document.getElementById('inv-obs')     || {}).value;
-  if (!persona || !persona.trim()) { toast('Ingres\xE1 el nombre del responsable', 'err'); return; }
-  if (!area)                       { toast('Selecci\xF3n el \xE1rea', 'err'); return; }
-  if (!destino || !destino.trim()) { toast('Ingres\xE1 el destino', 'err'); return; }
+  if (!persona || !persona.trim()) { toast('Ingresá el nombre del responsable', 'err'); return; }
+  if (!areaSel)                    { toast('Seleccioná el área', 'err'); return; }
+  if (!destino || !destino.trim()) { toast('Ingresá el destino', 'err'); return; }
 
-  // Recolectar ítems
+  // Recolectar ítems — con N° de inventario por unidad
   var list  = document.getElementById('inv-items-list');
   var items = [];
-  if (!list || list.children.length === 0) { toast('Agreg\xE1 al menos un \xEDtem', 'err'); return; }
+  if (!list || list.children.length === 0) { toast('Agregá al menos un ítem', 'err'); return; }
   for (var i = 0; i < list.children.length; i++) {
     var nom  = document.getElementById('inv-item-nom-'  + i);
     var cant = document.getElementById('inv-item-cant-' + i);
-    if (!nom  || !nom.value.trim())            { toast('Complet\xE1 el nombre del \xEDtem ' + (i+1), 'err'); return; }
-    if (!cant || !cant.value || parseInt(cant.value) < 1) { toast('Ingres\xE1 cantidad del \xEDtem ' + (i+1), 'err'); return; }
-    var ninv = document.getElementById('inv-item-ninv-' + i);
-    var sap  = document.getElementById('inv-item-sap-'  + i);
+    if (!nom  || !nom.value.trim())            { toast('Completá el nombre del ítem ' + (i+1), 'err'); return; }
+    if (!cant || !cant.value || parseInt(cant.value) < 1) { toast('Ingresá cantidad del ítem ' + (i+1), 'err'); return; }
+    var cantNum = parseInt(cant.value);
+    // Recolectar N° de inventario por unidad
+    var nInvArr = [];
+    for (var j = 0; j < cantNum; j++) {
+      var ninvEl = document.getElementById('inv-item-ninv-' + j + '-' + i);
+      if (ninvEl && ninvEl.value.trim()) nInvArr.push(ninvEl.value.trim());
+    }
+    var sap = document.getElementById('inv-item-sap-' + i);
     items.push({
       nombre:       nom.value.trim(),
-      cantidad:     parseInt(cant.value),
-      n_inventario: ninv && ninv.value ? ninv.value.trim() : null,
-      n_sap:        sap  && sap.value  ? sap.value.trim()  : null
+      cantidad:     cantNum,
+      n_inventario: nInvArr.length > 0 ? nInvArr.join(', ') : null,
+      n_sap:        sap && sap.value ? sap.value.trim() : null
     });
   }
 
@@ -5684,7 +5790,7 @@ function loadInventario() {
   if (!list) return;
   list.innerHTML = '<div class="empty"><div class="icon"><span class="spinner"></span></div></div>';
 
-  var puedeVerTodos = isAdminUser || (USER && ['Administraci\xF3n','Gerencia','Jefe de departamento','Responsable de turno','Emergencias'].indexOf(USER.puesto) >= 0);
+  var puedeVerTodos = (USER && USER.rol === 'ADMIN') || (USER && ['Administración','Gerencia','Jefe de departamento','Responsable de turno','Emergencias'].indexOf(USER.puesto) >= 0);
 
   var query = db.from('inventario').select('*').order('id', { ascending: false }).limit(80);
   if (!puedeVerTodos) query = query.eq('puesto', USER.puesto);
