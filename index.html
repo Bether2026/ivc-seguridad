@@ -377,6 +377,7 @@ body::after { display: none; }
 #nb-estadisticas    { --nc: #38bdf8; }
 #nb-inmuebles      { --nc: #34d399; }
 #nb-rrhh            { --nc: #4ade80; }
+#nb-inventario      { --nc: #fb923c; }
 #nb-agenda          { --nc: #fde68a; }
 #nb-admin           { --nc: #f87171; }
 
@@ -1459,6 +1460,9 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
       <button class="sidebar-item" onclick="goView('rrhh')" id="si-rrhh" style="display:none">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg> RRHH
       </button>
+      <button class="sidebar-item" onclick="goView('inventario')" id="si-inventario" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg> Inventario
+      </button>
       <button class="sidebar-item" onclick="goView('agenda')" id="si-agenda" style="display:none">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Agenda
       </button>
@@ -1747,6 +1751,103 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
       <div id="rrhh-lista"></div>
     </div>
 
+    <!-- ══ INVENTARIO ══ -->
+    <div class="view" id="view-inventario">
+      <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+        <div>
+          <h2>&#x1F4CB; Control de Stock</h2>
+          <p>Registro de movimientos &mdash; Necochea</p>
+        </div>
+        <button onclick="abrirNuevoMovimiento()" style="flex-shrink:0;display:flex;align-items:center;gap:6px;padding:9px 16px;border-radius:10px;border:1px solid rgba(251,146,60,.35);background:rgba(251,146,60,.1);color:#fdba74;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">
+          + Nuevo movimiento
+        </button>
+      </div>
+      <!-- Resumen -->
+      <div id="inv-resumen" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px"></div>
+      <!-- Lista -->
+      <div id="inv-list">
+        <div class="empty"><div class="icon">&#x1F4CB;</div><p>Cargando movimientos...</p></div>
+      </div>
+    </div>
+
+    <!-- OVERLAY: Nuevo movimiento -->
+    <div class="overlay" id="ov-inventario">
+      <div class="modal">
+        <div class="modal-head">
+          <span class="modal-title">&#x1F4CB; Nuevo movimiento</span>
+          <button class="btn-close" onclick="closeOv('ov-inventario')">&#xD7;</button>
+        </div>
+
+        <!-- Tipo -->
+        <div class="form-group">
+          <label class="form-label">Tipo <span style="color:var(--red)">*</span></label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <button id="btn-inv-ingresa" type="button" onclick="selTipoMov('INGRESAN')"
+              style="padding:14px 10px;border-radius:10px;border:2px solid var(--border2);background:var(--bg3);color:var(--text2);font-family:var(--font);font-size:13px;font-weight:800;cursor:pointer;transition:all .2s;line-height:1.4">
+              &#x2B06;&#xFE0F; INGRESAN<br><span style="font-size:10px;font-weight:400;opacity:.7">Entran al puesto</span>
+            </button>
+            <button id="btn-inv-retira" type="button" onclick="selTipoMov('RETIRAN')"
+              style="padding:14px 10px;border-radius:10px;border:2px solid var(--border2);background:var(--bg3);color:var(--text2);font-family:var(--font);font-size:13px;font-weight:800;cursor:pointer;transition:all .2s;line-height:1.4">
+              &#x2B07;&#xFE0F; RETIRAN<br><span style="font-size:10px;font-weight:400;opacity:.7">Salen del puesto</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Responsable (nombre y apellido) <span style="color:var(--red)">*</span></label>
+          <input class="form-input" id="inv-persona" placeholder="Ej: Leonardo Carabajal"/>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">&#xC1;rea <span style="color:var(--red)">*</span></label>
+          <select class="form-select" id="inv-area">
+            <option value="">&#x2014; Seleccion&#xE1; el &#xE1;rea &#x2014;</option>
+            <option>Activo fijo</option>
+            <option>Servicios internos</option>
+            <option>Mantenimiento</option>
+            <option>Otro</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Destino <span style="color:var(--red)">*</span></label>
+          <input class="form-input" id="inv-destino" placeholder="Ej: Ministerio, Dep\xF3sito, Necochea..."/>
+        </div>
+
+        <!-- Ítems -->
+        <div class="form-group">
+          <label class="form-label" style="display:flex;align-items:center;justify-content:space-between">
+            <span>&#xCD;tems <span style="color:var(--red)">*</span></span>
+            <button type="button" onclick="agregarItemInv()"
+              style="padding:4px 12px;border-radius:6px;border:1px solid rgba(59,130,246,.35);background:rgba(59,130,246,.1);color:#93c5fd;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">
+              + &#xCD;tem
+            </button>
+          </label>
+          <div id="inv-items-list" style="display:flex;flex-direction:column;gap:8px;margin-top:6px"></div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Observaciones (opcional)</label>
+          <textarea class="form-textarea" id="inv-obs" placeholder="Notas adicionales..." style="min-height:60px"></textarea>
+        </div>
+
+        <button class="btn-login" id="btn-save-inv" onclick="guardarMovimientoInv()">
+          &#x1F4CB; Registrar movimiento
+        </button>
+      </div>
+    </div>
+
+    <!-- OVERLAY: Detalle movimiento -->
+    <div class="overlay" id="ov-inv-detalle">
+      <div class="modal">
+        <div class="modal-head">
+          <span class="modal-title" id="inv-det-title">Detalle del movimiento</span>
+          <button class="btn-close" onclick="closeOv('ov-inv-detalle')">&#xD7;</button>
+        </div>
+        <div id="inv-det-body"></div>
+      </div>
+    </div>
+
     <div class="view" id="view-agenda">
       <div class="page-header">
         <h2><span style="color:#fde68a;margin-right:8px;text-shadow:0 0 12px rgba(253,230,138,0.5)">📅</span>Agenda de Operativo</h2>
@@ -1993,6 +2094,10 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
     </button>
     <button class="nav-btn" onclick="goView('rrhh')" id="nb-rrhh" style="display:none">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span>RRHH</span>
+    </button>
+    <button class="nav-btn" onclick="goView('inventario')" id="nb-inventario" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
+      <span>Inventario</span>
     </button>
     <button class="nav-btn" onclick="goView('agenda')" id="nb-agenda" style="display:none">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Agenda</span>
@@ -5406,6 +5511,262 @@ function _saveAgenda() {
   }));
   return _saveAgenda.apply(this, arguments);
 }
+// ══════════════════════════════════════════════════════════
+//  MÓDULO INVENTARIO — Control de Stock (Necochea)
+// ══════════════════════════════════════════════════════════
+var INV_TIPO = '';
+var INV_FOTO_ITEMS = {};
+
+function selTipoMov(tipo) {
+  INV_TIPO = tipo;
+  var btnI = document.getElementById('btn-inv-ingresa');
+  var btnR = document.getElementById('btn-inv-retira');
+  if (!btnI || !btnR) return;
+  if (tipo === 'INGRESAN') {
+    btnI.style.borderColor = 'var(--green)';
+    btnI.style.background  = 'rgba(16,185,129,.12)';
+    btnI.style.color       = '#6ee7b7';
+    btnR.style.borderColor = 'var(--border2)';
+    btnR.style.background  = 'var(--bg3)';
+    btnR.style.color       = 'var(--text2)';
+  } else {
+    btnR.style.borderColor = 'var(--red)';
+    btnR.style.background  = 'rgba(239,68,68,.12)';
+    btnR.style.color       = '#fca5a5';
+    btnI.style.borderColor = 'var(--border2)';
+    btnI.style.background  = 'var(--bg3)';
+    btnI.style.color       = 'var(--text2)';
+  }
+}
+
+function agregarItemInv() {
+  var list = document.getElementById('inv-items-list');
+  if (!list) return;
+  var idx = list.children.length;
+  var div = document.createElement('div');
+  div.style.cssText = 'background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:8px;position:relative';
+  div.innerHTML =
+    '<button type="button" onclick="this.parentElement.remove()" style="position:absolute;top:6px;right:8px;background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer;line-height:1">&#xD7;</button>' +
+    '<input class="form-input" placeholder="Nombre del \xEDtem *" id="inv-item-nom-' + idx + '" style="margin-bottom:0"/>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' +
+      '<input class="form-input" placeholder="Cantidad *" type="number" min="1" id="inv-item-cant-' + idx + '" style="margin-bottom:0"/>' +
+      '<input class="form-input" placeholder="N\xB0 Inventario" id="inv-item-ninv-' + idx + '" style="margin-bottom:0"/>' +
+    '</div>' +
+    '<input class="form-input" placeholder="N\xB0 SAP (opcional)" id="inv-item-sap-' + idx + '" style="margin-bottom:0"/>' +
+    '<div>' +
+      '<label style="font-size:11px;color:var(--text3);margin-bottom:4px;display:block">Fotos del \xEDtem (hasta 3)</label>' +
+      '<input type="file" accept="image/*" multiple id="inv-item-foto-' + idx + '" onchange="prevFotoItemInv(' + idx + ',this)" style="font-size:11px;color:var(--text2)">' +
+      '<div id="inv-item-fprev-' + idx + '" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"></div>' +
+    '</div>';
+  list.appendChild(div);
+}
+
+function prevFotoItemInv(idx, input) {
+  var prev = document.getElementById('inv-item-fprev-' + idx);
+  if (!prev) return;
+  INV_FOTO_ITEMS[idx] = Array.from(input.files).slice(0, 3);
+  prev.innerHTML = '';
+  INV_FOTO_ITEMS[idx].forEach(function(f) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var img = document.createElement('img');
+      img.src = e.target.result;
+      img.style.cssText = 'width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid var(--border2)';
+      prev.appendChild(img);
+    };
+    reader.readAsDataURL(f);
+  });
+}
+
+function abrirNuevoMovimiento() {
+  INV_TIPO = '';
+  INV_FOTO_ITEMS = {};
+  var campos = ['inv-persona', 'inv-destino', 'inv-obs'];
+  campos.forEach(function(id) { var el = document.getElementById(id); if (el) el.value = ''; });
+  var area = document.getElementById('inv-area'); if (area) area.value = '';
+  var list = document.getElementById('inv-items-list'); if (list) list.innerHTML = '';
+  var btnI = document.getElementById('btn-inv-ingresa');
+  var btnR = document.getElementById('btn-inv-retira');
+  if (btnI) { btnI.style.borderColor = 'var(--border2)'; btnI.style.background = 'var(--bg3)'; btnI.style.color = 'var(--text2)'; }
+  if (btnR) { btnR.style.borderColor = 'var(--border2)'; btnR.style.background = 'var(--bg3)'; btnR.style.color = 'var(--text2)'; }
+  agregarItemInv();
+  openOv('ov-inventario');
+}
+
+function guardarMovimientoInv() {
+  if (!INV_TIPO) { toast('Seleccion\xE1 INGRESAN o RETIRAN', 'err'); return; }
+  var persona = (document.getElementById('inv-persona') || {}).value;
+  var area    = (document.getElementById('inv-area')    || {}).value;
+  var destino = (document.getElementById('inv-destino') || {}).value;
+  var obs     = (document.getElementById('inv-obs')     || {}).value;
+  if (!persona || !persona.trim()) { toast('Ingres\xE1 el nombre del responsable', 'err'); return; }
+  if (!area)                       { toast('Selecci\xF3n el \xE1rea', 'err'); return; }
+  if (!destino || !destino.trim()) { toast('Ingres\xE1 el destino', 'err'); return; }
+
+  // Recolectar ítems
+  var list  = document.getElementById('inv-items-list');
+  var items = [];
+  if (!list || list.children.length === 0) { toast('Agreg\xE1 al menos un \xEDtem', 'err'); return; }
+  for (var i = 0; i < list.children.length; i++) {
+    var nom  = document.getElementById('inv-item-nom-'  + i);
+    var cant = document.getElementById('inv-item-cant-' + i);
+    if (!nom  || !nom.value.trim())            { toast('Complet\xE1 el nombre del \xEDtem ' + (i+1), 'err'); return; }
+    if (!cant || !cant.value || parseInt(cant.value) < 1) { toast('Ingres\xE1 cantidad del \xEDtem ' + (i+1), 'err'); return; }
+    var ninv = document.getElementById('inv-item-ninv-' + i);
+    var sap  = document.getElementById('inv-item-sap-'  + i);
+    items.push({
+      nombre:       nom.value.trim(),
+      cantidad:     parseInt(cant.value),
+      n_inventario: ninv && ninv.value ? ninv.value.trim() : null,
+      n_sap:        sap  && sap.value  ? sap.value.trim()  : null
+    });
+  }
+
+  setLoading('btn-save-inv', true);
+  var ahora = fechaHoyAR();
+  var mov = {
+    puesto:              USER.puesto,
+    agente_registra:     USER.nombre || USER.puesto,
+    tipo:                INV_TIPO,
+    persona_responsable: persona.trim(),
+    area:                area,
+    destino:             destino.trim(),
+    observaciones:       obs && obs.trim() ? obs.trim() : null,
+    fecha:               ahora.fecha,
+    hora:                ahora.hora
+  };
+
+  db.from('inventario').insert(mov).select().single().then(function(res) {
+    if (res.error) {
+      toast('Error: ' + res.error.message, 'err');
+      setLoading('btn-save-inv', false);
+      return;
+    }
+    var movId = res.data.id;
+
+    // Insertar ítems
+    var itemsConId = items.map(function(it) {
+      return {
+        movimiento_id: movId,
+        nombre:        it.nombre,
+        cantidad:      it.cantidad,
+        n_inventario:  it.n_inventario,
+        n_sap:         it.n_sap
+      };
+    });
+    db.from('inventario_items').insert(itemsConId).then(function() {
+      // Subir fotos de ítems a R2
+      var fotoPromises = [];
+      Object.keys(INV_FOTO_ITEMS).forEach(function(idx) {
+        (INV_FOTO_ITEMS[idx] || []).forEach(function(foto) {
+          fotoPromises.push(
+            uploadToR2Comprimido(foto, 'inventario').catch(function() { return null; })
+          );
+        });
+      });
+      Promise.all(fotoPromises).then(function(urls) {
+        var urlsOk = urls.filter(Boolean);
+        if (urlsOk.length > 0) {
+          db.from('inventario').update({ fotos: urlsOk }).eq('id', movId).then(function() {});
+        }
+        setLoading('btn-save-inv', false);
+        closeOv('ov-inventario');
+        toast(INV_TIPO === 'INGRESAN' ? '\u2713 Ingreso registrado' : '\u2713 Retiro registrado');
+        loadInventario();
+      });
+    });
+  });
+}
+
+function loadInventario() {
+  var list = document.getElementById('inv-list');
+  var res  = document.getElementById('inv-resumen');
+  if (!list) return;
+  list.innerHTML = '<div class="empty"><div class="icon"><span class="spinner"></span></div></div>';
+
+  var puedeVerTodos = isAdminUser || (USER && ['Administraci\xF3n','Gerencia','Jefe de departamento','Responsable de turno','Emergencias'].indexOf(USER.puesto) >= 0);
+
+  var query = db.from('inventario').select('*').order('id', { ascending: false }).limit(80);
+  if (!puedeVerTodos) query = query.eq('puesto', USER.puesto);
+
+  query.then(function(r) {
+    if (r.error) { list.innerHTML = '<div class="empty"><p>Error cargando inventario</p></div>'; return; }
+    var data = r.data || [];
+
+    // Resumen
+    var ingresan = data.filter(function(d) { return d.tipo === 'INGRESAN'; }).length;
+    var retiran  = data.filter(function(d) { return d.tipo === 'RETIRAN';  }).length;
+    if (res) {
+      res.innerHTML =
+        '<div style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:12px;padding:14px;text-align:center">' +
+          '<div style="font-family:var(--mono);font-size:36px;color:var(--green);line-height:1">' + ingresan + '</div>' +
+          '<div style="font-size:11px;color:var(--text3);margin-top:4px">\u2B06\uFE0F Ingresos</div>' +
+        '</div>' +
+        '<div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:12px;padding:14px;text-align:center">' +
+          '<div style="font-family:var(--mono);font-size:36px;color:var(--red);line-height:1">' + retiran + '</div>' +
+          '<div style="font-size:11px;color:var(--text3);margin-top:4px">\u2B07\uFE0F Retiros</div>' +
+        '</div>';
+    }
+
+    if (!data.length) {
+      list.innerHTML = '<div class="empty"><div class="icon">\uD83D\uDCCB</div><p>Sin movimientos registrados</p></div>';
+      return;
+    }
+
+    var html = '';
+    data.forEach(function(m) {
+      var isIng  = m.tipo === 'INGRESAN';
+      var bColor = isIng ? 'rgba(16,185,129,.3)' : 'rgba(239,68,68,.3)';
+      var tColor = isIng ? 'var(--green)' : 'var(--red)';
+      var icon   = isIng ? '\u2B06\uFE0F' : '\u2B07\uFE0F';
+      html += '<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid ' + bColor + ';border-radius:12px;padding:14px;margin-bottom:10px;cursor:pointer" onclick="verDetalleInv(' + m.id + ')">';
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">';
+      html += '<span style="font-size:13px;font-weight:800;color:' + tColor + '">' + icon + ' ' + m.tipo + '</span>';
+      html += '<span style="font-size:11px;color:var(--text3);font-family:var(--mono)">' + (m.fecha || '') + ' ' + (m.hora || '') + '</span>';
+      html += '</div>';
+      html += '<div style="font-size:13px;font-weight:600;color:var(--text)">' + (m.persona_responsable || '') + '</div>';
+      html += '<div style="font-size:11px;color:var(--text3);margin-top:3px">' + (m.area || '') + ' \u2192 ' + (m.destino || '') + '</div>';
+      if (puedeVerTodos && m.puesto) {
+        html += '<div style="font-size:10px;color:var(--text3);margin-top:2px">\uD83D\uDCCD ' + m.puesto + '</div>';
+      }
+      if (m.observaciones) {
+        html += '<div style="font-size:11px;color:var(--text3);margin-top:4px;font-style:italic">' + m.observaciones + '</div>';
+      }
+      html += '<div style="margin-top:8px;display:flex;gap:6px">' + adminEditBtn('inventario', m.id) + adminDelBtn('inventario', m.id, 'movimiento') + '</div>';
+      html += '</div>';
+    });
+    list.innerHTML = html;
+  });
+}
+
+function verDetalleInv(id) {
+  db.from('inventario_items').select('*').eq('movimiento_id', id).then(function(r) {
+    var items = r.data || [];
+    var body  = document.getElementById('inv-det-body');
+    var title = document.getElementById('inv-det-title');
+    if (!body) return;
+    if (!items.length) {
+      body.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:10px 0">Sin \xEDtems registrados</div>';
+      openOv('ov-inv-detalle');
+      return;
+    }
+    if (title) title.textContent = 'Detalle \u2014 ' + items.length + ' \xEDtem' + (items.length > 1 ? 's' : '');
+    var html = '<div style="display:flex;flex-direction:column;gap:8px">';
+    items.forEach(function(it) {
+      html += '<div style="background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:12px">';
+      html += '<div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:6px">' + it.nombre + '</div>';
+      html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px">';
+      html += '<div style="color:var(--text3)">Cantidad: <strong style="color:var(--text)">' + it.cantidad + '</strong></div>';
+      if (it.n_inventario) html += '<div style="color:var(--text3)">N\xB0 Inv: <strong style="color:var(--text)">' + it.n_inventario + '</strong></div>';
+      if (it.n_sap)        html += '<div style="color:var(--text3)">SAP: <strong style="color:var(--text)">' + it.n_sap + '</strong></div>';
+      html += '</div></div>';
+    });
+    html += '</div>';
+    body.innerHTML = html;
+    openOv('ov-inv-detalle');
+  });
+}
+
 function loadAgenda() {
   return _loadAgenda.apply(this, arguments);
 }
@@ -7253,6 +7614,7 @@ function goView(name) {
     if (name === 'fichaje' && typeof loadFichajes === 'function') loadFichajes();
     if (name === 'choferes' && typeof loadChoferes === 'function') loadChoferes();
     if (name === 'agenda' && typeof loadAgenda === 'function') loadAgenda();
+    if (name === 'inventario' && typeof loadInventario === 'function') loadInventario();
     if (name === 'dashboard') {
       if (typeof loadDash === 'function') loadDash();
       if (typeof loadNoticias === 'function') loadNoticias();
@@ -7525,6 +7887,8 @@ var SECCIONES_PERMISOS = [{
   id: 'agenda', label: 'Agenda'
 }, {
   id: 'inmuebles', label: 'Inmuebles'
+}, {
+  id: 'inventario', label: 'Inventario'
 }];
 
 // Usuarios operativos (puestos que tienen restricciones)
@@ -7541,7 +7905,8 @@ var DEFAULT_PERMISOS = {
     estadisticas: 0,
     rrhh: 0,
     agenda: 0,
-    inmuebles: 0
+    inmuebles: 0,
+    inventario: 0
   },
   'Rodrigo Bueno': {
     fichaje: 1,
@@ -7552,7 +7917,8 @@ var DEFAULT_PERMISOS = {
     estadisticas: 0,
     rrhh: 0,
     agenda: 0,
-    inmuebles: 0
+    inmuebles: 0,
+    inventario: 0
   },
   'Fraga': {
     fichaje: 1,
@@ -7563,7 +7929,8 @@ var DEFAULT_PERMISOS = {
     estadisticas: 0,
     rrhh: 0,
     agenda: 0,
-    inmuebles: 0
+    inmuebles: 0,
+    inventario: 0
   },
   'Base Castañares': {
     fichaje: 1,
@@ -7574,7 +7941,8 @@ var DEFAULT_PERMISOS = {
     estadisticas: 0,
     rrhh: 0,
     agenda: 0,
-    inmuebles: 0
+    inmuebles: 0,
+    inventario: 0
   },
   'Obrador Savio': {
     fichaje: 1,
@@ -7585,7 +7953,8 @@ var DEFAULT_PERMISOS = {
     estadisticas: 0,
     rrhh: 0,
     agenda: 0,
-    inmuebles: 0
+    inmuebles: 0,
+    inventario: 0
   },
   'CAV': {
     fichaje: 1,
@@ -7596,7 +7965,8 @@ var DEFAULT_PERMISOS = {
     estadisticas: 0,
     rrhh: 0,
     agenda: 0,
-    inmuebles: 0
+    inmuebles: 0,
+    inventario: 0
   },
   'Necochea': {
     fichaje: 1,
@@ -7607,7 +7977,8 @@ var DEFAULT_PERMISOS = {
     estadisticas: 0,
     rrhh: 0,
     agenda: 0,
-    inmuebles: 0
+    inmuebles: 0,
+    inventario: 1
   },
   'Complejo Orma': {
     fichaje: 1,
@@ -7618,7 +7989,8 @@ var DEFAULT_PERMISOS = {
     estadisticas: 0,
     rrhh: 0,
     agenda: 0,
-    inmuebles: 0
+    inmuebles: 0,
+    inventario: 0
   },
   'Alvarado': {
     fichaje: 1,
@@ -7629,7 +8001,8 @@ var DEFAULT_PERMISOS = {
     estadisticas: 0,
     rrhh: 0,
     agenda: 0,
-    inmuebles: 0
+    inmuebles: 0,
+    inventario: 0
   },
   'Padre Mugica': {
     fichaje: 1,
@@ -7640,7 +8013,8 @@ var DEFAULT_PERMISOS = {
     estadisticas: 0,
     rrhh: 0,
     agenda: 0,
-    inmuebles: 0
+    inmuebles: 0,
+    inventario: 0
   },
   'Choferes': {
     fichaje: 1,
@@ -7662,7 +8036,8 @@ var DEFAULT_PERMISOS = {
     estadisticas: 1,
     rrhh: 1,
     agenda: 1,
-    inmuebles: 1
+    inmuebles: 1,
+    inventario: 1
   },
   'Gerencia': {
     fichaje: 1,
@@ -7673,7 +8048,8 @@ var DEFAULT_PERMISOS = {
     estadisticas: 1,
     rrhh: 0,
     agenda: 1,
-    inmuebles: 1
+    inmuebles: 1,
+    inventario: 1
   },
   'Responsable de turno': {
     fichaje: 1,
@@ -7684,7 +8060,8 @@ var DEFAULT_PERMISOS = {
     estadisticas: 1,
     rrhh: 0,
     agenda: 1,
-    inmuebles: 1
+    inmuebles: 1,
+    inventario: 1
   },
   'Jefe de departamento': {
     fichaje: 1,
@@ -7695,7 +8072,8 @@ var DEFAULT_PERMISOS = {
     estadisticas: 1,
     rrhh: 1,
     agenda: 1,
-    inmuebles: 1
+    inmuebles: 1,
+    inventario: 1
   },
   'Emergencias': {
     fichaje: 1,
