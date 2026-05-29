@@ -8329,7 +8329,15 @@ function cargarPermisosDesdeSupabase() {
 
 function getPermisosUsuario(puesto) {
   var permisos = getPermisos();
-  return permisos[puesto] || DEFAULT_PERMISOS[puesto] || {};
+  // Merge: los defaults proveen valores base para keys nuevas (ej: inventario)
+  // Los permisos guardados tienen prioridad sobre los defaults
+  var base    = DEFAULT_PERMISOS[puesto] ? JSON.parse(JSON.stringify(DEFAULT_PERMISOS[puesto])) : {};
+  var guardado = permisos[puesto] || {};
+  // Combinar: guardado sobreescribe base, pero base rellena keys faltantes
+  var merged = {};
+  Object.keys(base).forEach(function(k) { merged[k] = base[k]; });
+  Object.keys(guardado).forEach(function(k) { merged[k] = guardado[k]; });
+  return merged;
 }
 function aplicarPermisosAlLogin() {
   if (!USER) return;
@@ -8380,7 +8388,12 @@ function loadPermisosAdmin() {
   headers += '</div>';
   var rows = '';
   USUARIOS_OPERATIVOS.forEach(function (usuario) {
-    var up = permisos[usuario] || DEFAULT_PERMISOS[usuario] || {};
+    var guardado = permisos[usuario] || {};
+    var base     = DEFAULT_PERMISOS[usuario] ? JSON.parse(JSON.stringify(DEFAULT_PERMISOS[usuario])) : {};
+    // Merge: base rellena keys nuevas (inventario), guardado tiene prioridad
+    var up = {};
+    Object.keys(base).forEach(function(k) { up[k] = base[k]; });
+    Object.keys(guardado).forEach(function(k) { up[k] = guardado[k]; });
     rows += '<div style="display:grid;grid-template-columns:140px repeat(' + SECCIONES_PERMISOS.length + ',1fr);gap:4px;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)">';
     rows += '<div style="font-size:11px;font-weight:600;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + usuario + '</div>';
     SECCIONES_PERMISOS.forEach(function (sec) {
