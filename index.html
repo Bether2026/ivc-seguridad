@@ -1561,6 +1561,20 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
       <div class="form-group"><label class="form-label" id="f-agente-label">Agente</label>
         <select class="form-select" id="f-sel" onchange="selAgent(this.value)"><option value="">— Seleccionar agente —</option></select>
       </div>
+      <!-- Campo hora manual — SOLO Administrador de sistema -->
+      <div class="form-group" id="f-hora-override-wrap" style="display:none">
+        <label class="form-label" style="display:flex;align-items:center;justify-content:space-between">
+          <span>&#x1F552; Hora del registro</span>
+          <span style="font-size:10px;color:var(--yellow);font-weight:700;letter-spacing:.05em">&#x1F512; SOLO ADMIN SISTEMA</span>
+        </label>
+        <div style="display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center">
+          <input type="time" class="form-input" id="f-hora-override" style="margin-bottom:0;font-family:var(--mono);font-size:16px"/>
+          <button type="button" onclick="resetHoraOverride()" style="padding:10px 14px;border-radius:10px;border:1px solid var(--border2);background:var(--bg3);color:var(--text3);font-family:var(--font);font-size:12px;cursor:pointer;white-space:nowrap">Hora actual</button>
+        </div>
+        <div style="font-size:11px;color:var(--text3);margin-top:5px;padding:7px 10px;background:rgba(245,158,11,.07);border-radius:7px;border:1px solid rgba(245,158,11,.18)">
+          &#9888;&#xFE0F; Modificar la hora queda registrado en la bit&#xE1;cora del sistema.
+        </div>
+      </div>
       <button class="btn-fich btn-entrada" id="btn-entrada" onclick="doEntrada()">✓ Registrar Entrada</button>
       <button class="btn-fich btn-salida"  id="btn-salida"  onclick="doSalida()"  style="display:none">⏏ Marcar Salida</button>
       <div class="card" style="margin-top:14px">
@@ -5094,6 +5108,22 @@ function initApp() {
   };
   tick();
   TIMER = setInterval(tick, 1000);
+
+  // Campo hora override — SOLO Administrador de sistema
+  var horaWrap = document.getElementById('f-hora-override-wrap');
+  if (horaWrap) {
+    var esAdminSistema = USER.rol === 'ADMIN';
+    horaWrap.style.display = esAdminSistema ? 'block' : 'none';
+    if (esAdminSistema) {
+      // Setear la hora actual como valor por defecto
+      var ahAR = fechaHoyAR();
+      var horaInput = document.getElementById('f-hora-override');
+      if (horaInput && ahAR.hora) {
+        // ahAR.hora viene como "HH:MM" o "HH:MM:SS"
+        horaInput.value = ahAR.hora.slice(0, 5);
+      }
+    }
+  }
   var canSeeStats = ['Gerencia', 'Administración', 'Administrador', 'Jefe de departamento'].includes(USER.puesto);
   if (canSeeStats) {
     $('nb-estadisticas').style.display = 'flex';
@@ -6522,6 +6552,33 @@ function _loadFichajes() {
   }));
   return _loadFichajes.apply(this, arguments);
 }
+// ── HORA OVERRIDE (solo Administrador de sistema) ──────────
+function resetHoraOverride() {
+  var input = document.getElementById('f-hora-override');
+  if (!input) return;
+  var ahAR = fechaHoyAR();
+  input.value = ahAR.hora ? ahAR.hora.slice(0, 5) : '';
+  toast('Hora restablecida a la actual');
+}
+
+// Retorna la hora a usar al registrar un fichaje
+// Si el admin modificó el campo, usa esa hora; si no, usa la hora actual
+function getHoraFichaje() {
+  var input = document.getElementById('f-hora-override');
+  // Solo usar override si el usuario es admin Y el campo existe Y tiene valor
+  if (USER && USER.rol === 'ADMIN' && input && input.value) {
+    return input.value + ':00'; // HH:MM → HH:MM:SS
+  }
+  var ahAR = fechaHoyAR();
+  return ahAR.hora || '';
+}
+
+function getFechaFichaje() {
+  // Para futuro uso si se necesita editar también la fecha
+  var ahAR = fechaHoyAR();
+  return ahAR.fecha || '';
+}
+
 function selAgent(nombre) {
   SEL_AGENT = nombre || null;
   if (!nombre) {
@@ -6659,6 +6716,20 @@ function _doEntrada() {
             puesto: fichPuesto,
             activo: true
           };
+          // Hora override: solo admin sistema puede modificarla
+          if (USER.rol === 'ADMIN') {
+            var horaOvEl = document.getElementById('f-hora-override');
+            var ahAR_fich = fechaHoyAR();
+            if (horaOvEl && horaOvEl.value) {
+              payload.hora_entrada_override = horaOvEl.value + ':00';
+              payload.fecha = ahAR_fich.fecha;
+              // Registrar en bitácora que se modificó la hora
+              var horaActual = ahAR_fich.hora;
+              if (horaOvEl.value + ':00' !== horaActual) {
+                registrarEvento('HORA_OVERRIDE', USER.puesto, 'Entrada de ' + SEL_AGENT + ' registrada con hora manual: ' + horaOvEl.value + ' (hora real: ' + horaActual + ')');
+              }
+            }
+          }
           if (geoData) payload.geo_entrada = geoData;
           _context35.n = 5;
           return db.from('fichajes').insert(payload);
@@ -6710,6 +6781,21 @@ function _doSalida() {
                     salida: new Date().toISOString(),
                     activo: false
                   };
+                  // Hora override en salida: solo admin sistema
+                  if (USER.rol === 'ADMIN') {
+                    var horaOvSal = document.getElementById('f-hora-override');
+                    if (horaOvSal && horaOvSal.value) {
+                      var ahAR_sal = fechaHoyAR();
+                      var horaManual = horaOvSal.value + ':00';
+                      var horaRealSal = ahAR_sal.hora;
+                      // Construir ISO con la hora manual del día actual
+                      var hoy_sal = new Date().toISOString().slice(0,10);
+                      updates.salida = hoy_sal + 'T' + horaManual + '.000Z';
+                      if (horaManual !== horaRealSal) {
+                        registrarEvento('HORA_OVERRIDE', USER.puesto, 'Salida de ' + SEL_AGENT + ' registrada con hora manual: ' + horaOvSal.value + ' (hora real: ' + horaRealSal + ')');
+                      }
+                    }
+                  }
                   if (!geo) {
                     _context36.n = 3;
                     break;
