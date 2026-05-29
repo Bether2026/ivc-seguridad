@@ -336,7 +336,6 @@ body::after { display: none; }
   backdrop-filter: blur(28px) saturate(180%); -webkit-backdrop-filter: blur(28px) saturate(180%);
   border-top: 1px solid rgba(255,255,255,0.06);
   display: flex;
-  justify-content: safe center;
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
@@ -1071,22 +1070,20 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
         <div style="display:flex;gap:6px;align-items:center">
           <button type="button" id="btn-voz" onclick="iniciarVoz()"
             style="display:flex;align-items:center;gap:5px;padding:5px 12px;border-radius:8px;border:1px solid rgba(59,130,246,.35);background:rgba(59,130,246,.1);color:#93c5fd;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">
-            🎤 Hablar
+            &#127908; Hablar
           </button>
           <button type="button" id="btn-reformular" onclick="reformularConIA()" style="display:none;align-items:center;gap:5px;padding:5px 12px;border-radius:8px;border:1px solid rgba(139,92,246,.35);background:rgba(139,92,246,.1);color:#c4b5fd;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">
-            ✨ Reformular con IA
+            &#10024; Reformular con IA
           </button>
         </div>
       </label>
-      <!-- Indicador de grabación -->
       <div id="voz-status" style="display:none;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);margin-bottom:6px;font-size:12px;color:#fca5a5">
-        <span class="pulse" style="background:var(--red);flex-shrink:0"></span>
-        <span id="voz-status-txt">Escuchando... hablá con claridad</span>
-        <button onclick="detenerVoz()" style="margin-left:auto;padding:3px 10px;border-radius:6px;border:1px solid rgba(239,68,68,.4);background:rgba(239,68,68,.15);color:#fca5a5;font-family:var(--font);font-size:11px;cursor:pointer">■ Detener</button>
+        <span class="pulse" style="background:var(--red);flex-shrink:0;animation:pulseUrgente 1s infinite"></span>
+        <span id="voz-status-txt">Escuchando...</span>
+        <button onclick="detenerVoz()" style="margin-left:auto;padding:3px 10px;border-radius:6px;border:1px solid rgba(239,68,68,.4);background:rgba(239,68,68,.15);color:#fca5a5;font-family:var(--font);font-size:11px;cursor:pointer">&#9632; Detener</button>
       </div>
-      <textarea class="form-textarea" id="n-detalle" placeholder="Describa los hechos con detalle... o usá el botón 🎤 para hablar"></textarea>
-      <!-- Estado IA -->
-      <div id="ia-status" style="display:none;font-size:11px;color:var(--text3);margin-top:4px;display:flex;align-items:center;gap:6px">
+      <textarea class="form-textarea" id="n-detalle" placeholder="Describa los hechos... o use &#127908; Hablar"></textarea>
+      <div id="ia-status" style="display:none;font-size:11px;color:var(--text3);margin-top:4px;align-items:center;gap:6px">
         <span class="spinner" style="width:10px;height:10px;border-width:1.5px"></span> Reformulando con IA...
       </div>
     </div>
@@ -1108,10 +1105,10 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
       <label class="form-label">📷 Fotos / Evidencia</label>
       <div id="foto-drop-zone" onclick="agregarFoto()" style="border:2px dashed var(--border2);border-radius:var(--radius-sm);padding:18px;text-align:center;cursor:pointer;transition:all .2s;background:var(--bg3)">
         <div style="font-size:28px;margin-bottom:6px">📷</div>
-        <div style="font-size:13px;color:var(--text2);font-weight:600">Tocá para sacar la primera foto</div>
-        <div style="font-size:11px;color:var(--text3);margin-top:3px">Después podés agregar más fotos</div>
+        <div style="font-size:13px;color:var(--text2);font-weight:600">Tocá para agregar foto</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:3px">Cámara · Galería · Archivos</div>
       </div>
-      <input type="file" id="foto-input" accept="image/*" capture="environment" style="display:none" onchange="fotoCapturada(this)">
+      <input type="file" id="foto-input" accept="image/*" style="display:none" onchange="fotoCapturada(this)">
       <div id="foto-preview" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"></div>
       <div id="btn-mas-foto" style="display:none;margin-top:8px">
         <button type="button" onclick="agregarFoto()" style="width:100%;padding:10px;border-radius:var(--radius-xs);border:1px dashed var(--border2);background:none;color:var(--accent3);font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer">+ Agregar otra foto</button>
@@ -1156,11 +1153,11 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
 
     <div class="form-group">
       <label class="form-label">📷 Foto inicial (opcional)</label>
-      <div onclick="document.getElementById('obj-foto-input').click()" style="border:2px dashed var(--border2);border-radius:var(--radius-sm);padding:16px;text-align:center;cursor:pointer;background:var(--bg3)">
+      <div onclick="abrirSelectorFoto('obj-foto-input')" style="border:2px dashed var(--border2);border-radius:var(--radius-sm);padding:16px;text-align:center;cursor:pointer;background:var(--bg3)">
         <div style="font-size:24px;margin-bottom:4px">📷</div>
         <div style="font-size:13px;color:var(--text2);font-weight:600">Sacar foto o elegir de galería</div>
       </div>
-      <input type="file" id="obj-foto-input" accept="image/*" capture="environment" style="display:none" onchange="previewObjFoto(this)">
+      <input type="file" id="obj-foto-input" accept="image/*" style="display:none" onchange="previewObjFoto(this)">
       <div id="obj-foto-preview" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"></div>
     </div>
 
@@ -1199,11 +1196,11 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
 
     <div class="form-group">
       <label class="form-label">📷 Foto del punto (opcional)</label>
-      <div onclick="document.getElementById('upd-foto-input').click()" style="border:2px dashed var(--border2);border-radius:var(--radius-sm);padding:14px;text-align:center;cursor:pointer;background:var(--bg3)">
+      <div onclick="abrirSelectorFoto('upd-foto-input')" style="border:2px dashed var(--border2);border-radius:var(--radius-sm);padding:14px;text-align:center;cursor:pointer;background:var(--bg3)">
         <div style="font-size:20px;margin-bottom:4px">📷</div>
         <div style="font-size:12px;color:var(--text2)">Agregar foto del punto</div>
       </div>
-      <input type="file" id="upd-foto-input" accept="image/*" capture="environment" style="display:none" onchange="previewUpdFoto(this)">
+      <input type="file" id="upd-foto-input" accept="image/*" style="display:none" onchange="previewUpdFoto(this)">
       <div id="upd-foto-preview" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"></div>
     </div>
 
@@ -1328,32 +1325,23 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
 </div>
 
 <!-- MODAL COMBUSTIBLE -->
-<!-- MODAL COMBUSTIBLE -->
 <div class="overlay" id="ov-combustible">
   <div class="modal">
     <div class="modal-head"><span class="modal-title">⛽ Carga de Combustible</span><button class="btn-close" onclick="closeOv('ov-combustible')">×</button></div>
-    <div style="font-size:10px;color:var(--text3);margin-bottom:10px">Los campos marcados con <span style="color:var(--red)">*</span> son obligatorios</div>
-    <div class="form-group">
-      <label class="form-label">Chofer <span style="color:var(--red);margin-left:2px">*</span></label>
-      <select class="form-select" id="comb-chofer"><option value="">— Seleccionar chofer —</option></select>
+    <div class="form-group"><label class="form-label">Chofer</label>
+      <select class="form-select" id="comb-chofer"><option value="">— Seleccionar —</option><option>ACOSTA PAMELA</option><option>ALVAREZ OZON NICOLAS MARCELO</option><option>ARROYO LAURA</option><option>CASTILLO ANGEL HERNAN</option><option>CONTE LUCAS EZEQUIEL</option><option>DEL COLLE DAMIAN EZEQUIEL</option><option>GIMENEZ GREGORIO</option><option>LUACES JONATHAN RICARDO</option></select>
     </div>
-    <div class="form-group">
-      <label class="form-label">Móvil / Vehículo <span style="color:var(--red);margin-left:2px">*</span></label>
-      <select class="form-select" id="comb-movil"><option value="">— Seleccionar móvil —</option><option>S-10 · AA-909-LF</option><option>S-10 · AA-909-LD</option><option>Berlingo · MYH-863</option><option>S-10 vieja · EKT-637</option><option>Jumper · KWI-159</option></select>
-    </div>
+    <div class="form-group"><label class="form-label">Móvil / Vehículo</label><select class="form-select" id="comb-movil"><option value="">— Seleccionar móvil —</option><option>S-10 · AA-909-LF</option><option>S-10 · AA-909-LD</option><option>Berlingo · MYH-863</option><option>S-10 vieja · EKT-637</option><option>Jumper · KWI-159</option></select></div>
     <div class="form-row">
-      <div class="form-group"><label class="form-label">Litros <span style="color:var(--red);margin-left:2px">*</span></label><input class="form-input" type="number" step="0.1" min="0.1" id="comb-litros" placeholder="Ej: 45.5"/></div>
-      <div class="form-group"><label class="form-label">Importe ($) <span style="color:var(--red);margin-left:2px">*</span></label><input class="form-input" type="number" min="1" id="comb-importe" placeholder="Ej: 28000"/></div>
+      <div class="form-group"><label class="form-label">Litros</label><input class="form-input" type="number" step="0.1" id="comb-litros" placeholder="Litros"/></div>
+      <div class="form-group"><label class="form-label">Importe ($)</label><input class="form-input" type="number" id="comb-importe" placeholder="Importe"/></div>
     </div>
-    <div class="form-group"><label class="form-label">Estación de servicio <span style="color:var(--red);margin-left:2px">*</span></label><input class="form-input" id="comb-estacion" placeholder="Ej: YPF Av. Castañares 2400"/></div>
-    <div class="form-group"><label class="form-label">Kilómetros del vehículo <span style="color:var(--red);margin-left:2px">*</span></label><input class="form-input" type="number" min="0" id="comb-km" placeholder="Km actuales del vehículo"/></div>
+    <div class="form-group"><label class="form-label">Estación de servicio</label><input class="form-input" id="comb-estacion" placeholder="Ej: YPF Av. Castañares 2400"/></div>
+    <div class="form-group"><label class="form-label">Kilómetros del vehículo</label><input class="form-input" type="number" id="comb-km" placeholder="Km actuales"/></div>
     <div class="form-group">
-      <label class="form-label">📷 Foto del ticket <span style="color:var(--red);margin-left:2px">*</span></label>
-      <input type="file" id="comb-foto-input" accept="image/*" capture="environment" style="display:none" onchange="previewSingleFoto(this,'comb-foto-preview');COMB_FOTO=this.files[0]">
-      <div onclick="document.getElementById('comb-foto-input').click()" style="border:2px dashed var(--border2);border-radius:8px;padding:16px;text-align:center;cursor:pointer;transition:border-color .2s" id="comb-foto-zone">
-        <div style="font-size:22px;margin-bottom:4px">📷</div>
-        <div style="font-size:13px;color:var(--text3)">Tocá para sacar foto del ticket</div>
-      </div>
+      <label class="form-label">📷 Foto del ticket (opcional)</label>
+      <input type="file" id="comb-foto-input" accept="image/*" style="display:none" onchange="previewSingleFoto(this, 'comb-foto-preview')">
+      <div onclick="abrirSelectorFoto('comb-foto-input')" style="border:2px dashed var(--border2);border-radius:8px;padding:14px;text-align:center;cursor:pointer">📷 Tocá para foto</div>
       <div id="comb-foto-preview" style="margin-top:8px"></div>
     </div>
     <button class="btn-login" id="btn-save-comb" onclick="saveCombustible()">⛽ Registrar Carga</button>
@@ -1364,32 +1352,19 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
 <div class="overlay" id="ov-incidencia">
   <div class="modal">
     <div class="modal-head"><span class="modal-title">⚠️ Nueva Incidencia</span><button class="btn-close" onclick="closeOv('ov-incidencia')">×</button></div>
-    <div style="font-size:10px;color:var(--text3);margin-bottom:10px">Los campos marcados con <span style="color:var(--red)">*</span> son obligatorios</div>
-    <div class="form-group">
-      <label class="form-label">Chofer <span style="color:var(--red);margin-left:2px">*</span></label>
-      <select class="form-select" id="inc-chofer"><option value="">— Seleccionar chofer —</option></select>
+    <div class="form-group"><label class="form-label">Chofer</label>
+      <select class="form-select" id="inc-chofer"><option value="">— Seleccionar —</option><option>ACOSTA PAMELA</option><option>ALVAREZ OZON NICOLAS MARCELO</option><option>ARROYO LAURA</option><option>CONTE LUCAS EZEQUIEL</option><option>LUACES JONATHAN RICARDO</option></select>
     </div>
-    <div class="form-group">
-      <label class="form-label">Móvil <span style="color:var(--red);margin-left:2px">*</span></label>
-      <select class="form-select" id="inc-movil"><option value="">— Seleccionar móvil —</option><option>S-10 · AA-909-LF</option><option>S-10 · AA-909-LD</option><option>Berlingo · MYH-863</option><option>S-10 vieja · EKT-637</option><option>Jumper · KWI-159</option></select>
+    <div class="form-group"><label class="form-label">Móvil</label><select class="form-select" id="inc-movil"><option value="">— Seleccionar móvil —</option><option>S-10 · AA-909-LF</option><option>S-10 · AA-909-LD</option><option>Berlingo · MYH-863</option><option>S-10 vieja · EKT-637</option><option>Jumper · KWI-159</option></select></div>
+    <div class="form-group"><label class="form-label">Tipo de incidencia</label>
+      <select class="form-select" id="inc-tipo"><option>Pinchazo / rueda</option><option>Desperfecto mecánico</option><option>Choque / colisión</option><option>Falla eléctrica</option><option>Otra</option></select>
     </div>
+    <div class="form-group"><label class="form-label">Ubicación</label><input class="form-input" id="inc-ubicacion" placeholder="Lugar del incidente"/></div>
+    <div class="form-group"><label class="form-label">Descripción</label><textarea class="form-textarea" id="inc-desc" style="min-height:80px" placeholder="Detalle del incidente..."></textarea></div>
     <div class="form-group">
-      <label class="form-label">Tipo de incidencia <span style="color:var(--red);margin-left:2px">*</span></label>
-      <select class="form-select" id="inc-tipo">
-        <option value="">— Seleccionar tipo —</option>
-        <option>Pinchazo / rueda</option><option>Desperfecto mecánico</option>
-        <option>Choque / colisión</option><option>Falla eléctrica</option><option>Otra</option>
-      </select>
-    </div>
-    <div class="form-group"><label class="form-label">Ubicación <span style="color:var(--red);margin-left:2px">*</span></label><input class="form-input" id="inc-ubicacion" placeholder="Lugar exacto del incidente"/></div>
-    <div class="form-group"><label class="form-label">Descripción <span style="color:var(--red);margin-left:2px">*</span></label><textarea class="form-textarea" id="inc-desc" style="min-height:90px" placeholder="Detallá qué ocurrió..."></textarea></div>
-    <div class="form-group">
-      <label class="form-label">📷 Foto del incidente <span style="color:var(--red);margin-left:2px">*</span></label>
-      <input type="file" id="inc-foto-input" accept="image/*" capture="environment" style="display:none" onchange="previewSingleFoto(this,'inc-foto-preview');INC_FOTO=this.files[0]">
-      <div onclick="document.getElementById('inc-foto-input').click()" style="border:2px dashed var(--border2);border-radius:8px;padding:16px;text-align:center;cursor:pointer">
-        <div style="font-size:22px;margin-bottom:4px">📷</div>
-        <div style="font-size:13px;color:var(--text3)">Tocá para sacar foto del incidente</div>
-      </div>
+      <label class="form-label">📷 Foto (opcional)</label>
+      <input type="file" id="inc-foto-input" accept="image/*" style="display:none" onchange="previewSingleFoto(this, 'inc-foto-preview')">
+      <div onclick="abrirSelectorFoto('inc-foto-input')" style="border:2px dashed var(--border2);border-radius:8px;padding:14px;text-align:center;cursor:pointer">📷 Tocá para foto</div>
       <div id="inc-foto-preview" style="margin-top:8px"></div>
     </div>
     <button class="btn-login" id="btn-save-inc" onclick="saveIncidencia()">⚠️ Registrar Incidencia</button>
@@ -1400,34 +1375,15 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
 <div class="overlay" id="ov-taller">
   <div class="modal">
     <div class="modal-head"><span class="modal-title">🔧 Ingreso a Taller</span><button class="btn-close" onclick="closeOv('ov-taller')">×</button></div>
-    <div style="font-size:10px;color:var(--text3);margin-bottom:10px">Los campos marcados con <span style="color:var(--red)">*</span> son obligatorios</div>
-    <div class="form-group">
-      <label class="form-label">Chofer <span style="color:var(--red);margin-left:2px">*</span></label>
-      <select class="form-select" id="tal-chofer"><option value="">— Seleccionar chofer —</option></select>
+    <div class="form-group"><label class="form-label">Móvil</label><select class="form-select" id="tal-movil"><option value="">— Seleccionar móvil —</option><option>S-10 · AA-909-LF</option><option>S-10 · AA-909-LD</option><option>Berlingo · MYH-863</option><option>S-10 vieja · EKT-637</option><option>Jumper · KWI-159</option></select></div>
+    <div class="form-group"><label class="form-label">Tipo</label>
+      <select class="form-select" id="tal-tipo"><option>Service / Mantenimiento</option><option>Reparación mecánica</option><option>Reparación eléctrica</option><option>Carrocería / Pintura</option><option>Neumáticos</option><option>Otro</option></select>
     </div>
-    <div class="form-group">
-      <label class="form-label">Móvil <span style="color:var(--red);margin-left:2px">*</span></label>
-      <select class="form-select" id="tal-movil"><option value="">— Seleccionar móvil —</option><option>S-10 · AA-909-LF</option><option>S-10 · AA-909-LD</option><option>Berlingo · MYH-863</option><option>S-10 vieja · EKT-637</option><option>Jumper · KWI-159</option></select>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Tipo de trabajo <span style="color:var(--red);margin-left:2px">*</span></label>
-      <select class="form-select" id="tal-tipo">
-        <option value="">— Seleccionar tipo —</option>
-        <option>Service / Mantenimiento</option><option>Reparación mecánica</option>
-        <option>Reparación eléctrica</option><option>Carrocería / Pintura</option>
-        <option>Neumáticos</option><option>Otro</option>
-      </select>
-    </div>
-    <div class="form-group"><label class="form-label">Descripción del trabajo <span style="color:var(--red);margin-left:2px">*</span></label><textarea class="form-textarea" id="tal-desc" style="min-height:90px" placeholder="¿Qué se va a hacer? Detallá el problema..."></textarea></div>
-    <div class="form-group"><label class="form-label">Kilómetros al ingreso <span style="color:var(--red);margin-left:2px">*</span></label><input class="form-input" type="number" min="0" id="tal-km" placeholder="Km actuales del vehículo"/></div>
-    <div class="form-group">
-      <label class="form-label">📷 Foto del vehículo / daño (opcional)</label>
-      <input type="file" id="tal-foto-input" accept="image/*" capture="environment" style="display:none" onchange="previewSingleFoto(this,'tal-foto-preview');TAL_FOTO=this.files[0]">
-      <div onclick="document.getElementById('tal-foto-input').click()" style="border:2px dashed var(--border2);border-radius:8px;padding:16px;text-align:center;cursor:pointer">
-        <div style="font-size:22px;margin-bottom:4px">📷</div>
-        <div style="font-size:13px;color:var(--text3)">Tocá para sacar foto</div>
-      </div>
-      <div id="tal-foto-preview" style="margin-top:8px"></div>
+    <div class="form-group"><label class="form-label">Taller / Mecánico</label><input class="form-input" id="tal-nombre" placeholder="Nombre del taller"/></div>
+    <div class="form-group"><label class="form-label">Descripción del trabajo</label><textarea class="form-textarea" id="tal-desc" style="min-height:80px" placeholder="¿Qué se va a hacer?"></textarea></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Km al ingreso</label><input class="form-input" type="number" id="tal-km" placeholder="Km"/></div>
+      <div class="form-group"><label class="form-label">Costo estimado ($)</label><input class="form-input" type="number" id="tal-costo" placeholder="Costo"/></div>
     </div>
     <button class="btn-login" id="btn-save-tal" onclick="saveTaller()">🔧 Registrar Ingreso</button>
   </div>
@@ -1534,13 +1490,6 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
       <div class="btn-logout" onclick="doLogout()">⏏</div>
     </div>
   </div>
-  <!-- BARRA DE ESTADO OFFLINE — solo visible para puestos con señal débil -->
-  <div id="offline-bar" style="display:none;align-items:center;gap:8px;padding:8px 16px;background:rgba(245,158,11,0.12);border-bottom:1px solid rgba(245,158,11,0.3);font-size:12px">
-    <span id="offline-badge" style="display:none;align-items:center;gap:6px;color:#f59e0b;font-weight:600">
-      <span class="pulse" style="background:#f59e0b"></span>0 pendientes de sincronizar
-    </span>
-    <button onclick="offlineSync()" style="margin-left:auto;font-size:11px;padding:3px 12px;border-radius:6px;border:1px solid rgba(245,158,11,0.4);background:rgba(245,158,11,0.15);color:#f59e0b;font-family:var(--font);cursor:pointer">↻ Sincronizar ahora</button>
-  </div>
   <main class="content" id="main-content">
     <div class="view active" id="view-dashboard">
       <div class="page-header">
@@ -1605,7 +1554,7 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
 <option value="Padre Mugica">Padre Mugica</option>
         </select>
       </div>
-      <div class="form-group"><label class="form-label" id="f-agente-label">Agente</label>
+      <div class="form-group"><label class="form-label">Agente</label>
         <select class="form-select" id="f-sel" onchange="selAgent(this.value)"><option value="">— Seleccionar agente —</option></select>
       </div>
       <button class="btn-fich btn-entrada" id="btn-entrada" onclick="doEntrada()">✓ Registrar Entrada</button>
@@ -1663,67 +1612,31 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
       </div>
 
       <!-- SUB-TAB: COMBUSTIBLE -->
-      <!-- SUB-TAB: COMBUSTIBLE -->
       <div id="chof-sub-combustible" style="display:none">
-        <div class="card" style="margin-bottom:10px;background:linear-gradient(135deg,rgba(251,146,60,0.06),transparent)">
-          <div class="card-head">
-            <span class="card-lbl">⛽ Cargas de combustible</span>
-            <select id="comb-filtro-movil" class="form-select" style="padding:4px 8px;font-size:11px;width:auto" onchange="loadCombustible()">
-              <option value="">Todos los móviles</option>
-              <option>S-10 · AA-909-LF</option><option>S-10 · AA-909-LD</option>
-              <option>Berlingo · MYH-863</option><option>S-10 vieja · EKT-637</option><option>Jumper · KWI-159</option>
-            </select>
-          </div>
-          <div id="combustible-list"></div>
-        </div>
+        <div id="combustible-list"></div>
       </div>
 
       <!-- SUB-TAB: INCIDENCIAS -->
       <div id="chof-sub-incidencias" style="display:none">
-        <div class="card" style="margin-bottom:10px;background:linear-gradient(135deg,rgba(251,191,36,0.06),transparent)">
-          <div class="card-head">
-            <span class="card-lbl">⚠️ Incidencias registradas</span>
-            <span class="badge b-yellow" id="inc-count" style="font-size:11px">0</span>
-          </div>
-          <div id="incidencias-list"></div>
-        </div>
+        <div id="incidencias-list"></div>
       </div>
 
       <!-- SUB-TAB: TALLER -->
       <div id="chof-sub-taller" style="display:none">
-        <div class="card" style="margin-bottom:10px;background:linear-gradient(135deg,rgba(99,102,241,0.06),transparent)">
-          <div class="card-head">
-            <span class="card-lbl">🔧 Registros de taller</span>
-            <div style="display:flex;gap:6px">
-              <span class="badge b-yellow" id="tal-activos-count" style="font-size:11px">En taller: 0</span>
-            </div>
-          </div>
-          <div id="taller-list"></div>
-        </div>
+        <div id="taller-list"></div>
       </div>
 
       <!-- SUB-TAB: GPS -->
       <div id="chof-sub-gps" style="display:none">
-        <div class="card" style="margin-bottom:10px;background:linear-gradient(135deg,rgba(16,185,129,0.06),transparent)">
-          <div class="card-head" style="margin-bottom:6px">
-            <span class="card-lbl">📡 Rastreo GPS en tiempo real</span>
-            <span class="badge b-green" id="gps-count" style="font-size:11px">0 activos</span>
-          </div>
-          <div style="font-size:11px;color:var(--text3);margin-bottom:10px;display:flex;align-items:center;gap:6px">
-            <span class="pulse" style="background:var(--green);flex-shrink:0"></span>
-            Se actualiza cada 30 seg &middot; Transmite cada 5 min o al moverse +50m
+        <div class="card" style="margin-bottom:10px">
+          <div class="card-head">
+            <span class="card-lbl">📡 Móviles activos</span>
+            <span class="badge b-green" id="gps-count">0 activos</span>
           </div>
           <div id="gps-moviles-list"></div>
         </div>
         <div class="card" style="padding:0;overflow:hidden">
-          <div style="padding:8px 12px;background:var(--bg3);font-size:11px;color:var(--text3);border-bottom:1px solid var(--border)">
-            🗺️ <strong>Mapa de móviles</strong> &mdash; tocá un marcador para ver detalle
-          </div>
-          <div id="gps-map-frame" style="width:100%;height:380px;background:var(--bg2)">
-            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text3);gap:8px">
-              <span style="font-size:32px">🗺️</span><span style="font-size:13px">Sin móviles activos</span>
-            </div>
-          </div>
+          <div id="gps-map-frame" style="width:100%;height:320px"></div>
         </div>
       </div>
     </div>
@@ -1951,17 +1864,6 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
         <p>Gestión y limpieza de datos del sistema</p>
       </div>
 
-      <!-- ALMACENAMIENTO -->
-      <div class="card" style="border-left:3px solid #34d399;margin-bottom:14px">
-        <div class="card-head">
-          <span class="card-lbl">💾 Uso de almacenamiento</span>
-          <button onclick="loadStorageStats()" style="font-size:11px;padding:4px 10px;border-radius:6px;border:1px solid var(--border2);background:var(--bg3);color:var(--accent3);font-family:var(--font);font-weight:600;cursor:pointer">Actualizar</button>
-        </div>
-        <div id="storage-stats">
-          <div style="font-size:12px;color:var(--text3);padding:8px 0">Tocá "Actualizar" para cargar los datos de almacenamiento</div>
-        </div>
-      </div>
-
       <!-- HISTORIAL DE SESIONES -->
       <div class="card" style="border-left:3px solid var(--accent3);margin-bottom:14px">
         <div class="card-head">
@@ -2035,7 +1937,6 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
           <button class="btn-sm danger-btn" onclick="clearTable('objetivos','Objetivos')">🗑️ Limpiar Objetivos</button>
           <button class="btn-sm danger-btn" onclick="clearTable('rutas','Rutas')">🗑️ Limpiar Rutas</button>
         </div>
-        <button onclick="clearChoferes()" style="width:100%;margin-top:8px;padding:11px;border-radius:var(--radius-xs);border:2px solid rgba(251,146,60,.4);background:rgba(251,146,60,.1);color:#fb923c;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">🚗 Limpiar TODO módulo Choferes (rutas, GPS, taller, combustible, incidencias)</button>
         <button onclick="clearAll()" style="width:100%;margin-top:10px;padding:12px;border-radius:var(--radius-xs);border:2px solid rgba(239,68,68,.4);background:rgba(239,68,68,.1);color:#f87171;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.02em">⚠️ LIMPIAR TODO EL SISTEMA</button>
       </div>
       <div class="card" style="border-left:3px solid var(--red)">
@@ -2050,28 +1951,10 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
           <span class="card-lbl">📋 Ver, editar y borrar registros</span>
           <div style="display:flex;gap:6px">
             <select id="admin-tabla-sel" class="form-select" style="padding:5px 10px;font-size:12px;width:auto" onchange="loadAdminTabla(this.value)">
-              <optgroup label="─ Operaciones ─">
-                <option value="fichajes">Fichajes</option>
-                <option value="novedades">Novedades</option>
-                <option value="objetivos">Objetivos</option>
-                <option value="licencias">Licencias</option>
-                <option value="noticias">Noticias</option>
-              </optgroup>
-              <optgroup label="─ Choferes ─">
-                <option value="rutas">Rutas / Hojas de ruta</option>
-                <option value="combustible">Combustible</option>
-                <option value="incidencias">Incidencias</option>
-                <option value="taller">Taller</option>
-                <option value="gps_moviles">GPS — Posición actual</option>
-                <option value="gps_track">GPS — Historial track</option>
-              </optgroup>
-              <optgroup label="─ Sistema ─">
-                <option value="llaves">Llaves</option>
-                <option value="agentes">Agentes</option>
-                <option value="choferes_lista">Choferes lista</option>
-                <option value="push_subscriptions">Push suscripciones</option>
-                <option value="bitacora">Bitácora</option>
-              </optgroup>
+              <option value="fichajes">Fichajes</option>
+              <option value="novedades">Novedades</option>
+              <option value="objetivos">Objetivos</option>
+              <option value="rutas">Rutas</option>
             </select>
           </div>
         </div>
@@ -2278,12 +2161,12 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
     </div>
     <div class="form-group">
       <label class="form-label">📎 Adjuntar certificado / planilla</label>
-      <div onclick="document.getElementById('lic-file-input').click()" style="border:2px dashed var(--border2);border-radius:var(--radius-sm);padding:18px;text-align:center;cursor:pointer;background:var(--bg3)">
+      <div onclick="abrirSelectorFoto('lic-file-input')" style="border:2px dashed var(--border2);border-radius:var(--radius-sm);padding:18px;text-align:center;cursor:pointer;background:var(--bg3)">
         <div style="font-size:26px;margin-bottom:5px">📎</div>
         <div style="font-size:13px;color:var(--text2);font-weight:600">Foto del certificado o PDF de planilla</div>
         <div style="font-size:11px;color:var(--text3);margin-top:3px">JPG, PNG o PDF · máx. 10MB</div>
       </div>
-      <input type="file" id="lic-file-input" accept="image/*,application/pdf" capture="environment" style="display:none" onchange="previewLicFile(this)">
+      <input type="file" id="lic-file-input" accept="image/*,application/pdf" style="display:none" onchange="previewLicFile(this)">
       <div id="lic-file-preview" style="margin-top:10px"></div>
     </div>
     <button class="btn-login" id="btn-save-lic" onclick="saveLicencia()">📋 Registrar Licencia</button>
@@ -2361,24 +2244,117 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
 <!-- MODAL NUEVA LLAVE -->
 <div class="overlay" id="ov-nueva-llave">
   <div class="modal">
-    <div class="modal-head"><span class="modal-title">🔑 Registrar Llave en Tablero</span><button class="btn-close" onclick="closeOv('ov-nueva-llave')">×</button></div>
-    <div style="font-size:11px;color:var(--text3);margin-bottom:12px">📌 Ingresá el número y el nombre del inmueble/objetivo de esta llave</div>
+    <div class="modal-head"><span class="modal-title">🔑 Registrar Llave</span><button class="btn-close" onclick="closeOv('ov-nueva-llave')">×</button></div>
+
     <div class="form-group">
-      <label class="form-label">Número de Tablero <span style="color:var(--red)">*</span></label>
-      <select class="form-select" id="ll-numero" onchange="llOnChangeNumero()">
+      <label class="form-label">Nro. de Tablero</label>
+      <select class="form-select" id="ll-numero" onchange="autocompletarLlave()">
         <option value="">— Seleccionar número —</option>
+        <option value="1">1 — La Rosadita</option>
+        <option value="2">2 — Almirante Brown 1242/44/46</option>
+        <option value="3">3 — Almirante Brown 633 PB°A</option>
+        <option value="4">4 — Alte Brown 500 (Portón de acceso)</option>
+        <option value="5">5 — Bonorino y Riestra</option>
+        <option value="6">6 — Brandsen 106</option>
+        <option value="7">7</option>
+        <option value="8">8</option>
+        <option value="9">9</option>
+        <option value="10">10 — Corrales 2783</option>
+        <option value="11">11 — Depto. Piedra Buena</option>
+        <option value="12">12 — Espinosa</option>
+        <option value="13">13 — Fraga (Of. Seguridad)</option>
+        <option value="14">14 — Portón Fraga</option>
+        <option value="15">15 — Fraga, Casa S/N (Puerta blanca)</option>
+        <option value="16">16</option>
+        <option value="17">17 — Macias Local</option>
+        <option value="18">18 — Jujuy 2044</option>
+        <option value="19">19 — Trailer Ministerio</option>
+        <option value="20">20 — Lagos</option>
+        <option value="21">21 — Lautaro 1496</option>
+        <option value="22">22 — Rivera Indarte 1617</option>
+        <option value="23">23 — Baigorria</option>
+        <option value="24">24 — Papa Francisco (O. Green Of. 1 y 3)</option>
+        <option value="25">25 — Papa Francisco (Trailer) L.1 Portón 12C y 9B</option>
+        <option value="26">26 — Olavarría 240</option>
+        <option value="27">27 — Portal Lamadrid</option>
+        <option value="28">28 — Av. La Plata</option>
+        <option value="29">29 — Hubac 4744</option>
+        <option value="30">30 — Orma (Of. Seguridad, Local 1 al 3264)</option>
+        <option value="31">31 — Rodrigo Bueno (Playa de estacionamiento)</option>
+        <option value="32">32 — Solon Blindey "K"</option>
+        <option value="33">33 — Portal Osvaldo Cruz (Azul)</option>
+        <option value="34">34 — Suarez 1061</option>
+        <option value="35">35 — Alvarado (Local)</option>
+        <option value="36">36 — Valparaiso</option>
+        <option value="37">37 — Complejo Orma</option>
+        <option value="38">38 — Suarez 58</option>
+        <option value="39">39 — Cerri 1150 (Conventillo)</option>
+        <option value="40">40 — Beron de Astrada</option>
+        <option value="41">41 — Complejo Alvarado (Local)</option>
+        <option value="42">42 — Padre Mugica (Platea 4)</option>
+        <option value="43">43 — Estación Buenos Aires</option>
+        <option value="44">44 — Santa Elena (Demolida 01/03/2024)</option>
+        <option value="45">45 — Salvadores 829</option>
+        <option value="46">46 — Suarez 479</option>
+        <option value="47">47 — Necochea 878</option>
+        <option value="48">48 — Zañartu 1522, 6°F</option>
+        <option value="49">49 — Zañartu 1520, 6°F</option>
+        <option value="50">50 — B. Olimpico Edif. 26 (Jeanette Campbell 4491, 1°E)</option>
+        <option value="51">51 — Acoyte 595, Piso 9°</option>
+        <option value="52">52</option>
+        <option value="53">53</option>
+        <option value="54">54</option>
+        <option value="55">55</option>
+        <option value="56">56 — Barrio Olimpico Torre 8</option>
+        <option value="57">57 — Lisandro de la Torre 5471/75/77/79 11°E</option>
+        <option value="58">58</option>
+        <option value="59">59</option>
+        <option value="60">60 — Estación de Bombeo Carrillo</option>
+        <option value="61">61 — Av. La Plata 2253</option>
+        <option value="62">62</option>
+        <option value="63">63</option>
+        <option value="64">64</option>
+        <option value="65">65</option>
+        <option value="66">66</option>
+        <option value="67">67</option>
+        <option value="68">68</option>
+        <option value="69">69</option>
+        <option value="70">70 — Brandsen 660</option>
+        <option value="71">71 — Varela Container Amarillo</option>
+        <option value="72">72</option>
+        <option value="73">73</option>
+        <option value="74">74</option>
+        <option value="75">75</option>
+        <option value="76">76</option>
+        <option value="77">77</option>
+        <option value="78">78</option>
+        <option value="79">79</option>
+        <option value="80">80</option>
+        <option value="81">81</option>
+        <option value="82">82</option>
+        <option value="83">83</option>
+        <option value="84">84</option>
+        <option value="85">85</option>
+        <option value="86">86</option>
+        <option value="87">87</option>
+        <option value="88">88</option>
+        <option value="89">89</option>
+        <option value="90">90</option>
+        <option value="91">91</option>
+        <option value="92">92</option>
       </select>
-      <div style="font-size:10px;color:var(--text3);margin-top:4px">Solo aparecen números disponibles (sin registrar)</div>
     </div>
+
     <div class="form-group">
-      <label class="form-label">Objetivo / Descripción del inmueble <span style="color:var(--red)">*</span></label>
-      <input class="form-input" id="ll-nombre" placeholder="Ej: Suarez 479 — Piso 3°B"/>
-      <div style="font-size:10px;color:var(--text3);margin-top:4px">Este nombre queda guardado y aparece en el tablero</div>
+      <label class="form-label">Objetivo / Descripción</label>
+      <input class="form-input" id="ll-nombre" placeholder="Se completa automático al elegir número"/>
     </div>
+
     <div class="form-group">
       <label class="form-label">Observaciones (opcional)</label>
       <textarea class="form-textarea" id="ll-obs" style="min-height:56px" placeholder="Detalle adicional..."></textarea>
     </div>
+
     <button class="btn-login" id="btn-save-llave" onclick="saveLlave()">🔑 Registrar Llave</button>
   </div>
 </div>
@@ -2478,52 +2454,11 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
     </div>
     <div class="form-group">
       <label class="form-label">Foto de seguimiento (opcional)</label>
-      <input type="file" id="upd-nov-foto-input" accept="image/*" capture="environment" style="display:none" onchange="previewSingleFoto(this,'upd-nov-foto-preview')">
-      <div onclick="document.getElementById('upd-nov-foto-input').click()" style="border:2px dashed var(--border2);border-radius:8px;padding:12px;text-align:center;cursor:pointer;background:var(--bg3)">&#128247; Agregar foto</div>
+      <input type="file" id="upd-nov-foto-input" accept="image/*" style="display:none" onchange="previewSingleFoto(this,'upd-nov-foto-preview')">
+      <div onclick="abrirSelectorFoto('upd-nov-foto-input')" style="border:2px dashed var(--border2);border-radius:8px;padding:12px;text-align:center;cursor:pointer;background:var(--bg3)">&#128247; Agregar foto</div>
       <div id="upd-nov-foto-preview" style="margin-top:8px"></div>
     </div>
     <button class="btn-login" id="btn-save-upd-nov" onclick="guardarActualizacionNovedad()">&#128260; Guardar Actualizacion</button>
-  </div>
-</div>
-
-<!-- MODAL REGISTRAR PARTE (PD/PU) — solo Administración -->
-<div class="overlay" id="ov-parte-nov">
-  <div class="modal">
-    <div class="modal-head">
-      <span class="modal-title">📋 Registrar Parte</span>
-      <button class="btn-close" onclick="closeOv('ov-parte-nov')">×</button>
-    </div>
-    <div id="parte-nov-titulo" style="font-size:13px;font-weight:700;color:var(--accent3);margin-bottom:12px;padding:8px 12px;background:var(--bg3);border-radius:8px"></div>
-    <input type="hidden" id="parte-nov-id">
-    <div class="form-group">
-      <label class="form-label">Tipo de parte <span style="color:var(--red)">*</span></label>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <button id="btn-parte-pd" onclick="selTipoParte('PD')"
-          style="padding:12px;border-radius:10px;border:2px solid rgba(255,255,255,0.1);background:var(--bg3);color:var(--text2);font-family:var(--font);font-size:15px;font-weight:800;cursor:pointer;transition:all .2s">
-          📄 PD<br><span style="font-size:10px;font-weight:400;opacity:.7">Parte Diario</span>
-        </button>
-        <button id="btn-parte-pu" onclick="selTipoParte('PU')"
-          style="padding:12px;border-radius:10px;border:2px solid rgba(255,255,255,0.1);background:var(--bg3);color:var(--text2);font-family:var(--font);font-size:15px;font-weight:800;cursor:pointer;transition:all .2s">
-          ⚠️ PU<br><span style="font-size:10px;font-weight:400;opacity:.7">Parte Urgente</span>
-        </button>
-      </div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Número de parte <span style="color:var(--red)">*</span></label>
-      <input class="form-input" id="parte-nov-numero" type="number" min="1" placeholder="Ej: 42" style="font-size:20px;font-weight:700;text-align:center;letter-spacing:.1em"/>
-      <div style="font-size:10px;color:var(--text3);margin-top:4px">Número correlativo en el registro de Access</div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">📄 Adjuntar PDF del parte (opcional)</label>
-      <input type="file" id="parte-pdf-input" accept="application/pdf,.pdf" style="display:none" onchange="previewPartePDF(this)">
-      <div onclick="document.getElementById('parte-pdf-input').click()"
-        style="border:2px dashed var(--border2);border-radius:8px;padding:16px;text-align:center;cursor:pointer;background:var(--bg3)">
-        <div style="font-size:22px;margin-bottom:4px">📄</div>
-        <div style="font-size:13px;color:var(--text3)">Tocá para adjuntar PDF</div>
-      </div>
-      <div id="parte-pdf-preview" style="margin-top:8px"></div>
-    </div>
-    <button class="btn-login" id="btn-save-parte" onclick="guardarParte()">📋 Guardar Parte</button>
   </div>
 </div>
 
@@ -3276,10 +3211,16 @@ function _guardarActualizacionNovedad() {
           fileComp = _context14.v;
           path = 'novedades/' + id + '/upd_' + Date.now() + '.jpg';
           _context14.n = 4;
-          return uploadToR2(fileComp, 'novedades');
+          return db.storage.from('fotos').upload(path, fileComp, {
+            contentType: 'image/jpeg',
+            upsert: false
+          });
         case 4:
           upRes = _context14.v;
-          if (upRes) { nuevaAct.foto = upRes; }
+          if (!upRes.error) {
+            urlRes = db.storage.from('fotos').getPublicUrl(path);
+            if (urlRes.data && urlRes.data.publicUrl) nuevaAct.foto = urlRes.data.publicUrl;
+          }
         case 5:
           acts.push(nuevaAct);
 
@@ -3417,11 +3358,6 @@ function renderNovCard(n) {
   h += '<span class="badge ' + bc + '">' + (n.tipo || 'Otro') + '</span>';
   if (n.relevancia === 'Urgente') h += '<span class="badge b-red">URGENTE</span>';
   if (n.relevancia === 'Alta') h += '<span class="badge b-yellow">ALTA</span>';
-  // Badge PD/PU — visible solo para roles autorizados
-  if (n.parte_tipo && n.parte_numero && USER && ['Administración','Administrador','Gerencia','Responsable de turno','Emergencias','Jefe de departamento'].indexOf(USER.puesto) >= 0) {
-    var parteColor = n.parte_tipo === 'PU' ? 'background:rgba(239,68,68,.18);color:#fca5a5;border:1px solid rgba(239,68,68,.35)' : 'background:rgba(52,211,153,.15);color:#6ee7b7;border:1px solid rgba(16,185,129,.3)';
-    h += '<span class="badge" style="' + parteColor + ';font-weight:800">✓ ' + n.parte_tipo + '-' + String(n.parte_numero).padStart(4,'0') + '</span>';
-  }
   if (n.actualizaciones && n.actualizaciones.length) {
     h += '<span class="badge" style="background:rgba(5,150,105,0.2);color:#34d399;border:1px solid rgba(5,150,105,0.3)">&#128260; ACTUALIZADA</span>';
     var noLeidas = getNoLeidas(n.id, n.actualizaciones.length);
@@ -3433,10 +3369,7 @@ function renderNovCard(n) {
   h += '<div style="font-size:14px;font-weight:700;margin-bottom:4px;line-height:1.3">' + (n.asunto || 'Sin titulo') + '</div>';
   h += '<div style="font-size:11px;color:var(--text3)">' + hora + ' &middot; ' + ubic + '</div>';
   h += '</div>';
-  h += '<div style="display:flex;align-items:center;gap:6px;flex-shrink:0">';
-  h += adminEditBtn('novedades', n.id) + adminDelBtn('novedades', n.id, 'Novedad');
-  h += '<div style="font-size:18px;color:var(--text3);transition:transform .25s;margin-top:2px" id="arr-' + n.id + '">&#9660;</div>';
-  h += '</div>';
+  h += '<div style="font-size:18px;color:var(--text3);flex-shrink:0;transition:transform .25s;margin-top:2px" id="arr-' + n.id + '">&#9660;</div>';
   h += '</div>';
 
   // Detalle — expandible
@@ -3486,149 +3419,15 @@ function renderNovCard(n) {
   h += '<button onclick="abrirActualizarNovedad(\'' + n.id + '\')" ';
   h += 'style="width:100%;padding:9px;background:rgba(37,99,235,0.12);border:1px solid rgba(37,99,235,0.3);border-radius:8px;color:var(--accent3);font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font)">';
   h += '+ Agregar actualizacion al seguimiento</button>';
-  // Botón Registrar Parte — solo para Administración
-  if (USER && USER.puesto === 'Administración') {
-    var labelParte = (n.parte_tipo && n.parte_numero) ? '✏️ Editar Parte (' + n.parte_tipo + '-' + String(n.parte_numero).padStart(4,'0') + ')' : '📋 Registrar Parte (PD/PU)';
-    var colorParte = (n.parte_tipo && n.parte_numero) ? 'background:rgba(16,185,129,.1);border-color:rgba(16,185,129,.35);color:#34d399' : 'background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.35);color:#fbbf24';
-    h += '<button onclick="abrirRegistrarParte(\'' + n.id + '\')" ';
-    h += 'style="width:100%;padding:9px;border:1px solid;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);margin-top:6px;' + colorParte + '">';
-    h += labelParte + '</button>';
-  }
-  // Sección de parte registrado (visible para roles autorizados, en el detalle)
-  if (n.parte_tipo && n.parte_numero && USER && ['Administración','Administrador','Gerencia','Responsable de turno','Emergencias','Jefe de departamento'].indexOf(USER.puesto) >= 0) {
-    h += '<div style="margin-top:10px;padding:10px 12px;border-radius:10px;background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.2)">';
-    h += '<div style="font-size:10px;font-weight:800;color:#34d399;letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px">✓ Registrado en Access</div>';
-    h += '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">';
-    h += '<span style="font-size:16px;font-weight:900;font-family:var(--mono);color:#34d399">' + n.parte_tipo + '-' + String(n.parte_numero).padStart(4,'0') + '</span>';
-    if (n.parte_pdf_url) {
-      h += '<a href="' + n.parte_pdf_url + '" target="_blank" style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:7px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#fca5a5;font-size:11px;font-weight:700;text-decoration:none">📄 Ver PDF</a>';
-    }
-    h += '</div></div>';
-  }
   h += '</div>';
   h += '</div></div></div>';
 
   // Store novedad data in global cache for update modal
   if (!window.NOV_CARD_CACHE) window.NOV_CARD_CACHE = {};
-  window.NOV_CARD_CACHE[n.id] = { id: n.id, asunto: n.asunto, tipo: n.tipo, puesto: n.puesto, detalle: n.detalle, ubicacion: n.ubicacion, parte_tipo: n.parte_tipo || null, parte_numero: n.parte_numero || null, parte_pdf_url: n.parte_pdf_url || null };
+  window.NOV_CARD_CACHE[n.id] = { id: n.id, asunto: n.asunto, tipo: n.tipo, puesto: n.puesto, detalle: n.detalle, ubicacion: n.ubicacion };
 
   return h;
 }
-// ══════════════════════════════════════════════════════
-//  SISTEMA PD/PU — Registro de partes para Administración
-// ══════════════════════════════════════════════════════
-var PARTE_TIPO_ACTUAL = '';
-var PARTE_PDF_FILE = null;
-
-function selTipoParte(tipo) {
-  PARTE_TIPO_ACTUAL = tipo;
-  var pd = document.getElementById('btn-parte-pd');
-  var pu = document.getElementById('btn-parte-pu');
-  if (!pd || !pu) return;
-  if (tipo === 'PD') {
-    pd.style.borderColor = 'var(--green)'; pd.style.background = 'rgba(52,211,153,0.1)'; pd.style.color = '#34d399';
-    pu.style.borderColor = 'rgba(255,255,255,0.1)'; pu.style.background = 'var(--bg3)'; pu.style.color = 'var(--text2)';
-  } else {
-    pu.style.borderColor = 'var(--red)'; pu.style.background = 'rgba(239,68,68,0.1)'; pu.style.color = '#f87171';
-    pd.style.borderColor = 'rgba(255,255,255,0.1)'; pd.style.background = 'var(--bg3)'; pd.style.color = 'var(--text2)';
-  }
-}
-
-function previewPartePDF(input) {
-  PARTE_PDF_FILE = input.files[0] || null;
-  var prev = document.getElementById('parte-pdf-preview');
-  if (!prev) return;
-  if (PARTE_PDF_FILE) {
-    prev.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2)">' +
-      '<span style="font-size:18px">\U0001f4c4</span>' +
-      '<span style="font-size:12px;color:var(--text2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + PARTE_PDF_FILE.name + '</span>' +
-      '<span style="font-size:10px;color:var(--text3)">' + (PARTE_PDF_FILE.size / 1024).toFixed(0) + ' KB</span>' +
-      '</div>';
-  } else {
-    prev.innerHTML = '';
-  }
-}
-
-function abrirRegistrarParte(novId) {
-  // Solo para usuario Administración
-  if (!USER || USER.puesto !== 'Administración') return;
-  PARTE_TIPO_ACTUAL = '';
-  PARTE_PDF_FILE = null;
-  document.getElementById('parte-nov-id').value = novId;
-  document.getElementById('parte-nov-numero').value = '';
-  document.getElementById('parte-pdf-preview').innerHTML = '';
-  document.getElementById('parte-pdf-input').value = '';
-  // Reset botones
-  var pd = document.getElementById('btn-parte-pd');
-  var pu = document.getElementById('btn-parte-pu');
-  if (pd) { pd.style.borderColor = 'rgba(255,255,255,0.1)'; pd.style.background = 'var(--bg3)'; pd.style.color = 'var(--text2)'; }
-  if (pu) { pu.style.borderColor = 'rgba(255,255,255,0.1)'; pu.style.background = 'var(--bg3)'; pu.style.color = 'var(--text2)'; }
-  // Si ya tiene parte, pre-cargar datos
-  if (window.NOV_CARD_CACHE && window.NOV_CARD_CACHE[novId]) {
-    var cached = window.NOV_CARD_CACHE[novId];
-    if (cached.parte_tipo) { selTipoParte(cached.parte_tipo); }
-    if (cached.parte_numero) { document.getElementById('parte-nov-numero').value = cached.parte_numero; }
-    if (cached.parte_pdf_url) {
-      document.getElementById('parte-pdf-preview').innerHTML =
-        '<div style="display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:8px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2)">' +
-        '<span style="font-size:18px">\U0001f4c4</span>' +
-        '<a href="' + cached.parte_pdf_url + '" target="_blank" style="font-size:12px;color:#fca5a5;flex:1">PDF adjunto (toc\u00e1 para ver)</a>' +
-        '<span style="font-size:10px;color:var(--text3)">ya subido</span></div>';
-    }
-  }
-  // Título
-  db.from('novedades').select('asunto').eq('id', novId).single().then(function(r) {
-    var tit = document.getElementById('parte-nov-titulo');
-    if (tit && r.data) tit.textContent = r.data.asunto || 'Novedad';
-  });
-  openOv('ov-parte-nov');
-}
-
-function guardarParte() {
-  var novId  = document.getElementById('parte-nov-id').value;
-  var numero = document.getElementById('parte-nov-numero').value;
-  if (!PARTE_TIPO_ACTUAL)  { toast('Seleccion\u00e1 PD o PU', 'err'); return; }
-  if (!numero || parseInt(numero) < 1) { toast('Ingres\u00e1 el n\u00famero de parte', 'err'); return; }
-  setLoading('btn-save-parte', true);
-
-  function finalizarGuardado(pdfUrl) {
-    var updates = {
-      parte_tipo: PARTE_TIPO_ACTUAL,
-      parte_numero: parseInt(numero),
-      parte_pdf_url: pdfUrl || null
-    };
-    db.from('novedades').update(updates).eq('id', novId).then(function(r) {
-      setLoading('btn-save-parte', false);
-      if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
-      // Actualizar cache local
-      if (window.NOV_CARD_CACHE && window.NOV_CARD_CACHE[novId]) {
-        window.NOV_CARD_CACHE[novId].parte_tipo    = PARTE_TIPO_ACTUAL;
-        window.NOV_CARD_CACHE[novId].parte_numero  = parseInt(numero);
-        window.NOV_CARD_CACHE[novId].parte_pdf_url = pdfUrl || window.NOV_CARD_CACHE[novId].parte_pdf_url || null;
-      }
-      closeOv('ov-parte-nov');
-      toast('\u2713 ' + PARTE_TIPO_ACTUAL + '-' + String(numero).padStart(4,'0') + ' registrado');
-      PARTE_TIPO_ACTUAL = ''; PARTE_PDF_FILE = null;
-      loadNovedades();
-    });
-  }
-
-  if (PARTE_PDF_FILE) {
-    toast('Subiendo PDF...', 'info');
-    var path = 'partes/' + novId + '_' + PARTE_TIPO_ACTUAL + '_' + numero + '_' + Date.now() + '.pdf';
-    db.storage.from('fotos').upload(path, PARTE_PDF_FILE, { contentType: 'application/pdf', upsert: true })
-      .then(function(up) {
-        if (up.error) { toast('Error subiendo PDF: ' + up.error.message, 'err'); setLoading('btn-save-parte', false); return; }
-        var pdfUrl = db.storage.from('fotos').getPublicUrl(path).data.publicUrl;
-        finalizarGuardado(pdfUrl);
-      });
-  } else {
-    // Conservar PDF anterior si ya existe
-    var pdfPrev = (window.NOV_CARD_CACHE && window.NOV_CARD_CACHE[novId]) ? window.NOV_CARD_CACHE[novId].parte_pdf_url : null;
-    finalizarGuardado(pdfPrev);
-  }
-}
-
 function marcarSalidaDirecta(_x4, _x5) {
   return _marcarSalidaDirecta.apply(this, arguments);
 }
@@ -4116,7 +3915,7 @@ var R2_ACCESS_KEY = 'ee6e0c112948faad6b8617b797cc29e4';
 var R2_SECRET_KEY = '067887f8230bfdfd1d1f028caf71f2686149fac63d454db3a3dd5dfd37f30d46';
 var FOTOS_PENDIENTES = []; // files staged for upload
 function agregarFoto() {
-  $('foto-input').click();
+  abrirSelectorFoto('foto-input');
 }
 function fotoCapturada(input) {
   var file = input.files[0];
@@ -4148,10 +3947,250 @@ function removeFoto(idx) {
   if (!FOTOS_PENDIENTES.length) {
     var dz = document.getElementById('foto-drop-zone');
     if (dz) {
-      dz.querySelector('div').textContent = 'Tocá para sacar la primera foto';
+      dz.querySelector('div').textContent = 'Tocá para agregar foto';
     }
   }
 }
+// ── SELECTOR DE FOTO GLOBAL ──────────────────────────────────
+function abrirSelectorFoto(inputId) {
+  var existing = document.getElementById('foto-selector-modal');
+  if (existing) existing.remove();
+  var modal = document.createElement('div');
+  modal.id = 'foto-selector-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;display:flex;align-items:flex-end;justify-content:center;padding:0 0 24px';
+  modal.onclick = function(e) { if (e.target === modal) modal.remove(); };
+  modal.innerHTML =
+    '<div style="background:var(--bg2);border-radius:18px 18px 0 0;padding:20px 16px;width:100%;max-width:420px;border-top:1px solid var(--border2)">' +
+    '<div style="width:40px;height:4px;border-radius:2px;background:var(--border2);margin:0 auto 18px"></div>' +
+    '<div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:14px;text-align:center">Agregar foto</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">' +
+    '<button onclick="usarCamara(\'' + inputId + '\')" style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:18px;border-radius:12px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer"><span style="font-size:28px">&#128247;</span>Tomar foto</button>' +
+    '<button onclick="usarGaleria(\'' + inputId + '\')" style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:18px;border-radius:12px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer"><span style="font-size:28px">&#128444;&#65039;</span>Desde galeria</button>' +
+    '</div>' +
+    '<button onclick="document.getElementById(\'foto-selector-modal\').remove()" style="width:100%;margin-top:10px;padding:12px;border-radius:10px;border:1px solid var(--border2);background:transparent;color:var(--text3);font-family:var(--font);font-size:13px;cursor:pointer">Cancelar</button>' +
+    '</div>';
+  document.body.appendChild(modal);
+}
+function usarCamara(inputId) {
+  var modal = document.getElementById('foto-selector-modal');
+  if (modal) modal.remove();
+  var input = document.getElementById(inputId);
+  if (!input) return;
+  input.setAttribute('capture', 'environment');
+  input.click();
+  setTimeout(function() { input.removeAttribute('capture'); }, 500);
+}
+function usarGaleria(inputId) {
+  var modal = document.getElementById('foto-selector-modal');
+  if (modal) modal.remove();
+  var input = document.getElementById(inputId);
+  if (!input) return;
+  input.removeAttribute('capture');
+  input.click();
+}
+function limpiarFoto(inputId, previewId) {
+  var input = document.getElementById(inputId);
+  var prev  = document.getElementById(previewId);
+  if (input) input.value = '';
+  if (prev)  prev.innerHTML = '';
+  var varMap = {
+    'comb-foto-input': function() { window.COMB_FOTO = null; },
+    'inc-foto-input':  function() { window.INC_FOTO = null; },
+    'tal-foto-input':  function() { window.TAL_FOTO = null; },
+    'obj-foto-input':  function() { window.OBJ_FOTO_FILE = null; },
+    'upd-foto-input':  function() { window.OBJ_UPD_FOTO_FILE = null; },
+  };
+  if (varMap[inputId]) varMap[inputId]();
+}
+// ══════════════════════════════════════════════════════════
+//  VOZ + IA — Dictado optimizado sin duplicación
+// ══════════════════════════════════════════════════════════
+var VOZ_RECOGNITION = null;
+var VOZ_ACTIVA = false;
+var VOZ_TEXTO_ACUMULADO = '';
+var VOZ_ULTIMO_INDICE_FINAL = 0;  // ← clave para evitar duplicados
+
+function iniciarVoz() {
+  var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) { toast('Tu navegador no soporta voz. Usa Chrome.', 'err'); return; }
+  if (VOZ_ACTIVA) { detenerVoz(); return; }
+
+  VOZ_RECOGNITION = new SpeechRecognition();
+  VOZ_RECOGNITION.lang = 'es-AR';
+  VOZ_RECOGNITION.continuous = true;
+  VOZ_RECOGNITION.interimResults = true;
+  VOZ_RECOGNITION.maxAlternatives = 1;
+
+  var detalle   = document.getElementById('n-detalle');
+  var status    = document.getElementById('voz-status');
+  var statusTxt = document.getElementById('voz-status-txt');
+  var btnVoz    = document.getElementById('btn-voz');
+  var btnRef    = document.getElementById('btn-reformular');
+
+  // Inicializar con el texto ya existente en el campo
+  VOZ_TEXTO_ACUMULADO = detalle ? (detalle.value.trim() || '') : '';
+  VOZ_ULTIMO_INDICE_FINAL = 0;
+
+  VOZ_RECOGNITION.onstart = function() {
+    VOZ_ACTIVA = true;
+    if (status) status.style.display = 'flex';
+    if (btnVoz) {
+      btnVoz.style.background = 'rgba(239,68,68,.15)';
+      btnVoz.style.borderColor = 'rgba(239,68,68,.4)';
+      btnVoz.style.color = '#fca5a5';
+      btnVoz.innerHTML = '&#9632; Grabando';
+    }
+  };
+
+  VOZ_RECOGNITION.onresult = function(e) {
+    // ── FIX DUPLICACIÓN ──
+    // Solo procesar resultados NUEVOS desde VOZ_ULTIMO_INDICE_FINAL
+    // Los interim solo se muestran como preview, nunca se acumulan
+    var textoInterim = '';
+
+    for (var i = VOZ_ULTIMO_INDICE_FINAL; i < e.results.length; i++) {
+      if (e.results[i].isFinal) {
+        // Resultado definitivo — acumular y avanzar el índice
+        var segmento = e.results[i][0].transcript.trim();
+        if (segmento) {
+          VOZ_TEXTO_ACUMULADO += (VOZ_TEXTO_ACUMULADO ? ' ' : '') + segmento;
+        }
+        VOZ_ULTIMO_INDICE_FINAL = i + 1;
+      } else {
+        // Resultado provisional — solo para el preview visual
+        textoInterim = e.results[i][0].transcript;
+      }
+    }
+
+    // Mostrar en el textarea: lo acumulado + el interim actual
+    if (detalle) {
+      detalle.value = VOZ_TEXTO_ACUMULADO + (textoInterim ? ' ' + textoInterim : '');
+    }
+    if (statusTxt) {
+      statusTxt.textContent = textoInterim
+        ? '"' + textoInterim.slice(-50) + '"'
+        : 'Escuchando... hablá con claridad';
+    }
+  };
+
+  VOZ_RECOGNITION.onerror = function(e) {
+    if (e.error === 'no-speech') return; // ignorar silencio
+    toast('Error de micrófono: ' + e.error, 'err');
+    detenerVoz();
+  };
+
+  VOZ_RECOGNITION.onend = function() {
+    VOZ_ACTIVA = false;
+    VOZ_ULTIMO_INDICE_FINAL = 0;
+    if (status) status.style.display = 'none';
+    if (btnVoz) {
+      btnVoz.style.background = 'rgba(59,130,246,.1)';
+      btnVoz.style.borderColor = 'rgba(59,130,246,.35)';
+      btnVoz.style.color = '#93c5fd';
+      btnVoz.innerHTML = '&#127908; Hablar';
+    }
+    // Mostrar botón reformular si hay texto suficiente
+    if (btnRef && detalle && detalle.value.trim().length > 15) {
+      btnRef.style.display = 'flex';
+    }
+  };
+
+  VOZ_RECOGNITION.start();
+}
+
+function detenerVoz() {
+  if (VOZ_RECOGNITION) {
+    try { VOZ_RECOGNITION.stop(); } catch(e) {}
+    VOZ_RECOGNITION = null;
+  }
+  VOZ_ACTIVA = false;
+  VOZ_ULTIMO_INDICE_FINAL = 0;
+}
+
+function reformularConIA() {
+  var detalle  = document.getElementById('n-detalle');
+  var iaStatus = document.getElementById('ia-status');
+  var btnRef   = document.getElementById('btn-reformular');
+  if (!detalle || !detalle.value.trim()) { toast('No hay texto para reformular', 'err'); return; }
+
+  var textoOriginal = detalle.value.trim();
+  var puesto = USER ? (USER.puesto || '') : '';
+  var tipo = '';
+  var tipoEl = document.getElementById('n-tipo');
+  if (tipoEl) tipo = tipoEl.value || '';
+
+  if (iaStatus) iaStatus.style.display = 'flex';
+  if (btnRef) { btnRef.style.opacity = '.5'; btnRef.style.pointerEvents = 'none'; }
+
+  var GEMINI_KEY = 'AIzaSyA_eEOGtIjF1Ytac6ds6R3pF7VeFczshIc';
+  var GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + GEMINI_KEY;
+  var prompt = 'Sos un asistente de redacción para agentes de seguridad del Instituto de Vivienda de la Ciudad de Buenos Aires (IVC). '
+    + 'Reformulá el siguiente texto dictado por el agente en un lenguaje claro, formal y conciso, propio de un parte operativo de seguridad. '
+    + 'Conservá todos los datos importantes. No agregues información que no esté en el texto original. '
+    + 'Respondé SOLO con el texto reformulado, sin explicaciones ni comentarios.\n\n'
+    + 'Puesto: ' + puesto + '\nTipo de novedad: ' + (tipo || 'General') + '\nTexto dictado:\n"' + textoOriginal + '"';
+
+  fetch(GEMINI_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { maxOutputTokens: 400, temperature: 0.3 }
+    })
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    if (iaStatus) iaStatus.style.display = 'none';
+    if (btnRef) { btnRef.style.opacity = '1'; btnRef.style.pointerEvents = 'auto'; }
+    var texto = data.candidates && data.candidates[0] && data.candidates[0].content
+      && data.candidates[0].content.parts && data.candidates[0].content.parts[0]
+      && data.candidates[0].content.parts[0].text;
+    if (texto) {
+      mostrarComparacionVoz(textoOriginal, texto.trim());
+    } else {
+      toast('Error al reformular. Usa el texto original.', 'err');
+    }
+  }).catch(function() {
+    if (iaStatus) iaStatus.style.display = 'none';
+    if (btnRef) { btnRef.style.opacity = '1'; btnRef.style.pointerEvents = 'auto'; }
+    toast('Sin conexión para reformular.', 'err');
+  });
+}
+
+function mostrarComparacionVoz(original, reformulado) {
+  var ov = document.getElementById('ov-voz-comp');
+  if (ov) ov.remove();
+  var el = document.createElement('div');
+  el.id = 'ov-voz-comp';
+  el.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  el.innerHTML =
+    '<div style="background:var(--bg2);border:1px solid var(--border2);border-radius:18px;padding:22px;width:100%;max-width:420px;max-height:80vh;overflow-y:auto">' +
+    '<div style="font-size:14px;font-weight:700;margin-bottom:16px">&#10024; IA reformul\u00f3 el texto</div>' +
+    '<div style="margin-bottom:12px"><div style="font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--text3);margin-bottom:6px">Original (dictado)</div>' +
+    '<div style="font-size:12px;color:var(--text2);background:var(--bg3);border-radius:8px;padding:10px;line-height:1.6">' + original + '</div></div>' +
+    '<div style="margin-bottom:18px"><div style="font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#c4b5fd;margin-bottom:6px">Reformulado por IA</div>' +
+    '<div style="font-size:13px;color:var(--text);background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);border-radius:8px;padding:10px;line-height:1.65">' + reformulado + '</div></div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' +
+    '<button onclick="usarTextoVoz(false)" style="padding:11px;border-radius:10px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-family:var(--font);font-size:13px;cursor:pointer">Usar original</button>' +
+    '<button onclick="usarTextoVoz(true)" style="padding:11px;border-radius:10px;border:1px solid rgba(139,92,246,.4);background:rgba(139,92,246,.15);color:#c4b5fd;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">&#10024; Usar reformulado</button>' +
+    '</div></div>';
+  el.setAttribute('data-original', original);
+  el.setAttribute('data-reformulado', reformulado);
+  document.body.appendChild(el);
+}
+
+function usarTextoVoz(usarReformulado) {
+  var ov = document.getElementById('ov-voz-comp');
+  if (!ov) return;
+  var texto = usarReformulado ? ov.getAttribute('data-reformulado') : ov.getAttribute('data-original');
+  var detalle = document.getElementById('n-detalle');
+  if (detalle) detalle.value = texto;
+  ov.remove();
+  var btnRef = document.getElementById('btn-reformular');
+  if (btnRef) btnRef.style.display = 'none';
+  toast(usarReformulado ? '&#10024; Texto reformulado aplicado' : 'Texto original conservado');
+}
+
+function agregarFoto() { abrirSelectorFoto('foto-input'); }
+
 function comprimirImagen(_x7) {
   return _comprimirImagen.apply(this, arguments);
 }
@@ -4224,47 +4263,64 @@ function _comprimirImagen() {
   }));
   return _comprimirImagen.apply(this, arguments);
 }
-// ── Upload a Cloudflare R2 via presigned URL ──────────────────────
-function uploadToR2(file, folder) {
-  var ext = (file.type && file.type.indexOf('pdf') >= 0) ? '.pdf' : '.jpg';
-  var filename = folder + '/' + Date.now() + '_' + Math.random().toString(36).substr(2,6) + ext;
-  console.log('[R2] Subiendo via proxy:', filename, '|', (file.size/1024).toFixed(0) + 'KB');
-  return fetch('https://ivc-push.vercel.app/api/r2-upload', {
-    method: 'POST',
-    headers: {
-      'Content-Type': file.type || 'image/jpeg',
-      'X-IVC-Secret': 'ivc2024secure',
-      'X-IVC-Filename': filename
-    },
-    body: file
-  }).then(function(r) {
-    if (!r.ok) throw new Error('Proxy error ' + r.status);
-    return r.json();
-  }).then(function(data) {
-    if (!data.publicUrl) throw new Error('Sin publicUrl');
-    console.log('[R2] OK:', data.publicUrl);
-    return data.publicUrl;
-  }).catch(function(e) {
-    console.error('[R2] ERROR:', e.message);
-    throw e;
-  });
+function uploadFotosToSupabase(_x8) {
+  return _uploadFotosToSupabase.apply(this, arguments);
 }
-function uploadToR2Comprimido(fileOrig, folder) {
-  return comprimirImagen(fileOrig).then(function(file) {
-    return uploadToR2(file, folder);
-  });
+function _uploadFotosToSupabase() {
+  _uploadFotosToSupabase = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee22(novedadId) {
+    var urls, _iterator, _step, fileOrig, file, path, _yield$db$storage$fro, data, error, _db$storage$from$getP, urlData, _t6;
+    return _regenerator().w(function (_context22) {
+      while (1) switch (_context22.p = _context22.n) {
+        case 0:
+          urls = [];
+          _iterator = _createForOfIteratorHelper(FOTOS_PENDIENTES);
+          _context22.p = 1;
+          _iterator.s();
+        case 2:
+          if ((_step = _iterator.n()).done) {
+            _context22.n = 6;
+            break;
+          }
+          fileOrig = _step.value;
+          _context22.n = 3;
+          return comprimirImagen(fileOrig);
+        case 3:
+          file = _context22.v;
+          path = "novedades/" + novedadId + "/" + Date.now() + "_" + Math.random().toString(36).substr(2, 6) + ".jpg";
+          _context22.n = 4;
+          return db.storage.from('fotos').upload(path, file, {
+            contentType: 'image/jpeg',
+            upsert: false
+          });
+        case 4:
+          _yield$db$storage$fro = _context22.v;
+          data = _yield$db$storage$fro.data;
+          error = _yield$db$storage$fro.error;
+          if (!error) {
+            _db$storage$from$getP = db.storage.from('fotos').getPublicUrl(path), urlData = _db$storage$from$getP.data;
+            urls.push(urlData && urlData.publicUrl ? urlData.publicUrl : path);
+          }
+        case 5:
+          _context22.n = 2;
+          break;
+        case 6:
+          _context22.n = 8;
+          break;
+        case 7:
+          _context22.p = 7;
+          _t6 = _context22.v;
+          _iterator.e(_t6);
+        case 8:
+          _context22.p = 8;
+          _iterator.f();
+          return _context22.f(8);
+        case 9:
+          return _context22.a(2, urls);
+      }
+    }, _callee22, null, [[1, 7, 8, 9]]);
+  }));
+  return _uploadFotosToSupabase.apply(this, arguments);
 }
-
-// Subida de fotos de novedades → R2
-function uploadFotosToSupabase(novedadId) {
-  var promises = FOTOS_PENDIENTES.map(function(f) {
-    return uploadToR2Comprimido(f, 'novedades').catch(function(e) {
-      console.error('Error subiendo foto novedad:', e); return null;
-    });
-  });
-  return Promise.all(promises).then(function(urls) { return urls.filter(Boolean); });
-}
-
 var SUPA_URL = 'https://cuwvmvmrmxprqozfnlva.supabase.co';
 var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1d3Ztdm1ybXhwcnFvemZubHZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5OTUyODYsImV4cCI6MjA5MjU3MTI4Nn0.l-k8ev4zdQBVCyBaEfe7KHCkl5DtUJMsyWHIqBZiNtw';
 var _supabase = supabase,
@@ -4274,126 +4330,6 @@ var db = createClient(SUPA_URL, SUPA_KEY, {
     params: { eventsPerSecond: 10 }
   }
 });
-
-// ══════════════════════════════════════════════════════════
-//  SISTEMA OFFLINE — Cola local para puestos con mala señal
-//  Puestos cubiertos: Fraga, Rodrigo Bueno, Papa Francisco
-// ══════════════════════════════════════════════════════════
-var PUESTOS_OFFLINE = ['Fraga', 'Rodrigo Bueno', 'Papa Francisco'];
-var OFFLINE_QUEUE_KEY = 'ivc_offline_queue_v1';
-var OFFLINE_SYNC_RUNNING = false;
-
-function esPuestoOffline() {
-  return USER && PUESTOS_OFFLINE.indexOf(USER.puesto) >= 0;
-}
-
-function offlineQueueGet() {
-  try { return JSON.parse(localStorage.getItem(OFFLINE_QUEUE_KEY) || '[]'); } catch(e) { return []; }
-}
-
-function offlineQueueSave(q) {
-  try { localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(q)); } catch(e) {}
-}
-
-function offlineQueueAdd(tabla, payload) {
-  var q = offlineQueueGet();
-  q.push({ tabla: tabla, payload: payload, ts: new Date().toISOString(), id: Date.now() });
-  offlineQueueSave(q);
-  offlineActualizarBadge();
-}
-
-function offlineActualizarBadge() {
-  var q = offlineQueueGet();
-  var badge = document.getElementById('offline-badge');
-  var bar = document.getElementById('offline-bar');
-  if (!badge) return;
-  if (q.length > 0) {
-    badge.style.display = 'flex';
-    badge.textContent = q.length + ' pendiente' + (q.length !== 1 ? 's' : '') + ' de sincronizar';
-    if (bar) bar.style.display = 'flex';
-  } else {
-    badge.style.display = 'none';
-    if (bar) bar.style.display = 'none';
-  }
-}
-
-function offlineSync() {
-  if (OFFLINE_SYNC_RUNNING) return;
-  if (!navigator.onLine) return;
-  var q = offlineQueueGet();
-  if (!q.length) return;
-  OFFLINE_SYNC_RUNNING = true;
-  var bar = document.getElementById('offline-bar');
-  if (bar) bar.innerHTML = '<span class="pulse" style="background:var(--yellow)"></span><span style="font-size:12px;color:var(--yellow)">⏳ Sincronizando ' + q.length + ' registro' + (q.length !== 1 ? 's' : '') + '...</span>';
-
-  var item = q[0];
-  db.from(item.tabla).insert(item.payload).then(function(res) {
-    if (!res.error) {
-      q.shift();
-      offlineQueueSave(q);
-      OFFLINE_SYNC_RUNNING = false;
-      offlineActualizarBadge();
-      if (q.length > 0) {
-        setTimeout(offlineSync, 500);
-      } else {
-        toast('✅ Todo sincronizado', 'ok');
-        if (bar) bar.innerHTML = '<span style="font-size:12px;color:var(--green)">✅ Sincronizado</span>';
-        setTimeout(function() { if (bar) bar.style.display = 'none'; }, 3000);
-        recargarVistaActual();
-      }
-    } else {
-      OFFLINE_SYNC_RUNNING = false;
-      console.warn('Offline sync error:', res.error.message);
-    }
-  }).catch(function() { OFFLINE_SYNC_RUNNING = false; });
-}
-
-// Escuchar cambios de conectividad
-window.addEventListener('online', function() {
-  if (esPuestoOffline()) {
-    toast('🟢 Conexión recuperada — sincronizando...', 'info');
-    setTimeout(offlineSync, 1000);
-  }
-  var dot = document.getElementById('conn-dot');
-  if (dot) { dot.style.background = 'var(--green)'; dot.title = 'En línea'; }
-});
-
-window.addEventListener('offline', function() {
-  var dot = document.getElementById('conn-dot');
-  if (dot) { dot.style.background = '#f59e0b'; dot.title = 'Sin conexión'; }
-  if (esPuestoOffline()) toast('🟡 Sin internet — los registros se guardan localmente', 'info');
-});
-
-// Función para insertar con fallback offline
-function dbInsertOffline(tabla, payload, onOk, onErr) {
-  if (!navigator.onLine && esPuestoOffline()) {
-    offlineQueueAdd(tabla, payload);
-    toast('🟡 Sin conexión — guardado localmente', 'info');
-    if (onOk) onOk({ data: payload, offline: true });
-    return;
-  }
-  db.from(tabla).insert(payload).then(function(res) {
-    if (res.error) {
-      if (!navigator.onLine && esPuestoOffline()) {
-        offlineQueueAdd(tabla, payload);
-        toast('🟡 Error de red — guardado localmente', 'info');
-        if (onOk) onOk({ data: payload, offline: true });
-      } else {
-        if (onErr) onErr(res.error); else toast('Error: ' + res.error.message, 'err');
-      }
-    } else {
-      if (onOk) onOk(res);
-    }
-  }).catch(function(e) {
-    if (esPuestoOffline()) {
-      offlineQueueAdd(tabla, payload);
-      toast('🟡 Sin conexión — guardado localmente', 'info');
-      if (onOk) onOk({ data: payload, offline: true });
-    } else {
-      if (onErr) onErr(e);
-    }
-  });
-}
 var CREDS_HASH = {
   'Papa Francisco': 'b4f15bb4c0d7e8a31c7d2a3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a',
   'Rodrigo Bueno': 'a3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e',
@@ -5022,37 +4958,13 @@ function initApp() {
   // La visibilidad de todas las secciones la maneja aplicarPermisosAlLogin()
   // No hardcodear displays acá para no sobreescribir los permisos configurados
   var sel = $('f-sel');
-  var esPuestoComun = USER && USER.rol !== 'ADMIN' && USER.rol !== 'TODOS';
-  var puestoDelUsuario = USER ? USER.puesto : null;
-
-  // Roles que pueden fichar por cualquier puesto
-  var puedeVerTodos = USER && ['Administración','Administrador','Gerencia','Jefe de departamento','Responsable de turno','Emergencias'].indexOf(USER.puesto) >= 0;
-
   sel.innerHTML = '<option value="">— Seleccionar agente —</option>';
-
-  // Filtrar agentes: puestos comunes ven solo los de su puesto
-  var agentesAMostrar = AGENTES;
-  if (!puedeVerTodos && esPuestoComun) {
-    // Filtrar por puesto del usuario logueado
-    agentesAMostrar = AGENTES.filter(function(a) {
-      // Si el agente tiene formato "NOMBRE (puesto)" intentar matchear
-      // De lo contrario mostrar todos (fallback)
-      return true; // Se filtra a nivel de fichajes activos del puesto
-    });
-  }
-
-  agentesAMostrar.forEach(function (a) {
+  AGENTES.forEach(function (a) {
     var o = document.createElement('option');
     o.value = a;
     o.textContent = a;
     sel.appendChild(o);
   });
-
-  // Actualizar label del campo agente
-  var agenteLbl = document.getElementById('f-agente-label');
-  if (agenteLbl) {
-    agenteLbl.textContent = esPuestoComun && !puedeVerTodos ? 'Tu nombre' : 'Agente';
-  }
   var tick = function tick() {
     var t = ahoraFull();
     $('tp-clock').textContent = ahora();
@@ -5070,21 +4982,9 @@ function initApp() {
   var canSeeGPS = ['Gerencia', 'Administración', 'Administrador', 'Jefe de departamento'].includes(USER.puesto);
   if (canSeeGPS && $('tab-gps')) $('tab-gps').style.display = 'flex';
   if (canSeeGPS) startGPSRefresh();
-  // Inicializar sistema offline para puestos con señal débil
-  if (esPuestoOffline()) {
-    offlineActualizarBadge();
-    var offBar = document.getElementById('offline-bar');
-    if (offBar) offBar.style.display = 'flex';
-    if (navigator.onLine) setTimeout(offlineSync, 2000);
-  }
   var isAdminUser = ['Administración', 'Administrador', 'Gerencia', 'Jefe de departamento'].includes(USER.puesto);
-  var canSeeLicencias = isAdminUser || (USER && ['Administración','Responsable de turno','Emergencias'].indexOf(USER.puesto) >= 0);
-  if (canSeeLicencias && $('tab-licencias')) $('tab-licencias').style.display = 'block';
+  if (isAdminUser && $('tab-licencias')) $('tab-licencias').style.display = 'block';
   if (isAdminUser && $('f-puesto-wrap')) $('f-puesto-wrap').style.display = 'block';
-  // Responsable de turno y Emergencias también pueden seleccionar puesto
-  if (USER && ['Responsable de turno','Emergencias'].indexOf(USER.puesto) >= 0 && $('f-puesto-wrap')) $('f-puesto-wrap').style.display = 'block';
-  // Para puestos comunes: ocultar selector de puesto (se usa el del usuario logueado)
-  if (!puedeVerTodos && $('f-puesto-wrap')) $('f-puesto-wrap').style.display = 'none';
   if (USER.rol === 'ADMIN') {
     document.getElementById('nb-admin').style.display = 'flex';
     var siAdm = document.getElementById('si-admin');
@@ -5616,7 +5516,6 @@ function _loadAgenda() {
                 if (op.telefono) h += '<div style="font-size:12px;color:var(--text2)">📞 ' + op.telefono + '</div>';
                 h += '</div>';
                 if (op.detalle) h += '<div style="font-size:11px;color:var(--text3);line-height:1.55;border-top:1px solid var(--border);padding-top:6px">' + op.detalle + '</div>';
-                h += '<div style="margin-top:8px;display:flex;gap:6px">' + adminEditBtn('agenda_operativos', op.id) + adminDelBtn('agenda_operativos', op.id, 'Operativo') + '</div>';
                 h += '</div>';
               }
             }
@@ -5662,7 +5561,6 @@ function _loadAgenda() {
             if (op.telefono) h += '<div style="font-size:12px;color:var(--text2)">📞 ' + op.telefono + '</div>';
             h += '</div>';
             if (op.detalle) h += '<div style="font-size:12px;color:var(--text3);line-height:1.6;border-top:1px solid var(--border);padding-top:8px">' + op.detalle + '</div>';
-            h += '<div style="margin-top:8px;display:flex;gap:6px">' + adminEditBtn('agenda_operativos', op.id) + adminDelBtn('agenda_operativos', op.id, 'Operativo') + '</div>';
             h += '</div>';
           }
           cont.innerHTML = h;
@@ -6048,7 +5946,6 @@ function _loadFichajes() {
               fhtml += '<span class="badge b-green"><span class="pulse"></span> Activo</span>';
               fhtml += '<span style="font-family:var(--mono);font-size:10px;color:var(--text2)">desde ' + formatTs(fr.entrada) + '</span>';
               fhtml += '<button data-fid="' + fr.id + '" data-fnombre="' + fr.agente.replace(/"/g, '').replace(/'/g, '') + '" onclick="var b=this;marcarSalidaDirecta(b.getAttribute(\'data-fid\'),b.getAttribute(\'data-fnombre\'))" style="padding:5px 10px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.5);border-radius:6px;color:#f87171;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font)">Marcar salida</button>';
-              fhtml += adminEditBtn('fichajes', fr.id) + adminDelBtn('fichajes', fr.id, 'Fichaje');
               fhtml += '</div></div>';
             }
             document.getElementById('f-list').innerHTML = fhtml;
@@ -6192,22 +6089,29 @@ function _doEntrada() {
           };
         case 4:
           fsel = document.getElementById('f-puesto-sel');
-          fichPuesto = ['Administración', 'Administrador', 'Gerencia', 'Jefe de departamento', 'Responsable de turno', 'Emergencias'].includes(USER.puesto) && fsel && fsel.value ? fsel.value : USER.puesto;
+          fichPuesto = ['Administración', 'Administrador', 'Gerencia', 'Jefe de departamento'].includes(USER.puesto) && fsel && fsel.value ? fsel.value : USER.puesto;
           payload = {
             agente: SEL_AGENT,
             puesto: fichPuesto,
             activo: true
           };
           if (geoData) payload.geo_entrada = geoData;
-          // Fichaje con soporte offline para puestos con señal débil
-          setLoading('btn-entrada', false);
-          dbInsertOffline('fichajes', payload, function(res) {
-            toast(res.offline ? '🟡 Entrada guardada (sin conexión)' : 'OK Entrada registrada — ' + SEL_AGENT);
-            if (!res.offline) { loadFichajes(); loadDash(); }
-          }, function(err) { toast('Error al registrar: ' + err.message, 'err'); });
-          return _context35.a(2);
+          _context35.n = 5;
+          return db.from('fichajes').insert(payload);
         case 5:
+          _yield$db$from$insert = _context35.v;
+          error = _yield$db$from$insert.error;
+          setLoading('btn-entrada', false);
+          if (!error) {
+            _context35.n = 6;
+            break;
+          }
+          toast('Error al registrar: ' + error.message, 'err');
           return _context35.a(2);
+        case 6:
+          toast("OK Entrada registrada \u2014 ".concat(SEL_AGENT));
+          loadFichajes();
+          loadDash();
         case 7:
           return _context35.a(2);
       }
@@ -6346,178 +6250,6 @@ function toggleOtroAsunto() {
   var sel = document.getElementById('n-tipo');
   var wrap = document.getElementById('n-otro-wrap');
   if (wrap) wrap.style.display = (sel && sel.value === 'Otro') ? 'block' : 'none';
-}
-
-// ══════════════════════════════════════════════════════════
-//  VOZ + IA — Dictado y reformulación de novedades
-// ══════════════════════════════════════════════════════════
-var VOZ_RECOGNITION = null;
-var VOZ_ACTIVA = false;
-var VOZ_TEXTO_ACUMULADO = '';
-
-function iniciarVoz() {
-  var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRecognition) {
-    toast('Tu navegador no soporta reconocimiento de voz. Usá Chrome.', 'err');
-    return;
-  }
-
-  if (VOZ_ACTIVA) { detenerVoz(); return; }
-
-  VOZ_RECOGNITION = new SpeechRecognition();
-  VOZ_RECOGNITION.lang = 'es-AR';
-  VOZ_RECOGNITION.continuous = true;
-  VOZ_RECOGNITION.interimResults = true;
-  VOZ_RECOGNITION.maxAlternatives = 1;
-
-  var detalle = document.getElementById('n-detalle');
-  var status  = document.getElementById('voz-status');
-  var statusTxt = document.getElementById('voz-status-txt');
-  var btnVoz  = document.getElementById('btn-voz');
-  var btnRef  = document.getElementById('btn-reformular');
-
-  VOZ_TEXTO_ACUMULADO = detalle ? (detalle.value || '') : '';
-
-  VOZ_RECOGNITION.onstart = function() {
-    VOZ_ACTIVA = true;
-    if (status) status.style.display = 'flex';
-    if (btnVoz) { btnVoz.style.background = 'rgba(239,68,68,.15)'; btnVoz.style.borderColor = 'rgba(239,68,68,.4)'; btnVoz.style.color = '#fca5a5'; btnVoz.textContent = '■ Grabando'; }
-  };
-
-  VOZ_RECOGNITION.onresult = function(e) {
-    // Solo acumular resultados FINALES — los interim solo se muestran como preview
-    var textoFinal = VOZ_TEXTO_ACUMULADO;
-    var textoInterim = '';
-    for (var i = e.resultIndex; i < e.results.length; i++) {
-      if (e.results[i].isFinal) {
-        textoFinal += (textoFinal ? ' ' : '') + e.results[i][0].transcript;
-      } else {
-        textoInterim = e.results[i][0].transcript;
-      }
-    }
-    VOZ_TEXTO_ACUMULADO = textoFinal;
-    if (detalle) detalle.value = textoFinal + (textoInterim ? ' ' + textoInterim : '');
-    if (statusTxt) statusTxt.textContent = 'Escuchando...' + (textoInterim ? ' "' + textoInterim.slice(-50) + '"' : ' hablá con claridad');
-  };
-
-  VOZ_RECOGNITION.onerror = function(e) {
-    if (e.error === 'no-speech') return;
-    toast('Error de micrófono: ' + e.error, 'err');
-    detenerVoz();
-  };
-
-  VOZ_RECOGNITION.onend = function() {
-    VOZ_ACTIVA = false;
-    if (status) status.style.display = 'none';
-    if (btnVoz) { btnVoz.style.background = 'rgba(59,130,246,.1)'; btnVoz.style.borderColor = 'rgba(59,130,246,.35)'; btnVoz.style.color = '#93c5fd'; btnVoz.textContent = '🎤 Hablar'; }
-    // Mostrar botón reformular si hay texto
-    if (btnRef && detalle && detalle.value.trim().length > 10) {
-      btnRef.style.display = 'flex';
-    }
-  };
-
-  VOZ_RECOGNITION.start();
-}
-
-function detenerVoz() {
-  if (VOZ_RECOGNITION) {
-    try { VOZ_RECOGNITION.stop(); } catch(e) {}
-    VOZ_RECOGNITION = null;
-  }
-  VOZ_ACTIVA = false;
-}
-
-function reformularConIA() {
-  var detalle = document.getElementById('n-detalle');
-  var iaStatus = document.getElementById('ia-status');
-  var btnRef = document.getElementById('btn-reformular');
-  if (!detalle || !detalle.value.trim()) { toast('No hay texto para reformular', 'err'); return; }
-
-  var textoOriginal = detalle.value.trim();
-  var puesto = USER ? (USER.puesto || '') : '';
-  var tipo = '';
-  var tipoEl = document.getElementById('n-tipo');
-  if (tipoEl) tipo = tipoEl.value || '';
-
-  if (iaStatus) { iaStatus.style.display = 'flex'; }
-  if (btnRef) { btnRef.style.opacity = '.5'; btnRef.style.pointerEvents = 'none'; }
-
-  var GEMINI_KEY = 'AIzaSyA_eEOGtIjF1Ytac6ds6R3pF7VeFczshIc';
-  var GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + GEMINI_KEY;
-  var prompt = 'Sos un asistente de redacción para agentes de seguridad del Instituto de Vivienda de la Ciudad de Buenos Aires (IVC). '
-    + 'Reformulá el siguiente texto dictado por el agente en un lenguaje claro, formal y conciso, propio de un parte operativo de seguridad. '
-    + 'Conservá todos los datos importantes. No agregues información que no esté en el texto original. '
-    + 'Respondé SOLO con el texto reformulado, sin explicaciones ni comentarios.\n\n'
-    + 'Puesto: ' + puesto + '\n'
-    + 'Tipo de novedad: ' + (tipo || 'General') + '\n'
-    + 'Texto dictado:\n"' + textoOriginal + '"';
-
-  fetch(GEMINI_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: { maxOutputTokens: 400, temperature: 0.3 }
-    })
-  }).then(function(r) { return r.json(); }).then(function(data) {
-    if (iaStatus) iaStatus.style.display = 'none';
-    if (btnRef) { btnRef.style.opacity = '1'; btnRef.style.pointerEvents = 'auto'; }
-    var textoReformulado = data.candidates
-      && data.candidates[0]
-      && data.candidates[0].content
-      && data.candidates[0].content.parts
-      && data.candidates[0].content.parts[0]
-      && data.candidates[0].content.parts[0].text;
-    if (textoReformulado) {
-      mostrarComparacionVoz(textoOriginal, textoReformulado.trim());
-    } else {
-      toast('Error al reformular. Usá el texto original.', 'err');
-    }
-  }).catch(function(e) {
-    if (iaStatus) iaStatus.style.display = 'none';
-    if (btnRef) { btnRef.style.opacity = '1'; btnRef.style.pointerEvents = 'auto'; }
-    toast('Sin conexión para reformular. Guardá el texto original.', 'err');
-  });
-}
-
-function mostrarComparacionVoz(original, reformulado) {
-  // Crear overlay de comparación
-  var existing = document.getElementById('ov-voz-comp');
-  if (existing) existing.remove();
-
-  var ov = document.createElement('div');
-  ov.id = 'ov-voz-comp';
-  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
-  ov.innerHTML = '<div style="background:var(--bg2);border:1px solid var(--border2);border-radius:18px;padding:22px;width:100%;max-width:420px;max-height:80vh;overflow-y:auto">' +
-    '<div style="font-size:14px;font-weight:700;margin-bottom:16px;color:var(--text)">✨ IA reformuló el texto</div>' +
-    '<div style="margin-bottom:12px">' +
-    '<div style="font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--text3);margin-bottom:6px">Original (dictado)</div>' +
-    '<div style="font-size:12px;color:var(--text2);background:var(--bg3);border-radius:8px;padding:10px;line-height:1.6">' + original + '</div>' +
-    '</div>' +
-    '<div style="margin-bottom:18px">' +
-    '<div style="font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:#c4b5fd;margin-bottom:6px">Reformulado por IA</div>' +
-    '<div style="font-size:13px;color:var(--text);background:rgba(139,92,246,.08);border:1px solid rgba(139,92,246,.2);border-radius:8px;padding:10px;line-height:1.65">' + reformulado + '</div>' +
-    '</div>' +
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' +
-    '<button onclick="usarTextoVoz(false)" style="padding:11px;border-radius:10px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-family:var(--font);font-size:13px;cursor:pointer">Usar original</button>' +
-    '<button onclick="usarTextoVoz(true)" style="padding:11px;border-radius:10px;border:1px solid rgba(139,92,246,.4);background:rgba(139,92,246,.15);color:#c4b5fd;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">✨ Usar reformulado</button>' +
-    '</div>' +
-    '</div>';
-  ov.setAttribute('data-original', original);
-  ov.setAttribute('data-reformulado', reformulado);
-  document.body.appendChild(ov);
-}
-
-function usarTextoVoz(usarReformulado) {
-  var ov = document.getElementById('ov-voz-comp');
-  if (!ov) return;
-  var texto = usarReformulado ? ov.getAttribute('data-reformulado') : ov.getAttribute('data-original');
-  var detalle = document.getElementById('n-detalle');
-  if (detalle) detalle.value = texto;
-  ov.remove();
-  var btnRef = document.getElementById('btn-reformular');
-  if (btnRef) btnRef.style.display = 'none';
-  toast(usarReformulado ? '✨ Texto reformulado aplicado' : 'Texto original conservado');
 }
 
 async function abrirNuevaNovedad() {
@@ -6713,7 +6445,14 @@ async function saveObj() {
   if (OBJ_FOTO_FILE) {
     try {
       var comp = await comprimirImagen(OBJ_FOTO_FILE);
-      fotoUrl = await uploadToR2(comp, 'objetivos').catch(function(e) { console.error('Foto obj ini:', e); return null; });
+      var path = 'objetivos/ini_' + Date.now() + '_' + Math.random().toString(36).substr(2,5) + '.jpg';
+      var up = await db.storage.from('fotos').upload(path, comp, { contentType: 'image/jpeg', upsert: false });
+      if (up.error) {
+        console.error('Error foto inicio:', up.error);
+      } else {
+        var urlRes = db.storage.from('fotos').getPublicUrl(path);
+        if (urlRes && urlRes.data && urlRes.data.publicUrl) fotoUrl = urlRes.data.publicUrl;
+      }
     } catch(e) { console.error('Foto inicio error:', e); }
   }
 
@@ -6838,9 +6577,18 @@ async function saveUpdObj() {
   if (OBJ_UPD_FOTO_FILE) {
     try {
       var comp = await comprimirImagen(OBJ_UPD_FOTO_FILE);
-      fotoUrl = await uploadToR2(comp, 'objetivos').catch(function(e) {
-        console.error('Foto obj upd:', e); toast('Error subiendo foto', 'err'); return null;
-      });
+      var path = 'objetivos/upd_' + Date.now() + '_' + Math.random().toString(36).substr(2,5) + '.jpg';
+      var up = await db.storage.from('fotos').upload(path, comp, { contentType: 'image/jpeg', upsert: false });
+      if (up.error) {
+        console.error('Error subiendo foto objetivo:', up.error);
+        toast('Foto no subida: ' + up.error.message, 'err');
+      } else {
+        var urlRes = db.storage.from('fotos').getPublicUrl(path);
+        if (urlRes && urlRes.data && urlRes.data.publicUrl) {
+          fotoUrl = urlRes.data.publicUrl;
+          console.log('Foto subida OK:', fotoUrl);
+        }
+      }
     } catch(e) {
       console.error('Error foto:', e);
     }
@@ -7047,15 +6795,10 @@ function _loadObjetivos() {
                 if (isAct) {
                   ohtml += '<div class="obj-actions" style="margin-top:10px">';
                   ohtml += '<button class="btn-sm" onclick="event.stopPropagation();openUpdObj(\'' + o.id + '\',' + prog + ')">📍 Registrar punto</button>';
-                  ohtml += '<button class="btn-sm ok" onclick="event.stopPropagation();finObj(\'' + o.id + '\')">&#10003; Finalizar</button>';
-                  ohtml += adminEditBtn('objetivos', o.id) + adminDelBtn('objetivos', o.id, 'Objetivo');
+                  ohtml += '<button class="btn-sm ok" onclick="event.stopPropagation();finObj(\'' + o.id + '\')">✓ Finalizar</button>';
                   ohtml += '</div>';
                 }
 
-                // Botón editar admin en objetivos finalizados
-                if (!isAct) {
-                  ohtml += '<div class="obj-actions" style="margin-top:8px">' + adminEditBtn('objetivos', o.id) + adminDelBtn('objetivos', o.id, 'Objetivo') + '</div>';
-                }
                 ohtml += '</div>'; // end collapsible body
                 ohtml += '</div>'; // end obj-item
               }
@@ -7151,11 +6894,7 @@ function _loadChoferes() {
             if (isAct) {
               chtml += '<div class="obj-actions" style="margin-top:10px">';
               chtml += '<button class="btn-sm" onclick="abrirParadaRuta(\'' + r.id + '\')">📍 Registrar parada</button>';
-              chtml += adminEditBtn('rutas', r.id) + adminDelBtn('rutas', r.id, 'Ruta');
               chtml += '</div>';
-            } else {
-              var adminBtnRuta = adminEditBtn('rutas', r.id);
-              if (adminBtnRuta) chtml += '<div style="margin-top:8px;display:flex;gap:6px">' + adminBtnRuta + adminDelBtn('rutas', r.id, 'Ruta') + '</div>';
             }
             chtml += '</div>';
           }
@@ -7181,7 +6920,8 @@ var RUTA_FOTOS = { inicio: [], parada: [], fin: [] };
 function agregarFotoRuta(tipo) {
   var max = 4;
   if (RUTA_FOTOS[tipo].length >= max) { toast('Máximo ' + max + ' fotos'); return; }
-  document.getElementById(tipo === 'inicio' ? 'c-foto-input' : tipo === 'parada' ? 'parada-foto-input' : 'fin-foto-input').click();
+  var rId = tipo === 'inicio' ? 'c-foto-input' : tipo === 'parada' ? 'parada-foto-input' : 'fin-foto-input';
+  abrirSelectorFoto(rId);
 }
 
 function onFotoRutaSelected(input, tipo) {
@@ -7219,12 +6959,15 @@ function quitarFotoRuta(tipo, idx, el) {
 }
 
 function uploadFotosRuta(fotos, carpeta) {
-  if (!fotos || !fotos.length) return Promise.resolve([]);
-  var promises = fotos.map(function(f) {
-    if (f && f.url) return Promise.resolve(f.url);
-    var fileObj = (f && f.file) ? f.file : f;
-    return uploadToR2Comprimido(fileObj, carpeta).catch(function(e) {
-      console.error('Error foto ruta:', e); return null;
+  var promises = fotos.map(function(f, i) {
+    if (f.url) return Promise.resolve(f.url);
+    return comprimirImagen(f.file).then(function(comp) {
+      var path = carpeta + '/' + Date.now() + '_' + i + '.jpg';
+      return db.storage.from('fotos').upload(path, comp, { contentType: 'image/jpeg', upsert: false })
+        .then(function(up) {
+          if (up.error) return null;
+          return db.storage.from('fotos').getPublicUrl(path).data.publicUrl;
+        });
     });
   });
   return Promise.all(promises).then(function(urls) { return urls.filter(Boolean); });
@@ -7531,7 +7274,7 @@ function chofSubTab(tab, btn) {
   if (tab === 'combustible') loadCombustible();else if (tab === 'incidencias') loadIncidencias();else if (tab === 'taller') loadTaller();else if (tab === 'gps') loadGPS();
 }
 function fabClick() {
-  if (CUR_VIEW === 'llaves') { poblarSelectorNumeros(); openOv('ov-nueva-llave'); }else if (CUR_VIEW === 'rrhh') abrirNuevoAgente();else if (CUR_VIEW === 'novedades') abrirNuevaNovedad();else if (CUR_VIEW === 'objetivos') abrirIniciarRecorrido();else if (CUR_VIEW === 'fichaje') {
+  if (CUR_VIEW === 'llaves') openOv('ov-nueva-llave');else if (CUR_VIEW === 'rrhh') abrirNuevoAgente();else if (CUR_VIEW === 'novedades') abrirNuevaNovedad();else if (CUR_VIEW === 'objetivos') abrirIniciarRecorrido();else if (CUR_VIEW === 'fichaje') {
     if (CUR_FICH_TAB === 'licencias') openOv('ov-licencia');else openOv('ov-nov'); // fallback
   } else if (CUR_VIEW === 'agenda') {
     var isAdminAgenda = ['Administración', 'Administrador', 'Gerencia', 'Jefe de departamento'].includes(USER ? USER.puesto : '');
@@ -8211,7 +7954,7 @@ function _loadAdminTabla() {
           _context48.n = 1;
           return db.from(tabla).select('*').order('id', {
             ascending: false
-          }).limit(100);
+          }).limit(30);
         case 1:
           _yield$db$from$select = _context48.v;
           rows = _yield$db$from$select.data;
@@ -8354,32 +8097,6 @@ function _clearAll() {
   }));
   return _clearAll.apply(this, arguments);
 }
-function clearChoferes() {
-  showConfirm('🚗', 'Limpiar módulo Choferes', '¿Borrar TODAS las rutas, GPS, taller, combustible e incidencias? No se puede deshacer.', function() {
-    var tablasInt = ['rutas', 'combustible', 'incidencias', 'taller', 'gps_moviles'];
-    var done = 0;
-    var total = tablasInt.length + 1;
-    function check() {
-      done++;
-      if (done < total) return;
-      // limpiar gps_track
-      db.from('gps_track')['delete']().gte('id', 0).then(function() {}).catch(function() {});
-      // reset estado GPS local
-      GPS_TRACKING = false; GPS_MOVIL_ACTUAL = null; GPS_CHOFER_ACTUAL = null; GPS_RUTA_ID_ACTUAL = null; GPS_LAST_LAT = null; GPS_LAST_LNG = null;
-      if (GPS_WATCH_ID !== null) { try { navigator.geolocation.clearWatch(GPS_WATCH_ID); } catch(e) {} GPS_WATCH_ID = null; }
-      if (GPS_INTERVAL) { clearInterval(GPS_INTERVAL); GPS_INTERVAL = null; }
-      toast('🚗 Módulo Choferes limpiado');
-      loadAdminStats();
-      if (CUR_VIEW === 'choferes') loadChoferes();
-      var sel = document.getElementById('admin-tabla-sel');
-      if (sel && tablasInt.indexOf(sel.value) >= 0) loadAdminTabla(sel.value);
-    }
-    tablasInt.forEach(function(t) {
-      db.from(t)['delete']().gte('id', 0).then(check).catch(check);
-    });
-  }, 'Limpiar todo', 'var(--red)');
-}
-
 var SKIP_EDIT_FIELDS = ['id', 'created_at', 'actualizaciones', 'fotos', 'foto_inicio'];
 var ADMIN_ROWS_CACHE = {}; // tabla -> {id -> row}
 function openEditRowById(_x21, _x22) {
@@ -8429,17 +8146,8 @@ function openEditRow(tabla, rowData) {
     if (col === 'detalle' || col === 'observaciones' || col === 'descripcion' || strVal.length > 80) {
       return "<div class=\"form-group\">\n<label class=\"form-label\">".concat(col, "</label>\n<textarea class=\"form-textarea\" id=\"").concat(inputId, "\" style=\"min-height:70px\">").concat(strVal, "</textarea>\n</div>");
     }
-    if (strVal.includes('T') && (strVal.includes('Z') || strVal.includes('+'))) {
-      var dtLocal = '';
-      try {
-        var dtObj = new Date(val);
-        var arDate = new Date(dtObj.getTime() - 3*3600*1000);
-        dtLocal = arDate.toISOString().slice(0,16);
-      } catch(ex) {}
-      return "<div class=\"form-group\">" +
-        "<label class=\"form-label\">" + col + " <span style=\"font-size:10px;color:#f59e0b;font-weight:400\">(editable)</span></label>" +
-        "<input type=\"datetime-local\" class=\"form-input\" id=\"" + inputId + "\" value=\"" + dtLocal + "\" data-isots=\"1\">" +
-        "<div style=\"font-size:10px;color:var(--text3);margin-top:3px\">Hora Argentina UTC-3 — se guarda como UTC</div></div>";
+    if (strVal.includes('T') && strVal.includes('Z')) {
+      return "<div class=\"form-group\">\n<label class=\"form-label\">".concat(col, "</label>\n<input class=\"form-input\" id=\"").concat(inputId, "\" value=\"").concat(formatTs(val), "\" placeholder=\"HH:MM\" style=\"color:var(--text3)\" readonly>\n<div style=\"font-size:10px;color:var(--text3);margin-top:3px\">Fecha/hora \u2014 solo lectura</div>\n</div>");
     }
     if (col === 'estado') {
       return "<div class=\"form-group\">\n<label class=\"form-label\">".concat(col, "</label>\n<select class=\"form-select\" id=\"").concat(inputId, "\">\n<option ").concat(val === 'activo' ? 'selected' : '', ">activo</option>\n<option ").concat(val === 'finalizado' ? 'selected' : '', ">finalizado</option>\n</select>\n</div>");
@@ -8472,17 +8180,7 @@ function _saveEdit() {
             var el = document.getElementById("edit-field-".concat(col));
             if (!el) return;
             if (el.readOnly) return;
-            if (el.type === 'checkbox') {
-              updates[col] = el.checked;
-            } else if (el.type === 'datetime-local' && el.dataset.isots) {
-              if (el.value) {
-                var ld = new Date(el.value + ':00');
-                var ud = new Date(ld.getTime() + 3*3600*1000);
-                updates[col] = ud.toISOString();
-              }
-            } else {
-              updates[col] = el.value;
-            }
+            if (el.type === 'checkbox') updates[col] = el.checked;else updates[col] = el.value;
           });
           setLoading('btn-save-edit', true);
           _context56.n = 1;
@@ -8499,14 +8197,7 @@ function _saveEdit() {
           return _context56.a(2);
         case 2:
           closeOv('ov-edit');
-          toast('✅ Registro actualizado');
-          // Si editamos una llave, sincronizar el diccionario local
-          if (tabla === 'llaves') {
-            db.from('llaves').select('numero_tablero,nombre').eq('id', id).single().then(function(r) {
-              if (!r.error && r.data && r.data.nombre) LLAVES_DATA[parseInt(r.data.numero_tablero)] = r.data.nombre;
-              if (CUR_VIEW === 'llaves') loadLlaves();
-            });
-          }
+          toast('[OK] Registro actualizado');
           loadAdminTabla(tabla);
         case 3:
           return _context56.a(2);
@@ -8540,37 +8231,31 @@ function previewSingleFoto(input, previewId, varName) {
   wrap.innerHTML = "<div style=\"position:relative;width:80px;height:80px;border-radius:8px;overflow:hidden;border:1px solid var(--border2)\">\n<img src=\"".concat(url, "\" style=\"width:100%;height:100%;object-fit:cover\">\n<button onclick=\"").concat(varName, "=null;document.getElementById('").concat(previewId, "').innerHTML=''\" style=\"position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;border:none;background:rgba(0,0,0,.7);color:white;font-size:11px;cursor:pointer\">\xD7</button>\n</div>");
 }
 function loadCombustible() {
-  var filtroMovil = document.getElementById('comb-filtro-movil');
-  var movFiltro = filtroMovil ? filtroMovil.value : '';
-  var q = db.from('combustible').select('*').order('created_at', { ascending: false }).limit(50);
-  if (movFiltro) q = q.eq('movil', movFiltro);
-  q.then(function(res) {
-    var list = res.data || [];
-    var el = document.getElementById('combustible-list');
-    if (!el) return;
-    var totalL = 0, total$ = 0;
-    list.forEach(function(r) { totalL += (r.litros || 0); total$ += (r.importe || 0); });
-    var resumen = list.length ? '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px">' +
-      '<div style="background:var(--bg3);border-radius:8px;padding:10px;text-align:center"><div style="font-size:10px;color:var(--text3)">Total litros</div><div style="font-size:18px;font-weight:700;color:#f97316">' + totalL.toFixed(1) + 'L</div></div>' +
-      '<div style="background:var(--bg3);border-radius:8px;padding:10px;text-align:center"><div style="font-size:10px;color:var(--text3)">Total gasto</div><div style="font-size:18px;font-weight:700;color:var(--green)">$' + total$.toLocaleString('es-AR') + '</div></div>' +
-      '<div style="background:var(--bg3);border-radius:8px;padding:10px;text-align:center"><div style="font-size:10px;color:var(--text3)">Cargas</div><div style="font-size:18px;font-weight:700;color:var(--accent3)">' + list.length + '</div></div>' +
-      '</div>' : '';
-    el.innerHTML = resumen + (list.length ? list.map(function(r) {
-      return '<div class="chofer-card">' +
-        '<div class="chofer-head"><div>' +
-        '<div class="chofer-name">⛽ ' + (r.movil || '') + '</div>' +
-        '<div class="chofer-sub">' + (r.chofer || '') + (r.estacion ? ' · ' + r.estacion : '') + '</div>' +
-        '</div><span class="badge b-blue" style="font-size:10px">' + formatTs(r.created_at) + '</span></div>' +
-        '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin:8px 0">' +
-        '<div style="background:var(--bg3);border-radius:6px;padding:8px;text-align:center"><div style="font-size:10px;color:var(--text3)">Litros</div><div style="font-size:15px;font-weight:700;color:#f97316">' + (r.litros || 0) + 'L</div></div>' +
-        '<div style="background:var(--bg3);border-radius:6px;padding:8px;text-align:center"><div style="font-size:10px;color:var(--text3)">Importe</div><div style="font-size:15px;font-weight:700;color:var(--green)">$' + (r.importe || 0).toLocaleString('es-AR') + '</div></div>' +
-        '<div style="background:var(--bg3);border-radius:6px;padding:8px;text-align:center"><div style="font-size:10px;color:var(--text3)">Km</div><div style="font-size:15px;font-weight:700;color:var(--yellow)">' + (r.km || '—') + '</div></div>' +
-        '</div>' +
-        (r.foto ? '<img src="' + r.foto + '" onclick="abrirFotoLightbox(\'' + r.foto + '\')" style="width:100%;max-height:140px;object-fit:cover;border-radius:8px;border:1px solid var(--border2);cursor:zoom-in;margin-top:4px" loading="lazy">' : '') +
-        '<div style="margin-top:6px;display:flex;gap:6px">' + adminEditBtn('combustible', r.id) + adminDelBtn('combustible', r.id, 'Combustible') + '</div>' +
-        '</div>';
-    }).join('') : '<div class="empty"><div class="icon">⛽</div><p>Sin cargas registradas</p></div>');
-  });
+  return _loadCombustible.apply(this, arguments);
+}
+function _loadCombustible() {
+  _loadCombustible = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee57() {
+    var _yield$db$from$select3, rows, list;
+    return _regenerator().w(function (_context57) {
+      while (1) switch (_context57.n) {
+        case 0:
+          _context57.n = 1;
+          return db.from('combustible').select('*').order('created_at', {
+            ascending: false
+          }).limit(30);
+        case 1:
+          _yield$db$from$select3 = _context57.v;
+          rows = _yield$db$from$select3.data;
+          list = rows || [];
+          document.getElementById('combustible-list').innerHTML = list.length ? list.map(function (r) {
+            return "\n<div class=\"chofer-card\">\n<div class=\"chofer-head\">\n<div>\n<div class=\"chofer-name\">\u26FD ".concat(r.movil || '', "</div>\n<div class=\"chofer-sub\">").concat(r.chofer, " \xB7 ").concat(r.estacion || '', "</div>\n</div>\n<span class=\"badge b-blue\">").concat(formatTs(r.created_at), "</span>\n</div>\n<div style=\"display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px\">\n<div style=\"background:var(--bg3);border-radius:6px;padding:8px;text-align:center\">\n<div style=\"font-size:10px;color:var(--text3)\">Litros</div>\n<div style=\"font-size:16px;font-weight:700;color:var(--accent3)\">").concat(r.litros || 0, "L</div>\n</div>\n<div style=\"background:var(--bg3);border-radius:6px;padding:8px;text-align:center\">\n<div style=\"font-size:10px;color:var(--text3)\">Importe</div>\n<div style=\"font-size:16px;font-weight:700;color:var(--green)\">$").concat(r.importe || 0, "</div>\n</div>\n<div style=\"background:var(--bg3);border-radius:6px;padding:8px;text-align:center\">\n<div style=\"font-size:10px;color:var(--text3)\">Km</div>\n<div style=\"font-size:16px;font-weight:700;color:var(--yellow)\">").concat(r.km || '—', "</div>\n</div>\n</div>\n").concat(r.foto ? "<img src=\"".concat(r.foto, "\" onclick=\"abrirFotoLightbox('").concat(r.foto, "')\" style=\"width:100%;max-height:120px;object-fit:cover;border-radius:8px;border:1px solid var(--border2);cursor:zoom-in\" loading=\"lazy\">") : '', "\n</div>");
+          }).join('') : '<div class="empty"><div class="icon">⛽</div><p>Sin cargas registradas</p></div>';
+        case 2:
+          return _context57.a(2);
+      }
+    }, _callee57);
+  }));
+  return _loadCombustible.apply(this, arguments);
 }
 function saveCombustible() {
   return _saveCombustible.apply(this, arguments);
@@ -8581,27 +8266,14 @@ function _saveCombustible() {
     return _regenerator().w(function (_context58) {
       while (1) switch (_context58.n) {
         case 0:
-          var combChofer = document.getElementById('comb-chofer').value;
-          var combMovil  = document.getElementById('comb-movil').value;
-          var combLitros = parseFloat(document.getElementById('comb-litros').value) || 0;
-          var combImp    = parseFloat(document.getElementById('comb-importe').value) || 0;
-          var combEst    = document.getElementById('comb-estacion').value.trim();
-          var combKm     = parseInt(document.getElementById('comb-km').value) || 0;
-          if (!combChofer) { toast('Seleccioná el chofer', 'err'); return _context58.a(2); }
-          if (!combMovil)  { toast('Seleccioná el móvil', 'err'); return _context58.a(2); }
-          if (!combLitros) { toast('Ingresá los litros cargados', 'err'); return _context58.a(2); }
-          if (!combImp)    { toast('Ingresá el importe', 'err'); return _context58.a(2); }
-          if (!combEst)    { toast('Ingresá la estación de servicio', 'err'); return _context58.a(2); }
-          if (!combKm)     { toast('Ingresá los km del vehículo', 'err'); return _context58.a(2); }
-          if (!COMB_FOTO)  { toast('Sacá una foto del ticket', 'err'); return _context58.a(2); }
           setLoading('btn-save-comb', true);
           payload = {
-            chofer: combChofer,
-            movil: combMovil,
-            litros: combLitros,
-            importe: combImp,
-            estacion: combEst,
-            km: combKm,
+            chofer: document.getElementById('comb-chofer').value,
+            movil: document.getElementById('comb-movil').value,
+            litros: parseFloat(document.getElementById('comb-litros').value) || 0,
+            importe: parseFloat(document.getElementById('comb-importe').value) || 0,
+            estacion: document.getElementById('comb-estacion').value,
+            km: parseInt(document.getElementById('comb-km').value) || null,
             puesto: USER.puesto
           };
           _context58.n = 1;
@@ -8624,7 +8296,7 @@ function _saveCombustible() {
           }
           toast('Subiendo foto...', 'info');
           _context58.n = 3;
-          return uploadToR2Comprimido(COMB_FOTO, 'combustible');
+          return uploadSingleFoto(COMB_FOTO, "combustible/".concat(ins.id, "_").concat(Date.now(), ".jpg"));
         case 3:
           url = _context58.v;
           if (!url) {
@@ -8641,11 +8313,10 @@ function _saveCombustible() {
           setLoading('btn-save-comb', false);
           closeOv('ov-combustible');
           toast('⛽ Carga registrada');
-          ['comb-chofer','comb-movil','comb-litros','comb-importe','comb-estacion','comb-km'].forEach(function(id){
-            var el=document.getElementById(id); if(el) el.value='';
+          ['comb-movil', 'comb-litros', 'comb-importe', 'comb-estacion', 'comb-km'].forEach(function (id) {
+            return document.getElementById(id).value = '';
           });
           document.getElementById('comb-foto-preview').innerHTML = '';
-          COMB_FOTO = null;
           loadCombustible();
         case 6:
           return _context58.a(2);
@@ -8655,27 +8326,31 @@ function _saveCombustible() {
   return _saveCombustible.apply(this, arguments);
 }
 function loadIncidencias() {
-  db.from('incidencias').select('*').order('created_at', { ascending: false }).limit(50)
-    .then(function(res) {
-      var list = res.data || [];
-      var el = document.getElementById('incidencias-list');
-      var cnt = document.getElementById('inc-count');
-      if (cnt) cnt.textContent = list.length;
-      if (!el) return;
-      el.innerHTML = list.length ? list.map(function(r) {
-        var tipoBadge = r.tipo === 'Choque / colión' || r.tipo === 'Choque / colisión' ? 'b-red' : 'b-yellow';
-        return '<div class="chofer-card">' +
-          '<div class="chofer-head"><div>' +
-          '<div class="chofer-name" style="color:var(--yellow)">⚠️ ' + (r.tipo || 'Incidencia') + '</div>' +
-          '<div class="chofer-sub">' + (r.movil || '') + (r.chofer ? ' · ' + r.chofer : '') + '</div>' +
-          '</div><span class="badge ' + tipoBadge + '" style="font-size:10px">' + formatTs(r.created_at) + '</span></div>' +
-          (r.ubicacion ? '<div style="font-size:11px;color:var(--text3);margin:6px 0;display:flex;align-items:center;gap:4px">📍 ' + r.ubicacion + '</div>' : '') +
-          '<div style="font-size:13px;color:var(--text2);line-height:1.55;margin-bottom:8px">' + (r.descripcion || '') + '</div>' +
-          (r.foto ? '<img src="' + r.foto + '" onclick="abrirFotoLightbox(\'' + r.foto + '\')" style="width:100%;max-height:180px;object-fit:cover;border-radius:8px;border:1px solid var(--border2);cursor:zoom-in" loading="lazy">' : '') +
-          '<div style="margin-top:6px;display:flex;gap:6px">' + adminEditBtn('incidencias', r.id) + adminDelBtn('incidencias', r.id, 'Incidencia') + '</div>' +
-          '</div>';
-      }).join('') : '<div class="empty"><div class="icon">⚠️</div><p>Sin incidencias registradas</p></div>';
-    });
+  return _loadIncidencias.apply(this, arguments);
+}
+function _loadIncidencias() {
+  _loadIncidencias = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee59() {
+    var _yield$db$from$select4, rows, list;
+    return _regenerator().w(function (_context59) {
+      while (1) switch (_context59.n) {
+        case 0:
+          _context59.n = 1;
+          return db.from('incidencias').select('*').order('created_at', {
+            ascending: false
+          }).limit(30);
+        case 1:
+          _yield$db$from$select4 = _context59.v;
+          rows = _yield$db$from$select4.data;
+          list = rows || [];
+          document.getElementById('incidencias-list').innerHTML = list.length ? list.map(function (r) {
+            return "\n<div class=\"chofer-card\">\n<div class=\"chofer-head\">\n<div>\n<div class=\"chofer-name\">[!] ".concat(r.tipo || 'Incidencia', "</div>\n<div class=\"chofer-sub\">").concat(r.movil || '', " \xB7 ").concat(r.chofer, "</div>\n</div>\n<span class=\"badge b-yellow\">").concat(formatTs(r.created_at), "</span>\n</div>\n<div style=\"font-size:13px;color:var(--text2);line-height:1.55;margin-bottom:8px\">").concat(r.descripcion || '', "</div>\n").concat(r.ubicacion ? "<div style=\"font-size:11px;color:var(--text3);margin-bottom:8px\">[Ubic] ".concat(r.ubicacion, "</div>") : '', "\n").concat(r.foto ? "<img src=\"".concat(r.foto, "\" onclick=\"abrirFotoLightbox('").concat(r.foto, "')\" style=\"width:100%;max-height:160px;object-fit:cover;border-radius:8px;border:1px solid var(--border2);cursor:zoom-in\" loading=\"lazy\">") : '', "\n</div>");
+          }).join('') : '<div class="empty"><div class="icon">[!]</div><p>Sin incidencias registradas</p></div>';
+        case 2:
+          return _context59.a(2);
+      }
+    }, _callee59);
+  }));
+  return _loadIncidencias.apply(this, arguments);
 }
 function saveIncidencia() {
   return _saveIncidencia.apply(this, arguments);
@@ -8686,24 +8361,13 @@ function _saveIncidencia() {
     return _regenerator().w(function (_context60) {
       while (1) switch (_context60.n) {
         case 0:
-          var incChofer = document.getElementById('inc-chofer').value;
-          var incMovil  = document.getElementById('inc-movil').value;
-          var incTipo   = document.getElementById('inc-tipo').value;
-          var incUbic   = document.getElementById('inc-ubicacion').value.trim();
-          var incDesc   = document.getElementById('inc-desc').value.trim();
-          if (!incChofer) { toast('Seleccioná el chofer', 'err'); return _context60.a(2); }
-          if (!incMovil)  { toast('Seleccioná el móvil', 'err'); return _context60.a(2); }
-          if (!incTipo)   { toast('Seleccioná el tipo de incidencia', 'err'); return _context60.a(2); }
-          if (!incUbic)   { toast('Ingresá la ubicación', 'err'); return _context60.a(2); }
-          if (!incDesc)   { toast('Ingresá la descripción', 'err'); return _context60.a(2); }
-          if (!INC_FOTO)  { toast('Sacá una foto del incidente', 'err'); return _context60.a(2); }
           setLoading('btn-save-inc', true);
           payload = {
-            chofer: incChofer,
-            movil: incMovil,
-            tipo: incTipo,
-            descripcion: incDesc,
-            ubicacion: incUbic,
+            chofer: document.getElementById('inc-chofer').value,
+            movil: document.getElementById('inc-movil').value,
+            tipo: document.getElementById('inc-tipo').value,
+            descripcion: document.getElementById('inc-desc').value,
+            ubicacion: document.getElementById('inc-ubicacion').value,
             puesto: USER.puesto
           };
           _context60.n = 1;
@@ -8726,7 +8390,7 @@ function _saveIncidencia() {
           }
           toast('Subiendo foto...', 'info');
           _context60.n = 3;
-          return uploadToR2Comprimido(INC_FOTO, 'incidencias');
+          return uploadSingleFoto(INC_FOTO, "incidencias/".concat(ins.id, "_").concat(Date.now(), ".jpg"));
         case 3:
           url = _context60.v;
           if (!url) {
@@ -8743,12 +8407,10 @@ function _saveIncidencia() {
           setLoading('btn-save-inc', false);
           closeOv('ov-incidencia');
           toast('[!] Incidencia registrada');
-          ['inc-chofer','inc-movil','inc-desc','inc-ubicacion'].forEach(function(id){
-            var el=document.getElementById(id); if(el) el.value='';
+          ['inc-movil', 'inc-desc', 'inc-ubicacion'].forEach(function (id) {
+            return document.getElementById(id).value = '';
           });
-          document.getElementById('inc-tipo').value='';
           document.getElementById('inc-foto-preview').innerHTML = '';
-          INC_FOTO = null;
           loadIncidencias();
         case 6:
           return _context60.a(2);
@@ -8758,86 +8420,76 @@ function _saveIncidencia() {
   return _saveIncidencia.apply(this, arguments);
 }
 function loadTaller() {
-  db.from('taller').select('*').order('created_at', { ascending: false }).limit(50)
-    .then(function(res) {
-      var list = res.data || [];
-      var el = document.getElementById('taller-list');
-      var actCnt = document.getElementById('tal-activos-count');
-      var nActivos = list.filter(function(r) { return r.estado === 'activo'; }).length;
-      if (actCnt) actCnt.textContent = 'En taller: ' + nActivos;
-      if (actCnt) actCnt.className = 'badge ' + (nActivos > 0 ? 'b-yellow' : 'b-gray');
-      if (!el) return;
-      el.innerHTML = list.length ? list.map(function(r) {
-        var enTaller = r.estado === 'activo';
-        return '<div class="chofer-card" style="border-left:3px solid ' + (enTaller ? 'var(--yellow)' : 'var(--border2)') + '">' +
-          '<div class="chofer-head"><div>' +
-          '<div class="chofer-name">🔧 ' + (r.movil || '') + '</div>' +
-          '<div class="chofer-sub">' + (r.tipo || '') + (r.chofer ? ' · ' + r.chofer : '') + '</div>' +
-          '</div><span class="badge ' + (enTaller ? 'b-yellow' : 'b-gray') + '">' + (enTaller ? 'En taller' : 'Finalizado') + '</span></div>' +
-          (r.descripcion ? '<div style="font-size:12px;color:var(--text2);line-height:1.55;margin:6px 0">' + r.descripcion + '</div>' : '') +
-          '<div style="display:flex;gap:16px;font-size:11px;color:var(--text3);flex-wrap:wrap">' +
-          (r.km_ingreso ? '<span>🚗 Km ingreso: <b>' + r.km_ingreso + '</b></span>' : '') +
-          
-          '<span>📅 ' + formatTs(r.created_at) + '</span>' +
-          (r.fecha_salida ? '<span>✅ Salida: ' + formatTs(r.fecha_salida) + '</span>' : '') +
-          '</div>' +
-          (r.foto ? '<img src="' + r.foto + '" onclick="abrirFotoLightbox(\'' + r.foto + '\')" style="width:100%;max-height:160px;object-fit:cover;border-radius:8px;cursor:zoom-in;margin-top:8px" loading="lazy">' : '') +
-          (enTaller ? '<div style="margin-top:10px"><button class="btn-sm ok" onclick="finalizarTaller(\'' + r.id + '\')">&#10003; Marcar como finalizado</button></div>' : '') +
-        '<div style="margin-top:6px;display:flex;gap:6px">' + adminEditBtn('taller', r.id) + adminDelBtn('taller', r.id, 'Taller') + '</div>' +
-          '</div>';
-      }).join('') : '<div class="empty"><div class="icon">🔧</div><p>Sin registros de taller</p></div>';
-    });
+  return _loadTaller.apply(this, arguments);
 }
-var TAL_FOTO = null;
+function _loadTaller() {
+  _loadTaller = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee61() {
+    var _yield$db$from$select5, rows, list;
+    return _regenerator().w(function (_context61) {
+      while (1) switch (_context61.n) {
+        case 0:
+          _context61.n = 1;
+          return db.from('taller').select('*').order('created_at', {
+            ascending: false
+          }).limit(30);
+        case 1:
+          _yield$db$from$select5 = _context61.v;
+          rows = _yield$db$from$select5.data;
+          list = rows || [];
+          document.getElementById('taller-list').innerHTML = list.length ? list.map(function (r) {
+            return "\n<div class=\"chofer-card\">\n<div class=\"chofer-head\">\n<div>\n<div class=\"chofer-name\">[Taller] ".concat(r.movil || '', "</div>\n<div class=\"chofer-sub\">").concat(r.tipo || '', " \xB7 ").concat(r.taller_nombre || '', "</div>\n</div>\n<span class=\"badge ").concat(r.estado === 'activo' ? 'b-yellow' : 'b-gray', "\">").concat(r.estado === 'activo' ? 'En taller' : 'Finalizado', "</span>\n</div>\n<div style=\"font-size:12px;color:var(--text2);line-height:1.55;margin-bottom:8px\">").concat(r.descripcion || '', "</div>\n<div style=\"display:flex;gap:12px;font-size:11px;color:var(--text3)\">\n").concat(r.km_ingreso ? "<span>Km: ".concat(r.km_ingreso, "</span>") : '', "\n").concat(r.costo_estimado ? "<span>Costo est.: $".concat(r.costo_estimado, "</span>") : '', "\n<span>").concat(formatTs(r.created_at), "</span>\n</div>\n").concat(r.estado === 'activo' ? "<div style=\"margin-top:10px\"><button class=\"btn-sm ok\" onclick=\"finalizarTaller('".concat(r.id, "')\">OK Marcar como finalizado</button></div>") : '', "\n</div>");
+          }).join('') : '<div class="empty"><div class="icon">[Taller]</div><p>Sin registros de taller</p></div>';
+        case 2:
+          return _context61.a(2);
+      }
+    }, _callee61);
+  }));
+  return _loadTaller.apply(this, arguments);
+}
 function saveTaller() {
-  var talChofer = document.getElementById('tal-chofer').value;
-  var talMovil  = document.getElementById('tal-movil').value;
-  var talTipo   = document.getElementById('tal-tipo').value;
-  var talDesc   = document.getElementById('tal-desc').value.trim();
-  var talKm     = parseInt(document.getElementById('tal-km').value) || 0;
-  if (!talChofer) { toast('Seleccioná el chofer', 'err'); return; }
-  if (!talMovil)  { toast('Seleccioná el móvil', 'err'); return; }
-  if (!talTipo)   { toast('Seleccioná el tipo de trabajo', 'err'); return; }
-  if (!talDesc)   { toast('Ingresá la descripción del trabajo', 'err'); return; }
-  if (!talKm)     { toast('Ingresá los km del vehículo', 'err'); return; }
-  setLoading('btn-save-tal', true);
-  db.from('taller').insert({
-    chofer: talChofer,
-    movil: talMovil,
-    tipo: talTipo,
-    descripcion: talDesc,
-    km_ingreso: talKm,
-    estado: 'activo',
-    puesto: USER.puesto
-  }).select().single().then(function(res) {
-    if (res.error) {
-      setLoading('btn-save-tal', false);
-      toast('Error: ' + res.error.message, 'err');
-      return;
-    }
-    var afterFoto = function() {
-      setLoading('btn-save-tal', false);
-      closeOv('ov-taller');
-      toast('🔧 Ingreso a taller registrado');
-      TAL_FOTO = null;
-      document.getElementById('tal-chofer').value = '';
-      document.getElementById('tal-movil').value = '';
-      document.getElementById('tal-tipo').value = '';
-      document.getElementById('tal-desc').value = '';
-      document.getElementById('tal-km').value = '';
-      document.getElementById('tal-foto-preview').innerHTML = '';
-      loadTaller();
-    };
-    if (TAL_FOTO && res.data && res.data.id) {
-      toast('Subiendo foto...', 'info');
-      uploadToR2Comprimido(TAL_FOTO, 'taller').then(function(url) {
-        if (url) db.from('taller').update({ foto: url }).eq('id', res.data.id).then(afterFoto);
-        else afterFoto();
-      });
-    } else {
-      afterFoto();
-    }
-  });
+  return _saveTaller.apply(this, arguments);
+}
+function _saveTaller() {
+  _saveTaller = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee62() {
+    var _yield$db$from$insert6, error;
+    return _regenerator().w(function (_context62) {
+      while (1) switch (_context62.n) {
+        case 0:
+          setLoading('btn-save-tal', true);
+          _context62.n = 1;
+          return db.from('taller').insert({
+            movil: document.getElementById('tal-movil').value,
+            tipo: document.getElementById('tal-tipo').value,
+            taller_nombre: document.getElementById('tal-nombre').value,
+            descripcion: document.getElementById('tal-desc').value,
+            km_ingreso: parseInt(document.getElementById('tal-km').value) || null,
+            costo_estimado: parseFloat(document.getElementById('tal-costo').value) || null,
+            estado: 'activo',
+            puesto: USER.puesto
+          });
+        case 1:
+          _yield$db$from$insert6 = _context62.v;
+          error = _yield$db$from$insert6.error;
+          setLoading('btn-save-tal', false);
+          if (!error) {
+            _context62.n = 2;
+            break;
+          }
+          toast('Error: ' + error.message, 'err');
+          return _context62.a(2);
+        case 2:
+          closeOv('ov-taller');
+          toast('[Taller] Ingreso a taller registrado');
+          ['tal-movil', 'tal-nombre', 'tal-desc', 'tal-km', 'tal-costo'].forEach(function (id) {
+            return document.getElementById(id).value = '';
+          });
+          loadTaller();
+        case 3:
+          return _context62.a(2);
+      }
+    }, _callee62);
+  }));
+  return _saveTaller.apply(this, arguments);
 }
 function finalizarTaller(_x23) {
   return _finalizarTaller.apply(this, arguments);
@@ -8871,213 +8523,163 @@ function _finalizarTaller() {
   }));
   return _finalizarTaller.apply(this, arguments);
 }
-// ══════════════════════════════════════════════════════════
-//  GPS v2 — watchPosition + track + Leaflet + offline-safe
-// ══════════════════════════════════════════════════════════
 var GPS_INTERVAL = null;
-var GPS_WATCH_ID = null;
 var GPS_TRACKING = false;
-var GPS_CHOFER_ACTUAL = null;
-var GPS_MOVIL_ACTUAL = null;
-var GPS_RUTA_ID_ACTUAL = null;
-var GPS_LAST_LAT = null;
-var GPS_LAST_LNG = null;
-var GPS_MAP_INSTANCE = null;
-var GPS_REFRESH_INTERVAL = null;
-var GPS_COLORES = ['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ef4444','#06b6d4','#f97316'];
-var GPS_LEAFLET_LOADING = false;
-
-function gpsDistancia(lat1, lng1, lat2, lng2) {
-  var R = 6371000;
-  var dLat = (lat2 - lat1) * Math.PI / 180;
-  var dLng = (lng2 - lng1) * Math.PI / 180;
-  var a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2);
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-}
-
-function gpsTransmitirPosicion(lat, lng) {
-  if (!GPS_TRACKING || !GPS_MOVIL_ACTUAL) return;
-  var ts = new Date().toISOString();
-  getAddress(lat, lng).then(function(dir) {
-    db.from('gps_moviles').upsert({
-      chofer: GPS_CHOFER_ACTUAL, movil: GPS_MOVIL_ACTUAL, ruta_id: GPS_RUTA_ID_ACTUAL,
-      lat: lat, lng: lng, direccion: dir || '', activo: true, updated_at: ts
-    }, { onConflict: 'movil' }).then(function(r) {
-      if (!r.error) { GPS_LAST_LAT = lat; GPS_LAST_LNG = lng; gpsActualizarBadge(dir, lat, lng); }
-    });
-    db.from('gps_track').insert({
-      chofer: GPS_CHOFER_ACTUAL, movil: GPS_MOVIL_ACTUAL, ruta_id: GPS_RUTA_ID_ACTUAL,
-      lat: lat, lng: lng, direccion: dir || '', ts: ts
-    }).then(function() {});
-  });
-}
-
-function gpsActualizarBadge(dir, lat, lng) {
-  var el = document.getElementById('gps-status-badge');
-  if (el) {
-    el.innerHTML = '<span class="pulse" style="background:var(--green)"></span> GPS activo · ' + (dir || (lat.toFixed(5) + ', ' + lng.toFixed(5)));
-  }
-}
-
-function startGPSTransmission(chofer, movil, rutaId) {
-  if (GPS_TRACKING) return;
-  if (!navigator.geolocation) { toast('GPS no disponible', 'err'); return; }
-  GPS_TRACKING = true; GPS_CHOFER_ACTUAL = chofer; GPS_MOVIL_ACTUAL = movil; GPS_RUTA_ID_ACTUAL = rutaId || null;
-  navigator.geolocation.getCurrentPosition(function(p) {
-    gpsTransmitirPosicion(p.coords.latitude, p.coords.longitude);
-  }, function() {}, { enableHighAccuracy: true, timeout: 15000 });
-  GPS_WATCH_ID = navigator.geolocation.watchPosition(function(p) {
-    var lat = p.coords.latitude, lng = p.coords.longitude;
-    if (GPS_LAST_LAT !== null && gpsDistancia(GPS_LAST_LAT, GPS_LAST_LNG, lat, lng) < 50) return;
-    gpsTransmitirPosicion(lat, lng);
-  }, function(e) { console.warn('GPS watch:', e.message); }, { enableHighAccuracy: true, maximumAge: 30000, timeout: 30000 });
-  GPS_INTERVAL = setInterval(function() {
-    if (!GPS_TRACKING) return;
-    navigator.geolocation.getCurrentPosition(function(p) {
-      gpsTransmitirPosicion(p.coords.latitude, p.coords.longitude);
-    }, function() {}, { enableHighAccuracy: true, timeout: 15000 });
-  }, 300000);
-  toast('📡 GPS activado — transmitiendo', 'info');
-}
-
-function stopGPSTransmission(movil) {
-  GPS_TRACKING = false;
-  if (GPS_WATCH_ID !== null) { try { navigator.geolocation.clearWatch(GPS_WATCH_ID); } catch(e) {} GPS_WATCH_ID = null; }
-  if (GPS_INTERVAL) { clearInterval(GPS_INTERVAL); GPS_INTERVAL = null; }
-  var mv = movil || GPS_MOVIL_ACTUAL;
-  GPS_MOVIL_ACTUAL = null; GPS_CHOFER_ACTUAL = null; GPS_RUTA_ID_ACTUAL = null; GPS_LAST_LAT = null; GPS_LAST_LNG = null;
-  if (mv) db.from('gps_moviles').update({ activo: false }).eq('movil', mv).then(function() { toast('GPS desactivado'); });
-}
-
 function loadGPS() {
-  db.from('gps_moviles').select('*').eq('activo', true).order('updated_at', { ascending: false })
-    .then(function(res) {
-      var list = res.data || [];
-      var countEl = document.getElementById('gps-count');
-      if (countEl) countEl.textContent = list.length + ' activo' + (list.length !== 1 ? 's' : '');
-      var listEl = document.getElementById('gps-moviles-list');
-      var mapEl  = document.getElementById('gps-map-frame');
-      if (!listEl || !mapEl) return;
-      var ahora = new Date();
-      var html = '';
-      for (var i = 0; i < list.length; i++) {
-        var p = list[i];
-        var upd = p.updated_at ? new Date(p.updated_at) : null;
-        var min = upd ? Math.floor((ahora - upd) / 60000) : 999;
-        var sc = min < 6 ? 'var(--green)' : min < 15 ? '#f59e0b' : 'var(--red)';
-        var sl = min < 6 ? 'En línea' : min < 15 ? 'Hace ' + min + ' min' : 'Sin señal';
-        var bc = min < 6 ? 'b-green' : min < 15 ? 'b-yellow' : 'b-red';
-        html += '<div class="agent-row" style="cursor:pointer" onclick="gpsCentrarMapa(' + p.lat + ',' + p.lng + ')">';
-        html += '<div class="agent-av" style="background:' + sc + '20;color:' + sc + ';font-size:18px">🚗</div>';
-        html += '<div class="agent-info"><div class="agent-name">' + (p.movil || '—') + '</div>';
-        html += '<div class="agent-sub" style="font-size:11px">👤 ' + (p.chofer || '—') + '</div>';
-        html += '<div class="agent-sub" style="font-size:10px;color:var(--text3)">📍 ' + (p.direccion || p.lat.toFixed(5) + ', ' + p.lng.toFixed(5)) + '</div></div>';
-        html += '<div style="text-align:right;flex-shrink:0"><span class="badge ' + bc + '">';
-        if (min < 6) html += '<span class="pulse"></span> ';
-        html += sl + '</span>';
-        if (upd) html += '<div style="font-size:10px;color:var(--text3);margin-top:3px">' + formatTs(p.updated_at) + '</div>';
-        html += '</div></div>';
-      }
-      if (!list.length) {
-        html = '<div style="font-size:12px;color:var(--text3);padding:12px 0;text-align:center">📡 Sin móviles transmitiendo GPS en este momento</div>';
-        mapEl.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:var(--text3);gap:8px"><span style="font-size:32px">🗺️</span><span style="font-size:13px">Sin móviles activos</span></div>';
-        listEl.innerHTML = html;
-        return;
-      }
-      listEl.innerHTML = html;
-      // Cargar tracks
-      var hace12h = new Date(Date.now() - 12*3600*1000).toISOString();
-      var movs = list.map(function(x) { return x.movil; });
-      db.from('gps_track').select('movil,lat,lng,ts').in('movil', movs).gte('ts', hace12h).order('ts', { ascending: true })
-        .then(function(tr) {
-          var tracks = tr.data || {};
-          var byMovil = {};
-          (tr.data || []).forEach(function(pt) {
-            if (!byMovil[pt.movil]) byMovil[pt.movil] = [];
-            byMovil[pt.movil].push([pt.lat, pt.lng, pt.ts]);
+  return _loadGPS.apply(this, arguments);
+}
+function _loadGPS() {
+  _loadGPS = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee65() {
+    var _yield$db$from$select6, positions, list, first, markers, avgLat, avgLng;
+    return _regenerator().w(function (_context65) {
+      while (1) switch (_context65.n) {
+        case 0:
+          _context65.n = 1;
+          return db.from('gps_moviles').select('*').eq('activo', true).order('updated_at', {
+            ascending: false
           });
-          gpsCargarLeaflet(mapEl, list, byMovil);
-        }).catch(function() { gpsCargarLeaflet(mapEl, list, {}); });
-    });
-}
-
-function gpsCargarLeaflet(mapEl, list, byMovil) {
-  if (typeof L !== 'undefined') {
-    gpsRenderMapa(mapEl, list, byMovil);
-    return;
-  }
-  if (GPS_LEAFLET_LOADING) { setTimeout(function() { gpsCargarLeaflet(mapEl, list, byMovil); }, 500); return; }
-  GPS_LEAFLET_LOADING = true;
-  var lnk = document.createElement('link');
-  lnk.rel = 'stylesheet'; lnk.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-  document.head.appendChild(lnk);
-  var scr = document.createElement('script');
-  scr.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-  scr.onload = function() { GPS_LEAFLET_LOADING = false; gpsRenderMapa(mapEl, list, byMovil); };
-  scr.onerror = function() { GPS_LEAFLET_LOADING = false; gpsFallbackMapa(mapEl, list); };
-  document.head.appendChild(scr);
-  mapEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text3);font-size:13px">⏳ Cargando mapa...</div>';
-}
-
-function gpsFallbackMapa(mapEl, list) {
-  var p = list[0];
-  mapEl.innerHTML = '<iframe src="https://www.openstreetmap.org/export/embed.html?bbox=' + (p.lng-0.008) + ',' + (p.lat-0.008) + ',' + (p.lng+0.008) + ',' + (p.lat+0.008) + '&layer=mapnik&marker=' + p.lat + ',' + p.lng + '" style="width:100%;height:380px;border:none" loading="lazy"></iframe>';
-}
-
-function gpsRenderMapa(mapEl, list, byMovil) {
-  if (!document.getElementById('leaflet-mc')) {
-    mapEl.innerHTML = '<div id="leaflet-mc" style="width:100%;height:380px"></div>';
-  }
-  if (GPS_MAP_INSTANCE) { try { GPS_MAP_INSTANCE.remove(); } catch(e) {} GPS_MAP_INSTANCE = null; }
-  var avgLat = 0, avgLng = 0;
-  list.forEach(function(x) { avgLat += x.lat; avgLng += x.lng; });
-  avgLat /= list.length; avgLng /= list.length;
-  var map = L.map('leaflet-mc', { center: [avgLat, avgLng], zoom: list.length === 1 ? 15 : 13, zoomControl: true });
-  GPS_MAP_INSTANCE = map;
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OSM', maxZoom: 19 }).addTo(map);
-  var ahora = new Date();
-  var allPts = [];
-  list.forEach(function(p, i) {
-    var color = GPS_COLORES[i % GPS_COLORES.length];
-    var upd = p.updated_at ? new Date(p.updated_at) : null;
-    var min = upd ? Math.floor((ahora - upd) / 60000) : 999;
-    var ec = min < 6 ? '#10b981' : min < 15 ? '#f59e0b' : '#ef4444';
-    // Huella
-    var pts = byMovil[p.movil] || [];
-    if (pts.length >= 2) {
-      var ll = pts.map(function(x) { return [x[0], x[1]]; });
-      L.polyline(ll, { color: 'rgba(255,255,255,0.25)', weight: 6, lineJoin: 'round', lineCap: 'round' }).addTo(map);
-      L.polyline(ll, { color: color, weight: 4, opacity: 0.85, lineJoin: 'round', lineCap: 'round' }).addTo(map);
-      L.circleMarker([pts[0][0], pts[0][1]], { radius: 5, color: color, fillColor: color, fillOpacity: 1, weight: 2 }).addTo(map).bindPopup('<b>Inicio</b><br><span style="font-size:11px">' + (pts[0][2] ? new Date(pts[0][2]).toLocaleTimeString('es-AR') : '') + '</span>');
-      var step = Math.max(1, Math.floor(pts.length / 6));
-      for (var m = step; m < pts.length - 1; m += step) {
-        L.circleMarker([pts[m][0], pts[m][1]], { radius: 4, color: color, fillColor: '#fff', fillOpacity: 0.8, weight: 1.5 }).addTo(map);
+        case 1:
+          _yield$db$from$select6 = _context65.v;
+          positions = _yield$db$from$select6.data;
+          list = positions || [];
+          document.getElementById('gps-count').textContent = "".concat(list.length, " activo").concat(list.length !== 1 ? 's' : '');
+          if (list.length) {
+            _context65.n = 2;
+            break;
+          }
+          document.getElementById('gps-moviles-list').innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0">Sin móviles transmitiendo GPS ahora</div>';
+          document.getElementById('gps-map-frame').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text3);font-size:13px">Sin móviles activos con GPS</div>';
+          return _context65.a(2);
+        case 2:
+          document.getElementById('gps-moviles-list').innerHTML = list.map(function (p) {
+            return "\n<div class=\"agent-row\">\n<div class=\"agent-av\" style=\"background:var(--greeng);color:var(--green)\">[Movil]</div>\n<div class=\"agent-info\">\n<div class=\"agent-name\">".concat(p.movil || p.chofer, "</div>\n<div class=\"agent-sub\">[Ubic] ").concat(p.direccion || 'Ubicando...', "</div>\n</div>\n<div style=\"text-align:right\">\n<span class=\"badge b-green\"><span class=\"pulse\"></span> Activo</span>\n<div style=\"font-size:10px;color:var(--text3);margin-top:3px\">").concat(formatTs(p.updated_at), "</div>\n</div>\n</div>");
+          }).join('');
+          first = list[0];
+          markers = list.map(function (p) {
+            return "".concat(p.lat, ",").concat(p.lng);
+          }).join('|');
+          if (list.length === 1) {
+            document.getElementById('gps-map-frame').innerHTML = "\n<iframe src=\"https://www.openstreetmap.org/export/embed.html?bbox=".concat(first.lng - 0.005, ",").concat(first.lat - 0.005, ",").concat(first.lng + 0.005, ",").concat(first.lat + 0.005, "&layer=mapnik&marker=").concat(first.lat, ",").concat(first.lng, "\"\nstyle=\"width:100%;height:320px;border:none\" loading=\"lazy\"></iframe>\n<div style=\"padding:8px 12px;background:var(--bg3);font-size:11px;color:var(--text3)\">\n").concat(list.map(function (p) {
+              return "[Movil] <strong>".concat(p.movil || p.chofer, "</strong> \u2014 ").concat(p.direccion || '');
+            }).join(' &nbsp;·&nbsp; '), "\n</div>");
+          } else {
+            avgLat = list.reduce(function (s, p) {
+              return s + p.lat;
+            }, 0) / list.length;
+            avgLng = list.reduce(function (s, p) {
+              return s + p.lng;
+            }, 0) / list.length;
+            document.getElementById('gps-map-frame').innerHTML = "\n<iframe src=\"https://www.openstreetmap.org/export/embed.html?bbox=".concat(avgLng - 0.02, ",").concat(avgLat - 0.02, ",").concat(avgLng + 0.02, ",").concat(avgLat + 0.02, "&layer=mapnik\"\nstyle=\"width:100%;height:320px;border:none\" loading=\"lazy\"></iframe>\n<div style=\"padding:8px 12px;background:var(--bg3);font-size:11px;color:var(--text3)\">\n").concat(list.map(function (p) {
+              return "[Movil] <strong>".concat(p.movil || p.chofer, "</strong> \u2014 ").concat(p.direccion || '');
+            }).join('<br>'), "\n</div>");
+          }
+        case 3:
+          return _context65.a(2);
       }
-      pts.forEach(function(x) { allPts.push([x[0], x[1]]); });
-    }
-    allPts.push([p.lat, p.lng]);
-    // Marcador actual
-    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="38" height="46" viewBox="0 0 38 46"><ellipse cx="19" cy="42" rx="9" ry="3" fill="rgba(0,0,0,0.2)"/><path d="M19 0C8 0 0 8.5 0 19c0 13 19 27 19 27s19-14 19-27C38 8.5 30 0 19 0z" fill="' + ec + '" stroke="#fff" stroke-width="2"/><text x="19" y="23" font-size="14" text-anchor="middle" fill="#fff">🚗</text></svg>';
-    var ico = L.divIcon({ html: svg, iconSize: [38,46], iconAnchor: [19,46], popupAnchor: [0,-46], className: '' });
-    var popup = '<b>🚗 ' + (p.movil||'—') + '</b><br><span style="font-size:11px">👤 ' + (p.chofer||'—') + '</span><br><span style="font-size:10px;color:#777">📍 ' + (p.direccion||(p.lat.toFixed(5)+', '+p.lng.toFixed(5))) + '</span><br><span style="font-size:10px;color:' + ec + '">● ' + (min < 6 ? 'En línea' : 'Hace '+min+' min') + '</span>' + (pts.length > 1 ? '<br><span style="font-size:10px;color:#888">📈 ' + pts.length + ' puntos</span>' : '');
-    L.marker([p.lat, p.lng], { icon: ico, zIndexOffset: 1000 }).addTo(map).bindPopup(popup);
-  });
-  if (allPts.length > 1) { try { map.fitBounds(L.latLngBounds(allPts), { padding: [30,30], maxZoom: 16 }); } catch(e) {} }
-  // fix: invalidar size luego de render por si el div no tenia dimensiones al init
-  setTimeout(function() { try { map.invalidateSize(); } catch(e) {} }, 300);
+    }, _callee65);
+  }));
+  return _loadGPS.apply(this, arguments);
 }
-
-function gpsCentrarMapa(lat, lng) {
-  if (GPS_MAP_INSTANCE) GPS_MAP_INSTANCE.setView([lat, lng], 16);
+function startGPSTransmission(_x24, _x25) {
+  return _startGPSTransmission.apply(this, arguments);
 }
-
+function _startGPSTransmission() {
+  _startGPSTransmission = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee67(chofer, movil) {
+    var transmit;
+    return _regenerator().w(function (_context67) {
+      while (1) switch (_context67.n) {
+        case 0:
+          if (!GPS_TRACKING) {
+            _context67.n = 1;
+            break;
+          }
+          return _context67.a(2);
+        case 1:
+          GPS_TRACKING = true;
+          transmit = /*#__PURE__*/function () {
+            var _ref16 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee66() {
+              var geo, direccion;
+              return _regenerator().w(function (_context66) {
+                while (1) switch (_context66.n) {
+                  case 0:
+                    _context66.n = 1;
+                    return getGeoSilent();
+                  case 1:
+                    geo = _context66.v;
+                    if (geo) {
+                      _context66.n = 2;
+                      break;
+                    }
+                    return _context66.a(2);
+                  case 2:
+                    _context66.n = 3;
+                    return getAddress(geo.lat, geo.lng);
+                  case 3:
+                    direccion = _context66.v;
+                    _context66.n = 4;
+                    return db.from('gps_moviles').upsert({
+                      chofer: chofer,
+                      movil: movil,
+                      lat: geo.lat,
+                      lng: geo.lng,
+                      direccion: direccion,
+                      activo: true,
+                      updated_at: new Date().toISOString()
+                    }, {
+                      onConflict: 'movil'
+                    });
+                  case 4:
+                    return _context66.a(2);
+                }
+              }, _callee66);
+            }));
+            return function transmit() {
+              return _ref16.apply(this, arguments);
+            };
+          }();
+          _context67.n = 2;
+          return transmit();
+        case 2:
+          GPS_INTERVAL = setInterval(transmit, 60000); // every 60 seconds
+          toast('[GPS] GPS activado — transmitiendo ubicación', 'info');
+        case 3:
+          return _context67.a(2);
+      }
+    }, _callee67);
+  }));
+  return _startGPSTransmission.apply(this, arguments);
+}
+function stopGPSTransmission(_x26) {
+  return _stopGPSTransmission.apply(this, arguments);
+}
+function _stopGPSTransmission() {
+  _stopGPSTransmission = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee68(movil) {
+    return _regenerator().w(function (_context68) {
+      while (1) switch (_context68.n) {
+        case 0:
+          GPS_TRACKING = false;
+          if (GPS_INTERVAL) {
+            clearInterval(GPS_INTERVAL);
+            GPS_INTERVAL = null;
+          }
+          _context68.n = 1;
+          return db.from('gps_moviles').update({
+            activo: false
+          }).eq('movil', movil);
+        case 1:
+          toast('GPS desactivado');
+        case 2:
+          return _context68.a(2);
+      }
+    }, _callee68);
+  }));
+  return _stopGPSTransmission.apply(this, arguments);
+}
 function startGPSRefresh() {
-  if (GPS_REFRESH_INTERVAL) clearInterval(GPS_REFRESH_INTERVAL);
-  GPS_REFRESH_INTERVAL = setInterval(function() {
+  return setInterval(function () {
     if (CUR_CHOF_SUBTAB === 'gps') loadGPS();
-  }, 30000);
+  }, 60000);
 }
-
 var LIC_FILE = null;
 var CUR_FICH_TAB = 'fichaje';
 function fichTab(tab, btn) {
@@ -9310,16 +8912,30 @@ function _saveLicencia() {
           return comprimirImagen(LIC_FILE);
         case 7:
           fileToUpload = _context70.v;
-          finalPath = 'licencias/' + Date.now() + '_' + Math.random().toString(36).substr(2,6) + '.jpg';
+          contentType = 'image/jpeg';
+          finalPath = path.replace(/\.[^.]+$/, '.jpg');
         case 8:
           _context70.n = 9;
-          return uploadToR2(fileToUpload, 'licencias');
+          return db.storage.from('fotos').upload(finalPath, fileToUpload, {
+            contentType: contentType,
+            upsert: false
+          });
         case 9:
-          urlData = _context70.v;
-          if (!urlData) { _context70.n = 10; break; }
+          _yield$db$storage$fro2 = _context70.v;
+          upData = _yield$db$storage$fro2.data;
+          upErr = _yield$db$storage$fro2.error;
+          if (upErr) {
+            _context70.n = 10;
+            break;
+          }
+          _db$storage$from$getP2 = db.storage.from('fotos').getPublicUrl(finalPath), urlData = _db$storage$from$getP2.data;
+          if (!(urlData && urlData.publicUrl)) {
+            _context70.n = 10;
+            break;
+          }
           _context70.n = 10;
           return db.from('licencias').update({
-            archivo: urlData
+            archivo: urlData.publicUrl
           }).eq('id', ins.id);
         case 10:
           LIC_FILE = null;
@@ -9824,7 +9440,7 @@ var LLAVES_DATA = {
   69: '',
   70: 'Brandsen 660',
   71: 'Varela Container Amarillo',
-  72: 'Edif.4 - 1°A (Diaz Saenz Valiente 4527/31) Barrio Olimpico',
+  72: '',
   73: '',
   74: '',
   75: '',
@@ -9863,92 +9479,44 @@ function llavesTab(tab, btn) {
 }
 
 function loadLlaves() {
-  renderTablero({}, {});
+  var totalConNombre = 0;
+  for (var nn = 1; nn <= 92; nn++) { if (LLAVES_DATA[nn] && LLAVES_DATA[nn].trim() !== '') totalConNombre++; }
+  document.getElementById('llaves-total').textContent = totalConNombre;
+  renderTablero({});
   db.from('llaves').select('*').order('numero_tablero', {ascending: true}).then(function(result) {
     if (result.error) {
+      console.error('Error cargando llaves:', result.error.message);
       document.getElementById('llaves-base').textContent = '—';
       document.getElementById('llaves-prestadas').textContent = '—';
-      document.getElementById('llaves-sa').textContent = '—';
+      document.getElementById('llaves-sa').textContent = totalConNombre;
       return;
     }
     LLAVES_CACHE = result.data || [];
     var enObrador = 0, retiradas = 0;
     var byNum = {};
-    // Sincronizar LLAVES_DATA con los nombres de Supabase
     for (var i = 0; i < LLAVES_CACHE.length; i++) {
       var l = LLAVES_CACHE[i];
-      var n = parseInt(l.numero_tablero);
-      byNum[n] = l;
-      // Si la llave tiene nombre en Supabase, usarlo como fuente de verdad
-      if (l.nombre && l.nombre.trim()) LLAVES_DATA[n] = l.nombre;
+      byNum[parseInt(l.numero_tablero)] = l;
       if (!l.estado_actual || l.estado_actual === 'base') enObrador++;
       else if (l.estado_actual === 'prestada') retiradas++;
     }
-    // Contar slots disponibles (1-92 sin registrar, con nombre en diccionario)
-    var sinRegistrar = 0;
-    for (var nn = 1; nn <= 92; nn++) {
-      if (LLAVES_DATA[nn] && LLAVES_DATA[nn].trim() && !byNum[nn]) sinRegistrar++;
-    }
-    document.getElementById('llaves-total').textContent = LLAVES_CACHE.length;
+    var sinRegistrar = totalConNombre - LLAVES_CACHE.length;
     document.getElementById('llaves-base').textContent = enObrador;
     document.getElementById('llaves-prestadas').textContent = retiradas;
-    document.getElementById('llaves-sa').textContent = sinRegistrar;
-    renderTablero(byNum, LLAVES_DATA);
+    document.getElementById('llaves-sa').textContent = sinRegistrar > 0 ? sinRegistrar : 0;
+    renderTablero(byNum);
     filtrarLlaves();
-    poblarSelectorNumeros(); // actualizar el selector con slots libres
   });
 }
 
-// Poblar el selector de números con slots disponibles (no registrados aún)
-function poblarSelectorNumeros() {
-  var sel = document.getElementById('ll-numero');
-  if (!sel) return;
-  var byNum = {};
-  for (var i = 0; i < LLAVES_CACHE.length; i++) byNum[parseInt(LLAVES_CACHE[i].numero_tablero)] = true;
-  var prev = sel.value;
-  sel.innerHTML = '<option value="">— Seleccionar n\u00famero —</option>';
-  for (var n = 1; n <= 92; n++) {
-    if (byNum[n]) continue; // ya registrada
-    var opt = document.createElement('option');
-    opt.value = String(n);
-    var nombre = LLAVES_DATA[n] && LLAVES_DATA[n].trim() ? n + ' \u2014 ' + LLAVES_DATA[n] : String(n);
-    opt.textContent = nombre;
-    sel.appendChild(opt);
-  }
-  if (prev) sel.value = prev;
-}
-
-function llOnChangeNumero() {
-  var sel = document.getElementById('ll-numero');
-  var nom = document.getElementById('ll-nombre');
-  if (!sel || !nom) return;
-  var n = parseInt(sel.value);
-  if (n && LLAVES_DATA[n] && LLAVES_DATA[n].trim()) {
-    nom.value = LLAVES_DATA[n];
-  } else {
-    nom.value = '';
-    if (nom) nom.focus();
-  }
-}
-
-function renderTablero(byNum, dataNombres) {
-  if (!dataNombres) dataNombres = LLAVES_DATA;
+function renderTablero(byNum) {
   var cont = document.getElementById('llaves-tablero-grid');
   if (!cont) return;
-  // Conjunto de todos los números a mostrar: diccionario + Supabase
-  var numeros = {};
-  for (var nn = 1; nn <= 92; nn++) {
-    if (dataNombres[nn] && dataNombres[nn].trim()) numeros[nn] = true;
-  }
-  for (var kk in byNum) { numeros[parseInt(kk)] = true; }
   var html = '';
-  var sorted = Object.keys(numeros).map(Number).sort(function(a,b){ return a-b; });
-  for (var si = 0; si < sorted.length; si++) {
-    var n = sorted[si];
+  for (var n = 1; n <= 92; n++) {
     var llave = byNum[n];
-    // Nombre: primero Supabase, luego diccionario
-    var objetivo = (llave && llave.nombre && llave.nombre.trim()) ? llave.nombre : (dataNombres[n] || '');
-    if (!objetivo && !llave) continue; // slot sin nombre y sin registro
+    var objetivo = LLAVES_DATA[n] || '';
+    if (!objetivo) continue;
     var retirada = llave && llave.estado_actual === 'prestada';
     var registrada = !!llave;
     var color = retirada ? '#f59e0b' : registrada ? '#34d399' : 'rgba(96,165,250,0.3)';
@@ -9972,7 +9540,6 @@ function abrirDetalleLlave(numero) {
   }
   var objetivo = LLAVES_DATA[numero] || 'Sin objetivo asignado';
   if (!llave) {
-    poblarSelectorNumeros();
     var selEl = document.getElementById('ll-numero');
     if (selEl) selEl.value = String(numero);
     var nomEl = document.getElementById('ll-nombre');
@@ -9996,44 +9563,13 @@ function abrirDetalleLlave(numero) {
   openOv('ov-mov-llave');
 }
 
-function autocompletarLlave() { llOnChangeNumero(); }
-
-// ── HELPERS GLOBALES: botones editar y eliminar (solo ADMIN) ──────
-function adminEditBtn(tabla, id) {
-  if (!USER || USER.rol !== 'ADMIN') return '';
-  return '<button onclick="event.stopPropagation();openEditRowById(\'' + tabla + '\',\'' + id + '\')" ' +
-    'style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:6px;' +
-    'border:1px solid rgba(59,130,246,.35);background:rgba(59,130,246,.1);color:#93c5fd;' +
-    'font-family:var(--font);font-size:10px;font-weight:700;cursor:pointer">✏️ Editar</button>';
-}
-
-function adminDelBtn(tabla, id, label) {
-  if (!USER || USER.rol !== 'ADMIN') return '';
-  var lbl = label || 'Eliminar';
-  return '<button onclick="event.stopPropagation();adminEliminar(\'' + tabla + '\',\'' + id + '\',\'' + lbl + '\')" ' +
-    'style="display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:6px;' +
-    'border:1px solid rgba(239,68,68,.35);background:rgba(239,68,68,.1);color:#f87171;' +
-    'font-family:var(--font);font-size:10px;font-weight:700;cursor:pointer">🗑️</button>';
-}
-
-function adminEliminar(tabla, id, label) {
-  showConfirm('🗑️', 'Eliminar registro', '¿Eliminar este registro de ' + (label || tabla) + '? No se puede deshacer.', function() {
-    db.from(tabla)['delete']().eq('id', id).then(function(r) {
-      if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
-      toast('🗑️ Registro eliminado');
-      // Recargar la vista activa
-      if (CUR_VIEW === 'novedades') loadNovedades();
-      else if (CUR_VIEW === 'fichaje') loadFichajes();
-      else if (CUR_VIEW === 'objetivos') loadObjetivos();
-      else if (CUR_VIEW === 'agenda') loadAgenda();
-      else if (CUR_VIEW === 'choferes') loadChoferes();
-      else if (CUR_VIEW === 'llaves') loadLlaves();
-      // Actualizar stats del admin si está abierto
-      var sel = document.getElementById('admin-tabla-sel');
-      if (sel && sel.value) loadAdminTabla(sel.value);
-      loadAdminStats();
-    });
-  }, 'Eliminar', 'var(--red)');
+function autocompletarLlave() {
+  var sel = document.getElementById('ll-numero');
+  var nom = document.getElementById('ll-nombre');
+  if (!sel || !nom) return;
+  var num = parseInt(sel.value);
+  if (num && LLAVES_DATA[num]) nom.value = LLAVES_DATA[num];
+  else if (!num) nom.value = '';
 }
 
 function filtrarLlaves() {
@@ -10044,9 +9580,8 @@ function filtrarLlaves() {
   var rows = [];
   for (var n = 1; n <= 92; n++) {
     var llave = byNum[n];
-    var ll2 = byNum[n];
-    var obj = (ll2 && ll2.nombre && ll2.nombre.trim()) ? ll2.nombre : (LLAVES_DATA[n] || '');
-    if (!obj && !ll2) continue;
+    var obj = LLAVES_DATA[n] || '';
+    if (!obj) continue;
     var estado = llave ? (llave.estado_actual || 'base') : 'sinregistrar';
     if (filtro === 'base' && estado !== 'base') continue;
     if (filtro === 'prestada' && estado !== 'prestada') continue;
@@ -10080,59 +9615,9 @@ function filtrarLlaves() {
     }
     html += '<div style="display:flex;gap:6px;margin-top:8px">';
     html += '<button class="btn-sm" onclick="abrirDetalleLlave(' + r.n + ')">📋 Movimiento</button>';
-    // Botones editar y eliminar solo para ADMIN
-    if (!r.sinReg && r.llave && USER && USER.rol === 'ADMIN') {
-      html += adminEditBtn ? '' : '';
-      if (USER && USER.rol === 'ADMIN') html += '<button onclick="editarLlave(\'' + r.llave.id + '\',' + r.n + ')" style="padding:5px 12px;border-radius:8px;border:1px solid rgba(59,130,246,.3);background:rgba(59,130,246,.1);color:#93c5fd;font-family:var(--font);font-size:11px;font-weight:600;cursor:pointer">✏️ Editar</button>';
-      html += adminDelBtn('llaves', r.llave.id, 'Llave');
-    }
     html += '</div></div></div></div>';
   }
   listEl.innerHTML = html;
-}
-
-// Editar llave directamente (nombre, observaciones) — solo ADMIN
-function editarLlave(id, numero) {
-  db.from('llaves').select('*').eq('id', id).single().then(function(res) {
-    if (res.error || !res.data) { toast('No se pudo cargar la llave', 'err'); return; }
-    var llave = res.data;
-    var html =
-      '<div class="form-group"><label class="form-label">Número de tablero</label>' +
-      '<div class="form-input" style="opacity:.6;pointer-events:none">' + numero + '</div></div>' +
-      '<div class="form-group"><label class="form-label">Nombre / Objetivo <span style="color:var(--red)">*</span></label>' +
-      '<input class="form-input" id="edit-llave-nombre" value="' + (llave.nombre || '').replace(/"/g,'&quot;') + '"/></div>' +
-      '<div class="form-group"><label class="form-label">Observaciones</label>' +
-      '<textarea class="form-textarea" id="edit-llave-obs" style="min-height:60px">' + (llave.observaciones || '') + '</textarea></div>';
-    document.getElementById('edit-fields').innerHTML = html;
-    document.getElementById('edit-fields').dataset.cols = '[]'; // no usar saveEdit genérico
-    document.getElementById('edit-tabla').value = '_llave_custom_';
-    document.getElementById('edit-id').value = id;
-    document.getElementById('edit-id').dataset.lnumero = numero;
-    // Override btn-save-edit para llaves
-    var btn = document.getElementById('btn-save-edit');
-    btn.onclick = function() { guardarEditLlave(id, numero); };
-    document.getElementById('edit-title') && (document.getElementById('edit-title').textContent = 'Editar Llave N°' + numero);
-    openOv('ov-edit');
-  });
-}
-
-function guardarEditLlave(id, numero) {
-  var nombre = (document.getElementById('edit-llave-nombre') || {}).value;
-  var obs    = (document.getElementById('edit-llave-obs') || {}).value;
-  if (!nombre || !nombre.trim()) { toast('El nombre no puede estar vacío', 'err'); return; }
-  setLoading('btn-save-edit', true);
-  db.from('llaves').update({ nombre: nombre.trim(), observaciones: obs || null }).eq('id', id).then(function(r) {
-    setLoading('btn-save-edit', false);
-    if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
-    // Actualizar diccionario local
-    LLAVES_DATA[numero] = nombre.trim();
-    closeOv('ov-edit');
-    toast('✅ Llave N°' + numero + ' actualizada');
-    // Restaurar onclick del btn a saveEdit genérico
-    var btn = document.getElementById('btn-save-edit');
-    if (btn) btn.onclick = saveEdit;
-    loadLlaves();
-  });
 }
 
 function toggleMovFields() {
@@ -10181,21 +9666,12 @@ function saveMovimiento() {
 
 function saveLlave() {
   var numEl = document.getElementById('ll-numero');
-  var nomEl = document.getElementById('ll-nombre');
   var numero = numEl ? parseInt(numEl.value) : 0;
-  var nombre = nomEl ? nomEl.value.trim() : '';
   if (!numero) { toast('Seleccioná el número del tablero', 'err'); return; }
-  if (!nombre) { toast('Ingresá el nombre/objetivo de la llave', 'err'); return; }
-  // Verificar que no exista ya
-  var yaExiste = false;
-  for (var i = 0; i < LLAVES_CACHE.length; i++) {
-    if (parseInt(LLAVES_CACHE[i].numero_tablero) === numero) { yaExiste = true; break; }
-  }
-  if (yaExiste) { toast('La llave N°' + numero + ' ya está registrada', 'err'); return; }
+  var nombre = LLAVES_DATA[numero] || 'Llave ' + numero;
   setLoading('btn-save-llave', true);
   db.from('llaves').insert({
-    numero_tablero: numero,
-    nombre: nombre,
+    numero_tablero: numero, nombre: nombre,
     codigo: 'T-' + (numero < 10 ? '0' : '') + numero,
     ubicacion_habitual: 'Obrador Savio — Tablero',
     ubicacion_actual: 'Obrador Savio — Tablero',
@@ -10204,13 +9680,8 @@ function saveLlave() {
   }).then(function(result) {
     setLoading('btn-save-llave', false);
     if (result.error) { toast('Error: ' + result.error.message, 'err'); return; }
-    // Actualizar el diccionario local para que aparezca inmediatamente
-    LLAVES_DATA[numero] = nombre;
     closeOv('ov-nueva-llave');
-    if (nomEl) nomEl.value = '';
-    if (numEl) numEl.value = '';
-    var obsEl = document.getElementById('ll-obs'); if (obsEl) obsEl.value = '';
-    toast('🔑 Llave N°' + numero + ' registrada en tablero');
+    toast('Llave Nro. ' + numero + ' registrada');
     loadLlaves();
   });
 }
@@ -10731,95 +10202,6 @@ function incrementBadge(elemId, storageKey) {
   el.style.display = 'flex';
 }
 
-// ── ALMACENAMIENTO — Supabase + Cloudflare R2 ──
-function loadStorageStats() {
-  var el = document.getElementById('storage-stats');
-  if (!el) return;
-  el.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0"><span class="spinner"></span> Calculando...</div>';
-
-  // Contar registros por tabla
-  var tablas = ['fichajes','novedades','objetivos','rutas','combustible','incidencias','taller','gps_moviles','gps_track','llaves','llaves_movimientos','agentes','choferes_lista','push_subscriptions','bitacora'];
-  var counts = {};
-  var pending = tablas.length;
-
-  tablas.forEach(function(t) {
-    db.from(t).select('id', { count: 'exact', head: true }).then(function(r) {
-      counts[t] = r.count || 0;
-      pending--;
-      if (pending === 0) renderStorageStats(counts, el);
-    }).catch(function() {
-      counts[t] = '?';
-      pending--;
-      if (pending === 0) renderStorageStats(counts, el);
-    });
-  });
-}
-
-function renderStorageStats(counts, el) {
-  var total = 0;
-  for (var k in counts) { if (typeof counts[k] === 'number') total += counts[k]; }
-
-  // Estimación de tamaño en Supabase (aprox 1-2KB por registro promedio)
-  var estimDB = Math.round(total * 1.5); // KB estimados
-  var estimDBLabel = estimDB > 1024 ? (estimDB/1024).toFixed(1) + ' MB' : estimDB + ' KB';
-
-  var rows = [
-    { t: 'fichajes',          label: 'Fichajes' },
-    { t: 'novedades',         label: 'Novedades' },
-    { t: 'objetivos',         label: 'C. Objetivo' },
-    { t: 'rutas',             label: 'Hojas de ruta' },
-    { t: 'combustible',       label: 'Combustible' },
-    { t: 'incidencias',       label: 'Incidencias' },
-    { t: 'taller',            label: 'Taller' },
-    { t: 'gps_moviles',       label: 'GPS posiciones' },
-    { t: 'gps_track',         label: 'GPS track' },
-    { t: 'llaves',            label: 'Llaves' },
-    { t: 'llaves_movimientos',label: 'Mov. llaves' },
-    { t: 'agentes',           label: 'Agentes' },
-    { t: 'push_subscriptions',label: 'Push subs.' },
-    { t: 'bitacora',          label: 'Bitácora' },
-  ];
-
-  var html = '';
-
-  // Resumen de Supabase
-  html += '<div style="margin-bottom:14px">';
-  html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">';
-  html += '<div style="font-size:13px;font-weight:800;color:var(--accent3)">🗄️ Supabase (base de datos)</div>';
-  html += '<span class="badge b-green" style="font-size:10px">' + total + ' registros totales</span>';
-  html += '</div>';
-  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">';
-  for (var i = 0; i < rows.length; i++) {
-    var r = rows[i];
-    var cnt = counts[r.t] || 0;
-    html += '<div style="background:var(--bg3);border-radius:8px;padding:8px 10px;display:flex;justify-content:space-between;align-items:center">';
-    html += '<span style="font-size:11px;color:var(--text2)">' + r.label + '</span>';
-    html += '<span style="font-size:13px;font-weight:700;font-family:var(--mono);color:var(--accent3)">' + cnt + '</span>';
-    html += '</div>';
-  }
-  html += '</div>';
-  html += '<div style="margin-top:10px;padding:8px 12px;border-radius:8px;background:rgba(52,211,153,0.08);border:1px solid rgba(52,211,153,0.2);font-size:11px;color:var(--text2)">';
-  html += '📊 Estimación de uso DB: <strong>' + estimDBLabel + '</strong>';
-  html += ' <span style="color:var(--text3);font-size:10px">(&asymp;1.5 KB/registro promedio)</span>';
-  html += '</div>';
-  html += '</div>';
-
-  // Cloudflare R2
-  html += '<div>';
-  html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">';
-  html += '<div style="font-size:13px;font-weight:800;color:#f97316">☁️ Cloudflare R2 (fotos)</div>';
-  html += '</div>';
-  html += '<div style="padding:10px 14px;border-radius:10px;background:rgba(249,115,22,0.07);border:1px solid rgba(249,115,22,0.2)">';
-  html += '<div style="font-size:12px;color:var(--text2);margin-bottom:6px">Bucket: <strong style="font-family:var(--mono);color:#fb923c">ivcfotos</strong></div>';
-  html += '<div style="font-size:12px;color:var(--text2);margin-bottom:6px">Endpoint: <span style="font-family:var(--mono);font-size:10px;color:var(--text3)">r2.cloudflarestorage.com</span></div>';
-  html += '<div style="font-size:11px;color:var(--text3);margin-top:8px;border-top:1px solid var(--border);padding-top:8px">';
-  html += '⚠️ El uso exacto de R2 (GB y cantidad de objetos) solo se puede consultar desde el dashboard de Cloudflare ';
-  html += '&rarr; <a href="https://dash.cloudflare.com" target="_blank" style="color:#fb923c">dash.cloudflare.com</a>';
-  html += '</div></div></div>';
-
-  el.innerHTML = html;
-}
-
 // ── HISTORIAL DE SESIONES ──
 function loadHistorialSesiones() {
   var el = document.getElementById('sesiones-list');
@@ -11006,19 +10388,17 @@ function cargarChoferesEnDropdown() {
         opt.textContent = c.nombre + (c.legajo ? ' (' + c.legajo + ')' : '');
         sel.appendChild(opt);
       });
-      // Poblar todos los selects de chofer de los módulos
-      var selectIds = ['inc-chofer', 'comb-chofer', 'tal-chofer'];
-      selectIds.forEach(function(selId) {
-        var selEl = document.getElementById(selId);
-        if (!selEl) return;
-        selEl.innerHTML = '<option value="">— Seleccionar chofer —</option>';
+      // También en incidencias
+      var selInc = document.getElementById('inc-chofer');
+      if (selInc) {
+        selInc.innerHTML = '<option value="">— Seleccionar —</option>';
         (res.data || []).forEach(function(c) {
           var opt = document.createElement('option');
           opt.value = c.nombre;
-          opt.textContent = c.nombre + (c.legajo ? ' (' + c.legajo + ')' : '');
-          selEl.appendChild(opt);
+          opt.textContent = c.nombre;
+          selInc.appendChild(opt);
         });
-      });
+      }
     });
 }
 
