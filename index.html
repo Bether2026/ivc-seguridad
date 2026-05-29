@@ -5532,6 +5532,154 @@ function toggleAreaOtro(val) {
   if (val !== 'Otro') otro.value = '';
 }
 
+// Botones admin para inventario
+function adminEditBtnInv(tabla, id) {
+  var puedeEditar = USER && (USER.rol === 'ADMIN' || ['Administración','Gerencia','Jefe de departamento'].indexOf(USER.puesto) >= 0);
+  if (!puedeEditar) return '';
+  return '<button onclick="event.stopPropagation();toast(\'Edici\u00F3n disponible desde el panel admin\')" style="padding:4px 10px;border-radius:6px;border:1px solid rgba(59,130,246,.3);background:rgba(59,130,246,.08);color:#93c5fd;font-family:var(--font);font-size:11px;cursor:pointer">&#x270E; Editar</button>';
+}
+
+function adminDelBtnInv(tabla, id, label) {
+  var puedeEditar = USER && (USER.rol === 'ADMIN' || ['Administración','Gerencia','Jefe de departamento'].indexOf(USER.puesto) >= 0);
+  if (!puedeEditar) return '';
+  return '<button onclick="event.stopPropagation();eliminarMovInv(' + id + ',\'' + label + '\')" style="padding:4px 10px;border-radius:6px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.08);color:#fca5a5;font-family:var(--font);font-size:11px;cursor:pointer">&#x1F5D1; Eliminar</button>';
+}
+
+function eliminarMovInv(id, label) {
+  showConfirm('🗑️', 'Eliminar ' + label, '¿Confirmar eliminación? Esta acción no se puede deshacer.', function() {
+    db.from('inventario').delete().eq('id', id).then(function(r) {
+      if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+      toast('✓ Eliminado');
+      loadInventario();
+    });
+  }, 'Eliminar', 'var(--red)');
+}
+
+var INV_TAB = 'hoy'; // 'hoy' | 'historico'
+var INV_BUSQUEDA = '';
+
+function selTabInv(tab) {
+  INV_TAB = tab;
+  var btnH = document.getElementById('inv-tab-hoy');
+  var btnA = document.getElementById('inv-tab-hist');
+  if (btnH) { btnH.style.background = tab === 'hoy' ? 'rgba(251,146,60,.15)' : 'transparent'; btnH.style.color = tab === 'hoy' ? '#fdba74' : 'var(--text3)'; btnH.style.borderColor = tab === 'hoy' ? 'rgba(251,146,60,.35)' : 'var(--border)'; }
+  if (btnA) { btnA.style.background = tab === 'historico' ? 'rgba(59,130,246,.15)' : 'transparent'; btnA.style.color = tab === 'historico' ? '#93c5fd' : 'var(--text3)'; btnA.style.borderColor = tab === 'historico' ? 'rgba(59,130,246,.35)' : 'var(--border)'; }
+  renderInventario(window._INV_DATA || []);
+}
+
+function buscarInv(val) {
+  INV_BUSQUEDA = (val || '').toLowerCase().trim();
+  renderInventario(window._INV_DATA || []);
+}
+
+function renderInventario(data) {
+  var list = document.getElementById('inv-list');
+  if (!list) return;
+
+  var ahora = fechaHoyAR ? fechaHoyAR() : { fecha: '' };
+  var hoy = ahora.fecha || '';
+
+  // Filtrar por tab
+  var filtrado = data.filter(function(m) {
+    if (INV_TAB === 'hoy') return m.fecha === hoy;
+    return true; // histórico muestra todo
+  });
+
+  // Filtrar por búsqueda
+  if (INV_BUSQUEDA) {
+    filtrado = filtrado.filter(function(m) {
+      return (m.persona_responsable || '').toLowerCase().indexOf(INV_BUSQUEDA) >= 0 ||
+             (m.destino || '').toLowerCase().indexOf(INV_BUSQUEDA) >= 0 ||
+             (m.area || '').toLowerCase().indexOf(INV_BUSQUEDA) >= 0 ||
+             (m.tipo || '').toLowerCase().indexOf(INV_BUSQUEDA) >= 0 ||
+             (m.fecha || '').indexOf(INV_BUSQUEDA) >= 0;
+    });
+  }
+
+  if (!filtrado.length) {
+    list.innerHTML = '<div class="empty"><div class="icon">&#x1F4CB;</div><p>' +
+      (INV_TAB === 'hoy' ? 'Sin movimientos hoy' : 'Sin resultados') + '</p></div>';
+    return;
+  }
+
+  var puedeVerTodos = (USER && USER.rol === 'ADMIN') || (USER && ['Administración','Gerencia','Jefe de departamento','Responsable de turno','Emergencias'].indexOf(USER.puesto) >= 0);
+
+  var html = '';
+  filtrado.forEach(function(m) {
+    var isIng  = m.tipo === 'INGRESAN';
+    var bColor = isIng ? 'rgba(16,185,129,.3)' : 'rgba(239,68,68,.3)';
+    var tColor = isIng ? 'var(--green)' : 'var(--red)';
+    var icon   = isIng ? '&#x2B06;&#xFE0F;' : '&#x2B07;&#xFE0F;';
+    html += '<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid ' + bColor + ';border-radius:12px;padding:14px;margin-bottom:10px;cursor:pointer" onclick="verDetalleInv(' + m.id + ')">';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">';
+    html += '<span style="font-size:13px;font-weight:800;color:' + tColor + '">' + icon + ' ' + m.tipo + '</span>';
+    html += '<span style="font-size:11px;color:var(--text3);font-family:var(--mono)">' + (m.fecha || '') + ' ' + (m.hora || '') + '</span>';
+    html += '</div>';
+    html += '<div style="font-size:13px;font-weight:600;color:var(--text)">' + (m.persona_responsable || '') + '</div>';
+    html += '<div style="font-size:11px;color:var(--text3);margin-top:3px">' + (m.area || '') + ' &#x2192; ' + (m.destino || '') + '</div>';
+    if (puedeVerTodos && m.puesto) html += '<div style="font-size:10px;color:var(--text3);margin-top:2px">&#x1F4CD; ' + m.puesto + '</div>';
+    if (m.observaciones) html += '<div style="font-size:11px;color:var(--text3);margin-top:4px;font-style:italic">' + m.observaciones + '</div>';
+    html += '<div style="margin-top:8px;display:flex;gap:6px">' + adminEditBtnInv('inventario', m.id) + adminDelBtnInv('inventario', m.id, 'movimiento') + '</div>';
+    html += '</div>';
+  });
+  list.innerHTML = html;
+}
+
+function loadInventario() {
+  var list = document.getElementById('inv-list');
+  var res  = document.getElementById('inv-resumen');
+  if (!list) return;
+  list.innerHTML = '<div class="empty"><div class="icon"><span class="spinner"></span></div></div>';
+
+  var puedeVerTodos = (USER && USER.rol === 'ADMIN') || (USER && ['Administración','Gerencia','Jefe de departamento','Responsable de turno','Emergencias'].indexOf(USER.puesto) >= 0);
+
+  var query = db.from('inventario').select('*').order('id', { ascending: false }).limit(200);
+  if (!puedeVerTodos) query = query.eq('puesto', USER.puesto);
+
+  query.then(function(r) {
+    if (r.error) { list.innerHTML = '<div class="empty"><p>Error cargando inventario</p></div>'; return; }
+    var data = r.data || [];
+    window._INV_DATA = data;
+
+    // Resumen total
+    var ingresan = data.filter(function(d) { return d.tipo === 'INGRESAN'; }).length;
+    var retiran  = data.filter(function(d) { return d.tipo === 'RETIRAN';  }).length;
+    if (res) {
+      res.innerHTML =
+        '<div style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:12px;padding:14px;text-align:center">' +
+          '<div style="font-family:var(--mono);font-size:36px;color:var(--green);line-height:1">' + ingresan + '</div>' +
+          '<div style="font-size:11px;color:var(--text3);margin-top:4px">&#x2B06;&#xFE0F; Ingresos totales</div>' +
+        '</div>' +
+        '<div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:12px;padding:14px;text-align:center">' +
+          '<div style="font-family:var(--mono);font-size:36px;color:var(--red);line-height:1">' + retiran + '</div>' +
+          '<div style="font-size:11px;color:var(--text3);margin-top:4px">&#x2B07;&#xFE0F; Retiros totales</div>' +
+        '</div>';
+    }
+
+    // Buscador + tabs
+    var toolbarEl = document.getElementById('inv-toolbar');
+    if (!toolbarEl) {
+      var toolbar = document.createElement('div');
+      toolbar.id = 'inv-toolbar';
+      toolbar.style.cssText = 'margin-bottom:14px';
+      toolbar.innerHTML =
+        // Buscador
+        '<div style="position:relative;margin-bottom:10px">' +
+          '<span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:15px">&#x1F50D;</span>' +
+          '<input oninput="buscarInv(this.value)" placeholder="Buscar por responsable, destino, fecha..." ' +
+          'style="width:100%;padding:10px 14px 10px 36px;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;color:var(--text);font-family:var(--font);font-size:13px;outline:none"/>' +
+        '</div>' +
+        // Tabs
+        '<div style="display:flex;gap:8px">' +
+          '<button id="inv-tab-hoy" onclick="selTabInv(\'hoy\')" style="padding:7px 18px;border-radius:8px;border:1px solid rgba(251,146,60,.35);background:rgba(251,146,60,.15);color:#fdba74;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">&#x1F4C5; Hoy</button>' +
+          '<button id="inv-tab-hist" onclick="selTabInv(\'historico\')" style="padding:7px 18px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">&#x1F4DA; Hist&#xF3;rico</button>' +
+        '</div>';
+      list.parentNode.insertBefore(toolbar, list);
+    }
+
+    renderInventario(data);
+  });
+}
 function selTipoMov(tipo) {
   INV_TIPO = tipo;
   var btnI = document.getElementById('btn-inv-ingresa');
@@ -5781,67 +5929,6 @@ function guardarMovimientoInv() {
         loadInventario();
       });
     });
-  });
-}
-
-function loadInventario() {
-  var list = document.getElementById('inv-list');
-  var res  = document.getElementById('inv-resumen');
-  if (!list) return;
-  list.innerHTML = '<div class="empty"><div class="icon"><span class="spinner"></span></div></div>';
-
-  var puedeVerTodos = (USER && USER.rol === 'ADMIN') || (USER && ['Administración','Gerencia','Jefe de departamento','Responsable de turno','Emergencias'].indexOf(USER.puesto) >= 0);
-
-  var query = db.from('inventario').select('*').order('id', { ascending: false }).limit(80);
-  if (!puedeVerTodos) query = query.eq('puesto', USER.puesto);
-
-  query.then(function(r) {
-    if (r.error) { list.innerHTML = '<div class="empty"><p>Error cargando inventario</p></div>'; return; }
-    var data = r.data || [];
-
-    // Resumen
-    var ingresan = data.filter(function(d) { return d.tipo === 'INGRESAN'; }).length;
-    var retiran  = data.filter(function(d) { return d.tipo === 'RETIRAN';  }).length;
-    if (res) {
-      res.innerHTML =
-        '<div style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:12px;padding:14px;text-align:center">' +
-          '<div style="font-family:var(--mono);font-size:36px;color:var(--green);line-height:1">' + ingresan + '</div>' +
-          '<div style="font-size:11px;color:var(--text3);margin-top:4px">\u2B06\uFE0F Ingresos</div>' +
-        '</div>' +
-        '<div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:12px;padding:14px;text-align:center">' +
-          '<div style="font-family:var(--mono);font-size:36px;color:var(--red);line-height:1">' + retiran + '</div>' +
-          '<div style="font-size:11px;color:var(--text3);margin-top:4px">\u2B07\uFE0F Retiros</div>' +
-        '</div>';
-    }
-
-    if (!data.length) {
-      list.innerHTML = '<div class="empty"><div class="icon">\uD83D\uDCCB</div><p>Sin movimientos registrados</p></div>';
-      return;
-    }
-
-    var html = '';
-    data.forEach(function(m) {
-      var isIng  = m.tipo === 'INGRESAN';
-      var bColor = isIng ? 'rgba(16,185,129,.3)' : 'rgba(239,68,68,.3)';
-      var tColor = isIng ? 'var(--green)' : 'var(--red)';
-      var icon   = isIng ? '\u2B06\uFE0F' : '\u2B07\uFE0F';
-      html += '<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid ' + bColor + ';border-radius:12px;padding:14px;margin-bottom:10px;cursor:pointer" onclick="verDetalleInv(' + m.id + ')">';
-      html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">';
-      html += '<span style="font-size:13px;font-weight:800;color:' + tColor + '">' + icon + ' ' + m.tipo + '</span>';
-      html += '<span style="font-size:11px;color:var(--text3);font-family:var(--mono)">' + (m.fecha || '') + ' ' + (m.hora || '') + '</span>';
-      html += '</div>';
-      html += '<div style="font-size:13px;font-weight:600;color:var(--text)">' + (m.persona_responsable || '') + '</div>';
-      html += '<div style="font-size:11px;color:var(--text3);margin-top:3px">' + (m.area || '') + ' \u2192 ' + (m.destino || '') + '</div>';
-      if (puedeVerTodos && m.puesto) {
-        html += '<div style="font-size:10px;color:var(--text3);margin-top:2px">\uD83D\uDCCD ' + m.puesto + '</div>';
-      }
-      if (m.observaciones) {
-        html += '<div style="font-size:11px;color:var(--text3);margin-top:4px;font-style:italic">' + m.observaciones + '</div>';
-      }
-      html += '<div style="margin-top:8px;display:flex;gap:6px">' + adminEditBtn('inventario', m.id) + adminDelBtn('inventario', m.id, 'movimiento') + '</div>';
-      html += '</div>';
-    });
-    list.innerHTML = html;
   });
 }
 
