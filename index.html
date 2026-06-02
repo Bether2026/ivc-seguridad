@@ -6646,11 +6646,10 @@ function selAdminTab(tab) {
     if (panel) panel.style.display = active ? 'block' : 'none';
   });
 
-  // Scroll al top inmediato y diferido
-  scrollAdminTop();
-  setTimeout(scrollAdminTop, 50);
-  setTimeout(scrollAdminTop, 200);
-
+  if (tab === 'general') {
+    if (typeof loadAdminTabla === 'function') loadAdminTabla('fichajes');
+    if (typeof loadAdminStats === 'function') loadAdminStats();
+  }
   if (tab === 'horas')    { selHRTab('detalle'); }
   if (tab === 'personal') { loadAgentesAdmin(); }
   if (tab === 'informe')  {
@@ -6667,6 +6666,7 @@ function selAdminTab(tab) {
     cargarPD();
   }
 }
+
 
 // ── TAB INFORME DIARIO ──────────────────────────────────
 var PD_CACHE = [];
@@ -10183,13 +10183,8 @@ function goView(name) {
   try {
     if (name === 'llaves' && typeof loadLlaves === 'function') loadLlaves();
     if (name === 'rrhh' && typeof loadRRHH === 'function') loadRRHH();
-    if (name === 'admin' && typeof loadAdminTabla === 'function') {
-      // Activar tab General con scrolls diferidos para asegurar posición correcta
+    if (name === 'admin') {
       selAdminTab('general');
-      loadAdminTabla('fichajes');
-      loadAdminStats();
-      setTimeout(scrollAdminTop, 100);
-      setTimeout(scrollAdminTop, 400);
     }
     if (name === 'estadisticas' && typeof loadStats === 'function') loadStats('dia');
     if (name === 'novedades' && typeof loadNovedades === 'function') {
