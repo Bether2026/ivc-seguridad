@@ -1523,7 +1523,7 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
 <div onclick="goView('fichaje')" style="cursor:pointer;background:var(--bg2);border:1px solid rgba(255,255,255,0.07);border-bottom:3px solid #34d399;border-radius:16px;padding:14px 16px;box-shadow:0 4px 24px rgba(0,0,0,0.2),0 1px 0 rgba(255,255,255,0.04) inset"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,0.45)">Fichados</div><div style="width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;font-size:16px">🟢</div></div><div style="font-size:36px;font-weight:900;font-family:var(--mono);color:#34d399;line-height:1;text-shadow:0 0 16px rgba(52,211,153,0.25)" id="d-fich">—</div><div style="font-size:10px;color:var(--text3);margin-top:4px">activos ahora</div></div>
 <div onclick="goView('fichaje')" style="cursor:pointer;background:var(--bg2);border:1px solid rgba(255,255,255,0.07);border-bottom:3px solid #fbbf24;border-radius:16px;padding:14px 16px;box-shadow:0 4px 24px rgba(0,0,0,0.2),0 1px 0 rgba(255,255,255,0.04) inset"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,0.45)">Licencias</div><div style="width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;font-size:16px">📄</div></div><div style="font-size:36px;font-weight:900;font-family:var(--mono);color:#fbbf24;line-height:1;text-shadow:0 0 16px rgba(251,191,36,0.25)" id="d-lic-act">—</div><div style="font-size:10px;color:var(--text3);margin-top:4px">activas hoy</div></div>
 <div onclick="goView('objetivos')" style="cursor:pointer;background:var(--bg2);border:1px solid rgba(255,255,255,0.07);border-bottom:3px solid #60a5fa;border-radius:16px;padding:14px 16px;box-shadow:0 4px 24px rgba(0,0,0,0.2),0 1px 0 rgba(255,255,255,0.04) inset"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,0.45)">En curso</div><div style="width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;font-size:16px">🎯</div></div><div style="font-size:36px;font-weight:900;font-family:var(--mono);color:#60a5fa;line-height:1;text-shadow:0 0 16px rgba(96,165,250,0.25)" id="d-obj">—</div><div style="font-size:10px;color:var(--text3);margin-top:4px">recorridos</div></div>
-<div onclick="goView('objetivos')" style="cursor:pointer;background:var(--bg2);border:1px solid rgba(255,255,255,0.07);border-bottom:3px solid #a78bfa;border-radius:16px;padding:14px 16px;box-shadow:0 4px 24px rgba(0,0,0,0.2),0 1px 0 rgba(255,255,255,0.04) inset"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,0.45)">Finalizados</div><div style="width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;font-size:16px">✅</div></div><div style="font-size:36px;font-weight:900;font-family:var(--mono);color:#a78bfa;line-height:1;text-shadow:0 0 16px rgba(167,139,250,0.25)" id="d-pend">—</div><div style="font-size:10px;color:var(--text3);margin-top:4px">hoy</div></div>
+<div onclick="irAPendientes()" style="cursor:pointer;background:var(--bg2);border:1px solid rgba(255,255,255,0.07);border-bottom:3px solid #f43f5e;border-radius:16px;padding:14px 16px;box-shadow:0 4px 24px rgba(0,0,0,0.2),0 1px 0 rgba(255,255,255,0.04) inset"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,0.45)">Pendientes</div><div style="width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;font-size:16px">⚠️</div></div><div style="font-size:36px;font-weight:900;font-family:var(--mono);color:#f43f5e;line-height:1;text-shadow:0 0 16px rgba(244,63,94,0.25)" id="d-pend">—</div><div style="font-size:10px;color:var(--text3);margin-top:4px">hoy</div></div>
 <div onclick="goView('novedades')" style="cursor:pointer;background:var(--bg2);border:1px solid rgba(255,255,255,0.07);border-bottom:3px solid #f472b6;border-radius:16px;padding:14px 16px;box-shadow:0 4px 24px rgba(0,0,0,0.2),0 1px 0 rgba(255,255,255,0.04) inset"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,0.45)">Novedades</div><div style="width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;font-size:16px">📋</div></div><div style="font-size:36px;font-weight:900;font-family:var(--mono);color:#f472b6;line-height:1;text-shadow:0 0 16px rgba(244,114,182,0.25)" id="d-nov">—</div><div style="font-size:10px;color:var(--text3);margin-top:4px">registradas hoy</div></div>
 <div id="widget-agenda" onclick="abrirAgendaHoy()" style="cursor:pointer;display:none;background:var(--bg2);border:1px solid rgba(255,255,255,0.07);border-bottom:3px solid #fbbf24;border-radius:16px;padding:14px 16px;box-shadow:0 4px 24px rgba(0,0,0,0.2),0 1px 0 rgba(255,255,255,0.04) inset"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,0.45)">Operativos</div><div style="width:32px;height:32px;border-radius:10px;background:rgba(255,255,255,0.05);display:flex;align-items:center;justify-content:center;font-size:16px">📅</div></div><div style="font-size:36px;font-weight:900;font-family:var(--mono);color:#fbbf24;line-height:1;text-shadow:0 0 16px rgba(251,191,36,0.25)" id="d-agenda-cant">—</div><div style="font-size:10px;color:var(--text3);margin-top:4px">hoy</div></div>
 <div id="widget-agenda-empty" style="display:none"></div>
@@ -1805,6 +1805,18 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
       </div>
     </div>
 
+    <!-- OVERLAY: Seleccionar barrio (para gestión/admin en el dashboard) -->
+    <div class="overlay" id="ov-sel-barrio">
+      <div class="modal">
+        <div class="modal-head">
+          <span class="modal-title">&#x1F4CD; Ver puntos cr&#xED;ticos</span>
+          <button class="btn-close" onclick="closeOv('ov-sel-barrio')">&#xD7;</button>
+        </div>
+        <div style="font-size:13px;color:var(--text3);margin-bottom:14px">Selecci&#xF3;n el barrio para ver sus puntos cr&#xED;ticos:</div>
+        <div id="sel-barrio-list" style="display:flex;flex-direction:column;gap:8px"></div>
+      </div>
+    </div>
+
     <!-- OVERLAY: Nuevo punto crítico (solo admin/gestión) -->
     <div class="overlay" id="ov-nuevo-punto">
       <div class="modal">
@@ -1833,14 +1845,16 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
         </div>
         <div class="form-group">
           <label class="form-label">Categor&#xED;a</label>
-          <select class="form-select" id="np-categoria">
+          <select class="form-select" id="np-categoria" onchange="toggleCatOtro(this.value)">
             <option value="Construcci&#xF3;n no autorizada">&#x1F3D7; Construcci&#xF3;n no autorizada</option>
-            <option value="Ocupaci&#xF3;n irregular">&#x1F3E0; Ocupaci&#xF3;n irregular</option>
+            <option value="Intrusi&#xF3;n">&#x1F6AA; Intrusi&#xF3;n</option>
+            <option value="Riesgo de intrusi&#xF3;n">&#x26A0; Riesgo de intrusi&#xF3;n</option>
             <option value="Conflicto vecinal">&#x1F91D; Conflicto vecinal</option>
-            <option value="Riesgo estructural">&#x26A0; Riesgo estructural</option>
+            <option value="Riesgo estructural">&#x1F3D7; Riesgo estructural</option>
             <option value="Vandalismo">&#x1F6AB; Vandalismo</option>
             <option value="Otro">&#x1F4CB; Otro</option>
           </select>
+          <input class="form-input" id="np-categoria-otro" placeholder="Especific&#xE1; la categor&#xEDa..." style="display:none;margin-top:8px;margin-bottom:0"/>
         </div>
         <div class="form-group">
           <label class="form-label">Prioridad</label>
@@ -6219,6 +6233,39 @@ function pendPrioStyle(p) {
   return               { color: '#fcd34d', bg: 'rgba(245,158,11,.1)',  border: 'rgba(245,158,11,.3)',  icon: '&#x1F7E1;', label: 'Media' };
 }
 
+function toggleCatOtro(val) {
+  var otro = document.getElementById('np-categoria-otro');
+  if (!otro) return;
+  otro.style.display = val === 'Otro' ? 'block' : 'none';
+  if (val !== 'Otro') otro.value = '';
+}
+
+function irAPendientes() {
+  var esPuestoComun = USER && !(['Administración','Administrador','Gerencia','Jefe de departamento','Responsable de turno','Emergencias'].indexOf(USER.puesto) >= 0) && USER.rol !== 'ADMIN';
+  if (esPuestoComun) {
+    // Barrio propio → ir directo
+    goView('pendientes');
+    return;
+  }
+  // Gestión/admin → mostrar selector de barrio
+  var BARRIOS = ['Papa Francisco','Rodrigo Bueno','Fraga','Base Castañares','Obrador Savio','CAV','Necochea','Complejo Orma','Alvarado','Padre Mugica'];
+  var list = document.getElementById('sel-barrio-list');
+  if (list) {
+    list.innerHTML = BARRIOS.map(function(b) {
+      return '<button onclick="irAPendientesBarrio(\'' + b + '\')" style="width:100%;padding:12px 16px;border-radius:10px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font-family:var(--font);font-size:14px;font-weight:600;cursor:pointer;text-align:left;display:flex;align-items:center;gap:10px"><span style="font-size:16px">&#x1F4CD;</span>' + b + '</button>';
+    }).join('') +
+    '<button onclick="irAPendientesBarrio(\'todos\')" style="width:100%;padding:12px 16px;border-radius:10px;border:1px solid rgba(244,63,94,.3);background:rgba(244,63,94,.08);color:#fda4af;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer;text-align:left;display:flex;align-items:center;gap:10px"><span style="font-size:16px">&#x26A0;</span>Ver todos los barrios</button>';
+  }
+  openOv('ov-sel-barrio');
+}
+
+function irAPendientesBarrio(barrio) {
+  closeOv('ov-sel-barrio');
+  // Setear filtro de barrio para el módulo de pendientes
+  window._PEND_BARRIO_FILTRO = barrio === 'todos' ? null : barrio;
+  goView('pendientes');
+}
+
 function selPrioridad(p) {
   NP_PRIORIDAD = p;
   ['alta','media','baja'].forEach(function(x) {
@@ -6369,7 +6416,13 @@ function loadPendientes() {
   var esGestion = USER && (USER.rol === 'ADMIN' || ['Administración','Gerencia','Jefe de departamento','Responsable de turno'].indexOf(USER.puesto) >= 0);
   var wrap = document.getElementById('pend-btn-nuevo-wrap'); if (wrap) wrap.style.display = esGestion ? 'block' : 'none';
   var query = db.from('puntos_criticos').select('*').order('prioridad', { ascending: true }).order('id', { ascending: false });
-  if (!esGestion) query = query.eq('barrio', USER.puesto);
+  // Si vino desde el selector de barrio, aplicar ese filtro
+  if (window._PEND_BARRIO_FILTRO) {
+    query = query.eq('barrio', window._PEND_BARRIO_FILTRO);
+  } else if (!esGestion) {
+    query = query.eq('barrio', USER.puesto);
+  }
+  window._PEND_BARRIO_FILTRO = null; // limpiar después de usar
   query.then(function(r) {
     if (r.error) { list.innerHTML = '<div class="empty"><p>Error: ' + r.error.message + '</p></div>'; return; }
     var data = r.data || [];
@@ -6792,7 +6845,16 @@ function _loadDash() {
           document.getElementById('d-fich').textContent = fichs.length;
           document.getElementById('d-nov').textContent = novsHoy.length;
           document.getElementById('d-obj').textContent = objs.length;
-          document.getElementById('d-pend').textContent = objsFin.length;
+          // Pendientes: puntos críticos activos del barrio del usuario
+          (function() {
+            var qPuntos = db.from('puntos_criticos').select('id', { count: 'exact', head: true }).eq('estado', 'activo');
+            var esPuestoComun = USER && USER.puesto && !(['Administración','Administrador','Gerencia','Jefe de departamento','Responsable de turno','Emergencias'].indexOf(USER.puesto) >= 0) && USER.rol !== 'ADMIN';
+            if (esPuestoComun) qPuntos = qPuntos.eq('barrio', USER.puesto);
+            qPuntos.then(function(rp) {
+              var el = document.getElementById('d-pend');
+              if (el) el.textContent = (rp.count !== null && rp.count !== undefined) ? rp.count : (rp.data ? rp.data.length : 0);
+            });
+          })();
           var licEl = document.getElementById('d-lic-act');
           if (licEl) licEl.textContent = licsAct.length;
 
@@ -9047,6 +9109,12 @@ function getPermisosUsuario(puesto) {
 }
 function aplicarPermisosAlLogin() {
   if (!USER) return;
+  // Asegurar que Admin panel NUNCA aparezca salvo para ADMIN sistema
+  var nbAdm = document.getElementById('nb-admin');
+  var siAdm = document.getElementById('si-admin');
+  if (nbAdm) nbAdm.style.display = 'none';
+  if (siAdm) siAdm.style.display = 'none';
+
   // Administrador: ve todo
   if (USER.rol === 'ADMIN') {
     SECCIONES_PERMISOS.forEach(function(sec) {
@@ -9055,9 +9123,7 @@ function aplicarPermisosAlLogin() {
       if (nb) nb.style.display = 'flex';
       if (si) si.style.display = 'flex';
     });
-    // Admin también ve nb-admin
-    var nbAdm = document.getElementById('nb-admin');
-    var siAdm = document.getElementById('si-admin');
+    // Solo Admin ve el panel de admin
     if (nbAdm) nbAdm.style.display = 'flex';
     if (siAdm) siAdm.style.display = 'flex';
     return;
