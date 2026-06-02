@@ -6624,6 +6624,14 @@ var HR_FILTRO = 'todos';
 var HR_BUSQUEDA = '';
 
 // ── SUBTABS ADMIN + GENERADOR DE INFORME DIARIO ──────────
+
+function scrollAdminTop() {
+  var mc = document.getElementById('main-content');
+  if (mc) { mc.scrollTop = 0; mc.scrollTo(0, 0); }
+  document.documentElement.scrollTop = 0;
+  document.body.scrollTop = 0;
+}
+
 function selAdminTab(tab) {
   var tabs = ['general','horas','personal','informe'];
   tabs.forEach(function(t) {
@@ -6637,18 +6645,17 @@ function selAdminTab(tab) {
     }
     if (panel) panel.style.display = active ? 'block' : 'none';
   });
-  // Scroll al top del contenido principal
-  var mainContent = document.getElementById('main-content');
-  if (mainContent) mainContent.scrollTop = 0;
-  var vAdmin = document.getElementById('view-admin');
-  if (vAdmin) vAdmin.scrollTop = 0;
+
+  // Scroll al top inmediato y diferido
+  scrollAdminTop();
+  setTimeout(scrollAdminTop, 50);
+  setTimeout(scrollAdminTop, 200);
 
   if (tab === 'horas')    { selHRTab('detalle'); }
   if (tab === 'personal') { loadAgentesAdmin(); }
   if (tab === 'informe')  {
     selInfTab('novedades');
     iniciarTabInforme();
-    // Setear fecha de hoy y buscar
     var fechaEl = document.getElementById('pd-fecha');
     if (fechaEl && !fechaEl.value) {
       var ahAR = fechaHoyAR();
@@ -6721,6 +6728,7 @@ function filtrarPD() {
 
   PD_CACHE_FILTRADO = data;
   renderPDLista(data);
+  setTimeout(scrollAdminTop, 50);
 }
 
 function renderPDLista(data) {
@@ -7148,6 +7156,7 @@ function loadAgentesAdmin() {
     ADM_AG_CACHE = r.data || [];
     renderStatsAdmin(ADM_AG_CACHE);
     renderAgentesAdmin();
+    setTimeout(scrollAdminTop, 50);
   });
 }
 
@@ -10175,12 +10184,12 @@ function goView(name) {
     if (name === 'llaves' && typeof loadLlaves === 'function') loadLlaves();
     if (name === 'rrhh' && typeof loadRRHH === 'function') loadRRHH();
     if (name === 'admin' && typeof loadAdminTabla === 'function') {
-      // Pequeño delay para que el DOM del view esté visible antes de manipularlo
-      setTimeout(function() {
-        selAdminTab('general');
-        loadAdminTabla('fichajes');
-        loadAdminStats();
-      }, 30);
+      // Activar tab General con scrolls diferidos para asegurar posición correcta
+      selAdminTab('general');
+      loadAdminTabla('fichajes');
+      loadAdminStats();
+      setTimeout(scrollAdminTop, 100);
+      setTimeout(scrollAdminTop, 400);
     }
     if (name === 'estadisticas' && typeof loadStats === 'function') loadStats('dia');
     if (name === 'novedades' && typeof loadNovedades === 'function') {
