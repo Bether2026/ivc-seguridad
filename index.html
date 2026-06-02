@@ -6718,13 +6718,16 @@ function loadHorasReales() {
 
         var horasTrab = null;
         var sinSalida = false;
+        var _entrada = null, _salida = null;
         if (fichsDia.length > 0) {
           var totalDia = 0;
           fichsDia.forEach(function(f) {
             if (!f.entrada) return;
             var ent = new Date(f.entrada);
+            _entrada = f.entrada;
             if (f.salida) {
               var sal = new Date(f.salida);
+              _salida = f.salida;
               var diff = (sal - ent) / 3600000;
               if (diff < 0) diff += 24;
               totalDia += diff;
@@ -6753,7 +6756,7 @@ function loadHorasReales() {
           totalACumplir += hACumplir; // día hábil sin fichar
         }
 
-        diasInfo.push({ d: d, fecha: fechaStr, feriado: feriado, diaSemana: diaSemana, hs: horasTrab, aCumplir: hACumplir, lic: codLic, sinSalida: sinSalida });
+        diasInfo.push({ d: d, fecha: fechaStr, feriado: feriado, diaSemana: diaSemana, hs: horasTrab, aCumplir: hACumplir, lic: codLic, sinSalida: sinSalida, _entrada: _entrada, _salida: _salida });
       }
 
       var diff = totalTrabajadas - totalACumplir;
@@ -6809,9 +6812,8 @@ function buscarHR(val) {
 
 function renderHorasTabla(rows, diasMes) {
   var tabla = document.getElementById('hr-tabla'); if (!tabla) return;
-  if (!rows.length) { tabla.innerHTML = '<div class="empty"><div class="icon">&#x1F4CA;</div><p>Sin datos para el período seleccionado</p></div>'; return; }
+  if (!rows.length) { tabla.innerHTML = '<div class="empty"><div class="icon">&#x1F4CA;</div><p>Sin datos para el per\xEDodo seleccionado</p></div>'; return; }
 
-  // Filtrar
   var filtered = rows;
   if (HR_FILTRO === 'extras')    filtered = rows.filter(function(r) { return r.diff > 0.1; });
   if (HR_FILTRO === 'falta')     filtered = rows.filter(function(r) { return r.diff < -0.5; });
@@ -6820,54 +6822,171 @@ function renderHorasTabla(rows, diasMes) {
 
   if (!filtered.length) { tabla.innerHTML = '<div class="empty"><div class="icon">&#x1F50D;</div><p>Sin resultados</p></div>'; return; }
 
-  // Renderizar tarjetas (más legible en mobile que tabla con 31 columnas)
+  var dias_semana = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
   var html = '';
-  filtered.forEach(function(r) {
+
+  filtered.forEach(function(r, ri) {
     var diffColor = r.diff > 0.1 ? 'var(--green)' : r.diff < -0.5 ? 'var(--red)' : 'var(--text3)';
-    var diffText  = r.diff > 0.1 ? formatDiff(r.diff) : r.diff < -0.5 ? formatDiff(r.diff) : '≈ 0';
+    var diffText  = r.diff > 0.1 ? formatDiff(r.diff) : r.diff < -0.5 ? formatDiff(r.diff) : '\u2248 0';
     var tipoColor = r.tipo === 'PH' ? '#60a5fa' : r.tipo === 'PI' ? '#a78bfa' : r.tipo === 'CH' ? '#34d399' : '#f472b6';
 
-    html += '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px">';
-    // Header
-    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">';
-    html += '<div>';
-    html += '<div style="font-size:14px;font-weight:800;color:var(--text)">' + r.nombre + '</div>';
-    html += '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;background:rgba(255,255,255,.06);color:' + tipoColor + '">' + r.tipo + ' — ' + HORAS_TIPO[r.tipo] + 'h/turno</span>';
-    html += '</div>';
-    html += '<div style="text-align:right">';
-    html += '<div style="font-size:22px;font-weight:900;color:' + diffColor + ';font-family:var(--mono)">' + diffText + '</div>';
-    html += '<div style="font-size:10px;color:var(--text3)">balance mensual</div>';
-    html += '</div></div>';
-    // Stats
-    html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px">';
-    html += '<div style="text-align:center;padding:8px;background:var(--bg3);border-radius:8px"><div style="font-size:16px;font-weight:800;color:var(--text);font-family:var(--mono)">' + formatHoras(r.totalTrabajadas) + '</div><div style="font-size:9px;color:var(--text3)">Trabajadas</div></div>';
-    html += '<div style="text-align:center;padding:8px;background:var(--bg3);border-radius:8px"><div style="font-size:16px;font-weight:800;color:var(--text2);font-family:var(--mono)">' + formatHoras(r.totalACumplir) + '</div><div style="font-size:9px;color:var(--text3)">A cumplir</div></div>';
-    html += '<div style="text-align:center;padding:8px;background:var(--bg3);border-radius:8px"><div style="font-size:16px;font-weight:800;color:var(--text);font-family:var(--mono)">' + r.diasTrabajados + '</div><div style="font-size:9px;color:var(--text3)">Días fichados</div></div>';
-    html += '</div>';
-    // Grilla de días
-    html += '<div style="display:flex;flex-wrap:wrap;gap:3px">';
+    // Calcular extras, faltantes y licencias del mes
+    var horasExtra = 0;
+    var horasFalta = 0;
+    var diasLicencia = 0;
+    var diasSinRegistro = 0;
     r.diasInfo.forEach(function(dia) {
-      var bg, txt, title;
-      if (dia.diaSemana === 0) { bg = 'var(--bg3)'; txt = '—'; title = 'Domingo'; }
-      else if (dia.feriado)    { bg = 'rgba(139,92,246,.15)'; txt = 'F'; title = 'Feriado'; }
-      else if (dia.lic)        { bg = 'rgba(245,158,11,.15)'; txt = dia.lic.substring(0,2); title = 'Licencia: ' + dia.lic; }
-      else if (dia.hs !== null && dia.hs > 0) {
-        var ok = dia.hs >= dia.aCumplir - 0.25;
-        bg   = ok ? 'rgba(16,185,129,.15)' : 'rgba(239,68,68,.1)';
-        txt  = formatHoras(dia.hs).replace('h','').replace('m','').trim();
-        title = formatHoras(dia.hs) + ' de ' + dia.aCumplir + 'h requeridas';
+      if (dia.diaSemana === 0 || dia.feriado) return;
+      if (dia.lic) { diasLicencia++; return; }
+      if (dia.hs !== null && dia.hs > 0) {
+        var diff = dia.hs - dia.aCumplir;
+        if (diff > 0.25)  horasExtra += diff;
+        if (diff < -0.25) horasFalta += Math.abs(diff);
       } else {
-        bg   = 'rgba(239,68,68,.08)';
-        txt  = '✗';
-        title = 'Sin registro';
+        diasSinRegistro++;
       }
-      html += '<div style="width:28px;height:28px;border-radius:4px;background:' + bg + ';display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:var(--text2);font-family:var(--mono)" title="' + dia.d + '/: ' + title + '">' + dia.d + '</div>';
     });
+
+    html += '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:14px;margin-bottom:10px;overflow:hidden">';
+
+    // ── HEADER (toca para expandir) ──
+    html += '<div onclick="toggleHRDetalle(' + ri + ')" style="padding:14px;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px">';
+    html += '<div style="flex:1;min-width:0">';
+    html += '<div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:4px">' + r.nombre + '</div>';
+    html += '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center">';
+    html += '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;background:rgba(255,255,255,.06);color:' + tipoColor + '">' + (r.tipo || '—') + '</span>';
+    html += '<span style="font-size:11px;color:var(--text3)">&#x1F4C5; ' + r.diasTrabajados + ' d\xEDas fichados</span>';
+    if (diasLicencia > 0) html += '<span style="font-size:11px;color:var(--yellow)">&#x1F4C4; ' + diasLicencia + ' lic.</span>';
+    if (diasSinRegistro > 0) html += '<span style="font-size:11px;color:var(--red)">&#x26A0; ' + diasSinRegistro + ' sin registro</span>';
+    html += '</div></div>';
+    // Balance + flecha
+    html += '<div style="display:flex;align-items:center;gap:10px">';
+    html += '<div style="text-align:right">';
+    html += '<div style="font-size:20px;font-weight:900;color:' + diffColor + ';font-family:var(--mono)">' + diffText + '</div>';
+    html += '<div style="font-size:9px;color:var(--text3)">balance</div>';
     html += '</div>';
+    html += '<div id="hr-arrow-' + ri + '" style="color:var(--text3);font-size:18px;transition:transform .2s">&#x25BC;</div>';
+    html += '</div></div>';
+
+    // ── RESUMEN 4 STATS ──
+    html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--border);border-top:1px solid var(--border)">';
+    html += '<div style="background:var(--bg2);padding:10px;text-align:center"><div style="font-size:14px;font-weight:800;color:var(--text);font-family:var(--mono)">' + formatHoras(r.totalTrabajadas) + '</div><div style="font-size:9px;color:var(--text3);margin-top:2px">Trabajadas</div></div>';
+    html += '<div style="background:var(--bg2);padding:10px;text-align:center"><div style="font-size:14px;font-weight:800;color:var(--green);font-family:var(--mono)">+' + formatHoras(horasExtra) + '</div><div style="font-size:9px;color:var(--text3);margin-top:2px">Extras</div></div>';
+    html += '<div style="background:var(--bg2);padding:10px;text-align:center"><div style="font-size:14px;font-weight:800;color:var(--red);font-family:var(--mono)">-' + formatHoras(horasFalta) + '</div><div style="font-size:9px;color:var(--text3);margin-top:2px">Faltantes</div></div>';
+    html += '<div style="background:var(--bg2);padding:10px;text-align:center"><div style="font-size:14px;font-weight:800;color:var(--yellow);font-family:var(--mono)">' + diasLicencia + '</div><div style="font-size:9px;color:var(--text3);margin-top:2px">Licencias</div></div>';
     html += '</div>';
+
+    // ── DETALLE DÍA POR DÍA (colapsable) ──
+    html += '<div id="hr-detalle-' + ri + '" style="display:none">';
+    html += '<div style="border-top:1px solid var(--border)">';
+
+    // Encabezado de columnas
+    html += '<div style="display:grid;grid-template-columns:40px 36px 70px 70px 80px 80px;gap:0;padding:6px 12px;background:var(--bg3);font-size:9px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.06em">';
+    html += '<span>Día</span><span></span><span>Entrada</span><span>Salida</span><span>Trabajó</span><span>Balance</span>';
+    html += '</div>';
+
+    r.diasInfo.forEach(function(dia) {
+      if (dia.diaSemana === 0) return; // ocultar domingos
+
+      var esFeriado = dia.feriado;
+      var diaNom = dias_semana[dia.diaSemana];
+      var bg = '';
+      var estadoTxt = '';
+      var estadoColor = 'var(--text3)';
+      var trabajoTxt = '—';
+      var balanceTxt = '';
+      var balanceColor = 'var(--text3)';
+      var entrada = '—';
+      var salida = '—';
+
+      if (esFeriado) {
+        bg = 'rgba(139,92,246,.06)';
+        estadoTxt = '&#x1F534; Feriado';
+        estadoColor = '#a78bfa';
+        diaNom = '&#x2605;' + diaNom;
+      }
+
+      if (dia.lic) {
+        bg = 'rgba(245,158,11,.05)';
+        estadoTxt = '&#x1F4C4; ' + dia.lic;
+        estadoColor = 'var(--yellow)';
+        trabajoTxt = 'Licencia';
+        balanceTxt = '—';
+      } else if (dia.hs !== null && dia.hs > 0) {
+        // Tiene registro
+        if (dia._entrada) {
+          var eIn = new Date(dia._entrada);
+          entrada = String(eIn.getUTCHours()).padStart(2,'0') + ':' + String(eIn.getUTCMinutes()).padStart(2,'0');
+        }
+        if (dia._salida) {
+          var eSal = new Date(dia._salida);
+          salida = String(eSal.getUTCHours()).padStart(2,'0') + ':' + String(eSal.getUTCMinutes()).padStart(2,'0');
+        } else {
+          salida = '\u26A0 sin';
+        }
+        trabajoTxt = formatHoras(dia.hs);
+        var diff = dia.hs - dia.aCumplir;
+        if (Math.abs(diff) < 0.08) {
+          balanceTxt = '\u2248 0';
+          balanceColor = 'var(--text3)';
+        } else if (diff > 0) {
+          balanceTxt = '+' + formatHoras(diff);
+          balanceColor = 'var(--green)';
+        } else {
+          balanceTxt = '-' + formatHoras(Math.abs(diff));
+          balanceColor = 'var(--red)';
+        }
+        if (esFeriado) {
+          estadoTxt = '&#x1F34E; Inh\xE1bil';
+          estadoColor = '#a78bfa';
+        } else {
+          estadoTxt = '';
+        }
+      } else if (dia.diaSemana !== 6) {
+        // Sin registro (día hábil)
+        if (!esFeriado) {
+          bg = 'rgba(239,68,68,.04)';
+          estadoTxt = '&#x2717; Sin registro';
+          estadoColor = 'var(--red)';
+          balanceTxt = '-' + formatHoras(dia.aCumplir);
+          balanceColor = 'var(--red)';
+        }
+      }
+
+      // Sábados con fondo suave
+      if (dia.diaSemana === 6 && !esFeriado) bg = 'rgba(255,255,255,.02)';
+
+      html += '<div style="display:grid;grid-template-columns:40px 36px 70px 70px 80px;gap:0;padding:7px 12px;border-top:1px solid var(--border);background:' + bg + ';align-items:center">';
+      html += '<span style="font-size:13px;font-weight:800;color:var(--text2);font-family:var(--mono)">' + dia.d + '</span>';
+      html += '<span style="font-size:10px;color:var(--text3)">' + diaNom + '</span>';
+      html += '<span style="font-size:12px;font-family:var(--mono);color:var(--text2)">' + entrada + '</span>';
+      html += '<span style="font-size:12px;font-family:var(--mono);color:var(--text2)">' + salida + '</span>';
+      html += '<span style="font-size:12px;font-weight:700;color:var(--text)">' + trabajoTxt + '</span>';
+      html += '</div>';
+      // Segunda fila: estado + balance
+      if (estadoTxt || balanceTxt) {
+        html += '<div style="display:grid;grid-template-columns:76px 1fr auto;gap:6px;padding:2px 12px 6px;border-bottom:1px solid rgba(255,255,255,.03);background:' + bg + '">';
+        html += '<span></span>';
+        html += '<span style="font-size:11px;color:' + estadoColor + '">' + estadoTxt + '</span>';
+        html += '<span style="font-size:12px;font-weight:800;color:' + balanceColor + ';font-family:var(--mono)">' + balanceTxt + '</span>';
+        html += '</div>';
+      }
+    });
+
+    html += '</div></div>';
+    html += '</div>'; // /card agente
   });
 
   tabla.innerHTML = html;
+}
+
+function toggleHRDetalle(idx) {
+  var det   = document.getElementById('hr-detalle-' + idx);
+  var arrow = document.getElementById('hr-arrow-'   + idx);
+  if (!det) return;
+  var open = det.style.display === 'block';
+  det.style.display = open ? 'none' : 'block';
+  if (arrow) arrow.style.transform = open ? '' : 'rotate(180deg)';
 }
 
 function exportarHorasReales() {
