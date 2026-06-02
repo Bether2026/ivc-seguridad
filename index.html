@@ -8047,7 +8047,18 @@ function chofSubTab(tab, btn) {
     var el = document.getElementById('chof-sub-' + t);
     if (el) el.style.display = t === tab ? 'block' : 'none';
   });
-  if (tab === 'combustible') loadCombustible();else if (tab === 'incidencias') loadIncidencias();else if (tab === 'taller') loadTaller();else if (tab === 'gps') loadGPS();
+  if (tab === 'combustible') loadCombustible();
+  else if (tab === 'incidencias') loadIncidencias();
+  else if (tab === 'taller') loadTaller();
+  else if (tab === 'gps') {
+    loadGPS();
+    // Auto-refresh cada 30 segundos mientras se ve el mapa
+    if (GPS_REFRESH_INTERVAL) clearInterval(GPS_REFRESH_INTERVAL);
+    GPS_REFRESH_INTERVAL = setInterval(function() {
+      if (CUR_CHOF_SUBTAB === 'gps') loadGPS();
+      else { clearInterval(GPS_REFRESH_INTERVAL); GPS_REFRESH_INTERVAL = null; }
+    }, 30000);
+  }
 }
 function fabClick() {
   if (CUR_VIEW === 'llaves') openOv('ov-nueva-llave');else if (CUR_VIEW === 'rrhh') abrirNuevoAgente();else if (CUR_VIEW === 'novedades') abrirNuevaNovedad();else if (CUR_VIEW === 'objetivos') abrirIniciarRecorrido();else if (CUR_VIEW === 'fichaje') {
@@ -9378,6 +9389,8 @@ function _finalizarTaller() {
 }
 var GPS_INTERVAL = null;
 var GPS_TRACKING = false;
+var GPS_REFRESH_INTERVAL = null;
+
 function loadGPS() {
   return _loadGPS.apply(this, arguments);
 }
@@ -9524,52 +9537,49 @@ function _startGPSTransmission() {
           return _context67.a(2);
         case 1:
           GPS_TRACKING = true;
-          transmit = /*#__PURE__*/function () {
-            var _ref16 = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee66() {
-              var geo, direccion;
-              return _regenerator().w(function (_context66) {
-                while (1) switch (_context66.n) {
-                  case 0:
-                    _context66.n = 1;
-                    return getGeoSilent();
-                  case 1:
-                    geo = _context66.v;
-                    if (geo) {
-                      _context66.n = 2;
-                      break;
+          transmit = function() {
+            getGeoSilent().then(function(geo) {
+              if (!geo) { console.warn('[GPS] Sin coordenadas'); return; }
+              getAddress(geo.lat, geo.lng).then(function(direccion) {
+                // Primero intentar DELETE del registro anterior del mismo móvil
+                // para evitar problemas con onConflict sin constraint
+                db.from('gps_moviles').delete().eq('movil', movil).then(function() {
+                  db.from('gps_moviles').insert({
+                    chofer: chofer,
+                    movil: movil,
+                    lat: geo.lat,
+                    lng: geo.lng,
+                    direccion: direccion,
+                    activo: true,
+                    updated_at: new Date().toISOString()
+                  }).then(function(r) {
+                    if (r.error) {
+                      // Fallback: intentar update si insert falla
+                      db.from('gps_moviles').update({
+                        lat: geo.lat, lng: geo.lng,
+                        direccion: direccion,
+                        activo: true,
+                        updated_at: new Date().toISOString()
+                      }).eq('movil', movil).then(function() {});
+                    } else {
+                      console.log('[GPS] Transmitido OK:', geo.lat, geo.lng, direccion);
                     }
-                    return _context66.a(2);
-                  case 2:
-                    _context66.n = 3;
-                    return getAddress(geo.lat, geo.lng);
-                  case 3:
-                    direccion = _context66.v;
-                    _context66.n = 4;
-                    return db.from('gps_moviles').upsert({
-                      chofer: chofer,
-                      movil: movil,
-                      lat: geo.lat,
-                      lng: geo.lng,
-                      direccion: direccion,
-                      activo: true,
-                      updated_at: new Date().toISOString()
-                    }, {
-                      onConflict: 'movil'
-                    });
-                  case 4:
-                    return _context66.a(2);
-                }
-              }, _callee66);
-            }));
-            return function transmit() {
-              return _ref16.apply(this, arguments);
-            };
-          }();
+                  });
+                });
+                // También guardar en gps_track para historial de huellas
+                db.from('gps_track').insert({
+                  chofer: chofer, movil: movil,
+                  lat: geo.lat, lng: geo.lng,
+                  created_at: new Date().toISOString()
+                }).then(function() {});
+              });
+            }).catch(function(e) { console.warn('[GPS] Error geoloc:', e); });
+          };
           _context67.n = 2;
           return transmit();
         case 2:
-          GPS_INTERVAL = setInterval(transmit, 60000); // every 60 seconds
-          toast('[GPS] GPS activado — transmitiendo ubicación', 'info');
+          GPS_INTERVAL = setInterval(transmit, 30000); // cada 30 segundos
+          toast('GPS activado \u2014 transmitiendo ubicaci\xF3n cada 30s');
         case 3:
           return _context67.a(2);
       }
