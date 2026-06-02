@@ -9043,7 +9043,33 @@ function verMapa(geo, agente, tipo) {
   var dir = geo.direccion || 'Ubicación registrada';
   var acc = geo.acc ? "\xB1".concat(geo.acc, "m") : '';
   $('mapa-info').innerHTML = "\n<div style=\"background:var(--bg3);border-radius:var(--radius-xs);padding:10px 13px;margin-bottom:10px\">\n<div style=\"font-size:13px;font-weight:700;margin-bottom:4px\">? ".concat(agente, " \u2014 ").concat(tipo, "</div>\n<div style=\"font-size:12px;color:var(--text2)\">[Ubic] ").concat(dir, "</div>\n").concat(acc ? "<div style=\"font-size:10px;color:var(--text3);margin-top:3px\">Precisi\xF3n: ".concat(acc, "</div>") : '', "\n<div style=\"font-size:10px;color:var(--text3);margin-top:2px\">Coordenadas: ").concat(lat.toFixed(5), ", ").concat(lng.toFixed(5), "</div>\n</div>");
-  $('mapa-frame').innerHTML = "\n<iframe\nsrc=\"https://www.openstreetmap.org/export/embed.html?bbox=".concat(lng - 0.003, ",").concat(lat - 0.003, ",").concat(lng + 0.003, ",").concat(lat + 0.003, "&layer=mapnik&marker=").concat(lat, ",").concat(lng, "\"\nstyle=\"width:100%;height:260px;border:none\"\nloading=\"lazy\"\ntitle=\"Ubicaci\xF3n del agente\">\n</iframe>\n<div style=\"text-align:right;padding:6px 10px;background:var(--bg3)\">\n<a href=\"https://www.openstreetmap.org/?mlat=").concat(lat, "&mlon=").concat(lng, "&zoom=17\" target=\"_blank\" style=\"font-size:11px;color:var(--accent3);text-decoration:none\">Ver en OpenStreetMap \u2192</a>\n</div>");
+  $('mapa-frame').innerHTML = '<div id="mapa-leaflet-container" style="width:100%;height:260px"></div>';
+  // Usar Leaflet si está disponible, sino cargar
+  function _mostrarMapaAgente() {
+    if (!window.L) { setTimeout(_mostrarMapaAgente, 500); return; }
+    if (window._mapaAgente) { try { window._mapaAgente.remove(); } catch(e) {} }
+    var m = L.map('mapa-leaflet-container', { zoomControl: true, scrollWheelZoom: false }).setView([lat, lng], 16);
+    window._mapaAgente = m;
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(m);
+    var icono = L.divIcon({
+      className: '',
+      html: '<div style="width:32px;height:32px;background:var(--accent2);border-radius:50%;border:3px solid white;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.4);font-size:14px">&#x1F464;</div>',
+      iconSize: [32,32], iconAnchor: [16,16], popupAnchor: [0,-18]
+    });
+    L.marker([lat, lng], { icon: icono }).addTo(m)
+      .bindPopup('<strong>' + agente + '</strong><br>' + dir + (acc ? '<br><small>Precisión: ' + acc + '</small>' : '')).openPopup();
+    setTimeout(function() { if (window._mapaAgente) window._mapaAgente.invalidateSize(); }, 250);
+  }
+  if (window.L) {
+    _mostrarMapaAgente();
+  } else {
+    if (!document.getElementById('leaflet-css')) {
+      var _lc = document.createElement('link'); _lc.id='leaflet-css'; _lc.rel='stylesheet'; _lc.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'; document.head.appendChild(_lc);
+    }
+    if (!document.getElementById('leaflet-js')) {
+      var _ls = document.createElement('script'); _ls.id='leaflet-js'; _ls.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'; _ls.onload=_mostrarMapaAgente; document.head.appendChild(_ls);
+    } else { _mostrarMapaAgente(); }
+  }
   openOv('ov-mapa');
 }
 var COMB_FOTO = null;
@@ -9357,55 +9383,130 @@ function loadGPS() {
 }
 function _loadGPS() {
   _loadGPS = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee65() {
-    var _yield$db$from$select6, positions, list, first, markers, avgLat, avgLng;
+    var _yield$db$from$select6, positions, list;
     return _regenerator().w(function (_context65) {
       while (1) switch (_context65.n) {
         case 0:
           _context65.n = 1;
-          return db.from('gps_moviles').select('*').eq('activo', true).order('updated_at', {
-            ascending: false
-          });
+          return db.from('gps_moviles').select('*').eq('activo', true).order('updated_at', { ascending: false });
         case 1:
           _yield$db$from$select6 = _context65.v;
           positions = _yield$db$from$select6.data;
           list = positions || [];
-          document.getElementById('gps-count').textContent = "".concat(list.length, " activo").concat(list.length !== 1 ? 's' : '');
+          document.getElementById('gps-count').textContent = list.length + ' activo' + (list.length !== 1 ? 's' : '');
           if (list.length) {
             _context65.n = 2;
             break;
           }
-          document.getElementById('gps-moviles-list').innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0">Sin móviles transmitiendo GPS ahora</div>';
-          document.getElementById('gps-map-frame').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text3);font-size:13px">Sin móviles activos con GPS</div>';
+          document.getElementById('gps-moviles-list').innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0">Sin m\xF3viles transmitiendo GPS ahora</div>';
+          document.getElementById('gps-map-frame').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:320px;color:var(--text3);font-size:13px">Sin m\xF3viles activos con GPS</div>';
           return _context65.a(2);
         case 2:
-          document.getElementById('gps-moviles-list').innerHTML = list.map(function (p) {
-            return "\n<div class=\"agent-row\">\n<div class=\"agent-av\" style=\"background:var(--greeng);color:var(--green)\">[Movil]</div>\n<div class=\"agent-info\">\n<div class=\"agent-name\">".concat(p.movil || p.chofer, "</div>\n<div class=\"agent-sub\">[Ubic] ").concat(p.direccion || 'Ubicando...', "</div>\n</div>\n<div style=\"text-align:right\">\n<span class=\"badge b-green\"><span class=\"pulse\"></span> Activo</span>\n<div style=\"font-size:10px;color:var(--text3);margin-top:3px\">").concat(formatTs(p.updated_at), "</div>\n</div>\n</div>");
+          document.getElementById('gps-moviles-list').innerHTML = list.map(function(p) {
+            return '<div class="agent-row"><div class="agent-av" style="background:var(--greeng);color:var(--green)">M</div><div class="agent-info"><div class="agent-name">' + (p.movil || p.chofer) + '</div><div class="agent-sub">' + (p.direccion || 'Ubicando...') + '</div></div><div style="text-align:right"><span class="badge b-green"><span class="pulse"></span> Activo</span><div style="font-size:10px;color:var(--text3);margin-top:3px">' + formatTs(p.updated_at) + '</div></div></div>';
           }).join('');
-          first = list[0];
-          markers = list.map(function (p) {
-            return "".concat(p.lat, ",").concat(p.lng);
-          }).join('|');
-          if (list.length === 1) {
-            document.getElementById('gps-map-frame').innerHTML = "\n<iframe src=\"https://www.openstreetmap.org/export/embed.html?bbox=".concat(first.lng - 0.005, ",").concat(first.lat - 0.005, ",").concat(first.lng + 0.005, ",").concat(first.lat + 0.005, "&layer=mapnik&marker=").concat(first.lat, ",").concat(first.lng, "\"\nstyle=\"width:100%;height:320px;border:none\" loading=\"lazy\"></iframe>\n<div style=\"padding:8px 12px;background:var(--bg3);font-size:11px;color:var(--text3)\">\n").concat(list.map(function (p) {
-              return "[Movil] <strong>".concat(p.movil || p.chofer, "</strong> \u2014 ").concat(p.direccion || '');
-            }).join(' &nbsp;·&nbsp; '), "\n</div>");
-          } else {
-            avgLat = list.reduce(function (s, p) {
-              return s + p.lat;
-            }, 0) / list.length;
-            avgLng = list.reduce(function (s, p) {
-              return s + p.lng;
-            }, 0) / list.length;
-            document.getElementById('gps-map-frame').innerHTML = "\n<iframe src=\"https://www.openstreetmap.org/export/embed.html?bbox=".concat(avgLng - 0.02, ",").concat(avgLat - 0.02, ",").concat(avgLng + 0.02, ",").concat(avgLat + 0.02, "&layer=mapnik\"\nstyle=\"width:100%;height:320px;border:none\" loading=\"lazy\"></iframe>\n<div style=\"padding:8px 12px;background:var(--bg3);font-size:11px;color:var(--text3)\">\n").concat(list.map(function (p) {
-              return "[Movil] <strong>".concat(p.movil || p.chofer, "</strong> \u2014 ").concat(p.direccion || '');
-            }).join('<br>'), "\n</div>");
-          }
-        case 3:
+          renderMapaLeaflet(list);
           return _context65.a(2);
       }
     }, _callee65);
   }));
   return _loadGPS.apply(this, arguments);
+}
+
+function renderMapaLeaflet(list) {
+  var frame = document.getElementById('gps-map-frame');
+  if (!frame) return;
+
+  // Si Leaflet ya está cargado, renderizar directamente
+  if (window.L) {
+    _dibujarMapa(list);
+    return;
+  }
+
+  // Cargar Leaflet CSS + JS dinámicamente
+  if (!document.getElementById('leaflet-css')) {
+    var css = document.createElement('link');
+    css.id = 'leaflet-css';
+    css.rel = 'stylesheet';
+    css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    document.head.appendChild(css);
+  }
+  if (!document.getElementById('leaflet-js')) {
+    var script = document.createElement('script');
+    script.id = 'leaflet-js';
+    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    script.onload = function() { _dibujarMapa(list); };
+    script.onerror = function() { _fallbackIframe(list); };
+    document.head.appendChild(script);
+  } else {
+    // Script ya insertado pero cargando — esperar
+    setTimeout(function() {
+      if (window.L) _dibujarMapa(list);
+      else _fallbackIframe(list);
+    }, 1500);
+  }
+}
+
+function _dibujarMapa(list) {
+  var frame = document.getElementById('gps-map-frame');
+  if (!frame || !window.L) return;
+
+  // Limpiar mapa anterior si existe
+  if (window._leafletMap) {
+    try { window._leafletMap.remove(); } catch(e) {}
+    window._leafletMap = null;
+  }
+
+  frame.innerHTML = '<div id="leaflet-container" style="width:100%;height:320px;border-radius:10px;overflow:hidden"></div>';
+
+  var avgLat = list.reduce(function(s,p) { return s + (p.lat||0); }, 0) / list.length;
+  var avgLng = list.reduce(function(s,p) { return s + (p.lng||0); }, 0) / list.length;
+  var zoom   = list.length === 1 ? 16 : 13;
+
+  var map = L.map('leaflet-container', { zoomControl: true, scrollWheelZoom: false }).setView([avgLat, avgLng], zoom);
+  window._leafletMap = map;
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap',
+    maxZoom: 19
+  }).addTo(map);
+
+  // Icono personalizado
+  var icon = L.divIcon({
+    className: '',
+    html: '<div style="width:36px;height:36px;background:#10b981;border-radius:50%;border:3px solid white;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.4);font-size:16px">&#x1F69A;</div>',
+    iconSize: [36, 36],
+    iconAnchor: [18, 18],
+    popupAnchor: [0, -20]
+  });
+
+  list.forEach(function(p) {
+    if (!p.lat || !p.lng) return;
+    L.marker([p.lat, p.lng], { icon: icon })
+      .addTo(map)
+      .bindPopup('<strong>' + (p.movil || p.chofer) + '</strong><br>' + (p.direccion || '') + '<br><small>' + formatTs(p.updated_at) + '</small>');
+  });
+
+  // Si hay huellas GPS, dibujar polyline
+  if (list.length === 1 && list[0].id) {
+    db.from('gps_track').select('lat,lng,created_at').eq('movil_id', list[0].id).order('created_at', { ascending: true }).limit(200).then(function(r) {
+      if (r.data && r.data.length > 1) {
+        var puntos = r.data.map(function(t) { return [t.lat, t.lng]; });
+        L.polyline(puntos, { color: '#10b981', weight: 3, opacity: 0.7 }).addTo(map);
+      }
+    });
+  }
+
+  // Fix: Leaflet necesita saber el tamaño real del contenedor
+  setTimeout(function() { if (window._leafletMap) window._leafletMap.invalidateSize(); }, 300);
+}
+
+function _fallbackIframe(list) {
+  // Fallback con OpenStreetMap embed si Leaflet falla
+  var frame = document.getElementById('gps-map-frame');
+  if (!frame || !list.length) return;
+  var p = list[0];
+  frame.innerHTML = '<iframe src="https://www.openstreetmap.org/export/embed.html?bbox=' + (p.lng-0.005) + ',' + (p.lat-0.005) + ',' + (p.lng+0.005) + ',' + (p.lat+0.005) + '&layer=mapnik&marker=' + p.lat + ',' + p.lng + '" style="width:100%;height:320px;border:none;border-radius:10px" loading="lazy"></iframe>';
 }
 function startGPSTransmission(_x24, _x25) {
   return _startGPSTransmission.apply(this, arguments);
