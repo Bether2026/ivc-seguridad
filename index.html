@@ -2147,6 +2147,15 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
         <p>Gestión y limpieza de datos del sistema</p>
       </div>
 
+      <!-- TABS DEL PANEL ADMIN -->
+      <div style="display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px">
+        <button id="adm-tab-general" onclick="selAdminTab('general')" style="flex-shrink:0;padding:8px 18px;border-radius:8px;border:1px solid rgba(248,113,113,.35);background:rgba(248,113,113,.15);color:#fca5a5;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">⚙️ General</button>
+        <button id="adm-tab-horas" onclick="selAdminTab('horas')" style="flex-shrink:0;padding:8px 18px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">📊 Horas Reales</button>
+        <button id="adm-tab-personal" onclick="selAdminTab('personal')" style="flex-shrink:0;padding:8px 18px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">👤 Personal</button>
+      </div>
+
+      <!-- TAB GENERAL -->
+      <div id="adm-panel-general">
       <!-- HISTORIAL DE SESIONES -->
       <div class="card" style="border-left:3px solid var(--accent3);margin-bottom:14px">
         <div class="card-head">
@@ -2342,6 +2351,81 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
     <button class="btn-login" id="btn-save-edit" onclick="saveEdit()">💾 Guardar cambios</button>
   </div>
 </div>
+    <input type="hidden" id="edit-tabla">
+    <input type="hidden" id="edit-id">
+    <div id="edit-fields"></div>
+    <button class="btn-login" id="btn-save-edit" onclick="saveEdit()">💾 Guardar cambios</button>
+  </div>
+</div>
+
+      </div><!-- /adm-panel-general -->
+
+      <!-- TAB HORAS REALES -->
+      <div id="adm-panel-horas" style="display:none">
+        <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:16px;margin-bottom:14px">
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px">
+            <div>
+              <label style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:4px">Mes</label>
+              <select id="hr-mes" class="form-select" style="padding:8px 12px;width:140px" onchange="loadHorasReales()">
+                <option value="1">Enero</option><option value="2">Febrero</option><option value="3">Marzo</option>
+                <option value="4">Abril</option><option value="5">Mayo</option><option value="6">Junio</option>
+                <option value="7">Julio</option><option value="8">Agosto</option><option value="9">Septiembre</option>
+                <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+              </select>
+            </div>
+            <div>
+              <label style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:4px">A&#xF1;o</label>
+              <select id="hr-anio" class="form-select" style="padding:8px 12px;width:100px" onchange="loadHorasReales()">
+                <option value="2025">2025</option><option value="2026" selected>2026</option><option value="2027">2027</option>
+              </select>
+            </div>
+            <div style="margin-top:18px;display:flex;gap:8px">
+              <button onclick="loadHorasReales()" style="padding:8px 16px;border-radius:8px;border:1px solid rgba(59,130,246,.35);background:rgba(59,130,246,.1);color:#93c5fd;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">&#x1F504; Actualizar</button>
+              <button onclick="exportarHorasReales()" style="padding:8px 16px;border-radius:8px;border:1px solid rgba(16,185,129,.35);background:rgba(16,185,129,.1);color:#6ee7b7;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">&#x1F4C5; Exportar CSV</button>
+            </div>
+          </div>
+          <!-- Resumen rápido -->
+          <div id="hr-resumen" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px"></div>
+          <!-- Filtros rápidos -->
+          <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+            <button onclick="filtrarHR('todos')" id="hr-f-todos" style="padding:5px 12px;border-radius:6px;border:1px solid rgba(59,130,246,.35);background:rgba(59,130,246,.15);color:#93c5fd;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">Todos</button>
+            <button onclick="filtrarHR('extras')" id="hr-f-extras" style="padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">Con extras</button>
+            <button onclick="filtrarHR('falta')" id="hr-f-falta" style="padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">Horas faltantes</button>
+            <button onclick="filtrarHR('sinfichar')" id="hr-f-sinfichar" style="padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">Sin fichar</button>
+          </div>
+          <!-- Input búsqueda -->
+          <input oninput="buscarHR(this.value)" placeholder="&#x1F50D; Buscar agente..." style="width:100%;padding:9px 14px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--font);font-size:13px;outline:none;margin-bottom:10px"/>
+        </div>
+        <!-- Tabla de horas -->
+        <div id="hr-tabla" style="overflow-x:auto;-webkit-overflow-scrolling:touch">
+          <div class="empty"><div class="icon">&#x1F4CA;</div><p>Selecci&#xF3;n el mes y hacé clic en Actualizar</p></div>
+        </div>
+      </div>
+
+      <!-- TAB PERSONAL (lista completa de agentes) -->
+      <div id="adm-panel-personal" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+          <input id="adm-ag-search" oninput="filtrarAgentesAdmin(this.value)" placeholder="&#x1F50D; Buscar agente, legajo, DNI..." style="flex:1;min-width:180px;padding:9px 14px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--font);font-size:13px;outline:none"/>
+          <button onclick="nuevoAgenteAdmin()" style="flex-shrink:0;display:flex;align-items:center;gap:6px;padding:9px 16px;border-radius:10px;border:1px solid rgba(59,130,246,.35);background:rgba(59,130,246,.1);color:#93c5fd;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">
+            + Nuevo agente
+          </button>
+        </div>
+        <!-- Filtros rápidos -->
+        <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap">
+          <button onclick="filtrarAdmPuesto('')" id="adm-fp-todos" style="padding:5px 12px;border-radius:6px;border:1px solid rgba(59,130,246,.35);background:rgba(59,130,246,.15);color:#93c5fd;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">Todos</button>
+          <button onclick="filtrarAdmPuesto('Papa Francisco')" id="adm-fp-pf" style="padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:11px;cursor:pointer">Papa F.</button>
+          <button onclick="filtrarAdmPuesto('Rodrigo Bueno')" id="adm-fp-rb" style="padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:11px;cursor:pointer">Rodrigo B.</button>
+          <button onclick="filtrarAdmPuesto('Fraga')" id="adm-fp-fr" style="padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:11px;cursor:pointer">Fraga</button>
+          <button onclick="filtrarAdmPuesto('Responsable de turno')" id="adm-fp-rt" style="padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:11px;cursor:pointer">RT</button>
+        </div>
+        <!-- Stats rápidos -->
+        <div id="adm-ag-stats" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px"></div>
+        <!-- Lista -->
+        <div id="adm-ag-lista">
+          <div class="empty"><div class="icon">&#x1F465;</div><p>Carg&#xE1; el panel tocando la pesta&#xF1;a</p></div>
+        </div>
+      </div>
+
 <div class="overlay" id="ov-mapa">
   <div class="modal">
     <div class="modal-head"><span class="modal-title">📍 Ubicación del fichaje</span><button class="btn-close" onclick="closeOv('ov-mapa')">×</button></div>
@@ -2785,61 +2869,73 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
     <input type="hidden" id="agente-edit-id">
 
     <div class="form-group">
-      <label class="form-label">Nombre completo</label>
-      <input class="form-input" id="ag-nombre" placeholder="Apellido Nombre"/>
+      <label class="form-label">Nombre completo <span style="color:var(--red)">*</span></label>
+      <input class="form-input" id="ag-nombre" placeholder="APELLIDO Nombre (mayúsculas)"/>
     </div>
-    <div class="form-group">
-      <label class="form-label">Legajo N°</label>
-      <input class="form-input" id="ag-legajo" placeholder="Numero de legajo"/>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="form-group"><label class="form-label">DNI</label><input class="form-input" id="ag-dni" placeholder="Ej: 30123456" type="number"/></div>
+      <div class="form-group"><label class="form-label">Legajo N°</label><input class="form-input" id="ag-legajo" placeholder="Número de legajo"/></div>
     </div>
-    <div class="form-row">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <div class="form-group">
-        <label class="form-label">Puesto</label>
+        <label class="form-label">Puesto / Barrio</label>
         <select class="form-select" id="ag-puesto">
+          <option value="">&#x2014; Seleccioná &#x2014;</option>
           <option>Papa Francisco</option><option>Rodrigo Bueno</option><option>Fraga</option>
           <option>Base Castañares</option><option>Obrador Savio</option><option>CAV</option>
           <option>Necochea</option><option>Complejo Orma</option><option>Padre Mugica</option>
+          <option>Administración</option><option>Gerencia</option>
+          <option>Responsable de turno</option><option>Jefe de departamento</option>
+          <option>Emergencias</option><option>Choferes</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Cargo</label><input class="form-input" id="ag-cargo" placeholder="Ej: Agente, Supervisor"/></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="form-group">
+        <label class="form-label">Turno</label>
+        <select class="form-select" id="ag-turno">
+          <option value="">&#x2014; Turno &#x2014;</option>
+          <option value="Mañana">Mañana (06-14)</option>
+          <option value="Tarde">Tarde (14-22)</option>
+          <option value="Noche">Noche (22-06)</option>
+          <option value="Rotativo">Rotativo</option>
+          <option value="Administrativo">Administrativo</option>
         </select>
       </div>
       <div class="form-group">
-        <label class="form-label">Cargo</label>
-        <input class="form-input" id="ag-cargo" placeholder="Ej: Agente, Supervisor"/>
+        <label class="form-label">Tipo (para horas)</label>
+        <select class="form-select" id="ag-tipo">
+          <option value="">&#x2014; Tipo &#x2014;</option>
+          <option value="PH">PH &#x2014; Planta Hábil (6h)</option>
+          <option value="PI">PI &#x2014; Planta Inhábil (12h)</option>
+          <option value="CH">CH &#x2014; Contratado Hábil (8h)</option>
+          <option value="CI">CI &#x2014; Contratado Inhábil (12h)</option>
+        </select>
       </div>
     </div>
-    <div class="form-row">
-      <div class="form-group">
-        <label class="form-label">Fecha nacimiento</label>
-        <input class="form-input" type="date" id="ag-nacimiento"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Fecha ingreso</label>
-        <input class="form-input" type="date" id="ag-ingreso"/>
-      </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="form-group"><label class="form-label">Fecha nacimiento</label><input class="form-input" type="date" id="ag-nacimiento"/></div>
+      <div class="form-group"><label class="form-label">Fecha ingreso</label><input class="form-input" type="date" id="ag-ingreso"/></div>
     </div>
-    <div class="form-group">
-      <label class="form-label">Telefono / Contacto</label>
-      <input class="form-input" id="ag-telefono" placeholder="Ej: 1123456789"/>
-    </div>
+    <div class="form-group"><label class="form-label">Teléfono / Contacto</label><input class="form-input" id="ag-telefono" placeholder="Ej: 1123456789"/></div>
 
     <div style="background:var(--bg3);border-radius:8px;padding:12px;margin-bottom:12px">
-      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:10px">Dias disponibles de licencia</div>
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:10px">Días disponibles de licencia</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
         <div class="form-group" style="margin:0"><label class="form-label" style="font-size:10px">Lic. ordinaria</label><input class="form-input" type="number" id="ag-lic-ord" value="14" min="0"/></div>
         <div class="form-group" style="margin:0"><label class="form-label" style="font-size:10px">Enfermedad</label><input class="form-input" type="number" id="ag-lic-enf" value="30" min="0"/></div>
-        <div class="form-group" style="margin:0"><label class="form-label" style="font-size:10px">Dias particulares</label><input class="form-input" type="number" id="ag-lic-part" value="3" min="0"/></div>
+        <div class="form-group" style="margin:0"><label class="form-label" style="font-size:10px">Días particulares</label><input class="form-input" type="number" id="ag-lic-part" value="3" min="0"/></div>
         <div class="form-group" style="margin:0"><label class="form-label" style="font-size:10px">Franco autorizado</label><input class="form-input" type="number" id="ag-lic-franco" value="0" min="0"/></div>
         <div class="form-group" style="margin:0"><label class="form-label" style="font-size:10px">Familiar enfermo</label><input class="form-input" type="number" id="ag-lic-fam" value="5" min="0"/></div>
         <div class="form-group" style="margin:0"><label class="form-label" style="font-size:10px">Duelo</label><input class="form-input" type="number" id="ag-lic-duelo" value="3" min="0"/></div>
       </div>
     </div>
 
-    <div class="form-group">
-      <label class="form-label">Observaciones</label>
-      <textarea class="form-textarea" id="ag-obs" style="min-height:60px" placeholder="Notas sobre el agente..."></textarea>
-    </div>
-
+    <div class="form-group"><label class="form-label">Observaciones</label><textarea class="form-textarea" id="ag-obs" style="min-height:60px" placeholder="Notas sobre el agente..."></textarea></div>
     <button class="btn-login" id="btn-save-agente" onclick="saveAgente()">&#128101; Guardar Agente</button>
   </div>
+</div>
 </div>
 
 <!-- MODAL AJUSTE DE LICENCIA -->
@@ -3092,7 +3188,7 @@ function renderAgenteCard(a) {
 function abrirNuevoAgente() {
   document.getElementById('agente-modal-title').textContent = 'Nuevo Agente';
   document.getElementById('agente-edit-id').value = '';
-  ['ag-nombre', 'ag-legajo', 'ag-cargo', 'ag-telefono', 'ag-obs'].forEach(function (id) {
+  ['ag-nombre', 'ag-dni', 'ag-legajo', 'ag-cargo', 'ag-turno', 'ag-telefono', 'ag-obs'].forEach(function (id) {
     var e = document.getElementById(id);
     if (e) e.value = '';
   });
@@ -3123,9 +3219,12 @@ function _editarAgente() {
           document.getElementById('agente-modal-title').textContent = 'Editar Agente';
           document.getElementById('agente-edit-id').value = id;
           document.getElementById('ag-nombre').value = agente.nombre || '';
+          document.getElementById('ag-dni').value = agente.dni || '';
           document.getElementById('ag-legajo').value = agente.legajo || '';
           document.getElementById('ag-puesto').value = agente.puesto || '';
           document.getElementById('ag-cargo').value = agente.cargo || '';
+          document.getElementById('ag-turno').value = agente.turno || '';
+          document.getElementById('ag-tipo').value = agente.tipo || '';
           document.getElementById('ag-telefono').value = agente.telefono || '';
           document.getElementById('ag-obs').value = agente.observaciones || '';
           if (agente.fecha_nacimiento) document.getElementById('ag-nacimiento').value = agente.fecha_nacimiento;
@@ -3164,9 +3263,12 @@ function _saveAgente() {
           setLoading('btn-save-agente', true);
           payload = {
             nombre: nombre,
+            dni: document.getElementById('ag-dni').value || null,
             legajo: document.getElementById('ag-legajo').value || null,
             puesto: document.getElementById('ag-puesto').value,
             cargo: document.getElementById('ag-cargo').value || null,
+            turno: document.getElementById('ag-turno').value || null,
+            tipo: document.getElementById('ag-tipo').value || null,
             telefono: document.getElementById('ag-telefono').value || null,
             observaciones: document.getElementById('ag-obs').value || null,
             fecha_nacimiento: document.getElementById('ag-nacimiento').value || null,
@@ -3206,6 +3308,13 @@ function _saveAgente() {
         case 6:
           closeOv('ov-agente');
           toast(editId ? 'Agente actualizado' : 'Agente registrado');
+          // Sincronizar tipo con personal_tipos para Horas Reales
+          if (payload.tipo && payload.nombre) {
+            db.from('personal_tipos').upsert({ nombre: payload.nombre.trim(), tipo: payload.tipo }, { onConflict: 'nombre' }).then(function() {});
+          }
+          // Si estamos en el tab personal del admin, recargar
+          var panelP = document.getElementById('adm-panel-personal');
+          if (panelP && panelP.style.display !== 'none') loadPersonalHR();
           loadRRHH();
         case 7:
           return _context1.a(2);
@@ -6326,6 +6435,503 @@ function eliminarPunto(id) {
       });
     });
   }, 'Eliminar', 'var(--red)');
+}
+
+// ══════════════════════════════════════════════════════════
+//  MÓDULO HORAS REALES — Solo Administrador de sistema
+// ══════════════════════════════════════════════════════════
+
+// Horas a cumplir por tipo (en horas decimales)
+var HORAS_TIPO = { PH: 6, PI: 12, CH: 8, CI: 12 };
+
+// Feriados 2026 en formato YYYY-MM-DD
+var FERIADOS_2026 = [
+  '2026-01-01','2026-02-16','2026-02-17','2026-03-23','2026-03-24',
+  '2026-04-02','2026-04-03','2026-05-01','2026-05-25','2026-06-15',
+  '2026-06-20','2026-07-09','2026-07-10','2026-08-17','2026-10-12',
+  '2026-11-23','2026-12-07','2026-12-08','2026-12-25'
+];
+
+var HR_DATA = [];
+var HR_FILTRO = 'todos';
+var HR_BUSQUEDA = '';
+
+var ADM_AG_CACHE = [];
+var ADM_AG_FILTRO_PUESTO = '';
+var ADM_AG_BUSQUEDA = '';
+
+function selAdminTab(tab) {
+  var tabs = ['general','horas','personal'];
+  tabs.forEach(function(t) {
+    var btn   = document.getElementById('adm-tab-' + t);
+    var panel = document.getElementById('adm-panel-' + t);
+    var isActive = t === tab;
+    if (btn) {
+      btn.style.background  = isActive ? 'rgba(248,113,113,.15)' : 'transparent';
+      btn.style.color       = isActive ? '#fca5a5' : 'var(--text3)';
+      btn.style.borderColor = isActive ? 'rgba(248,113,113,.35)' : 'var(--border)';
+    }
+    if (panel) panel.style.display = isActive ? 'block' : 'none';
+  });
+  if (tab === 'horas')    loadHorasReales();
+  if (tab === 'personal') loadAgentesAdmin();
+}
+
+function loadAgentesAdmin() {
+  var lista = document.getElementById('adm-ag-lista'); if (!lista) return;
+  lista.innerHTML = '<div class="empty"><div class="icon"><span class="spinner"></span></div></div>';
+  db.from('agentes').select('*').order('nombre', { ascending: true }).then(function(r) {
+    if (r.error) { lista.innerHTML = '<div class="empty"><p>Error: ' + r.error.message + '</p></div>'; return; }
+    ADM_AG_CACHE = r.data || [];
+    renderStatsAdmin(ADM_AG_CACHE);
+    renderAgentesAdmin();
+  });
+}
+
+function renderStatsAdmin(data) {
+  var el = document.getElementById('adm-ag-stats'); if (!el) return;
+  var hoy = new Date();
+  var cumpleHoy = data.filter(function(a) {
+    if (!a.fecha_nacimiento) return false;
+    var p = a.fecha_nacimiento.split('-');
+    return parseInt(p[1]) === hoy.getMonth()+1 && parseInt(p[2]) === hoy.getDate();
+  }).length;
+  var sinTipo = data.filter(function(a) { return !a.tipo; }).length;
+  el.innerHTML =
+    '<div style="background:var(--bg3);border-radius:10px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:900;color:var(--text);font-family:var(--mono)">' + data.length + '</div><div style="font-size:10px;color:var(--text3);margin-top:2px">Total agentes</div></div>' +
+    '<div style="background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:10px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:900;color:var(--yellow);font-family:var(--mono)">' + cumpleHoy + '</div><div style="font-size:10px;color:var(--text3);margin-top:2px">&#x1F382; Cumplea&#xF1;os hoy</div></div>' +
+    '<div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:900;color:var(--red);font-family:var(--mono)">' + sinTipo + '</div><div style="font-size:10px;color:var(--text3);margin-top:2px">Sin tipo asignado</div></div>';
+}
+
+function filtrarAgentesAdmin(val) {
+  ADM_AG_BUSQUEDA = (val || '').toLowerCase().trim();
+  renderAgentesAdmin();
+}
+
+function filtrarAdmPuesto(puesto) {
+  ADM_AG_FILTRO_PUESTO = puesto;
+  renderAgentesAdmin();
+}
+
+function renderAgentesAdmin() {
+  var lista = document.getElementById('adm-ag-lista'); if (!lista) return;
+  var data = ADM_AG_CACHE;
+  if (ADM_AG_FILTRO_PUESTO) data = data.filter(function(a) { return a.puesto === ADM_AG_FILTRO_PUESTO; });
+  if (ADM_AG_BUSQUEDA) data = data.filter(function(a) {
+    return (a.nombre||'').toLowerCase().indexOf(ADM_AG_BUSQUEDA) >= 0 ||
+           (a.legajo||'').toString().indexOf(ADM_AG_BUSQUEDA) >= 0 ||
+           (a.dni||'').toString().indexOf(ADM_AG_BUSQUEDA) >= 0;
+  });
+  if (!data.length) { lista.innerHTML = '<div class="empty"><div class="icon">&#x1F465;</div><p>Sin agentes</p></div>'; return; }
+
+  var html = '';
+  data.forEach(function(a) {
+    var hoy = new Date();
+    var esCumple = false;
+    var diasCumple = null;
+    if (a.fecha_nacimiento) {
+      var p = a.fecha_nacimiento.split('-');
+      var m = parseInt(p[1]); var d = parseInt(p[2]);
+      esCumple = m === hoy.getMonth()+1 && d === hoy.getDate();
+      var prox = new Date(hoy.getFullYear(), m-1, d);
+      if (prox < hoy) prox.setFullYear(hoy.getFullYear()+1);
+      diasCumple = Math.ceil((prox-hoy)/(86400000));
+    }
+    var tipoColor = a.tipo === 'PH' ? '#60a5fa' : a.tipo === 'PI' ? '#a78bfa' : a.tipo === 'CH' ? '#34d399' : a.tipo === 'CI' ? '#f472b6' : 'var(--text3)';
+    var ini = (a.nombre||'?').split(' ').slice(0,2).map(function(p){return p[0]||'';}).join('');
+
+    html += '<div style="background:var(--bg2);border:1px solid ' + (esCumple ? 'var(--yellow)' : 'var(--border)') + ';border-radius:12px;padding:14px;margin-bottom:8px">';
+    html += '<div style="display:flex;align-items:center;gap:12px">';
+    // Avatar
+    html += '<div style="width:40px;height:40px;border-radius:50%;background:' + (esCumple ? 'linear-gradient(135deg,var(--yellow),#f59e0b)' : 'var(--bg3)') + ';display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--text);flex-shrink:0">' + ini + '</div>';
+    // Info
+    html += '<div style="flex:1;min-width:0">';
+    html += '<div style="font-size:14px;font-weight:700;color:var(--text)">' + (a.nombre||'Sin nombre') + (esCumple ? ' &#x1F382;' : '') + '</div>';
+    html += '<div style="font-size:11px;color:var(--text3);margin-top:2px;display:flex;flex-wrap:wrap;gap:6px">';
+    if (a.puesto) html += '<span>&#x1F4CD; ' + a.puesto + '</span>';
+    if (a.turno)  html += '<span>&#x1F55B; ' + a.turno + '</span>';
+    if (a.legajo) html += '<span>Leg. ' + a.legajo + '</span>';
+    if (a.dni)    html += '<span>DNI ' + a.dni + '</span>';
+    html += '</div>';
+    if (a.tipo) html += '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;background:rgba(255,255,255,.05);color:' + tipoColor + '">' + a.tipo + '</span>';
+    if (esCumple) html += '<div style="font-size:11px;color:var(--yellow);margin-top:3px">&#x1F382; Hoy es su cumplea\xF1os!</div>';
+    else if (diasCumple !== null && diasCumple <= 7) html += '<div style="font-size:11px;color:var(--yellow);margin-top:3px">&#x1F382; Cumplea\xF1os en ' + diasCumple + ' d\xEDas</div>';
+    html += '</div>';
+    // Botones
+    html += '<div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">';
+    html += '<button onclick="editarAgente(' + a.id + ')" style="padding:5px 12px;border-radius:7px;border:1px solid rgba(59,130,246,.3);background:rgba(59,130,246,.08);color:#93c5fd;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">&#x270E; Editar</button>';
+    html += '<button onclick="eliminarAgenteAdmin(' + a.id + ',\'' + (a.nombre||'').replace(/'/g,'') + '\')" style="padding:5px 12px;border-radius:7px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.08);color:#fca5a5;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">&#x1F5D1;</button>';
+    html += '</div></div></div>';
+  });
+  lista.innerHTML = html;
+}
+
+function nuevoAgenteAdmin() {
+  // Resetear y abrir el formulario de agente
+  document.getElementById('agente-modal-title').textContent = 'Nuevo Agente';
+  document.getElementById('agente-edit-id').value = '';
+  ['ag-nombre','ag-dni','ag-legajo','ag-cargo','ag-turno','ag-telefono','ag-obs'].forEach(function(id) {
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  ['ag-puesto','ag-tipo'].forEach(function(id) {
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  ['ag-nacimiento','ag-ingreso'].forEach(function(id) {
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  document.getElementById('ag-lic-ord').value = '14';
+  document.getElementById('ag-lic-enf').value = '30';
+  document.getElementById('ag-lic-part').value = '3';
+  document.getElementById('ag-lic-franco').value = '0';
+  document.getElementById('ag-lic-fam').value = '5';
+  document.getElementById('ag-lic-duelo').value = '3';
+  openOv('ov-agente');
+}
+
+function eliminarAgenteAdmin(id, nombre) {
+  showConfirm('&#x1F5D1;', 'Eliminar agente', '\xBFEliminar a ' + nombre + ' del sistema? Esta acci\xF3n no se puede deshacer.', function() {
+    db.from('agentes').delete().eq('id', id).then(function(r) {
+      if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+      toast('\u2713 ' + nombre + ' eliminado');
+      loadAgentesAdmin();
+      loadRRHH();
+    });
+  }, 'Eliminar', 'var(--red)');
+}
+
+function loadPersonalHR() {
+  loadAgentesAdmin(); // Redirigir al tab de personal del admin
+}
+
+function selAdminTab2(tab) { selAdminTab(tab); } // alias por compatibilidad
+
+function esFeriado(fechaStr) {
+  // fechaStr: YYYY-MM-DD
+  var d = new Date(fechaStr + 'T12:00:00');
+  // Domingo es día 0
+  if (d.getDay() === 0) return true;
+  return FERIADOS_2026.indexOf(fechaStr) >= 0;
+}
+
+function horasParaTipo(tipo, fechaStr) {
+  // Si el día es feriado/domingo, usar la versión inhábil
+  if (esFeriado(fechaStr)) {
+    return tipo === 'PH' ? 12 : tipo === 'CH' ? 12 : 12; // todos hacen 12h en inhábil
+  }
+  return HORAS_TIPO[tipo] || 8;
+}
+
+function tiempoExcel(val) {
+  // Los valores de tiempo en Excel vienen como fracción del día (0.333 = 8hs)
+  if (!val || isNaN(parseFloat(val))) return null;
+  var horas = parseFloat(val) * 24;
+  // Manejar turnos nocturnos (cuando salida < entrada el sistema suma 1 día)
+  if (horas < 0) horas += 24;
+  return horas;
+}
+
+function formatHoras(h) {
+  if (h === null || h === undefined) return '—';
+  var hh = Math.floor(Math.abs(h));
+  var mm = Math.round((Math.abs(h) - hh) * 60);
+  return (h < 0 ? '-' : '') + hh + 'h ' + String(mm).padStart(2,'0') + 'm';
+}
+
+function formatDiff(diff) {
+  // Diferencia entre horas trabajadas y horas a cumplir
+  // Formato: +1,30 o -0,45
+  if (diff === null || diff === undefined) return '';
+  var signo = diff >= 0 ? '+' : '-';
+  var hh = Math.floor(Math.abs(diff));
+  var mm = Math.round((Math.abs(diff) - hh) * 60);
+  return signo + hh + ',' + String(mm).padStart(2,'0');
+}
+
+function loadHorasReales() {
+  var tabla = document.getElementById('hr-tabla');
+  var res   = document.getElementById('hr-resumen');
+  if (!tabla) return;
+  tabla.innerHTML = '<div class="empty"><div class="icon"><span class="spinner"></span></div><p>Calculando horas...</p></div>';
+
+  var mes  = parseInt((document.getElementById('hr-mes') || {}).value  || new Date().getMonth() + 1);
+  var anio = parseInt((document.getElementById('hr-anio') || {}).value || new Date().getFullYear());
+
+  // Rango del mes en UTC
+  var desde = new Date(Date.UTC(anio, mes - 1, 1, 3, 0, 0)).toISOString(); // inicio día 1 AR = 03:00 UTC
+  var hasta = new Date(Date.UTC(anio, mes, 1, 2, 59, 59)).toISOString();   // fin último día
+
+  // Cargar fichajes del mes Y tipos de personal en paralelo
+  Promise.all([
+    db.from('fichajes').select('*').gte('entrada', desde).lte('entrada', hasta).order('entrada', { ascending: true }),
+    db.from('personal_tipos').select('*'),
+    db.from('licencias').select('*').gte('fecha_desde', anio + '-' + String(mes).padStart(2,'0') + '-01').lte('fecha_hasta', anio + '-' + String(mes).padStart(2,'0') + '-31')
+  ]).then(function(results) {
+    var fichajes  = results[0].data || [];
+    var personal  = results[1].data || [];
+    var licencias = results[2].data || [];
+
+    // Mapa nombre → tipo
+    var tipoMap = {};
+    personal.forEach(function(p) { tipoMap[p.nombre.trim().toUpperCase()] = p.tipo; });
+
+    // Días del mes
+    var diasMes = new Date(anio, mes, 0).getDate();
+
+    // Agrupar fichajes por agente
+    var porAgente = {};
+    fichajes.forEach(function(f) {
+      var nombre = (f.agente || '').trim();
+      if (!nombre) return;
+      if (!porAgente[nombre]) porAgente[nombre] = [];
+      porAgente[nombre].push(f);
+    });
+
+    // Calcular para cada agente
+    var agentes = Object.keys(porAgente).sort();
+    var rows = [];
+
+    agentes.forEach(function(nombre) {
+      var tipo = tipoMap[nombre.toUpperCase()] || 'CH';
+      var fichs = porAgente[nombre];
+      var totalTrabajadas = 0;
+      var totalACumplir = 0;
+      var diasTrabajados = 0;
+      var diasSinSalida = 0;
+
+      // Por día
+      var diasInfo = [];
+      for (var d = 1; d <= diasMes; d++) {
+        var fechaStr = anio + '-' + String(mes).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+        var fecha = new Date(fechaStr + 'T12:00:00');
+        var diaSemana = fecha.getDay();
+        var feriado = esFeriado(fechaStr);
+        var hACumplir = horasParaTipo(tipo, fechaStr);
+
+        // Fichajes de este día
+        var fichsDia = fichs.filter(function(f) {
+          var entISO = f.entrada;
+          if (!entISO) return false;
+          var entFecha = new Date(entISO);
+          var entAR = new Date(entFecha.getTime() - 3 * 60 * 60 * 1000);
+          return entAR.getDate() === d && entAR.getMonth() === mes - 1 && entAR.getFullYear() === anio;
+        });
+
+        var horasTrab = null;
+        var sinSalida = false;
+        if (fichsDia.length > 0) {
+          var totalDia = 0;
+          fichsDia.forEach(function(f) {
+            if (!f.entrada) return;
+            var ent = new Date(f.entrada);
+            if (f.salida) {
+              var sal = new Date(f.salida);
+              var diff = (sal - ent) / 3600000;
+              if (diff < 0) diff += 24;
+              totalDia += diff;
+            } else {
+              sinSalida = true;
+              diasSinSalida++;
+            }
+          });
+          if (totalDia > 0) horasTrab = totalDia;
+          diasTrabajados++;
+        }
+
+        // Licencias
+        var licDia = licencias.filter(function(l) {
+          return (l.agente || '').trim() === nombre && l.fecha_desde <= fechaStr && l.fecha_hasta >= fechaStr;
+        });
+        var codLic = licDia.length > 0 ? (licDia[0].tipo_licencia || licDia[0].tipo || 'LIC') : null;
+
+        if (horasTrab !== null) {
+          totalTrabajadas += horasTrab;
+          if (diaSemana !== 0 && !feriado) totalACumplir += hACumplir;
+        } else if (codLic) {
+          // Licencia — contar como día cumplido con código
+          if (diaSemana !== 0 && !feriado) totalACumplir += hACumplir;
+        } else if (diaSemana !== 0 && !feriado) {
+          totalACumplir += hACumplir; // día hábil sin fichar
+        }
+
+        diasInfo.push({ d: d, fecha: fechaStr, feriado: feriado, diaSemana: diaSemana, hs: horasTrab, aCumplir: hACumplir, lic: codLic, sinSalida: sinSalida });
+      }
+
+      var diff = totalTrabajadas - totalACumplir;
+      rows.push({
+        nombre: nombre,
+        tipo: tipo,
+        totalTrabajadas: totalTrabajadas,
+        totalACumplir: totalACumplir,
+        diff: diff,
+        diasTrabajados: diasTrabajados,
+        diasSinSalida: diasSinSalida,
+        diasInfo: diasInfo
+      });
+    });
+
+    HR_DATA = rows;
+    renderHorasResumen(rows, diasMes, anio, mes);
+    renderHorasTabla(rows, diasMes);
+  }).catch(function(e) {
+    tabla.innerHTML = '<div class="empty"><p>Error: ' + (e.message || 'consulta fallida') + '</p></div>';
+  });
+}
+
+function renderHorasResumen(rows, diasMes, anio, mes) {
+  var el = document.getElementById('hr-resumen'); if (!el) return;
+  var conExtras  = rows.filter(function(r) { return r.diff > 0; }).length;
+  var conFalta   = rows.filter(function(r) { return r.diff < -0.5; }).length;
+  var sinFichar  = rows.filter(function(r) { return r.diasTrabajados === 0; }).length;
+  var meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  el.innerHTML =
+    '<div style="background:var(--bg3);border-radius:10px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:900;color:var(--text);font-family:var(--mono)">' + rows.length + '</div><div style="font-size:10px;color:var(--text3);margin-top:2px">Agentes ' + meses[mes-1] + ' ' + anio + '</div></div>' +
+    '<div style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:10px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:900;color:var(--green);font-family:var(--mono)">' + conExtras + '</div><div style="font-size:10px;color:var(--text3);margin-top:2px">Con horas extra</div></div>' +
+    '<div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:10px;text-align:center"><div style="font-size:22px;font-weight:900;color:var(--red);font-family:var(--mono)">' + conFalta + '</div><div style="font-size:10px;color:var(--text3);margin-top:2px">Horas faltantes</div></div>';
+}
+
+function filtrarHR(f) {
+  HR_FILTRO = f;
+  ['todos','extras','falta','sinfichar'].forEach(function(x) {
+    var btn = document.getElementById('hr-f-' + x);
+    if (!btn) return;
+    var active = x === f;
+    btn.style.background  = active ? 'rgba(59,130,246,.15)' : 'transparent';
+    btn.style.color       = active ? '#93c5fd' : 'var(--text3)';
+    btn.style.borderColor = active ? 'rgba(59,130,246,.35)' : 'var(--border)';
+  });
+  renderHorasTabla(HR_DATA, HR_DATA.length > 0 ? HR_DATA[0].diasInfo.length : 30);
+}
+
+function buscarHR(val) {
+  HR_BUSQUEDA = (val || '').toLowerCase().trim();
+  renderHorasTabla(HR_DATA, HR_DATA.length > 0 ? HR_DATA[0].diasInfo.length : 30);
+}
+
+function renderHorasTabla(rows, diasMes) {
+  var tabla = document.getElementById('hr-tabla'); if (!tabla) return;
+  if (!rows.length) { tabla.innerHTML = '<div class="empty"><div class="icon">&#x1F4CA;</div><p>Sin datos para el período seleccionado</p></div>'; return; }
+
+  // Filtrar
+  var filtered = rows;
+  if (HR_FILTRO === 'extras')    filtered = rows.filter(function(r) { return r.diff > 0.1; });
+  if (HR_FILTRO === 'falta')     filtered = rows.filter(function(r) { return r.diff < -0.5; });
+  if (HR_FILTRO === 'sinfichar') filtered = rows.filter(function(r) { return r.diasTrabajados === 0; });
+  if (HR_BUSQUEDA) filtered = filtered.filter(function(r) { return r.nombre.toLowerCase().indexOf(HR_BUSQUEDA) >= 0; });
+
+  if (!filtered.length) { tabla.innerHTML = '<div class="empty"><div class="icon">&#x1F50D;</div><p>Sin resultados</p></div>'; return; }
+
+  // Renderizar tarjetas (más legible en mobile que tabla con 31 columnas)
+  var html = '';
+  filtered.forEach(function(r) {
+    var diffColor = r.diff > 0.1 ? 'var(--green)' : r.diff < -0.5 ? 'var(--red)' : 'var(--text3)';
+    var diffText  = r.diff > 0.1 ? formatDiff(r.diff) : r.diff < -0.5 ? formatDiff(r.diff) : '≈ 0';
+    var tipoColor = r.tipo === 'PH' ? '#60a5fa' : r.tipo === 'PI' ? '#a78bfa' : r.tipo === 'CH' ? '#34d399' : '#f472b6';
+
+    html += '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px">';
+    // Header
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">';
+    html += '<div>';
+    html += '<div style="font-size:14px;font-weight:800;color:var(--text)">' + r.nombre + '</div>';
+    html += '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;background:rgba(255,255,255,.06);color:' + tipoColor + '">' + r.tipo + ' — ' + HORAS_TIPO[r.tipo] + 'h/turno</span>';
+    html += '</div>';
+    html += '<div style="text-align:right">';
+    html += '<div style="font-size:22px;font-weight:900;color:' + diffColor + ';font-family:var(--mono)">' + diffText + '</div>';
+    html += '<div style="font-size:10px;color:var(--text3)">balance mensual</div>';
+    html += '</div></div>';
+    // Stats
+    html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:10px">';
+    html += '<div style="text-align:center;padding:8px;background:var(--bg3);border-radius:8px"><div style="font-size:16px;font-weight:800;color:var(--text);font-family:var(--mono)">' + formatHoras(r.totalTrabajadas) + '</div><div style="font-size:9px;color:var(--text3)">Trabajadas</div></div>';
+    html += '<div style="text-align:center;padding:8px;background:var(--bg3);border-radius:8px"><div style="font-size:16px;font-weight:800;color:var(--text2);font-family:var(--mono)">' + formatHoras(r.totalACumplir) + '</div><div style="font-size:9px;color:var(--text3)">A cumplir</div></div>';
+    html += '<div style="text-align:center;padding:8px;background:var(--bg3);border-radius:8px"><div style="font-size:16px;font-weight:800;color:var(--text);font-family:var(--mono)">' + r.diasTrabajados + '</div><div style="font-size:9px;color:var(--text3)">Días fichados</div></div>';
+    html += '</div>';
+    // Grilla de días
+    html += '<div style="display:flex;flex-wrap:wrap;gap:3px">';
+    r.diasInfo.forEach(function(dia) {
+      var bg, txt, title;
+      if (dia.diaSemana === 0) { bg = 'var(--bg3)'; txt = '—'; title = 'Domingo'; }
+      else if (dia.feriado)    { bg = 'rgba(139,92,246,.15)'; txt = 'F'; title = 'Feriado'; }
+      else if (dia.lic)        { bg = 'rgba(245,158,11,.15)'; txt = dia.lic.substring(0,2); title = 'Licencia: ' + dia.lic; }
+      else if (dia.hs !== null && dia.hs > 0) {
+        var ok = dia.hs >= dia.aCumplir - 0.25;
+        bg   = ok ? 'rgba(16,185,129,.15)' : 'rgba(239,68,68,.1)';
+        txt  = formatHoras(dia.hs).replace('h','').replace('m','').trim();
+        title = formatHoras(dia.hs) + ' de ' + dia.aCumplir + 'h requeridas';
+      } else {
+        bg   = 'rgba(239,68,68,.08)';
+        txt  = '✗';
+        title = 'Sin registro';
+      }
+      html += '<div style="width:28px;height:28px;border-radius:4px;background:' + bg + ';display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:var(--text2);font-family:var(--mono)" title="' + dia.d + '/: ' + title + '">' + dia.d + '</div>';
+    });
+    html += '</div>';
+    html += '</div>';
+  });
+
+  tabla.innerHTML = html;
+}
+
+function exportarHorasReales() {
+  if (!HR_DATA.length) { toast('Sin datos para exportar', 'err'); return; }
+  var mes  = (document.getElementById('hr-mes') || {}).value  || '';
+  var anio = (document.getElementById('hr-anio') || {}).value || '';
+  var csv = 'Nombre,Tipo,Dias Fichados,Horas Trabajadas,Horas A Cumplir,Balance\n';
+  HR_DATA.forEach(function(r) {
+    csv += '"' + r.nombre + '",' + r.tipo + ',' + r.diasTrabajados + ',' +
+           r.totalTrabajadas.toFixed(2) + ',' + r.totalACumplir.toFixed(2) + ',' +
+           r.diff.toFixed(2) + '\n';
+  });
+  var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
+  a.href = url; a.download = 'horas_' + anio + '_' + String(mes).padStart(2,'0') + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('&#x1F4C5; CSV descargado');
+}
+
+function loadPersonalHR() {
+  var lista = document.getElementById('hr-personal-lista'); if (!lista) return;
+  lista.innerHTML = '<div class="empty"><div class="icon"><span class="spinner"></span></div></div>';
+
+  Promise.all([
+    db.from('personal_tipos').select('*').order('nombre'),
+    db.from('fichajes').select('agente').limit(500)
+  ]).then(function(res) {
+    var personal = res[0].data || [];
+    var fichs    = res[1].data || [];
+
+    // Agentes únicos del sistema
+    var nombresSet = {};
+    fichs.forEach(function(f) { if (f.agente) nombresSet[f.agente.trim()] = true; });
+    personal.forEach(function(p) { nombresSet[p.nombre.trim()] = true; });
+    var nombres = Object.keys(nombresSet).sort();
+
+    // Mapa nombre → tipo guardado
+    var tipoMap = {};
+    personal.forEach(function(p) { tipoMap[p.nombre.trim().toUpperCase()] = p.tipo; });
+
+    var html = '';
+    nombres.forEach(function(n) {
+      var tipo = tipoMap[n.toUpperCase()] || '';
+      var nSafe = n.replace(/'/g, "\\'");
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">';
+      html += '<span style="font-size:13px;color:var(--text)">' + n + '</span>';
+      html += '<select onchange="guardarTipoPersonal(\'' + nSafe + '\',this.value)" style="padding:5px 10px;border-radius:6px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:var(--font);font-size:12px;font-weight:700">';
+      ['','PH','PI','CH','CI'].forEach(function(t) {
+        html += '<option value="' + t + '"' + (t === tipo ? ' selected' : '') + '>' + (t || '— Tipo —') + '</option>';
+      });
+      html += '</select></div>';
+    });
+    lista.innerHTML = html || '<div style="font-size:12px;color:var(--text3)">Sin agentes registrados aún. Los agentes aparecen aquí al fichar al menos una vez.</div>';
+  });
+}
+
+function guardarTipoPersonal(nombre, tipo) {
+  if (!tipo) return;
+  db.from('personal_tipos').upsert({ nombre: nombre.trim(), tipo: tipo }, { onConflict: 'nombre' }).then(function(r) {
+    if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+    toast('\u2713 ' + nombre.split(' ')[0] + ' → ' + tipo);
+  });
 }
 
 function loadAgenda() {
