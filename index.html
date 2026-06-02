@@ -377,6 +377,7 @@ body::after { display: none; }
 #nb-estadisticas    { --nc: #38bdf8; }
 #nb-inmuebles      { --nc: #34d399; }
 #nb-rrhh            { --nc: #4ade80; }
+#nb-pendientes      { --nc: #f43f5e; }
 #nb-inventario      { --nc: #fb923c; }
 #nb-agenda          { --nc: #fde68a; }
 #nb-admin           { --nc: #f87171; }
@@ -1464,6 +1465,9 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
       <button class="sidebar-item" onclick="goView('rrhh')" id="si-rrhh" style="display:none">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg> RRHH
       </button>
+      <button class="sidebar-item" onclick="goView('pendientes')" id="si-pendientes" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg> Pendientes
+      </button>
       <button class="sidebar-item" onclick="goView('inventario')" id="si-inventario" style="display:none">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg> Inventario
       </button>
@@ -1767,6 +1771,169 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
       </div>
 
       <div id="rrhh-lista"></div>
+    </div>
+
+    <!-- ══ PENDIENTES — Puntos Críticos ══ -->
+    <div class="view" id="view-pendientes">
+      <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px">
+        <div>
+          <h2><span style="color:#f43f5e;margin-right:8px">&#x26A0;</span>Puntos Cr&#xED;ticos</h2>
+          <p>Seguimiento de casos activos por barrio</p>
+        </div>
+        <div id="pend-btn-nuevo-wrap" style="display:none">
+          <button onclick="abrirNuevoPunto()" style="flex-shrink:0;display:flex;align-items:center;gap:6px;padding:9px 16px;border-radius:10px;border:1px solid rgba(244,63,94,.35);background:rgba(244,63,94,.1);color:#fda4af;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">
+            + Nuevo punto
+          </button>
+        </div>
+      </div>
+
+      <!-- Resumen rápido -->
+      <div id="pend-resumen" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px"></div>
+
+      <!-- Filtro por barrio -->
+      <div style="margin-bottom:12px">
+        <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none">
+          <button id="pend-f-todos" onclick="filtrarPendientes('todos')" style="flex-shrink:0;padding:7px 16px;border-radius:8px;border:1px solid rgba(244,63,94,.35);background:rgba(244,63,94,.15);color:#fda4af;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">Todos</button>
+          <button id="pend-f-activos" onclick="filtrarPendientes('activos')" style="flex-shrink:0;padding:7px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">&#x1F7E2; Activos</button>
+          <button id="pend-f-resueltos" onclick="filtrarPendientes('resueltos')" style="flex-shrink:0;padding:7px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">&#x2705; Resueltos</button>
+        </div>
+      </div>
+
+      <!-- Lista de puntos -->
+      <div id="pend-list">
+        <div class="empty"><div class="icon">&#x26A0;</div><p>Cargando...</p></div>
+      </div>
+    </div>
+
+    <!-- OVERLAY: Nuevo punto crítico (solo admin/gestión) -->
+    <div class="overlay" id="ov-nuevo-punto">
+      <div class="modal">
+        <div class="modal-head">
+          <span class="modal-title">&#x26A0; Nuevo Punto Cr&#xED;tico</span>
+          <button class="btn-close" onclick="closeOv('ov-nuevo-punto')">&#xD7;</button>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Barrio / Puesto <span style="color:var(--red)">*</span></label>
+          <select class="form-select" id="np-barrio">
+            <option value="">&#x2014; Seleccion&#xE1; el barrio &#x2014;</option>
+            <option>Papa Francisco</option><option>Rodrigo Bueno</option>
+            <option>Fraga</option><option>Base Casta&#xF1;ares</option>
+            <option>Obrador Savio</option><option>CAV</option>
+            <option>Necochea</option><option>Complejo Orma</option>
+            <option>Alvarado</option><option>Padre Mugica</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">T&#xED;tulo del caso <span style="color:var(--red)">*</span></label>
+          <input class="form-input" id="np-titulo" placeholder="Ej: Construcci&#xF3;n no autorizada en Block 4"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Direcci&#xF3;n / Ubicaci&#xF3;n <span style="color:var(--red)">*</span></label>
+          <input class="form-input" id="np-direccion" placeholder="Ej: Pasaje Los Aromos 234"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Categor&#xED;a</label>
+          <select class="form-select" id="np-categoria">
+            <option value="Construcci&#xF3;n no autorizada">&#x1F3D7; Construcci&#xF3;n no autorizada</option>
+            <option value="Ocupaci&#xF3;n irregular">&#x1F3E0; Ocupaci&#xF3;n irregular</option>
+            <option value="Conflicto vecinal">&#x1F91D; Conflicto vecinal</option>
+            <option value="Riesgo estructural">&#x26A0; Riesgo estructural</option>
+            <option value="Vandalismo">&#x1F6AB; Vandalismo</option>
+            <option value="Otro">&#x1F4CB; Otro</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Prioridad</label>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+            <button type="button" id="np-p-alta" onclick="selPrioridad('alta')" style="padding:10px;border-radius:8px;border:2px solid rgba(239,68,68,.3);background:rgba(239,68,68,.08);color:#fca5a5;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">&#x1F534; Alta</button>
+            <button type="button" id="np-p-media" onclick="selPrioridad('media')" style="padding:10px;border-radius:8px;border:2px solid rgba(245,158,11,.5);background:rgba(245,158,11,.15);color:#fcd34d;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">&#x1F7E1; Media</button>
+            <button type="button" id="np-p-baja" onclick="selPrioridad('baja')" style="padding:10px;border-radius:8px;border:2px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">&#x1F7E2; Baja</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Descripci&#xF3;n detallada</label>
+          <textarea class="form-textarea" id="np-descripcion" placeholder="Descrip&#xF3; el caso con todo el detalle..." style="min-height:80px"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Controles por d&#xED;a requeridos</label>
+          <select class="form-select" id="np-controles-dia">
+            <option value="1">1 control por d&#xED;a</option>
+            <option value="2">2 controles por d&#xED;a</option>
+            <option value="3" selected>3 controles por d&#xED;a (por turno)</option>
+            <option value="0">Sin frecuencia fija</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Foto inicial (opcional)</label>
+          <input type="file" accept="image/*" id="np-foto-input" onchange="prevFotoNP(this)" style="display:none">
+          <button type="button" onclick="abrirSelectorFoto('np-foto-input')" style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:8px;border:1px dashed var(--border2);background:var(--bg2);color:var(--text3);font-family:var(--font);font-size:12px;cursor:pointer;width:100%">
+            <span style="font-size:18px">&#128247;</span> Foto del punto cr&#xED;tico
+          </button>
+          <div id="np-foto-prev" style="margin-top:8px"></div>
+        </div>
+        <button class="btn-login" id="btn-save-np" onclick="guardarNuevoPunto()">&#x26A0; Crear punto cr&#xED;tico</button>
+      </div>
+    </div>
+
+    <!-- OVERLAY: Detalle del punto + historial de controles -->
+    <div class="overlay" id="ov-punto-detalle">
+      <div class="modal">
+        <div class="modal-head">
+          <span class="modal-title" id="pd-titulo">Punto cr&#xED;tico</span>
+          <button class="btn-close" onclick="closeOv('ov-punto-detalle')">&#xD7;</button>
+        </div>
+        <div id="pd-info" style="margin-bottom:14px"></div>
+        <!-- Botón registrar control -->
+        <button id="btn-registrar-control" onclick="abrirRegistrarControl()" style="width:100%;margin-bottom:14px;padding:12px;border-radius:10px;border:1px solid rgba(16,185,129,.35);background:rgba(16,185,129,.1);color:#6ee7b7;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer">
+          &#x1F4F8; Registrar control ahora
+        </button>
+        <!-- Historial -->
+        <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">Historial de controles</div>
+        <div id="pd-historial" style="max-height:320px;overflow-y:auto"></div>
+        <!-- Botones admin -->
+        <div id="pd-admin-btns" style="display:none;margin-top:12px;display:flex;gap:8px;padding-top:12px;border-top:1px solid var(--border)"></div>
+      </div>
+    </div>
+
+    <!-- OVERLAY: Registrar control -->
+    <div class="overlay" id="ov-control">
+      <div class="modal">
+        <div class="modal-head">
+          <span class="modal-title">&#x1F4F8; Registrar control</span>
+          <button class="btn-close" onclick="closeOv('ov-control')">&#xD7;</button>
+        </div>
+        <div id="ctrl-punto-info" style="padding:10px 12px;background:var(--bg3);border-radius:8px;margin-bottom:14px;font-size:13px;color:var(--text2)"></div>
+        <!-- Estado -->
+        <div class="form-group">
+          <label class="form-label">Estado del punto <span style="color:var(--red)">*</span></label>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <button type="button" id="ctrl-btn-ok" onclick="selEstadoControl('ok')"
+              style="padding:16px 10px;border-radius:10px;border:2px solid var(--border2);background:var(--bg3);color:var(--text2);font-family:var(--font);font-size:13px;font-weight:800;cursor:pointer;transition:all .2s;line-height:1.4">
+              &#x2705; SIN NOVEDAD<br><span style="font-size:10px;font-weight:400;opacity:.7">Todo normal</span>
+            </button>
+            <button type="button" id="ctrl-btn-nov" onclick="selEstadoControl('novedad')"
+              style="padding:16px 10px;border-radius:10px;border:2px solid var(--border2);background:var(--bg3);color:var(--text2);font-family:var(--font);font-size:13px;font-weight:800;cursor:pointer;transition:all .2s;line-height:1.4">
+              &#x26A0;&#xFE0F; CON NOVEDAD<br><span style="font-size:10px;font-weight:400;opacity:.7">Hay algo para reportar</span>
+            </button>
+          </div>
+        </div>
+        <!-- Observaciones — visible siempre, obligatorio si hay novedad -->
+        <div class="form-group">
+          <label class="form-label" id="ctrl-obs-label">Observaciones</label>
+          <textarea class="form-textarea" id="ctrl-obs" placeholder="Descrip&#xF3; qu&#xE9; observ&#xE1;s en el lugar..." style="min-height:80px"></textarea>
+        </div>
+        <!-- Foto obligatoria -->
+        <div class="form-group">
+          <label class="form-label">Foto del control <span style="color:var(--red)">*</span></label>
+          <input type="file" accept="image/*" id="ctrl-foto-input" onchange="prevFotoCtrl(this)" style="display:none">
+          <button type="button" onclick="abrirSelectorFoto('ctrl-foto-input')" style="display:flex;align-items:center;gap:8px;padding:12px 14px;border-radius:8px;border:1px dashed var(--border2);background:var(--bg2);color:var(--text3);font-family:var(--font);font-size:12px;cursor:pointer;width:100%">
+            <span style="font-size:22px">&#128247;</span>
+            <span>Sacar foto del punto ahora <span style="color:var(--red)">*</span></span>
+          </button>
+          <div id="ctrl-foto-prev" style="margin-top:8px"></div>
+        </div>
+        <button class="btn-login" id="btn-save-ctrl" onclick="guardarControl()">&#x2713; Confirmar control</button>
+      </div>
     </div>
 
     <!-- ══ INVENTARIO ══ -->
@@ -2120,6 +2287,10 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
     </button>
     <button class="nav-btn" onclick="goView('rrhh')" id="nb-rrhh" style="display:none">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span>RRHH</span>
+    </button>
+    <button class="nav-btn" onclick="goView('pendientes')" id="nb-pendientes" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/><path d="M8 12h.01M16 12h.01"/></svg>
+      <span>Pendientes</span>
     </button>
     <button class="nav-btn" onclick="goView('inventario')" id="nb-inventario" style="display:none">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
@@ -6031,6 +6202,293 @@ function verDetalleInv(id) {
   });
 }
 
+// ══════════════════════════════════════════════════════════
+//  MÓDULO PENDIENTES — Puntos Críticos por Barrio
+// ══════════════════════════════════════════════════════════
+var NP_PRIORIDAD = 'media';
+var NP_FOTO_FILE = null;
+var CTRL_FOTO_FILE = null;
+var CTRL_PUNTO_ID = null;
+var CTRL_ESTADO = '';
+var PEND_FILTER = 'todos';
+var _PEND_DATA = [];
+
+function pendPrioStyle(p) {
+  if (p === 'alta')  return { color: '#fca5a5', bg: 'rgba(239,68,68,.1)',  border: 'rgba(239,68,68,.3)',  icon: '&#x1F534;', label: 'Alta' };
+  if (p === 'baja')  return { color: '#6ee7b7', bg: 'rgba(16,185,129,.1)', border: 'rgba(16,185,129,.3)', icon: '&#x1F7E2;', label: 'Baja' };
+  return               { color: '#fcd34d', bg: 'rgba(245,158,11,.1)',  border: 'rgba(245,158,11,.3)',  icon: '&#x1F7E1;', label: 'Media' };
+}
+
+function selPrioridad(p) {
+  NP_PRIORIDAD = p;
+  ['alta','media','baja'].forEach(function(x) {
+    var btn = document.getElementById('np-p-' + x);
+    if (!btn) return;
+    var st = pendPrioStyle(x);
+    if (x === p) {
+      btn.style.borderColor = st.border; btn.style.background = st.bg; btn.style.color = st.color;
+    } else {
+      btn.style.borderColor = 'var(--border)'; btn.style.background = 'transparent'; btn.style.color = 'var(--text3)';
+    }
+  });
+}
+
+function selEstadoControl(estado) {
+  CTRL_ESTADO = estado;
+  var btnOk  = document.getElementById('ctrl-btn-ok');
+  var btnNov = document.getElementById('ctrl-btn-nov');
+  var lblObs = document.getElementById('ctrl-obs-label');
+  if (estado === 'ok') {
+    if (btnOk)  { btnOk.style.borderColor  = 'var(--green)'; btnOk.style.background  = 'rgba(16,185,129,.12)'; btnOk.style.color  = '#6ee7b7'; }
+    if (btnNov) { btnNov.style.borderColor = 'var(--border2)'; btnNov.style.background = 'var(--bg3)'; btnNov.style.color = 'var(--text2)'; }
+    if (lblObs) lblObs.textContent = 'Observaciones (opcional)';
+  } else {
+    if (btnNov) { btnNov.style.borderColor = 'var(--yellow)'; btnNov.style.background = 'rgba(245,158,11,.12)'; btnNov.style.color = '#fcd34d'; }
+    if (btnOk)  { btnOk.style.borderColor  = 'var(--border2)'; btnOk.style.background  = 'var(--bg3)'; btnOk.style.color  = 'var(--text2)'; }
+    if (lblObs) lblObs.textContent = 'Descripci\xF3n de la novedad *';
+  }
+}
+
+function prevFotoNP(input) {
+  var f = input.files[0]; if (!f) return;
+  NP_FOTO_FILE = f;
+  var prev = document.getElementById('np-foto-prev'); if (!prev) return;
+  var reader = new FileReader();
+  reader.onload = function(e) { prev.innerHTML = '<img src="' + e.target.result + '" style="width:100%;max-height:160px;object-fit:cover;border-radius:8px;border:1px solid var(--border2)">'; };
+  reader.readAsDataURL(f);
+}
+
+function prevFotoCtrl(input) {
+  var f = input.files[0]; if (!f) return;
+  CTRL_FOTO_FILE = f;
+  var prev = document.getElementById('ctrl-foto-prev'); if (!prev) return;
+  var reader = new FileReader();
+  reader.onload = function(e) { prev.innerHTML = '<img src="' + e.target.result + '" style="width:100%;max-height:180px;object-fit:cover;border-radius:8px;border:1px solid var(--green)">'; };
+  reader.readAsDataURL(f);
+}
+
+function abrirNuevoPunto() {
+  NP_FOTO_FILE = null; NP_PRIORIDAD = 'media';
+  ['np-barrio','np-titulo','np-direccion','np-descripcion'].forEach(function(id) { var el = document.getElementById(id); if (el) el.value = ''; });
+  var cat = document.getElementById('np-categoria'); if (cat) cat.selectedIndex = 0;
+  var cdn = document.getElementById('np-controles-dia'); if (cdn) cdn.value = '3';
+  var prev = document.getElementById('np-foto-prev'); if (prev) prev.innerHTML = '';
+  selPrioridad('media');
+  openOv('ov-nuevo-punto');
+}
+
+function guardarNuevoPunto() {
+  var barrio = (document.getElementById('np-barrio') || {}).value;
+  var titulo  = ((document.getElementById('np-titulo') || {}).value || '').trim();
+  var dir     = ((document.getElementById('np-direccion') || {}).value || '').trim();
+  var cat     = (document.getElementById('np-categoria') || {}).value;
+  var desc    = ((document.getElementById('np-descripcion') || {}).value || '').trim();
+  var cDia    = (document.getElementById('np-controles-dia') || {}).value;
+  if (!barrio)  { toast('Seleccioná el barrio', 'err'); return; }
+  if (!titulo)  { toast('Ingresá el título del caso', 'err'); return; }
+  if (!dir)     { toast('Ingresá la dirección', 'err'); return; }
+
+  setLoading('btn-save-np', true);
+  var ahora = fechaHoyAR();
+  function doInsert(fotoUrl) {
+    db.from('puntos_criticos').insert({
+      barrio: barrio, titulo: titulo, direccion: dir,
+      categoria: cat, prioridad: NP_PRIORIDAD,
+      descripcion: desc || null,
+      controles_dia: parseInt(cDia) || 0,
+      foto_inicial: fotoUrl || null,
+      estado: 'activo',
+      creado_por: USER.nombre || USER.puesto,
+      fecha_creacion: ahora.fecha,
+      created_at: new Date().toISOString()
+    }).then(function(r) {
+      setLoading('btn-save-np', false);
+      if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+      closeOv('ov-nuevo-punto');
+      toast('\u2714 Punto crítico creado — ' + barrio);
+      loadPendientes();
+    });
+  }
+  if (NP_FOTO_FILE) {
+    uploadToR2Comprimido(NP_FOTO_FILE, 'puntos_criticos').then(function(url) { doInsert(url); }).catch(function() { doInsert(null); });
+  } else { doInsert(null); }
+}
+
+function filtrarPendientes(f) {
+  PEND_FILTER = f;
+  ['todos','activos','resueltos'].forEach(function(x) {
+    var btn = document.getElementById('pend-f-' + x);
+    if (!btn) return;
+    var active = x === f;
+    btn.style.background  = active ? 'rgba(244,63,94,.15)' : 'transparent';
+    btn.style.color       = active ? '#fda4af' : 'var(--text3)';
+    btn.style.borderColor = active ? 'rgba(244,63,94,.35)' : 'var(--border)';
+  });
+  renderPendientes(_PEND_DATA);
+}
+
+function renderPendientes(data) {
+  var list = document.getElementById('pend-list'); if (!list) return;
+  var filtered = data;
+  if (PEND_FILTER === 'activos')   filtered = data.filter(function(p) { return p.estado === 'activo'; });
+  if (PEND_FILTER === 'resueltos') filtered = data.filter(function(p) { return p.estado === 'resuelto'; });
+  if (!filtered.length) {
+    list.innerHTML = '<div class="empty"><div class="icon">&#x26A0;</div><p>' + (PEND_FILTER === 'resueltos' ? 'Sin casos resueltos' : 'Sin puntos críticos') + '</p></div>';
+    return;
+  }
+  // Agrupar por barrio
+  var porBarrio = {};
+  filtered.forEach(function(p) { var b = p.barrio || 'Sin barrio'; if (!porBarrio[b]) porBarrio[b] = []; porBarrio[b].push(p); });
+  var html = '';
+  Object.keys(porBarrio).sort().forEach(function(barrio) {
+    var puntos = porBarrio[barrio];
+    html += '<div style="margin-bottom:18px"><div style="font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.12em;margin-bottom:8px;display:flex;align-items:center;gap:8px"><span style="flex:1;height:1px;background:var(--border)"></span><span>&#x1F4CD; ' + barrio + ' (' + puntos.length + ')</span><span style="flex:1;height:1px;background:var(--border)"></span></div>';
+    puntos.forEach(function(p) {
+      var pr = pendPrioStyle(p.prioridad || 'media');
+      var esResuelto = p.estado === 'resuelto';
+      var reqHoy = parseInt(p.controles_dia) || 0;
+      var ctrlHoy = p._controles_hoy || 0;
+      var pct = reqHoy > 0 ? Math.min(100, Math.round(ctrlHoy / reqHoy * 100)) : 100;
+      var pctC = pct >= 100 ? 'var(--green)' : pct >= 50 ? 'var(--yellow)' : 'var(--red)';
+      html += '<div onclick="verPunto(' + p.id + ')" style="background:var(--bg2);border:1px solid ' + pr.border + ';border-left:4px solid ' + pr.border + ';border-radius:12px;padding:14px;margin-bottom:8px;cursor:pointer' + (esResuelto ? ';opacity:.6' : '') + '">';
+      html += '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px"><div style="flex:1"><div style="font-size:14px;font-weight:800;color:var(--text);margin-bottom:3px">' + p.titulo + '</div><div style="font-size:11px;color:var(--text3)">&#x1F4CD; ' + p.direccion + '</div></div>';
+      html += '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0"><span style="font-size:10px;font-weight:700;padding:3px 8px;border-radius:999px;background:' + pr.bg + ';color:' + pr.color + ';border:1px solid ' + pr.border + '">' + pr.icon + ' ' + pr.label + '</span><span style="font-size:10px;color:var(--text3)">' + (p.categoria || '') + '</span></div></div>';
+      if (reqHoy > 0 && !esResuelto) {
+        html += '<div style="margin-top:6px"><div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-bottom:3px"><span>Controles hoy</span><span style="color:' + pctC + '">' + ctrlHoy + ' / ' + reqHoy + '</span></div><div style="height:4px;background:var(--bg3);border-radius:999px;overflow:hidden"><div style="height:100%;width:' + pct + '%;background:' + pctC + ';border-radius:999px"></div></div></div>';
+      }
+      html += '<div style="margin-top:8px;display:flex;align-items:center;justify-content:space-between"><span style="font-size:10px;color:var(--text3)">Desde ' + (p.fecha_creacion || '') + '</span><span style="font-size:11px;font-weight:700;color:' + (esResuelto ? 'var(--green)' : 'var(--red)') + '">' + (esResuelto ? '&#x2705; Resuelto' : '&#x1F534; Activo') + '</span></div></div>';
+    });
+    html += '</div>';
+  });
+  list.innerHTML = html;
+}
+
+function loadPendientes() {
+  var list = document.getElementById('pend-list'); if (!list) return;
+  list.innerHTML = '<div class="empty"><div class="icon"><span class="spinner"></span></div></div>';
+  var esGestion = USER && (USER.rol === 'ADMIN' || ['Administración','Gerencia','Jefe de departamento','Responsable de turno'].indexOf(USER.puesto) >= 0);
+  var wrap = document.getElementById('pend-btn-nuevo-wrap'); if (wrap) wrap.style.display = esGestion ? 'block' : 'none';
+  var query = db.from('puntos_criticos').select('*').order('prioridad', { ascending: true }).order('id', { ascending: false });
+  if (!esGestion) query = query.eq('barrio', USER.puesto);
+  query.then(function(r) {
+    if (r.error) { list.innerHTML = '<div class="empty"><p>Error: ' + r.error.message + '</p></div>'; return; }
+    var data = r.data || [];
+    if (!data.length) { _PEND_DATA = []; renderResumenPend([]); renderPendientes([]); return; }
+    var hoy = fechaHoyAR().fecha;
+    var ids = data.map(function(p) { return p.id; });
+    db.from('controles_punto').select('punto_id').in('punto_id', ids).eq('fecha', hoy).then(function(rc) {
+      var ctrl = rc.data || [];
+      data.forEach(function(p) { p._controles_hoy = ctrl.filter(function(c) { return c.punto_id === p.id; }).length; });
+      _PEND_DATA = data;
+      renderResumenPend(data);
+      renderPendientes(data);
+    });
+  });
+}
+
+function renderResumenPend(data) {
+  var el = document.getElementById('pend-resumen'); if (!el) return;
+  var activos = data.filter(function(p) { return p.estado === 'activo'; }).length;
+  var alta    = data.filter(function(p) { return p.estado === 'activo' && p.prioridad === 'alta'; }).length;
+  var res     = data.filter(function(p) { return p.estado === 'resuelto'; }).length;
+  el.innerHTML =
+    '<div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:12px;padding:12px;text-align:center"><div style="font-family:var(--mono);font-size:28px;color:var(--red)">' + activos + '</div><div style="font-size:10px;color:var(--text3);margin-top:3px">&#x1F534; Activos</div></div>' +
+    '<div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:12px;padding:12px;text-align:center"><div style="font-family:var(--mono);font-size:28px;color:var(--yellow)">' + alta + '</div><div style="font-size:10px;color:var(--text3);margin-top:3px">&#x26A0; Prioridad alta</div></div>' +
+    '<div style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:12px;padding:12px;text-align:center"><div style="font-family:var(--mono);font-size:28px;color:var(--green)">' + res + '</div><div style="font-size:10px;color:var(--text3);margin-top:3px">&#x2705; Resueltos</div></div>';
+}
+
+function verPunto(id) {
+  var punto = _PEND_DATA.find(function(p) { return p.id === id; }); if (!punto) return;
+  CTRL_PUNTO_ID = id;
+  var pr = pendPrioStyle(punto.prioridad || 'media');
+  var esGestion = USER && (USER.rol === 'ADMIN' || ['Administración','Gerencia','Jefe de departamento','Responsable de turno'].indexOf(USER.puesto) >= 0);
+  document.getElementById('pd-titulo').textContent = punto.titulo;
+  document.getElementById('pd-info').innerHTML =
+    '<div style="background:var(--bg3);border-radius:10px;padding:12px;margin-bottom:10px">' +
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:12px;padding:3px 10px;border-radius:999px;background:' + pr.bg + ';color:' + pr.color + ';border:1px solid ' + pr.border + ';font-weight:700">' + pr.icon + ' ' + pr.label + '</span><span style="font-size:11px;color:var(--text3)">' + (punto.categoria || '') + '</span></div>' +
+    '<div style="font-size:13px;color:var(--text);font-weight:600;margin-bottom:4px">&#x1F4CD; ' + punto.direccion + '</div>' +
+    (punto.descripcion ? '<div style="font-size:12px;color:var(--text2);line-height:1.6;margin-top:6px">' + punto.descripcion + '</div>' : '') +
+    (punto.foto_inicial ? '<img src="' + punto.foto_inicial + '" style="width:100%;max-height:160px;object-fit:cover;border-radius:8px;margin-top:8px">' : '') + '</div>';
+  var btnCtrl = document.getElementById('btn-registrar-control');
+  if (btnCtrl) btnCtrl.style.display = punto.estado === 'resuelto' ? 'none' : 'block';
+  var adminDiv = document.getElementById('pd-admin-btns');
+  if (adminDiv) {
+    adminDiv.style.display = esGestion ? 'flex' : 'none';
+    if (esGestion) {
+      var btnsHtml = '';
+      if (punto.estado === 'activo') btnsHtml += '<button onclick="resolverPunto(' + id + ')" style="flex:1;padding:10px;border-radius:8px;border:1px solid rgba(16,185,129,.3);background:rgba(16,185,129,.08);color:#6ee7b7;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">&#x2705; Marcar resuelto</button>';
+      btnsHtml += '<button onclick="eliminarPunto(' + id + ')" style="padding:10px 14px;border-radius:8px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.08);color:#fca5a5;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">&#x1F5D1;</button>';
+      adminDiv.innerHTML = btnsHtml;
+    }
+  }
+  document.getElementById('pd-historial').innerHTML = '<div style="color:var(--text3);font-size:12px">Cargando...</div>';
+  db.from('controles_punto').select('*').eq('punto_id', id).order('id', { ascending: false }).limit(30).then(function(r) {
+    var ctrl = r.data || [];
+    if (!ctrl.length) { document.getElementById('pd-historial').innerHTML = '<div style="color:var(--text3);font-size:12px;padding:10px 0">Sin controles aún</div>'; return; }
+    document.getElementById('pd-historial').innerHTML = ctrl.map(function(c) {
+      var isOk = c.estado === 'ok';
+      return '<div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)"><div style="flex-shrink:0;width:28px;height:28px;border-radius:50%;background:' + (isOk ? 'rgba(16,185,129,.15)' : 'rgba(245,158,11,.15)') + ';display:flex;align-items:center;justify-content:center;font-size:14px">' + (isOk ? '&#x2705;' : '&#x26A0;&#xFE0F;') + '</div><div style="flex:1"><div style="display:flex;justify-content:space-between;margin-bottom:2px"><span style="font-size:12px;font-weight:700;color:' + (isOk ? 'var(--green)' : 'var(--yellow)') + '">' + (isOk ? 'Sin novedad' : 'Con novedad') + '</span><span style="font-size:10px;color:var(--text3)">' + (c.fecha||'') + ' ' + (c.hora||'') + '</span></div><div style="font-size:11px;color:var(--text3)">' + (c.agente||'') + '</div>' + (c.observaciones ? '<div style="font-size:12px;color:var(--text2);margin-top:4px">' + c.observaciones + '</div>' : '') + (c.foto_url ? '<img src="' + c.foto_url + '" style="width:100%;max-height:120px;object-fit:cover;border-radius:6px;margin-top:6px">' : '') + '</div></div>';
+    }).join('');
+  });
+  openOv('ov-punto-detalle');
+}
+
+function abrirRegistrarControl() {
+  CTRL_FOTO_FILE = null; CTRL_ESTADO = '';
+  var punto = _PEND_DATA.find(function(p) { return p.id === CTRL_PUNTO_ID; });
+  var infoEl = document.getElementById('ctrl-punto-info');
+  if (infoEl && punto) infoEl.innerHTML = '<strong>' + punto.titulo + '</strong><br><span style="font-size:11px;color:var(--text3)">&#x1F4CD; ' + punto.direccion + '</span>';
+  var obsEl = document.getElementById('ctrl-obs'); if (obsEl) obsEl.value = '';
+  var prevEl = document.getElementById('ctrl-foto-prev'); if (prevEl) prevEl.innerHTML = '';
+  var lbl = document.getElementById('ctrl-obs-label'); if (lbl) lbl.textContent = 'Observaciones';
+  ['ok','nov'].forEach(function(x) { var btn = document.getElementById('ctrl-btn-' + x); if (btn) { btn.style.borderColor='var(--border2)'; btn.style.background='var(--bg3)'; btn.style.color='var(--text2)'; } });
+  closeOv('ov-punto-detalle');
+  openOv('ov-control');
+}
+
+function guardarControl() {
+  if (!CTRL_ESTADO)    { toast('Seleccioná el estado del punto', 'err'); return; }
+  if (!CTRL_FOTO_FILE) { toast('La foto del control es obligatoria', 'err'); return; }
+  var obs = ((document.getElementById('ctrl-obs') || {}).value || '').trim();
+  if (CTRL_ESTADO === 'novedad' && !obs) { toast('Describí la novedad encontrada', 'err'); return; }
+  setLoading('btn-save-ctrl', true);
+  var ahora = fechaHoyAR();
+  uploadToR2Comprimido(CTRL_FOTO_FILE, 'controles').then(function(fotoUrl) {
+    db.from('controles_punto').insert({
+      punto_id: CTRL_PUNTO_ID, agente: USER.nombre || USER.puesto, puesto: USER.puesto,
+      estado: CTRL_ESTADO, observaciones: obs || null, foto_url: fotoUrl,
+      fecha: ahora.fecha, hora: ahora.hora, created_at: new Date().toISOString()
+    }).then(function(r) {
+      setLoading('btn-save-ctrl', false);
+      if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+      closeOv('ov-control');
+      toast(CTRL_ESTADO === 'ok' ? '\u2705 Control registrado — Sin novedad' : '\u26A0\uFE0F Control registrado — Novedad reportada');
+      CTRL_FOTO_FILE = null;
+      loadPendientes();
+    });
+  }).catch(function() { setLoading('btn-save-ctrl', false); toast('Error subiendo foto', 'err'); });
+}
+
+function resolverPunto(id) {
+  showConfirm('&#x2705;', 'Marcar como resuelto', '¿Confirmás que este punto crítico fue resuelto?', function() {
+    db.from('puntos_criticos').update({ estado: 'resuelto', fecha_resolucion: fechaHoyAR().fecha }).eq('id', id).then(function(r) {
+      if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+      toast('\u2705 Punto marcado como resuelto'); closeOv('ov-punto-detalle'); loadPendientes();
+    });
+  }, 'Resolver', 'var(--green)');
+}
+
+function eliminarPunto(id) {
+  showConfirm('&#x1F5D1;', 'Eliminar punto crítico', '¿Eliminar este punto y todos sus controles?', function() {
+    db.from('controles_punto').delete().eq('punto_id', id).then(function() {
+      db.from('puntos_criticos').delete().eq('id', id).then(function(r) {
+        if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+        toast('Eliminado'); closeOv('ov-punto-detalle'); loadPendientes();
+      });
+    });
+  }, 'Eliminar', 'var(--red)');
+}
+
 function loadAgenda() {
   return _loadAgenda.apply(this, arguments);
 }
@@ -8038,6 +8496,7 @@ function goView(name) {
     if (name === 'choferes' && typeof loadChoferes === 'function') loadChoferes();
     if (name === 'agenda' && typeof loadAgenda === 'function') loadAgenda();
     if (name === 'inventario' && typeof loadInventario === 'function') loadInventario();
+    if (name === 'pendientes' && typeof loadPendientes === 'function') loadPendientes();
     if (name === 'dashboard') {
       if (typeof loadDash === 'function') loadDash();
       if (typeof loadNoticias === 'function') loadNoticias();
@@ -8323,6 +8782,8 @@ var SECCIONES_PERMISOS = [{
   id: 'inmuebles', label: 'Inmuebles'
 }, {
   id: 'inventario', label: 'Inventario'
+}, {
+  id: 'pendientes', label: 'Pendientes'
 }];
 
 // Usuarios operativos (puestos que tienen restricciones)
@@ -8340,7 +8801,8 @@ var DEFAULT_PERMISOS = {
     rrhh: 0,
     agenda: 0,
     inmuebles: 0,
-    inventario: 0
+    inventario: 0,
+    pendientes: 1
   },
   'Rodrigo Bueno': {
     fichaje: 1,
@@ -8352,7 +8814,8 @@ var DEFAULT_PERMISOS = {
     rrhh: 0,
     agenda: 0,
     inmuebles: 0,
-    inventario: 0
+    inventario: 0,
+    pendientes: 1
   },
   'Fraga': {
     fichaje: 1,
@@ -8364,7 +8827,8 @@ var DEFAULT_PERMISOS = {
     rrhh: 0,
     agenda: 0,
     inmuebles: 0,
-    inventario: 0
+    inventario: 0,
+    pendientes: 1
   },
   'Base Castañares': {
     fichaje: 1,
@@ -8376,7 +8840,8 @@ var DEFAULT_PERMISOS = {
     rrhh: 0,
     agenda: 0,
     inmuebles: 0,
-    inventario: 0
+    inventario: 0,
+    pendientes: 1
   },
   'Obrador Savio': {
     fichaje: 1,
@@ -8388,7 +8853,8 @@ var DEFAULT_PERMISOS = {
     rrhh: 0,
     agenda: 0,
     inmuebles: 0,
-    inventario: 0
+    inventario: 0,
+    pendientes: 1
   },
   'CAV': {
     fichaje: 1,
@@ -8400,7 +8866,8 @@ var DEFAULT_PERMISOS = {
     rrhh: 0,
     agenda: 0,
     inmuebles: 0,
-    inventario: 0
+    inventario: 0,
+    pendientes: 1
   },
   'Necochea': {
     fichaje: 1,
@@ -8412,7 +8879,8 @@ var DEFAULT_PERMISOS = {
     rrhh: 0,
     agenda: 0,
     inmuebles: 0,
-    inventario: 1
+    inventario: 1,
+    pendientes: 1
   },
   'Complejo Orma': {
     fichaje: 1,
@@ -8424,7 +8892,8 @@ var DEFAULT_PERMISOS = {
     rrhh: 0,
     agenda: 0,
     inmuebles: 0,
-    inventario: 0
+    inventario: 0,
+    pendientes: 1
   },
   'Alvarado': {
     fichaje: 1,
@@ -8436,7 +8905,8 @@ var DEFAULT_PERMISOS = {
     rrhh: 0,
     agenda: 0,
     inmuebles: 0,
-    inventario: 0
+    inventario: 0,
+    pendientes: 1
   },
   'Padre Mugica': {
     fichaje: 1,
@@ -8448,7 +8918,8 @@ var DEFAULT_PERMISOS = {
     rrhh: 0,
     agenda: 0,
     inmuebles: 0,
-    inventario: 0
+    inventario: 0,
+    pendientes: 1
   },
   'Choferes': {
     fichaje: 1,
@@ -8471,7 +8942,8 @@ var DEFAULT_PERMISOS = {
     rrhh: 1,
     agenda: 1,
     inmuebles: 1,
-    inventario: 1
+    inventario: 1,
+    pendientes: 1
   },
   'Gerencia': {
     fichaje: 1,
@@ -8483,7 +8955,8 @@ var DEFAULT_PERMISOS = {
     rrhh: 0,
     agenda: 1,
     inmuebles: 1,
-    inventario: 1
+    inventario: 1,
+    pendientes: 1
   },
   'Responsable de turno': {
     fichaje: 1,
@@ -8495,7 +8968,8 @@ var DEFAULT_PERMISOS = {
     rrhh: 0,
     agenda: 1,
     inmuebles: 1,
-    inventario: 1
+    inventario: 1,
+    pendientes: 1
   },
   'Jefe de departamento': {
     fichaje: 1,
@@ -8507,7 +8981,8 @@ var DEFAULT_PERMISOS = {
     rrhh: 1,
     agenda: 1,
     inmuebles: 1,
-    inventario: 1
+    inventario: 1,
+    pendientes: 1
   },
   'Emergencias': {
     fichaje: 1,
