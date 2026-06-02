@@ -2362,6 +2362,15 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
 
       <!-- TAB HORAS REALES -->
       <div id="adm-panel-horas" style="display:none">
+
+        <!-- Sub-tabs Horas Reales -->
+        <div style="display:flex;gap:8px;margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:12px">
+          <button id="hr-tab-detalle" onclick="selHRTab('detalle')" style="padding:7px 16px;border-radius:8px;border:1px solid rgba(59,130,246,.35);background:rgba(59,130,246,.15);color:#93c5fd;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">&#x1F4CB; Detalle mensual</button>
+          <button id="hr-tab-comp" onclick="selHRTab('comp')" style="padding:7px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">&#x1F4CA; Comparativas</button>
+        </div>
+
+        <!-- SUBTAB: DETALLE MENSUAL -->
+        <div id="hr-panel-detalle">
         <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:16px;margin-bottom:14px">
           <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px">
             <div>
@@ -2381,25 +2390,57 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
             </div>
             <div style="margin-top:18px;display:flex;gap:8px">
               <button onclick="loadHorasReales()" style="padding:8px 16px;border-radius:8px;border:1px solid rgba(59,130,246,.35);background:rgba(59,130,246,.1);color:#93c5fd;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">&#x1F504; Actualizar</button>
-              <button onclick="exportarHorasReales()" style="padding:8px 16px;border-radius:8px;border:1px solid rgba(16,185,129,.35);background:rgba(16,185,129,.1);color:#6ee7b7;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">&#x1F4C5; Exportar CSV</button>
+              <button onclick="exportarHorasReales()" style="padding:8px 16px;border-radius:8px;border:1px solid rgba(16,185,129,.35);background:rgba(16,185,129,.1);color:#6ee7b7;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">&#x1F4C5; CSV</button>
             </div>
           </div>
-          <!-- Resumen rápido -->
           <div id="hr-resumen" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px"></div>
-          <!-- Filtros rápidos -->
           <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
             <button onclick="filtrarHR('todos')" id="hr-f-todos" style="padding:5px 12px;border-radius:6px;border:1px solid rgba(59,130,246,.35);background:rgba(59,130,246,.15);color:#93c5fd;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">Todos</button>
             <button onclick="filtrarHR('extras')" id="hr-f-extras" style="padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">Con extras</button>
             <button onclick="filtrarHR('falta')" id="hr-f-falta" style="padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">Horas faltantes</button>
             <button onclick="filtrarHR('sinfichar')" id="hr-f-sinfichar" style="padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">Sin fichar</button>
           </div>
-          <!-- Input búsqueda -->
           <input oninput="buscarHR(this.value)" placeholder="&#x1F50D; Buscar agente..." style="width:100%;padding:9px 14px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--font);font-size:13px;outline:none;margin-bottom:10px"/>
         </div>
-        <!-- Tabla de horas -->
         <div id="hr-tabla" style="overflow-x:auto;-webkit-overflow-scrolling:touch">
           <div class="empty"><div class="icon">&#x1F4CA;</div><p>Selecci&#xF3;n el mes y hacé clic en Actualizar</p></div>
         </div>
+        </div>
+
+        <!-- SUBTAB: COMPARATIVAS -->
+        <div id="hr-panel-comp" style="display:none">
+          <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:16px;margin-bottom:14px">
+            <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:6px">
+              <div>
+                <label style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:4px">Año</label>
+                <select id="comp-anio" class="form-select" style="padding:8px 12px;width:100px">
+                  <option value="2025">2025</option><option value="2026" selected>2026</option><option value="2027">2027</option>
+                </select>
+              </div>
+              <div>
+                <label style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:4px">Vista</label>
+                <select id="comp-tipo" class="form-select" style="padding:8px 12px;width:190px" onchange="toggleCompAgente()">
+                  <option value="equipo">Horas del equipo por mes</option>
+                  <option value="agente">Evolución de un agente</option>
+                  <option value="puesto">Comparativa por barrio</option>
+                  <option value="ausencias">Ausencias y licencias/mes</option>
+                  <option value="ranking">Ranking de horas extras</option>
+                </select>
+              </div>
+              <div id="comp-agente-wrap" style="display:none">
+                <label style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:4px">Agente</label>
+                <select id="comp-agente" class="form-select" style="padding:8px 12px;width:200px"></select>
+              </div>
+              <div style="margin-top:18px">
+                <button onclick="loadComparativas()" style="padding:8px 16px;border-radius:8px;border:1px solid rgba(59,130,246,.35);background:rgba(59,130,246,.1);color:#93c5fd;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">&#x1F4CA; Generar</button>
+              </div>
+            </div>
+          </div>
+          <div id="comp-content">
+            <div class="empty"><div class="icon">&#x1F4CA;</div><p>Configurá las opciones y presioná Generar</p></div>
+          </div>
+        </div>
+
       </div>
 
       <!-- TAB PERSONAL (lista completa de agentes) -->
@@ -6645,6 +6686,462 @@ function formatDiff(diff) {
   var hh = Math.floor(Math.abs(diff));
   var mm = Math.round((Math.abs(diff) - hh) * 60);
   return signo + hh + ',' + String(mm).padStart(2,'0');
+}
+
+// ── SUBTABS HORAS REALES ──────────────────────────────────
+function selHRTab(tab) {
+  var tabs = ['detalle','comp'];
+  tabs.forEach(function(t) {
+    var btn   = document.getElementById('hr-tab-' + t);
+    var panel = document.getElementById('hr-panel-' + t);
+    var active = t === tab;
+    if (btn) {
+      btn.style.background  = active ? 'rgba(59,130,246,.15)' : 'transparent';
+      btn.style.color       = active ? '#93c5fd' : 'var(--text3)';
+      btn.style.borderColor = active ? 'rgba(59,130,246,.35)' : 'var(--border)';
+    }
+    if (panel) panel.style.display = active ? 'block' : 'none';
+  });
+  if (tab === 'comp') iniciarComparativas();
+}
+
+function toggleCompAgente() {
+  var tipo = (document.getElementById('comp-tipo') || {}).value;
+  var wrap = document.getElementById('comp-agente-wrap');
+  if (wrap) wrap.style.display = tipo === 'agente' ? 'block' : 'none';
+}
+
+function iniciarComparativas() {
+  // Poblar select de agentes con los de HR_DATA o agentes conocidos
+  var sel = document.getElementById('comp-agente');
+  if (!sel) return;
+  if (sel.options.length > 1) return; // ya poblado
+  var nombres = HR_DATA.length
+    ? HR_DATA.map(function(r) { return r.nombre; }).sort()
+    : [];
+  nombres.forEach(function(n) {
+    var o = document.createElement('option');
+    o.value = n; o.textContent = n;
+    sel.appendChild(o);
+  });
+}
+
+// ── GRÁFICOS SVG INLINE ──────────────────────────────────
+
+function svgBarras(datos, opciones) {
+  // datos: [{label, valor, color?, valor2?}]
+  // Devuelve HTML string con SVG responsivo
+  var W = opciones.w || 340;
+  var H = opciones.h || 200;
+  var padL = opciones.padL || 46;
+  var padB = opciones.padB || 32;
+  var padT = opciones.padT || 14;
+  var padR = opciones.padR || 10;
+  var titulo = opciones.titulo || '';
+  var unidad = opciones.unidad || 'h';
+  var color1 = opciones.color1 || '#3b82f6';
+  var color2 = opciones.color2 || '#10b981';
+  var doble  = opciones.doble  || false;
+
+  var vals = datos.map(function(d) { return d.valor || 0; });
+  var vals2 = doble ? datos.map(function(d) { return d.valor2 || 0; }) : [];
+  var maxVal = Math.max.apply(null, vals.concat(vals2).concat([0.1]));
+  var n = datos.length;
+  var chartW = W - padL - padR;
+  var chartH = H - padT - padB;
+  var barW = Math.max(4, (chartW / n) * (doble ? 0.38 : 0.6));
+  var gap   = chartW / n;
+
+  var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;max-width:' + W + 'px;display:block;margin:0 auto" xmlns="http://www.w3.org/2000/svg">';
+
+  // Fondo
+  svg += '<rect width="' + W + '" height="' + H + '" fill="transparent"/>';
+
+  // Líneas horizontales de referencia
+  for (var li = 0; li <= 4; li++) {
+    var yRef = padT + chartH - (li / 4) * chartH;
+    var valRef = ((li / 4) * maxVal).toFixed(li === 0 ? 0 : 1);
+    svg += '<line x1="' + padL + '" y1="' + yRef + '" x2="' + (W - padR) + '" y2="' + yRef + '" stroke="rgba(124,176,255,0.08)" stroke-width="1"/>';
+    svg += '<text x="' + (padL - 4) + '" y="' + (yRef + 4) + '" text-anchor="end" fill="rgba(164,187,217,0.7)" font-size="9" font-family="monospace">' + valRef + unidad + '</text>';
+  }
+
+  // Eje X
+  svg += '<line x1="' + padL + '" y1="' + (padT + chartH) + '" x2="' + (W - padR) + '" y2="' + (padT + chartH) + '" stroke="rgba(124,176,255,0.15)" stroke-width="1"/>';
+
+  // Barras
+  datos.forEach(function(d, i) {
+    var x0 = padL + i * gap + gap / 2;
+    var barH1 = maxVal > 0 ? (d.valor || 0) / maxVal * chartH : 0;
+    var x1 = x0 - (doble ? barW + 1 : barW / 2);
+    var y1 = padT + chartH - barH1;
+
+    // Barra principal
+    svg += '<rect x="' + x1 + '" y="' + y1 + '" width="' + barW + '" height="' + barH1 + '" rx="3" fill="' + (d.color || color1) + '" opacity="0.85"/>';
+
+    // Valor encima
+    if (barH1 > 12) {
+      svg += '<text x="' + (x1 + barW/2) + '" y="' + (y1 - 3) + '" text-anchor="middle" fill="' + (d.color || color1) + '" font-size="9" font-family="monospace">' + (d.valor || 0).toFixed(1) + '</text>';
+    }
+
+    // Segunda barra (comparativa)
+    if (doble && d.valor2 !== undefined) {
+      var barH2 = maxVal > 0 ? d.valor2 / maxVal * chartH : 0;
+      var x2 = x0 + 1;
+      var y2 = padT + chartH - barH2;
+      svg += '<rect x="' + x2 + '" y="' + y2 + '" width="' + barW + '" height="' + barH2 + '" rx="3" fill="' + color2 + '" opacity="0.75"/>';
+    }
+
+    // Label eje X
+    var lbl = (d.label || '').substring(0, 4);
+    svg += '<text x="' + x0 + '" y="' + (padT + chartH + 13) + '" text-anchor="middle" fill="rgba(164,187,217,0.6)" font-size="9" font-family="sans-serif">' + lbl + '</text>';
+  });
+
+  // Título
+  if (titulo) {
+    svg += '<text x="' + (W/2) + '" y="10" text-anchor="middle" fill="rgba(164,187,217,0.8)" font-size="10" font-family="sans-serif" font-weight="700">' + titulo + '</text>';
+  }
+
+  // Leyenda si doble
+  if (doble) {
+    svg += '<rect x="' + (padL) + '" y="4" width="10" height="6" rx="2" fill="' + color1 + '" opacity="0.85"/>';
+    svg += '<text x="' + (padL + 13) + '" y="10" fill="rgba(164,187,217,0.7)" font-size="8" font-family="sans-serif">' + (opciones.legend1 || 'Serie 1') + '</text>';
+    svg += '<rect x="' + (padL + 70) + '" y="4" width="10" height="6" rx="2" fill="' + color2 + '" opacity="0.85"/>';
+    svg += '<text x="' + (padL + 83) + '" y="10" fill="rgba(164,187,217,0.7)" font-size="8" font-family="sans-serif">' + (opciones.legend2 || 'Serie 2') + '</text>';
+  }
+
+  svg += '</svg>';
+  return svg;
+}
+
+function svgLinea(datos, opciones) {
+  var W = opciones.w || 340;
+  var H = opciones.h || 180;
+  var padL = 46; var padB = 32; var padT = 20; var padR = 10;
+  var color = opciones.color || '#3b82f6';
+  var titulo = opciones.titulo || '';
+  var unidad = opciones.unidad || 'h';
+
+  var vals = datos.map(function(d) { return d.valor || 0; });
+  var maxVal = Math.max.apply(null, vals.concat([0.1]));
+  var minVal = Math.min.apply(null, vals);
+  var range  = maxVal - minVal || 1;
+  var n = datos.length;
+  var chartW = W - padL - padR;
+  var chartH = H - padT - padB;
+
+  var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" style="width:100%;max-width:' + W + 'px;display:block;margin:0 auto" xmlns="http://www.w3.org/2000/svg">';
+  svg += '<rect width="' + W + '" height="' + H + '" fill="transparent"/>';
+
+  // Grilla
+  for (var li = 0; li <= 4; li++) {
+    var yRef = padT + chartH - (li / 4) * chartH;
+    var valRef = (minVal + (li/4) * range).toFixed(1);
+    svg += '<line x1="' + padL + '" y1="' + yRef + '" x2="' + (W-padR) + '" y2="' + yRef + '" stroke="rgba(124,176,255,0.07)" stroke-width="1"/>';
+    svg += '<text x="' + (padL-4) + '" y="' + (yRef+4) + '" text-anchor="end" fill="rgba(164,187,217,0.6)" font-size="9" font-family="monospace">' + valRef + unidad + '</text>';
+  }
+
+  // Área rellena bajo la línea
+  if (n > 1) {
+    var areaPath = 'M ' + padL + ' ' + (padT + chartH);
+    datos.forEach(function(d, i) {
+      var x = padL + (n > 1 ? i / (n-1) : 0.5) * chartW;
+      var y = padT + chartH - ((d.valor - minVal) / range) * chartH;
+      areaPath += ' L ' + x + ' ' + y;
+    });
+    areaPath += ' L ' + (padL + chartW) + ' ' + (padT + chartH) + ' Z';
+    svg += '<path d="' + areaPath + '" fill="' + color + '" opacity="0.08"/>';
+
+    // Línea
+    var linePath = '';
+    datos.forEach(function(d, i) {
+      var x = padL + (i / (n-1)) * chartW;
+      var y = padT + chartH - ((d.valor - minVal) / range) * chartH;
+      linePath += (i === 0 ? 'M ' : ' L ') + x + ' ' + y;
+    });
+    svg += '<path d="' + linePath + '" fill="none" stroke="' + color + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>';
+
+    // Puntos + labels
+    datos.forEach(function(d, i) {
+      var x = padL + (i / (n-1)) * chartW;
+      var y = padT + chartH - ((d.valor - minVal) / range) * chartH;
+      svg += '<circle cx="' + x + '" cy="' + y + '" r="3.5" fill="' + color + '" stroke="var(--bg)" stroke-width="1.5"/>';
+      svg += '<text x="' + x + '" y="' + (y - 7) + '" text-anchor="middle" fill="' + color + '" font-size="9" font-family="monospace">' + d.valor.toFixed(1) + '</text>';
+      svg += '<text x="' + x + '" y="' + (padT + chartH + 13) + '" text-anchor="middle" fill="rgba(164,187,217,0.6)" font-size="9" font-family="sans-serif">' + (d.label||'').substring(0,3) + '</text>';
+    });
+  }
+
+  if (titulo) svg += '<text x="' + (W/2) + '" y="11" text-anchor="middle" fill="rgba(164,187,217,0.8)" font-size="10" font-family="sans-serif" font-weight="700">' + titulo + '</text>';
+  svg += '</svg>';
+  return svg;
+}
+
+var MESES_NOMBRES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+function loadComparativas() {
+  var cont = document.getElementById('comp-content');
+  if (!cont) return;
+  cont.innerHTML = '<div class="empty"><div class="icon"><span class="spinner"></span></div><p>Calculando...</p></div>';
+
+  var anio = parseInt((document.getElementById('comp-anio') || {}).value || 2026);
+  var tipo = (document.getElementById('comp-tipo') || {}).value || 'equipo';
+  var agenteNombre = (document.getElementById('comp-agente') || {}).value || '';
+
+  // Cargar fichajes del año completo
+  var desde = anio + '-01-01T03:00:00.000Z';
+  var hasta = (anio + 1) + '-01-01T02:59:59.000Z';
+
+  Promise.all([
+    db.from('fichajes').select('agente,puesto,entrada,salida').gte('entrada', desde).lte('entrada', hasta),
+    db.from('personal_tipos').select('nombre,tipo'),
+    db.from('licencias').select('agente,fecha_desde,fecha_hasta,tipo_licencia').gte('fecha_desde', anio + '-01-01').lte('fecha_hasta', anio + '-12-31')
+  ]).then(function(res) {
+    var fichs    = res[0].data || [];
+    var personal = res[1].data || [];
+    var lics     = res[2].data || [];
+
+    var tipoMap = {};
+    personal.forEach(function(p) { tipoMap[p.nombre.trim().toUpperCase()] = p.tipo; });
+
+    if (tipo === 'equipo')    renderCompEquipo(fichs, tipoMap, lics, anio, cont);
+    if (tipo === 'agente')    renderCompAgente(fichs, tipoMap, lics, anio, agenteNombre, cont);
+    if (tipo === 'puesto')    renderCompPuesto(fichs, tipoMap, anio, cont);
+    if (tipo === 'ausencias') renderCompAusencias(fichs, lics, anio, cont);
+    if (tipo === 'ranking')   renderCompRanking(fichs, tipoMap, anio, cont);
+  });
+}
+
+function calcHorasAgenteMes(fichs, nombre, anio, mes, tipoMap) {
+  var tipo = tipoMap[(nombre||'').toUpperCase()] || 'CH';
+  var horas_base_tipo = HORAS_TIPO[tipo] || 8;
+  var totalTrab = 0, totalACumplir = 0;
+  var diasMes = new Date(anio, mes, 0).getDate();
+  for (var d = 1; d <= diasMes; d++) {
+    var fechaStr = anio + '-' + String(mes).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+    var diaSem = new Date(fechaStr + 'T12:00:00').getDay();
+    if (diaSem === 0) continue;
+    var esFer = esFeriado(fechaStr);
+    var hAcum = horasParaTipo(tipo, fechaStr);
+    var fichsDia = fichs.filter(function(f) {
+      if ((f.agente||'').trim() !== nombre) return false;
+      if (!f.entrada) return false;
+      var ar = new Date(new Date(f.entrada).getTime() - 10800000);
+      return ar.getDate() === d && ar.getMonth() === mes-1 && ar.getFullYear() === anio;
+    });
+    if (fichsDia.length > 0) {
+      var tot = 0;
+      fichsDia.forEach(function(f) {
+        if (!f.salida) return;
+        var diff = (new Date(f.salida) - new Date(f.entrada)) / 3600000;
+        if (diff < 0) diff += 24;
+        tot += diff;
+      });
+      if (tot > 0) { totalTrab += tot; totalACumplir += hAcum; }
+    } else if (!esFer) {
+      totalACumplir += hAcum;
+    }
+  }
+  return { trab: totalTrab, aCumplir: totalACumplir, diff: totalTrab - totalACumplir };
+}
+
+function renderCompEquipo(fichs, tipoMap, lics, anio, cont) {
+  var agentesSet = {};
+  fichs.forEach(function(f) { if (f.agente) agentesSet[f.agente.trim()] = true; });
+  var agentes = Object.keys(agentesSet);
+  var mesesData = [];
+  for (var m = 1; m <= 12; m++) {
+    var totalTrab = 0, totalACumplir = 0, totalLics = 0;
+    agentes.forEach(function(ag) {
+      var r = calcHorasAgenteMes(fichs, ag, anio, m, tipoMap);
+      totalTrab += r.trab; totalACumplir += r.aCumplir;
+    });
+    var licsMes = lics.filter(function(l) {
+      return l.fecha_desde.substring(0,7) === (anio + '-' + String(m).padStart(2,'0'));
+    }).length;
+    mesesData.push({ label: MESES_NOMBRES[m-1], valor: totalTrab, valor2: totalACumplir, lics: licsMes });
+  }
+
+  var html = '<div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:16px;margin-bottom:12px">';
+  html += '<div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px">&#x1F4CA; Horas equipo ' + anio + ' — Trabajadas vs Requeridas</div>';
+  html += svgBarras(mesesData, { titulo: '', unidad: 'h', doble: true, color1: '#3b82f6', color2: 'rgba(16,185,129,0.5)', legend1: 'Trabajadas', legend2: 'Requeridas', w: 360, h: 220 });
+  html += '</div>';
+
+  // Stats del año
+  var totTrab = mesesData.reduce(function(s,d){return s+d.valor;},0);
+  var totReq  = mesesData.reduce(function(s,d){return s+d.valor2;},0);
+  var totLics = lics.length;
+  html += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px">';
+  html += '<div style="background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:14px;text-align:center"><div style="font-size:24px;font-weight:900;color:var(--accent3);font-family:var(--mono)">' + Math.round(totTrab) + 'h</div><div style="font-size:10px;color:var(--text3);margin-top:3px">Total trabajadas ' + anio + '</div></div>';
+  html += '<div style="background:var(--bg2);border:1px solid rgba(16,185,129,.2);border-radius:12px;padding:14px;text-align:center"><div style="font-size:24px;font-weight:900;color:var(--green);font-family:var(--mono)">' + (totTrab > totReq ? '+' : '') + Math.round(totTrab - totReq) + 'h</div><div style="font-size:10px;color:var(--text3);margin-top:3px">Balance anual</div></div>';
+  html += '<div style="background:var(--bg2);border:1px solid rgba(245,158,11,.2);border-radius:12px;padding:14px;text-align:center"><div style="font-size:24px;font-weight:900;color:var(--yellow);font-family:var(--mono)">' + totLics + '</div><div style="font-size:10px;color:var(--text3);margin-top:3px">Licencias registradas</div></div>';
+  html += '</div>';
+
+  // Gráfico diferencia mensual
+  var diffData = mesesData.map(function(d) { return { label: d.label, valor: d.valor - d.valor2, color: (d.valor - d.valor2) >= 0 ? '#3b82f6' : '#ef4444' }; });
+  html += '<div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:16px">';
+  html += '<div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px">Balance mensual (extra/faltante)</div>';
+  html += svgBarras(diffData, { titulo: '', unidad: 'h', color1: '#3b82f6', w: 360, h: 180 });
+  html += '</div>';
+
+  cont.innerHTML = html;
+}
+
+function renderCompAgente(fichs, tipoMap, lics, anio, nombre, cont) {
+  if (!nombre) { cont.innerHTML = '<div class="empty"><p>Selecci\xF3n un agente</p></div>'; return; }
+  var tipo = tipoMap[nombre.toUpperCase()] || 'CH';
+  var tipoColor = tipo === 'PH' ? '#60a5fa' : tipo === 'PI' ? '#a78bfa' : tipo === 'CH' ? '#34d399' : '#f472b6';
+  var mesesData = [];
+  var totalTrabAnio = 0, totalExtraAnio = 0, totalFaltaAnio = 0;
+
+  for (var m = 1; m <= 12; m++) {
+    var r = calcHorasAgenteMes(fichs, nombre, anio, m, tipoMap);
+    mesesData.push({ label: MESES_NOMBRES[m-1], valor: r.trab, valor2: r.aCumplir, diff: r.diff });
+    totalTrabAnio += r.trab;
+    if (r.diff > 0) totalExtraAnio += r.diff;
+    if (r.diff < 0) totalFaltaAnio += Math.abs(r.diff);
+  }
+
+  var licAg = lics.filter(function(l) { return (l.agente||'').trim() === nombre; });
+  var html = '<div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:16px;margin-bottom:12px">';
+  html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">';
+  html += '<div style="font-size:15px;font-weight:800;color:var(--text)">' + nombre + '</div>';
+  html += '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;background:rgba(255,255,255,.06);color:' + tipoColor + '">' + tipo + '</span>';
+  html += '</div>';
+  // Stats anuales
+  html += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px">';
+  html += '<div style="text-align:center;padding:10px;background:var(--bg3);border-radius:10px"><div style="font-size:18px;font-weight:900;color:var(--text);font-family:var(--mono)">' + Math.round(totalTrabAnio) + 'h</div><div style="font-size:9px;color:var(--text3)">Total ' + anio + '</div></div>';
+  html += '<div style="text-align:center;padding:10px;background:rgba(16,185,129,.07);border-radius:10px"><div style="font-size:18px;font-weight:900;color:var(--green);font-family:var(--mono)">+' + totalExtraAnio.toFixed(1) + 'h</div><div style="font-size:9px;color:var(--text3)">Extras a\xF1o</div></div>';
+  html += '<div style="text-align:center;padding:10px;background:rgba(239,68,68,.07);border-radius:10px"><div style="font-size:18px;font-weight:900;color:var(--red);font-family:var(--mono)">-' + totalFaltaAnio.toFixed(1) + 'h</div><div style="font-size:9px;color:var(--text3)">Faltantes a\xF1o</div></div>';
+  html += '<div style="text-align:center;padding:10px;background:rgba(245,158,11,.07);border-radius:10px"><div style="font-size:18px;font-weight:900;color:var(--yellow);font-family:var(--mono)">' + licAg.length + '</div><div style="font-size:9px;color:var(--text3)">Licencias</div></div>';
+  html += '</div>';
+  // Gráfico línea horas trabajadas
+  html += svgLinea(mesesData, { titulo: 'Horas trabajadas por mes', color: tipoColor, unidad: 'h', w: 360, h: 180 });
+  html += '</div>';
+
+  // Gráfico balance mes a mes
+  var diffData = mesesData.map(function(d) { return { label: d.label, valor: d.diff, color: d.diff >= 0 ? '#3b82f6' : '#ef4444' }; });
+  html += '<div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:16px;margin-bottom:12px">';
+  html += '<div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px">Balance mensual</div>';
+  html += svgBarras(diffData, { titulo: '', unidad: 'h', w: 360, h: 170 });
+  html += '</div>';
+
+  // Historial de licencias
+  if (licAg.length > 0) {
+    html += '<div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:16px">';
+    html += '<div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Licencias registradas</div>';
+    licAg.forEach(function(l) {
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px">';
+      html += '<span style="color:var(--text)">' + (l.tipo_licencia || l.tipo || '—') + '</span>';
+      html += '<span style="color:var(--text3);font-family:var(--mono)">' + l.fecha_desde + ' \u2192 ' + l.fecha_hasta + '</span>';
+      html += '</div>';
+    });
+    html += '</div>';
+  }
+
+  cont.innerHTML = html;
+}
+
+function renderCompPuesto(fichs, tipoMap, anio, cont) {
+  var puestosSet = {};
+  fichs.forEach(function(f) { if (f.puesto) puestosSet[f.puesto] = true; });
+  var puestos = Object.keys(puestosSet).sort();
+  var datos = puestos.map(function(p) {
+    var fichP = fichs.filter(function(f) { return f.puesto === p; });
+    var total = 0;
+    fichP.forEach(function(f) {
+      if (!f.entrada || !f.salida) return;
+      var diff = (new Date(f.salida) - new Date(f.entrada)) / 3600000;
+      if (diff < 0) diff += 24;
+      total += diff;
+    });
+    return { label: p.split(' ')[0], valor: Math.round(total), color: '#3b82f6' };
+  });
+  var colores = ['#3b82f6','#10b981','#f59e0b','#8b5cf6','#ef4444','#f472b6','#34d399','#60a5fa','#a78bfa','#fbbf24'];
+  datos.forEach(function(d, i) { d.color = colores[i % colores.length]; });
+
+  var html = '<div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:16px;margin-bottom:12px">';
+  html += '<div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px">&#x1F4CD; Horas totales por barrio — ' + anio + '</div>';
+  html += svgBarras(datos, { titulo: '', unidad: 'h', w: 360, h: 220 });
+  html += '</div>';
+  // Tabla detalle
+  html += '<div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:14px">';
+  datos.sort(function(a,b){return b.valor-a.valor;}).forEach(function(d, i) {
+    html += '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">';
+    html += '<div style="font-size:12px;font-weight:800;color:var(--text3);width:20px">' + (i+1) + '</div>';
+    html += '<div style="flex:1;height:6px;border-radius:999px;background:var(--bg3);overflow:hidden"><div style="height:100%;width:' + Math.round(d.valor / datos[0].valor * 100) + '%;background:' + d.color + ';border-radius:999px"></div></div>';
+    html += '<div style="font-size:13px;font-weight:700;color:var(--text);min-width:80px">' + puestos[datos.indexOf(d)] + '</div>';
+    html += '<div style="font-size:13px;font-weight:900;color:' + d.color + ';font-family:var(--mono);min-width:60px;text-align:right">' + d.valor + 'h</div>';
+    html += '</div>';
+  });
+  html += '</div>';
+  cont.innerHTML = html;
+}
+
+function renderCompAusencias(fichs, lics, anio, cont) {
+  var mesesData = [];
+  for (var m = 1; m <= 12; m++) {
+    var mesStr = anio + '-' + String(m).padStart(2,'0');
+    var licsMes = lics.filter(function(l) { return l.fecha_desde.startsWith(mesStr); }).length;
+    // Contar dias sin salida ese mes
+    var sinSalida = fichs.filter(function(f) {
+      if (!f.entrada || f.salida) return false;
+      return f.entrada.startsWith(String(anio) + '-' + String(m).padStart(2,'0'));
+    }).length;
+    mesesData.push({ label: MESES_NOMBRES[m-1], valor: licsMes, valor2: sinSalida });
+  }
+
+  var html = '<div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:16px;margin-bottom:12px">';
+  html += '<div style="font-size:12px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px">Licencias y ausencias por mes — ' + anio + '</div>';
+  html += svgBarras(mesesData, { titulo: '', unidad: '', doble: true, color1: '#f59e0b', color2: '#ef4444', legend1: 'Licencias', legend2: 'Sin salida', w: 360, h: 200 });
+  html += '</div>';
+  var totLics = mesesData.reduce(function(s,d){return s+d.valor;},0);
+  var totSin  = mesesData.reduce(function(s,d){return s+d.valor2;},0);
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">';
+  html += '<div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:12px;padding:14px;text-align:center"><div style="font-size:28px;font-weight:900;color:var(--yellow);font-family:var(--mono)">' + totLics + '</div><div style="font-size:11px;color:var(--text3);margin-top:3px">Total licencias ' + anio + '</div></div>';
+  html += '<div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:12px;padding:14px;text-align:center"><div style="font-size:28px;font-weight:900;color:var(--red);font-family:var(--mono)">' + totSin + '</div><div style="font-size:11px;color:var(--text3);margin-top:3px">Salidas no registradas</div></div>';
+  html += '</div>';
+  cont.innerHTML = html;
+}
+
+function renderCompRanking(fichs, tipoMap, anio, cont) {
+  var agentesSet = {};
+  fichs.forEach(function(f) { if (f.agente) agentesSet[f.agente.trim()] = true; });
+  var agentes = Object.keys(agentesSet);
+  var ranking = [];
+  agentes.forEach(function(ag) {
+    var totExtra = 0, totFalta = 0;
+    for (var m = 1; m <= 12; m++) {
+      var r = calcHorasAgenteMes(fichs, ag, anio, m, tipoMap);
+      if (r.diff > 0) totExtra += r.diff;
+      if (r.diff < 0) totFalta += Math.abs(r.diff);
+    }
+    ranking.push({ nombre: ag, extra: totExtra, falta: totFalta });
+  });
+
+  var byExtra = ranking.slice().sort(function(a,b){return b.extra-a.extra;}).slice(0,10);
+  var byFalta = ranking.slice().sort(function(a,b){return b.falta-a.falta;}).slice(0,10);
+
+  var html = '<div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:16px;margin-bottom:12px">';
+  html += '<div style="font-size:12px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">&#x1F3C6; Top 10 — M\xe1s horas extra</div>';
+  byExtra.forEach(function(r, i) {
+    html += '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">';
+    html += '<span style="font-size:11px;font-weight:800;color:var(--text3);width:18px">' + (i+1) + '</span>';
+    html += '<span style="flex:1;font-size:12px;color:var(--text)">' + r.nombre + '</span>';
+    html += '<span style="font-size:13px;font-weight:900;color:var(--green);font-family:var(--mono)">+' + r.extra.toFixed(1) + 'h</span>';
+    html += '</div>';
+  });
+  html += '</div>';
+
+  html += '<div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:16px">';
+  html += '<div style="font-size:12px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">&#x26A0; Top 10 — M\xe1s horas faltantes</div>';
+  byFalta.forEach(function(r, i) {
+    html += '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border)">';
+    html += '<span style="font-size:11px;font-weight:800;color:var(--text3);width:18px">' + (i+1) + '</span>';
+    html += '<span style="flex:1;font-size:12px;color:var(--text)">' + r.nombre + '</span>';
+    html += '<span style="font-size:13px;font-weight:900;color:var(--red);font-family:var(--mono)">-' + r.falta.toFixed(1) + 'h</span>';
+    html += '</div>';
+  });
+  html += '</div>';
+  cont.innerHTML = html;
 }
 
 function loadHorasReales() {
