@@ -4937,6 +4937,11 @@ var RECORDATORIOS_MES = [
   // Ejemplo: { dia: 1, titulo: 'Inicio de mes', tipo: 'Comunicacion', mensajes: ['Comenzamos un nuevo mes...'] }
 ];
 // ── Fecha en zona horaria Argentina (UTC-3) ──
+function escapeHTML(str) {
+  if (!str) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 function fechaHoyAR() {
   // Offset Argentina: UTC-3 siempre (no tiene horario de verano desde 1999)
   var ahora = new Date();
@@ -10166,10 +10171,12 @@ function goView(name) {
     if (name === 'llaves' && typeof loadLlaves === 'function') loadLlaves();
     if (name === 'rrhh' && typeof loadRRHH === 'function') loadRRHH();
     if (name === 'admin' && typeof loadAdminTabla === 'function') {
-      // Activar tab General por defecto
-      selAdminTab('general');
-      loadAdminTabla('fichajes');
-      loadAdminStats();
+      // Pequeño delay para que el DOM del view esté visible antes de manipularlo
+      setTimeout(function() {
+        selAdminTab('general');
+        loadAdminTabla('fichajes');
+        loadAdminStats();
+      }, 30);
     }
     if (name === 'estadisticas' && typeof loadStats === 'function') loadStats('dia');
     if (name === 'novedades' && typeof loadNovedades === 'function') {
