@@ -6632,9 +6632,27 @@ function selAdminTab(tab) {
     }
     if (panel) panel.style.display = active ? 'block' : 'none';
   });
-  if (tab === 'horas')    loadHorasReales();
-  if (tab === 'personal') loadAgentesAdmin();
-  if (tab === 'informe')  iniciarTabInforme();
+  // Scroll al top del contenido
+  var vAdmin = document.getElementById('view-admin');
+  if (vAdmin) vAdmin.scrollTop = 0;
+  window.scrollTo(0, 0);
+
+  if (tab === 'horas')    { selHRTab('detalle'); }
+  if (tab === 'personal') { loadAgentesAdmin(); }
+  if (tab === 'informe')  {
+    selInfTab('novedades');
+    iniciarTabInforme();
+    // Setear fecha de hoy y buscar
+    var fechaEl = document.getElementById('pd-fecha');
+    if (fechaEl && !fechaEl.value) {
+      var ahAR = fechaHoyAR();
+      if (ahAR && ahAR.fecha) {
+        var p = ahAR.fecha.split('/');
+        fechaEl.value = p[2] + '-' + p[1] + '-' + p[0];
+      }
+    }
+    cargarPD();
+  }
 }
 
 // ── TAB INFORME DIARIO ──────────────────────────────────
@@ -7114,22 +7132,7 @@ var ADM_AG_CACHE = [];
 var ADM_AG_FILTRO_PUESTO = '';
 var ADM_AG_BUSQUEDA = '';
 
-function selAdminTab(tab) {
-  var tabs = ['general','horas','personal'];
-  tabs.forEach(function(t) {
-    var btn   = document.getElementById('adm-tab-' + t);
-    var panel = document.getElementById('adm-panel-' + t);
-    var isActive = t === tab;
-    if (btn) {
-      btn.style.background  = isActive ? 'rgba(248,113,113,.15)' : 'transparent';
-      btn.style.color       = isActive ? '#fca5a5' : 'var(--text3)';
-      btn.style.borderColor = isActive ? 'rgba(248,113,113,.35)' : 'var(--border)';
-    }
-    if (panel) panel.style.display = isActive ? 'block' : 'none';
-  });
-  if (tab === 'horas')    loadHorasReales();
-  if (tab === 'personal') loadAgentesAdmin();
-}
+// selAdminTab definida arriba
 
 function loadAgentesAdmin() {
   var lista = document.getElementById('adm-ag-lista'); if (!lista) return;
@@ -10163,6 +10166,8 @@ function goView(name) {
     if (name === 'llaves' && typeof loadLlaves === 'function') loadLlaves();
     if (name === 'rrhh' && typeof loadRRHH === 'function') loadRRHH();
     if (name === 'admin' && typeof loadAdminTabla === 'function') {
+      // Activar tab General por defecto
+      selAdminTab('general');
       loadAdminTabla('fichajes');
       loadAdminStats();
     }
