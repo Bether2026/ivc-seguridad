@@ -7620,6 +7620,13 @@ function _loadChoferes() {
             return _context41.a(2);
           }
           chtml = '';
+          // Si el usuario es chofer y tiene ruta activa → reactivar GPS
+          if (!GPS_TRACKING) {
+            var rutaActiva = list.find(function(r) { return r.estado === 'activo' && r.chofer === (USER.nombre || USER.puesto); });
+            if (rutaActiva && rutaActiva.movil) {
+              startGPSTransmission(rutaActiva.chofer, rutaActiva.movil);
+            }
+          }
           for (ci = 0; ci < list.length; ci++) {
             r = list[ci];
             isAct = r.estado === 'activo';
@@ -7921,7 +7928,9 @@ function _saveChof() {
           RUTA_FOTOS.inicio = [];
           document.getElementById('c-fotos-preview').innerHTML = '';
           closeOv('ov-chof');
-          toast('🚗 Hoja de ruta iniciada');
+          toast('🚗 Hoja de ruta iniciada — GPS activado');
+          // ── ACTIVAR GPS AL INICIAR RUTA ──
+          startGPSTransmission(chofer, movil);
           loadChoferes(); loadDash();
           return _ctx42.a(2);
       }
