@@ -6637,10 +6637,11 @@ function selAdminTab(tab) {
     }
     if (panel) panel.style.display = active ? 'block' : 'none';
   });
-  // Scroll al top del contenido
+  // Scroll al top del contenido principal
+  var mainContent = document.getElementById('main-content');
+  if (mainContent) mainContent.scrollTop = 0;
   var vAdmin = document.getElementById('view-admin');
   if (vAdmin) vAdmin.scrollTop = 0;
-  window.scrollTo(0, 0);
 
   if (tab === 'horas')    { selHRTab('detalle'); }
   if (tab === 'personal') { loadAgentesAdmin(); }
@@ -10153,6 +10154,9 @@ function _finRuta() {
 }
 function goView(name) {
   LAST_ACTIVE_SECTION = name;
+  // Siempre ir al top al cambiar de sección
+  var _mc = document.getElementById('main-content');
+  if (_mc) _mc.scrollTop = 0;
   document.querySelectorAll('.view').forEach(function (v) {
     return v.classList.remove('active');
   });
