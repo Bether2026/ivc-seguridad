@@ -4156,7 +4156,7 @@ function renderNovCard(n) {
   var ROLES_ADM_NOV = ['Administración', 'Administrador', 'Gerencia', 'Jefe de departamento', 'Responsable de turno'];
   if (USER && (ROLES_ADM_NOV.indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN')) {
     var tieneInforme = n.texto_informe || n.nro_pd || n.nro_pu;
-    h += '<button onclick="abrirCargarInforme(' + n.id + ')" ';
+    h += '<button onclick="abrirCargarInforme(\'' + n.id + '\')" ';
     h += 'style="padding:9px 14px;background:' + (tieneInforme ? 'rgba(16,185,129,0.15)' : 'rgba(59,130,246,0.08)') + ';border:1px solid ' + (tieneInforme ? 'rgba(16,185,129,0.4)' : 'rgba(59,130,246,0.25)') + ';border-radius:8px;color:' + (tieneInforme ? 'var(--green)' : '#93c5fd') + ';font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font);white-space:nowrap">';
     h += tieneInforme ? '📋 Ver informe' : '📋 Cargar informe';
     h += '</button>';
