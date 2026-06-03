@@ -1101,8 +1101,23 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
     </div>
     <!-- Campo especial para administrativos: texto formal para el informe -->
     <div class="form-group" id="n-informe-wrap" style="display:none">
-      <label class="form-label" style="color:var(--accent3)">&#x1F4CB; Texto para el informe <span style="font-size:10px;font-weight:400;color:var(--text3)">(peg&#xE1; el texto del Access)</span></label>
-      <textarea class="form-textarea" id="n-texto-informe" style="min-height:100px;border-color:rgba(59,130,246,.3)" placeholder="Peg&#xE1; ac&#xE1; el texto formal del informe del Access. Si lo dejás vacío se usa el texto del agente."></textarea>
+      <div style="background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.2);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px">
+        <div style="font-size:11px;font-weight:700;color:var(--accent3);text-transform:uppercase;letter-spacing:.08em">&#x1F4CB; Sección administrativa — Informe</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div>
+            <label class="form-label" style="font-size:10px">N° de PD</label>
+            <input class="form-input" id="n-nro-pd" placeholder="Ej: 2326" type="number" style="margin-bottom:0"/>
+          </div>
+          <div>
+            <label class="form-label" style="font-size:10px">N° de PU</label>
+            <input class="form-input" id="n-nro-pu" placeholder="Ej: 45" type="number" style="margin-bottom:0"/>
+          </div>
+        </div>
+        <div>
+          <label class="form-label" style="font-size:10px">Texto del informe <span style="font-weight:400;color:var(--text3)">(peg&#xE1; el texto del Access)</span></label>
+          <textarea class="form-textarea" id="n-texto-informe" style="min-height:90px;border-color:rgba(59,130,246,.3);margin-bottom:0" placeholder="Peg&#xE1; ac&#xE1; el texto formal. Si lo dejás vacío se usa el texto del agente."></textarea>
+        </div>
+      </div>
     </div>
     <div class="form-group">
       <label class="form-label">📷 Fotos / Evidencia</label>
@@ -1207,6 +1222,27 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
     </div>
 
     <button class="btn-login" id="btn-save-upd" onclick="saveUpdObj()">📍 Registrar Punto</button>
+
+    <!-- Campo administrativo — solo gestión -->
+    <div id="upd-informe-wrap" style="display:none;margin-top:12px">
+      <div style="background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.2);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px">
+        <div style="font-size:11px;font-weight:700;color:var(--accent3);text-transform:uppercase;letter-spacing:.08em">&#x1F4CB; Sección administrativa — Informe</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div>
+            <label class="form-label" style="font-size:10px">N° de PD</label>
+            <input class="form-input" id="upd-nro-pd" placeholder="Ej: 2326" type="number" style="margin-bottom:0"/>
+          </div>
+          <div>
+            <label class="form-label" style="font-size:10px">N° de PU</label>
+            <input class="form-input" id="upd-nro-pu" placeholder="Ej: 45" type="number" style="margin-bottom:0"/>
+          </div>
+        </div>
+        <div>
+          <label class="form-label" style="font-size:10px">Texto del informe <span style="font-weight:400;color:var(--text3)">(peg&#xE1; el texto del Access)</span></label>
+          <textarea class="form-textarea" id="upd-texto-informe" style="min-height:80px;border-color:rgba(59,130,246,.3);margin-bottom:0" placeholder="Peg&#xE1; ac&#xE1; el texto formal del informe."></textarea>
+        </div>
+      </div>
+    </div>
   </div>
 </div>
 <div class="overlay" id="ov-chof">
@@ -1609,7 +1645,47 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
     </div>
     <div class="view" id="view-objetivos">
       <div class="page-header"><h2><span style="color:#a78bfa;margin-right:10px;text-shadow:0 0 12px rgba(167,139,250,0.5)">🎯</span>Control de Objetivo</h2><p>Recorridos y tareas operativas</p></div>
-      <div id="obj-list"></div>
+
+      <!-- Tabs: solo gestión ve el de Informe -->
+      <div id="obj-tabs-bar" style="display:flex;gap:8px;margin-bottom:14px">
+        <button id="obj-tab-lista" onclick="selObjTab('lista')" style="padding:7px 16px;border-radius:8px;border:1px solid rgba(167,139,250,.35);background:rgba(167,139,250,.15);color:#c4b5fd;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">&#x1F3AF; Recorridos</button>
+        <button id="obj-tab-informe" onclick="selObjTab('informe')" style="display:none;padding:7px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">&#x1F4C4; Informe</button>
+      </div>
+
+      <!-- Panel lista de recorridos -->
+      <div id="obj-panel-lista">
+        <div id="obj-list"></div>
+      </div>
+
+      <!-- Panel informe de recorridos -->
+      <div id="obj-panel-informe" style="display:none">
+        <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:16px;margin-bottom:14px">
+          <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">&#x1F4C4; Informe de Control de Objetivo</div>
+          <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">Generá un informe HTML con los recorridos del período seleccionado.</div>
+          <div style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap">
+            <div>
+              <label style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:4px">Fecha desde</label>
+              <input type="date" id="obj-inf-desde" class="form-input" style="padding:8px 12px;width:155px;margin-bottom:0"/>
+            </div>
+            <div>
+              <label style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:4px">Fecha hasta</label>
+              <input type="date" id="obj-inf-hasta" class="form-input" style="padding:8px 12px;width:155px;margin-bottom:0"/>
+            </div>
+            <button onclick="generarInformeRecorridos()" style="padding:9px 18px;border-radius:10px;border:1px solid rgba(167,139,250,.35);background:rgba(167,139,250,.1);color:#c4b5fd;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">&#x1F441; Generar preview</button>
+          </div>
+        </div>
+        <div id="obj-inf-preview-container" style="display:none">
+          <div style="background:var(--bg2);border:1px solid rgba(16,185,129,.3);border-radius:12px;padding:14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--green)">&#x2713; Preview listo &#x2014; edit&#xE1;lo si quer&#xE9;s</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:3px">Clic en texto para editar. &#xD7; para eliminar fila.</div>
+            </div>
+            <button onclick="descargarInformeRecorridos()" style="padding:9px 18px;border-radius:10px;border:1px solid rgba(16,185,129,.35);background:rgba(16,185,129,.15);color:#6ee7b7;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">&#x2B07; Descargar final</button>
+          </div>
+          <div id="obj-inf-frame" style="border:1px solid var(--border2);border-radius:10px;overflow:hidden;background:#fff;min-height:200px"></div>
+        </div>
+      </div>
+
     </div>
     <div class="view" id="view-choferes">
       <div class="page-header"><h2><span style="color:#fb923c;margin-right:8px;text-shadow:0 0 12px rgba(251,146,60,0.5)">🚗</span>Choferes</h2><p>Hojas de ruta y movilidades</p></div>
@@ -1644,6 +1720,39 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
       <!-- SUB-TAB: TALLER -->
       <div id="chof-sub-taller" style="display:none">
         <div id="taller-list"></div>
+      </div>
+
+      <!-- SUB-TAB: INFORME DE RECORRIDOS (solo gestión) -->
+      <div id="chof-sub-informe-ruta" style="display:none">
+        <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:16px;margin-bottom:14px">
+          <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">&#x1F4C4; Informe de Recorridos</div>
+          <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">
+            Generá un informe HTML con las hojas de ruta del período seleccionado.
+          </div>
+          <div style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap">
+            <div>
+              <label style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:4px">Fecha desde</label>
+              <input type="date" id="ruta-inf-desde" class="form-input" style="padding:8px 12px;width:155px;margin-bottom:0"/>
+            </div>
+            <div>
+              <label style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:4px">Fecha hasta</label>
+              <input type="date" id="ruta-inf-hasta" class="form-input" style="padding:8px 12px;width:155px;margin-bottom:0"/>
+            </div>
+            <button onclick="generarInformeRecorridos()" style="padding:9px 18px;border-radius:10px;border:1px solid rgba(251,146,60,.35);background:rgba(251,146,60,.1);color:#fdba74;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">
+              &#x1F441; Generar preview
+            </button>
+          </div>
+        </div>
+        <div id="ruta-inf-preview-container" style="display:none">
+          <div style="background:var(--bg2);border:1px solid rgba(16,185,129,.3);border-radius:12px;padding:14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--green)">&#x2713; Preview listo &#x2014; edit&#xE1;lo si necesit&#xE1;s</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:3px">Clic en cualquier texto para editar. &#xD7; para eliminar una fila.</div>
+            </div>
+            <button onclick="descargarInformeRecorridos()" style="padding:9px 18px;border-radius:10px;border:1px solid rgba(16,185,129,.35);background:rgba(16,185,129,.15);color:#6ee7b7;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">&#x2B07; Descargar final</button>
+          </div>
+          <div id="ruta-inf-frame" style="border:1px solid var(--border2);border-radius:10px;overflow:hidden;background:#fff;min-height:200px"></div>
+        </div>
       </div>
 
       <!-- SUB-TAB: GPS -->
@@ -5162,6 +5271,9 @@ function openOv(id) {
     if ($('n-puesto-wrap'))   $('n-puesto-wrap').style.display  = esAdm ? 'block' : 'none';
     if ($('n-informe-wrap'))  $('n-informe-wrap').style.display = esAdm ? 'block' : 'none';
   }
+  if (id === 'ov-obj-upd') {
+    if ($('upd-informe-wrap')) $('upd-informe-wrap').style.display = esAdm ? 'block' : 'none';
+  }
   if (id === 'ov-obj' && esAdm && $('o-puesto-wrap')) $('o-puesto-wrap').style.display = 'block';
 }
 function closeOv(id) {
@@ -5354,6 +5466,8 @@ function initApp() {
   var canSeeGPS = ['Gerencia', 'Administración', 'Administrador', 'Jefe de departamento'].includes(USER.puesto);
   if (canSeeGPS && $('tab-gps')) $('tab-gps').style.display = 'flex';
   if (canSeeGPS) startGPSRefresh();
+  // Tab informe en C.Objetivo solo para gestión
+  if (canSeeGPS && $('obj-tab-informe')) $('obj-tab-informe').style.display = 'flex';
   var isAdminUser = ['Administración', 'Administrador', 'Gerencia', 'Jefe de departamento'].includes(USER.puesto) || USER.rol === 'ADMIN';
   // Roles que pueden ver licencias y elegir puesto manualmente
   var ROLES_GESTION = ['Administración', 'Administrador', 'Gerencia', 'Jefe de departamento', 'Responsable de turno', 'Emergencias'];
@@ -6505,6 +6619,70 @@ function abrirRegistrarControl() {
   openOv('ov-control');
 }
 
+function selObjTab(tab) {
+  var tabs = ['lista', 'informe'];
+  tabs.forEach(function(t) {
+    var btn   = document.getElementById('obj-tab-' + t);
+    var panel = document.getElementById('obj-panel-' + t);
+    var active = t === tab;
+    if (btn) {
+      btn.style.background  = active ? 'rgba(167,139,250,.15)' : 'transparent';
+      btn.style.color       = active ? '#c4b5fd' : 'var(--text3)';
+      btn.style.borderColor = active ? 'rgba(167,139,250,.35)' : 'var(--border)';
+    }
+    if (panel) panel.style.display = active ? 'block' : 'none';
+  });
+}
+
+function generarInformeRecorridos() {
+  var desdeEl = document.getElementById('obj-inf-desde');
+  var hastaEl = document.getElementById('obj-inf-hasta');
+  var desdeVal = desdeEl ? desdeEl.value : '';
+  var hastaVal = hastaEl ? hastaEl.value : '';
+  if (!desdeVal && !hastaVal) { toast('Selecion\xE1 al menos una fecha', 'err'); return; }
+  var container = document.getElementById('obj-inf-preview-container');
+  var frame     = document.getElementById('obj-inf-frame');
+  if (container) container.style.display = 'none';
+  var desdeUTC = desdeVal ? desdeVal + 'T03:00:00.000Z' : '2020-01-01T00:00:00.000Z';
+  var hastaUTC;
+  if (hastaVal) { var dh = new Date(hastaVal + 'T03:00:00.000Z'); dh.setUTCDate(dh.getUTCDate() + 1); hastaUTC = dh.toISOString(); }
+  else          { var dd = new Date(desdeVal  + 'T03:00:00.000Z'); dd.setUTCDate(dd.getUTCDate() + 1); hastaUTC = dd.toISOString(); }
+  toast('Cargando recorridos...');
+  db.from('objetivos').select('*').gte('created_at', desdeUTC).lte('created_at', hastaUTC).order('created_at', { ascending: true }).then(function(r) {
+    if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+    var rutas = r.data || [];
+    if (!rutas.length) { toast('Sin recorridos para el per\xEDodo', 'err'); return; }
+    var fechaDisplay = (desdeVal && hastaVal && desdeVal !== hastaVal)
+      ? desdeVal.split('-').reverse().join('/') + ' al ' + hastaVal.split('-').reverse().join('/')
+      : (desdeVal || hastaVal).split('-').reverse().join('/');
+    var html = construirHTMLRecorridos(rutas, fechaDisplay);
+    if (frame) frame.innerHTML = html;
+    if (container) container.style.display = 'block';
+    toast('\u2713 Preview listo');
+  });
+}
+
+function descargarInformeRecorridos() {
+  var frame = document.getElementById('obj-inf-frame');
+  if (!frame || !frame.innerHTML.trim()) { toast('Primero gener\xE1 el preview', 'err'); return; }
+  var tmpDiv = document.createElement('div');
+  tmpDiv.innerHTML = frame.innerHTML;
+  tmpDiv.querySelectorAll('.btn-del-row').forEach(function(b) { b.remove(); });
+  tmpDiv.querySelectorAll('[contenteditable]').forEach(function(el) { el.removeAttribute('contenteditable'); });
+  var htmlFinal = '<!DOCTYPE html>\n<html lang="es">\n<head>\n<meta charset="UTF-8">\n<title>Informe de Recorridos IVC</title>\n</head>\n<body style="margin:0;padding:0;background:#fff">\n' + tmpDiv.innerHTML + '\n</body>\n</html>';
+  var blob = new Blob([htmlFinal], { type: 'text/html;charset=utf-8' });
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
+  var desdeVal = ((document.getElementById('obj-inf-desde') || {}).value || '').replace(/-/g,'');
+  var hastaVal = ((document.getElementById('obj-inf-hasta') || {}).value || '').replace(/-/g,'');
+  a.href = url;
+  a.download = 'Informe_Recorridos_' + (desdeVal || 'sin_fecha') + (hastaVal && hastaVal !== desdeVal ? '_al_' + hastaVal : '') + '.html';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+  toast('\u2B07 Informe descargado');
+}
+
+
 function guardarControl() {
   if (!CTRL_ESTADO)    { toast('Seleccioná el estado del punto', 'err'); return; }
   if (!CTRL_FOTO_FILE) { toast('La foto del control es obligatoria', 'err'); return; }
@@ -6512,6 +6690,7 @@ function guardarControl() {
   if (CTRL_ESTADO === 'novedad' && !obs) { toast('Describí la novedad encontrada', 'err'); return; }
   setLoading('btn-save-ctrl', true);
   var ahora = fechaHoyAR();
+
   uploadToR2Comprimido(CTRL_FOTO_FILE, 'controles').then(function(fotoUrl) {
     db.from('controles_punto').insert({
       punto_id: CTRL_PUNTO_ID, agente: USER.nombre || USER.puesto, puesto: USER.puesto,
@@ -6520,8 +6699,35 @@ function guardarControl() {
     }).then(function(r) {
       setLoading('btn-save-ctrl', false);
       if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+
+      // Si hay incidencia → crear novedad automáticamente
+      if (CTRL_ESTADO === 'novedad' && obs) {
+        // Obtener info del punto crítico para la novedad
+        db.from('puntos_criticos').select('titulo,categoria,barrio').eq('id', CTRL_PUNTO_ID).single().then(function(rp) {
+          var punto = (rp.data || {});
+          var novPayload = {
+            puesto:    punto.barrio || USER.puesto,
+            tipo:      punto.categoria || 'Punto crítico',
+            asunto:    'Control: ' + (punto.titulo || 'Punto crítico'),
+            detalle:   obs,
+            agente:    USER.nombre || USER.puesto,
+            foto_url:  fotoUrl,
+            pendiente: true,
+            created_at: new Date().toISOString()
+          };
+          db.from('novedades').insert(novPayload).then(function(rn) {
+            if (!rn.error) {
+              toast('\u26A0\uFE0F Incidencia registrada y novedad creada autom\xE1ticamente');
+            } else {
+              toast('\u26A0\uFE0F Control registrado (novedad no pudo crearse)');
+            }
+          });
+        });
+      } else {
+        toast(CTRL_ESTADO === 'ok' ? '\u2705 Control registrado \u2014 Sin novedad' : '\u26A0\uFE0F Control registrado');
+      }
+
       closeOv('ov-control');
-      toast(CTRL_ESTADO === 'ok' ? '\u2705 Control registrado — Sin novedad' : '\u26A0\uFE0F Control registrado — Novedad reportada');
       CTRL_FOTO_FILE = null;
       loadPendientes();
     });
@@ -6973,64 +7179,98 @@ function generarPreviewInforme() {
   var hastaVal = hastaEl ? hastaEl.value : '';
   var autor    = autorEl ? (autorEl.value.trim() || 'Administración') : 'Administración';
 
-  if (!desdeVal && !hastaVal) { toast('Selecioná al menos una fecha', 'err'); return; }
+  if (!desdeVal && !hastaVal) { toast('Seleccioná al menos una fecha', 'err'); return; }
 
-  if (statusEl) { statusEl.style.display = 'flex'; }
-  if (statusTxt) statusTxt.textContent = 'Cargando novedades...';
+  if (statusEl) statusEl.style.display = 'flex';
+  if (statusTxt) statusTxt.textContent = 'Buscando informes del período...';
   if (container) container.style.display = 'none';
 
-  // Construir rango UTC
   var desdeUTC = desdeVal ? desdeVal + 'T03:00:00.000Z' : '2020-01-01T00:00:00.000Z';
   var hastaUTC;
   if (hastaVal) {
-    // fin del día hasta en AR = siguiente día a las 02:59:59 UTC
-    var d = new Date(hastaVal + 'T03:00:00.000Z');
-    d.setUTCDate(d.getUTCDate() + 1);
-    hastaUTC = d.toISOString();
+    var dh = new Date(hastaVal + 'T03:00:00.000Z');
+    dh.setUTCDate(dh.getUTCDate() + 1);
+    hastaUTC = dh.toISOString();
   } else {
-    var d2 = new Date(desdeVal + 'T03:00:00.000Z');
-    d2.setUTCDate(d2.getUTCDate() + 1);
-    hastaUTC = d2.toISOString();
+    var dd = new Date(desdeVal + 'T03:00:00.000Z');
+    dd.setUTCDate(dd.getUTCDate() + 1);
+    hastaUTC = dd.toISOString();
   }
 
-  db.from('novedades').select('*').gte('created_at', desdeUTC).lte('created_at', hastaUTC).order('created_at', { ascending: true }).then(function(r) {
-    if (r.error) {
+  // Cargar en paralelo: novedades Y objetivos del período
+  Promise.all([
+    db.from('novedades').select('*').gte('created_at', desdeUTC).lte('created_at', hastaUTC).order('created_at', { ascending: true }),
+    db.from('objetivos').select('*').gte('created_at', desdeUTC).lte('created_at', hastaUTC).order('created_at', { ascending: true })
+  ]).then(function(results) {
+    var todasNovedades = results[0].data || [];
+    var todosObjetivos = results[1].data || [];
+
+    // Filtrar: solo las que tienen texto_informe O nro_pd O nro_pu
+    var novedadesInforme = todasNovedades.filter(function(n) {
+      return n.texto_informe || n.nro_pd || n.nro_pu;
+    });
+
+    // De objetivos: extraer las actualizaciones que tienen texto_informe
+    var puntosInforme = [];
+    todosObjetivos.forEach(function(obj) {
+      var acts = obj.actualizaciones || [];
+      acts.forEach(function(a) {
+        if (a.texto_informe || a.nro_pd || a.nro_pu) {
+          // Convertir a formato novedad para unificar
+          puntosInforme.push({
+            id: obj.id + '_' + (a.nro_pd || a.nro_pu || ''),
+            puesto:         obj.puesto || USER.puesto,
+            tipo:           'Control de Objetivo',
+            asunto:         'Relevamiento — ' + (a.lugar || obj.nombre || ''),
+            detalle:        a.obs || '',
+            texto_informe:  a.texto_informe || null,
+            nro_pd:         a.nro_pd || null,
+            nro_pu:         a.nro_pu || null,
+            agente:         obj.cargado_por || '',
+            observaciones:  null,
+            foto_url:       a.foto || null,
+            fuerza_publica: false,
+            created_at:     a.fecha || obj.created_at
+          });
+        }
+      });
+    });
+
+    // Unir todo y ordenar por hora
+    var todos = novedadesInforme.concat(puntosInforme);
+    todos.sort(function(a, b) { return new Date(a.created_at) - new Date(b.created_at); });
+
+    if (!todos.length) {
       if (statusEl) statusEl.style.display = 'none';
-      toast('Error: ' + r.error.message, 'err');
+      toast('Sin informes administrativos para el período. Verificá que las novedades tengan texto de informe o N° de PD/PU.', 'err');
       return;
     }
-    var novedades = r.data || [];
-    if (!novedades.length) {
-      if (statusEl) statusEl.style.display = 'none';
-      toast('Sin novedades para el período seleccionado', 'err');
-      return;
-    }
-    if (statusTxt) statusTxt.textContent = 'Cargando fotos (' + novedades.length + ' novedades)...';
+
+    if (statusTxt) statusTxt.textContent = 'Encontrados ' + todos.length + ' informes. Cargando fotos...';
 
     // Agrupar por puesto
     var porPuesto = {};
-    novedades.forEach(function(n) {
+    todos.forEach(function(n) {
       var p = n.puesto || 'Sin barrio';
       if (!porPuesto[p]) porPuesto[p] = [];
       porPuesto[p].push(n);
     });
 
-    // Construir fecha display
+    // Fecha display
     var fechaDisplay = '';
     if (desdeVal && hastaVal && desdeVal !== hastaVal) {
       fechaDisplay = desdeVal.split('-').reverse().join('/') + ' al ' + hastaVal.split('-').reverse().join('/');
     } else {
-      var fv = desdeVal || hastaVal;
-      var fp = fv.split('-');
+      var fp = (desdeVal || hastaVal).split('-');
       fechaDisplay = fp[2] + '/' + fp[1] + '/' + fp[0];
     }
     var diasNom = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
     var diaNom = (desdeVal && desdeVal === hastaVal) ? diasNom[new Date(desdeVal + 'T12:00:00').getDay()] : '';
 
-    // Cargar fotos como base64
+    // Cargar fotos
     var fotosMap = {};
     var fotoPromises = [];
-    novedades.forEach(function(n) {
+    todos.forEach(function(n) {
       var fotos = [];
       if (n.foto_url)  fotos.push(n.foto_url);
       if (n.foto_url2) fotos.push(n.foto_url2);
@@ -7040,12 +7280,12 @@ function generarPreviewInforme() {
         if (!fotosMap[url]) {
           fotosMap[url] = null;
           fotoPromises.push(
-            fetch(url).then(function(resp){ return resp.blob(); }).then(function(blob){
+            fetch(url).then(function(r){ return r.blob(); }).then(function(b){
               return new Promise(function(res){
                 var fr = new FileReader();
                 fr.onload = function(e){ fotosMap[url] = e.target.result; res(); };
                 fr.onerror = function(){ res(); };
-                fr.readAsDataURL(blob);
+                fr.readAsDataURL(b);
               });
             }).catch(function(){})
           );
@@ -7054,14 +7294,16 @@ function generarPreviewInforme() {
     });
 
     if (statusTxt) statusTxt.textContent = 'Generando informe...';
-
     Promise.all(fotoPromises).then(function() {
       if (statusEl) statusEl.style.display = 'none';
-      var html = construirHTMLEditablePreview(porPuesto, novedades, fotosMap, fechaDisplay, diaNom, autor);
+      var html = construirHTMLEditablePreview(porPuesto, todos, fotosMap, fechaDisplay, diaNom, autor);
       if (frame) frame.innerHTML = html;
       if (container) container.style.display = 'block';
-      toast('&#x1F441; Preview listo — editá y descargá');
+      toast('\u2713 ' + todos.length + ' informes encontrados — edit\xE1 y descarg\xE1');
     });
+  }).catch(function(e) {
+    if (statusEl) statusEl.style.display = 'none';
+    toast('Error: ' + e.message, 'err');
   });
 }
 
@@ -7109,6 +7351,8 @@ function construirHTMLEditablePreview(porPuesto, novedades, fotosMap, fechaDispl
       html += '<button class="btn-del-row" onclick="this.closest(\'.novedad\').remove()" title="Eliminar fila">&times;</button>\n';
       html += '<div class="col1"><div class="c1-tipo" contenteditable="true">' + escapeHTML(n.tipo || n.asunto || 'Novedad') + '</div>';
       html += '<div class="c1-meta" contenteditable="true"><strong>' + escapeHTML(fechaDisplay) + '</strong><br>' + escapeHTML(horaStr) + ' hs</div>';
+      if (n.nro_pd) html += '<div style="font-size:8pt;font-weight:700;color:#2563eb;margin-top:3px">PD N\xB0 ' + n.nro_pd + '</div>';
+      if (n.nro_pu) html += '<div style="font-size:8pt;font-weight:700;color:#7c3aed;margin-top:2px">PU N\xB0 ' + n.nro_pu + '</div>';
       if (n.fuerza_publica) html += '<span class="badge-fp">Fuerza P&uacute;blica</span>';
       html += '</div>\n';
       html += '<div class="col2"><div class="nov-txt" contenteditable="true">' + escapeHTML(n.texto_informe || n.detalle || '\u2014') + '</div>';
@@ -9398,6 +9642,8 @@ function _saveNov() {
             ubicacion: $('n-ubicacion').value,
             detalle: $('n-detalle').value,
             texto_informe: ($('n-texto-informe') && $('n-texto-informe').value.trim()) ? $('n-texto-informe').value.trim() : null,
+            nro_pd: ($('n-nro-pd') && $('n-nro-pd').value) ? parseInt($('n-nro-pd').value) : null,
+            nro_pu: ($('n-nro-pu') && $('n-nro-pu').value) ? parseInt($('n-nro-pu').value) : null,
             relevancia: $('n-relev').value,
             pendiente: pend,
             caso: null,
@@ -9440,7 +9686,7 @@ function _saveNov() {
           closeOv('ov-nov');
           toast('OK Novedad guardada' + (FOTOS_PENDIENTES.length ? " con ".concat(FOTOS_PENDIENTES.length, " foto(s)") : ''));
           FOTOS_PENDIENTES = [];
-          ['n-asunto-otro', 'n-ubicacion', 'n-detalle', 'n-texto-informe'].forEach(function (id) {
+          ['n-asunto-otro', 'n-ubicacion', 'n-detalle', 'n-texto-informe', 'n-nro-pd', 'n-nro-pu'].forEach(function (id) {
             return $(id).value = '';
           });
           $('n-pend').checked = false;
@@ -9690,6 +9936,10 @@ async function saveUpdObj() {
     }
   }
 
+  var textoInforme = ($('upd-texto-informe') && $('upd-texto-informe').value.trim()) ? $('upd-texto-informe').value.trim() : null;
+  var nroPD = ($('upd-nro-pd') && $('upd-nro-pd').value) ? parseInt($('upd-nro-pd').value) : null;
+  var nroPU = ($('upd-nro-pu') && $('upd-nro-pu').value) ? parseInt($('upd-nro-pu').value) : null;
+
   // Get current actualizaciones
   var res = await db.from('objetivos').select('actualizaciones, progreso').eq('id', id).single();
   var acts = (res.data && res.data.actualizaciones) ? res.data.actualizaciones : [];
@@ -9701,7 +9951,10 @@ async function saveUpdObj() {
     fecha: now.toISOString(),
     incidencia: OBJ_CON_INCIDENCIA,
     obs: obs,
-    foto: fotoUrl || null
+    foto: fotoUrl || null,
+    texto_informe: textoInforme,
+    nro_pd: nroPD,
+    nro_pu: nroPU
   });
 
   var newProg = Math.min(100, acts.length * 10);
@@ -9739,6 +9992,9 @@ async function saveUpdObj() {
 
   closeOv('ov-obj-upd');
   OBJ_UPD_FOTO_FILE = null;
+  if ($('upd-texto-informe')) $('upd-texto-informe').value = '';
+  if ($('upd-nro-pd')) $('upd-nro-pd').value = '';
+  if ($('upd-nro-pu')) $('upd-nro-pu').value = '';
   loadObjetivos();
   loadDash();
 }
@@ -10160,11 +10416,30 @@ function saveParada(finalizar) {
 
   uploadFotosRuta(RUTA_FOTOS.parada, 'rutas/paradas').then(function(urls) {
     parada.fotos = urls;
-    return db.from('rutas').select('paradas').eq('id', rutaId).single();
+    return db.from('rutas').select('paradas,movil,chofer').eq('id', rutaId).single();
   }).then(function(res) {
     var paradas = (res.data && res.data.paradas) ? res.data.paradas : [];
+    var rutaInfo = res.data || {};
     paradas.push(parada);
-    return db.from('rutas').update({ paradas: paradas }).eq('id', rutaId);
+    return db.from('rutas').update({ paradas: paradas }).eq('id', rutaId).then(function() {
+      // Si hay incidencia → crear novedad automática
+      if (PARADA_CON_INCIDENCIA && parada.detalle_inc) {
+        var fotoPrincipal = (parada.fotos && parada.fotos.length) ? parada.fotos[0] : null;
+        var novPayload = {
+          puesto:     USER.puesto,
+          tipo:       parada.tipo_inc || 'Incidencia en recorrido',
+          asunto:     'Incidencia: ' + (parada.tipo_inc || 'Recorrido') + ' — ' + (puesto || ''),
+          detalle:    parada.detalle_inc,
+          agente:     rutaInfo.chofer || USER.nombre || USER.puesto,
+          foto_url:   fotoPrincipal,
+          pendiente:  true,
+          created_at: new Date().toISOString()
+        };
+        db.from('novedades').insert(novPayload).then(function(rn) {
+          if (!rn.error) toast('\u26A0\uFE0F Incidencia registrada y novedad creada autom\xE1ticamente');
+        });
+      }
+    });
   }).then(function() {
     closeOv('ov-parada-ruta');
     RUTA_FOTOS.parada = [];
