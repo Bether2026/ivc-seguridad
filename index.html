@@ -1021,6 +1021,26 @@ body::after { display: none; }
 
 input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; font-weight: 500; }
 .card::after { display: none; }
+/* MÉTRICAS */
+.mp-btn { padding:7px 14px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer; }
+.mp-btn-active { border-color:rgba(248,113,113,.35)!important;background:rgba(248,113,113,.12)!important;color:#fca5a5!important; }
+.mp-card { background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:14px; }
+.mp-card-title { font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px; }
+.mp-bar-wrap { margin-bottom:7px; }
+.mp-bar-row { font-size:11px;color:var(--text2);margin-bottom:3px;display:flex;justify-content:space-between;align-items:center;gap:6px; }
+.mp-bar-name { flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+.mp-bar-cnt { font-weight:700;color:var(--text);flex-shrink:0; }
+.mp-bar-track { background:var(--bg3);border-radius:999px;height:7px;overflow:hidden;flex:2; }
+.mp-bar-fill { height:7px;border-radius:999px; }
+.mp-kpi-card { background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:14px;text-align:center; }
+.mp-kpi-val { font-size:28px;font-weight:900;line-height:1;margin:4px 0; }
+.mp-kpi-lbl { font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.08em; }
+.mp-kpi-sub { font-size:10px;color:var(--text3);margin-top:3px; }
+.mp-empty { font-size:12px;color:var(--text3);text-align:center;padding:16px 0; }
+.mp-evol-wrap { display:flex;align-items:flex-end;gap:3px;height:70px;margin-top:6px; }
+.mp-evol-col { flex:1;display:flex;flex-direction:column;align-items:center;gap:2px; }
+.mp-evol-bar { width:100%;border-radius:3px 3px 0 0;min-height:2px; }
+.mp-evol-lbl { font-size:8px;color:var(--text3);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%; }
 </style>
 </head>
 <body>
@@ -2291,6 +2311,7 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
         <button id="adm-tab-horas" onclick="selAdminTab('horas')" style="flex-shrink:0;padding:8px 18px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">📊 Horas Reales</button>
         <button id="adm-tab-personal" onclick="selAdminTab('personal')" style="flex-shrink:0;padding:8px 18px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">👤 Personal</button>
         <button id="adm-tab-informe" onclick="selAdminTab('informe')" style="flex-shrink:0;padding:8px 18px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">📄 Informe Diario</button>
+        <button id="adm-tab-metricas" onclick="selAdminTab('metricas')" style="flex-shrink:0;padding:8px 18px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">📈 Métricas</button>
       </div>
 
       <div id="adm-panel-general">
@@ -2522,6 +2543,125 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
         </div>
 
       </div>
+
+      <!-- TAB MÉTRICAS -->
+      <div id="adm-panel-metricas" style="display:none">
+
+        <!-- Selector de período -->
+        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;align-items:center;justify-content:space-between">
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button onclick="selMetricaPeriodo('dia')"    id="mp-dia"    class="mp-btn mp-btn-active">Hoy</button>
+            <button onclick="selMetricaPeriodo('semana')" id="mp-semana" class="mp-btn">Esta semana</button>
+            <button onclick="selMetricaPeriodo('mes')"    id="mp-mes"    class="mp-btn">Este mes</button>
+            <button onclick="selMetricaPeriodo('anual')"  id="mp-anual"  class="mp-btn">Este a&#xF1;o</button>
+            <button onclick="selMetricaPeriodo('custom')" id="mp-custom" class="mp-btn">Personalizado</button>
+          </div>
+          <button onclick="cargarMetricas()" style="padding:7px 16px;border-radius:8px;border:1px solid rgba(59,130,246,.35);background:rgba(59,130,246,.1);color:#93c5fd;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">&#x1F504; Actualizar</button>
+        </div>
+
+        <!-- Rango personalizado -->
+        <div id="mp-custom-range" style="display:none;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:12px;margin-bottom:14px;display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+          <div><label style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;display:block;margin-bottom:4px">Desde</label>
+          <input type="date" id="mp-desde" class="form-input" style="padding:7px 10px;width:150px;margin-bottom:0"/></div>
+          <div><label style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;display:block;margin-bottom:4px">Hasta</label>
+          <input type="date" id="mp-hasta" class="form-input" style="padding:7px 10px;width:150px;margin-bottom:0"/></div>
+          <button onclick="cargarMetricas()" style="padding:8px 16px;border-radius:8px;border:1px solid rgba(16,185,129,.35);background:rgba(16,185,129,.1);color:#6ee7b7;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">Aplicar</button>
+        </div>
+
+        <!-- Loading -->
+        <div id="mp-loading" style="display:none;text-align:center;padding:40px;color:var(--text3)">
+          <span class="spinner" style="width:24px;height:24px;border-width:3px;display:inline-block"></span>
+          <div style="margin-top:12px;font-size:13px">Cargando m&#xE9;tricas...</div>
+        </div>
+
+        <!-- Contenido -->
+        <div id="mp-contenido">
+
+          <!-- KPIs principales -->
+          <div id="mp-kpis" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:20px"></div>
+
+          <!-- Sección Novedades -->
+          <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)">&#x1F4CB; Novedades</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+            <div class="mp-card">
+              <div class="mp-card-title">Por barrio</div>
+              <div id="mp-nov-barrio"></div>
+            </div>
+            <div class="mp-card">
+              <div class="mp-card-title">Por tipo de asunto</div>
+              <div id="mp-nov-tipo"></div>
+            </div>
+            <div class="mp-card">
+              <div class="mp-card-title">Por agente</div>
+              <div id="mp-nov-agente"></div>
+            </div>
+            <div class="mp-card">
+              <div class="mp-card-title">Por hora del d&#xED;a</div>
+              <div id="mp-nov-hora"></div>
+            </div>
+            <div class="mp-card" style="grid-column:1/-1">
+              <div class="mp-card-title">Evoluci&#xF3;n en el tiempo</div>
+              <div id="mp-nov-evol"></div>
+            </div>
+          </div>
+
+          <!-- Sección Fichajes -->
+          <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)">&#x1F4CB; Fichajes</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+            <div class="mp-card">
+              <div class="mp-card-title">Fichajes por barrio</div>
+              <div id="mp-fich-barrio"></div>
+            </div>
+            <div class="mp-card">
+              <div class="mp-card-title">Promedio de horas trabajadas</div>
+              <div id="mp-fich-horas"></div>
+            </div>
+            <div class="mp-card" style="grid-column:1/-1">
+              <div class="mp-card-title">Agentes que m&#xE1;s ficharon</div>
+              <div id="mp-fich-agentes"></div>
+            </div>
+          </div>
+
+          <!-- Sección Control de Objetivo -->
+          <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)">&#x1F3AF; Control de Objetivo</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+            <div class="mp-card">
+              <div class="mp-card-title">Recorridos por barrio</div>
+              <div id="mp-obj-barrio"></div>
+            </div>
+            <div class="mp-card">
+              <div class="mp-card-title">Puntos registrados por agente</div>
+              <div id="mp-obj-puntos"></div>
+            </div>
+            <div class="mp-card" style="grid-column:1/-1">
+              <div class="mp-card-title">Incidencias detectadas en recorridos</div>
+              <div id="mp-obj-inc"></div>
+            </div>
+          </div>
+
+          <!-- Sección Comparativas -->
+          <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border)">&#x1F4CA; Comparativas</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+            <div class="mp-card">
+              <div class="mp-card-title">Novedades vs Recorridos por barrio</div>
+              <div id="mp-comp-barrio"></div>
+            </div>
+            <div class="mp-card">
+              <div class="mp-card-title">Actividad por d&#xED;a de la semana</div>
+              <div id="mp-comp-diasem"></div>
+            </div>
+            <div class="mp-card">
+              <div class="mp-card-title">Casos abiertos vs cerrados</div>
+              <div id="mp-comp-casos"></div>
+            </div>
+            <div class="mp-card">
+              <div class="mp-card-title">Novedades con fuerza p&#xFA;blica</div>
+              <div id="mp-comp-fp"></div>
+            </div>
+          </div>
+
+        </div><!-- /mp-contenido -->
+      </div><!-- /adm-panel-metricas -->
 
       <div id="adm-panel-personal" style="display:none">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;flex-wrap:wrap">
@@ -7011,7 +7151,7 @@ function scrollAdminTop() {
 }
 
 function selAdminTab(tab) {
-  var tabs = ['general','horas','personal','informe'];
+  var tabs = ['general','horas','personal','informe','metricas'];
   tabs.forEach(function(t) {
     var btn   = document.getElementById('adm-tab-' + t);
     var panel = document.getElementById('adm-panel-' + t);
@@ -7021,28 +7161,378 @@ function selAdminTab(tab) {
       btn.style.color       = active ? '#fca5a5' : 'var(--text3)';
       btn.style.borderColor = active ? 'rgba(248,113,113,.35)' : 'var(--border)';
     }
-    if (panel) {
-      panel.style.display = active ? 'block' : 'none';
-      panel.style.visibility = 'visible';
-      panel.style.opacity = '1';
-    }
+    if (panel) panel.style.display = active ? 'block' : 'none';
   });
-
   scrollAdminTop();
-
   if (tab === 'general') {
     if (typeof loadAdminTabla === 'function') loadAdminTabla('fichajes');
     if (typeof loadAdminStats === 'function') loadAdminStats();
   }
   if (tab === 'horas')    { selHRTab('detalle'); }
   if (tab === 'personal') { loadAgentesAdmin(); }
-  if (tab === 'informe')  {
-    iniciarTabInforme();
+  if (tab === 'informe')  { iniciarTabInforme(); }
+  if (tab === 'metricas') { selMetricaPeriodo('dia'); }
+}
+
+
+// ── MÓDULO MÉTRICAS ─────────────────────────────────────
+var MP_PERIODO = 'dia';
+var MP_COLORES = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316','#ec4899','#14b8a6','#a78bfa'];
+
+function selMetricaPeriodo(p) {
+  MP_PERIODO = p;
+  ['dia','semana','mes','anual','custom'].forEach(function(t) {
+    var btn = document.getElementById('mp-' + t);
+    if (btn) { btn.classList.remove('mp-btn-active'); }
+  });
+  var active = document.getElementById('mp-' + p);
+  if (active) active.classList.add('mp-btn-active');
+  var customRange = document.getElementById('mp-custom-range');
+  if (customRange) customRange.style.display = p === 'custom' ? 'flex' : 'none';
+  if (p !== 'custom') cargarMetricas();
+}
+
+function mpGetRango() {
+  var ahora = new Date();
+  var hoyAR = new Date(ahora.getTime() - 3 * 3600000);
+  var hoyISO = hoyAR.toISOString().substring(0, 10);
+
+  if (MP_PERIODO === 'dia') {
+    return { desde: hoyISO + 'T03:00:00.000Z', hasta: new Date(new Date(hoyISO + 'T03:00:00.000Z').getTime() + 86400000).toISOString(), label: 'Hoy' };
+  }
+  if (MP_PERIODO === 'semana') {
+    var dow = hoyAR.getDay();
+    var lunes = new Date(hoyAR.getTime() - (dow === 0 ? 6 : dow - 1) * 86400000);
+    var lunesISO = lunes.toISOString().substring(0, 10);
+    return { desde: lunesISO + 'T03:00:00.000Z', hasta: hoyISO + 'T26:59:59.999Z', label: 'Esta semana' };
+  }
+  if (MP_PERIODO === 'mes') {
+    var mesISO = hoyISO.substring(0, 7) + '-01';
+    return { desde: mesISO + 'T03:00:00.000Z', hasta: hoyISO + 'T26:59:59.999Z', label: 'Este mes' };
+  }
+  if (MP_PERIODO === 'anual') {
+    var anioISO = hoyISO.substring(0, 4) + '-01-01';
+    return { desde: anioISO + 'T03:00:00.000Z', hasta: hoyISO + 'T26:59:59.999Z', label: 'Este año' };
+  }
+  if (MP_PERIODO === 'custom') {
+    var desdeEl = document.getElementById('mp-desde');
+    var hastaEl = document.getElementById('mp-hasta');
+    var d = desdeEl ? desdeEl.value : hoyISO;
+    var h = hastaEl ? hastaEl.value : hoyISO;
+    return { desde: d + 'T03:00:00.000Z', hasta: h + 'T26:59:59.999Z', label: d + ' al ' + h };
+  }
+  return { desde: hoyISO + 'T03:00:00.000Z', hasta: new Date(new Date(hoyISO + 'T03:00:00.000Z').getTime() + 86400000).toISOString(), label: 'Hoy' };
+}
+
+function mpBar(nombre, valor, max, color) {
+  var pct = max > 0 ? Math.round(valor / max * 100) : 0;
+  return '<div class="mp-bar-wrap">' +
+    '<div class="mp-bar-row"><span class="mp-bar-name">' + escapeHTML(String(nombre)) + '</span>' +
+    '<div class="mp-bar-track" style="flex:2"><div class="mp-bar-fill" style="width:' + pct + '%;background:' + color + '"></div></div>' +
+    '<span class="mp-bar-cnt">' + valor + '</span></div></div>';
+}
+
+function mpEvol(datos, color) {
+  // datos = [{label, val}]
+  if (!datos.length) return '<div class="mp-empty">Sin datos</div>';
+  var max = Math.max.apply(null, datos.map(function(d) { return d.val; })) || 1;
+  var html = '<div class="mp-evol-wrap">';
+  datos.forEach(function(d) {
+    var h = Math.max(2, Math.round(d.val / max * 66));
+    html += '<div class="mp-evol-col">' +
+      '<div style="height:' + (66 - h) + 'px"></div>' +
+      '<div class="mp-evol-bar" style="height:' + h + 'px;background:' + color + '" title="' + d.label + ': ' + d.val + '"></div>' +
+      '<div class="mp-evol-lbl">' + escapeHTML(d.label) + '</div>' +
+      '</div>';
+  });
+  return html + '</div>';
+}
+
+function mpKpi(val, label, color, sub) {
+  return '<div class="mp-kpi-card">' +
+    '<div class="mp-kpi-lbl">' + label + '</div>' +
+    '<div class="mp-kpi-val" style="color:' + color + '">' + val + '</div>' +
+    (sub ? '<div class="mp-kpi-sub">' + sub + '</div>' : '') +
+    '</div>';
+}
+
+function mpContarPor(arr, campo) {
+  var map = {};
+  arr.forEach(function(item) {
+    var key = item[campo] || 'Sin dato';
+    map[key] = (map[key] || 0) + 1;
+  });
+  return Object.keys(map).map(function(k) { return { key: k, val: map[k] }; })
+    .sort(function(a, b) { return b.val - a.val; });
+}
+
+function mpEvolPorDia(arr, campo, desde, hasta) {
+  // Generar días del rango
+  var dias = [];
+  var d = new Date(desde);
+  var fin = new Date(hasta);
+  while (d <= fin && dias.length < 60) {
+    var iso = d.toISOString().substring(0, 10);
+    dias.push({ label: iso.substring(5), iso: iso, val: 0 });
+    d = new Date(d.getTime() + 86400000);
+  }
+  arr.forEach(function(item) {
+    var ts = item[campo] || item.created_at;
+    if (!ts) return;
+    var dayAR = new Date(new Date(ts).getTime() - 3 * 3600000).toISOString().substring(0, 10);
+    var slot = dias.find(function(x) { return x.iso === dayAR; });
+    if (slot) slot.val++;
+  });
+  // Si son muchos días, agrupar por semana
+  if (dias.length > 30) {
+    var semanas = {};
+    dias.forEach(function(d2) {
+      var sem = 'S' + d2.iso.substring(0, 7);
+      if (!semanas[sem]) semanas[sem] = { label: d2.iso.substring(0, 7), val: 0 };
+      semanas[sem].val += d2.val;
+    });
+    return Object.values(semanas);
+  }
+  return dias;
+}
+
+function cargarMetricas() {
+  var loadEl = document.getElementById('mp-loading');
+  var contEl = document.getElementById('mp-contenido');
+  if (loadEl) loadEl.style.display = 'block';
+  if (contEl) contEl.style.opacity = '0.4';
+
+  var rango = mpGetRango();
+  var desde = rango.desde;
+  var hasta = rango.hasta;
+
+  Promise.all([
+    db.from('novedades').select('*').gte('created_at', desde).lte('created_at', hasta),
+    db.from('fichajes').select('*').gte('entrada', desde),
+    db.from('objetivos').select('*').gte('created_at', desde).lte('created_at', hasta),
+    db.from('licencias').select('*').gte('created_at', desde).lte('created_at', hasta)
+  ]).then(function(res) {
+    if (loadEl) loadEl.style.display = 'none';
+    if (contEl) contEl.style.opacity = '1';
+
+    var novs  = res[0].data || [];
+    var fichs = res[1].data || [];
+    var objs  = res[2].data || [];
+    var lics  = res[3].data || [];
+
+    renderMetricas(novs, fichs, objs, lics, rango);
+  }).catch(function(e) {
+    if (loadEl) loadEl.style.display = 'none';
+    toast('Error cargando métricas: ' + e.message, 'err');
+  });
+}
+
+function renderMetricas(novs, fichs, objs, lics, rango) {
+  var desde = rango.desde;
+  var hasta = rango.hasta;
+
+  // ── KPIs ──
+  var fichsFinalizados = fichs.filter(function(f) { return f.salida; });
+  var totalHoras = 0;
+  fichsFinalizados.forEach(function(f) {
+    var hrs = (new Date(f.salida) - new Date(f.entrada)) / 3600000;
+    if (hrs > 0 && hrs < 24) totalHoras += hrs;
+  });
+  var promHoras = fichsFinalizados.length > 0 ? (totalHoras / fichsFinalizados.length).toFixed(1) : '—';
+  var novUrgentes = novs.filter(function(n) { return n.fuerza_publica; }).length;
+  var casosAbiertos = novs.filter(function(n) { return n.pendiente; }).length;
+  var puntosTotal = objs.reduce(function(acc, o) { return acc + ((o.actualizaciones || []).length); }, 0);
+
+  var kpisEl = document.getElementById('mp-kpis');
+  if (kpisEl) kpisEl.innerHTML =
+    mpKpi(novs.length,  'Novedades',        '#3b82f6', rango.label) +
+    mpKpi(fichs.length, 'Fichajes',          '#10b981', rango.label) +
+    mpKpi(objs.length,  'Recorridos',        '#8b5cf6', rango.label) +
+    mpKpi(casosAbiertos,'Casos abiertos',    '#f59e0b', 'Sin resolver') +
+    mpKpi(novUrgentes,  'Fuerza p\xFAblica', '#ef4444', 'Novedades con FP') +
+    mpKpi(promHoras,    'Hs prom. turno',    '#06b6d4', 'Por fichaje') +
+    mpKpi(puntosTotal,  'Puntos relevados',  '#a78bfa', 'En recorridos') +
+    mpKpi(lics.length,  'Licencias',         '#f97316', rango.label);
+
+  // ── Novedades por barrio ──
+  var novBarrio = mpContarPor(novs, 'puesto');
+  var maxNovB = novBarrio.length ? novBarrio[0].val : 1;
+  var el = document.getElementById('mp-nov-barrio');
+  if (el) el.innerHTML = novBarrio.length ? novBarrio.slice(0, 8).map(function(x, i) {
+    return mpBar(x.key, x.val, maxNovB, MP_COLORES[i % MP_COLORES.length]);
+  }).join('') : '<div class="mp-empty">Sin datos</div>';
+
+  // ── Novedades por tipo ──
+  var novTipo = mpContarPor(novs, 'tipo');
+  var maxNovT = novTipo.length ? novTipo[0].val : 1;
+  var elT = document.getElementById('mp-nov-tipo');
+  if (elT) elT.innerHTML = novTipo.length ? novTipo.slice(0, 8).map(function(x, i) {
+    return mpBar(x.key, x.val, maxNovT, MP_COLORES[i % MP_COLORES.length]);
+  }).join('') : '<div class="mp-empty">Sin datos</div>';
+
+  // ── Novedades por agente ──
+  var novAgente = mpContarPor(novs, 'agente');
+  var maxNovA = novAgente.length ? novAgente[0].val : 1;
+  var elA = document.getElementById('mp-nov-agente');
+  if (elA) elA.innerHTML = novAgente.length ? novAgente.slice(0, 8).map(function(x, i) {
+    return mpBar(x.key, x.val, maxNovA, MP_COLORES[i % MP_COLORES.length]);
+  }).join('') : '<div class="mp-empty">Sin datos</div>';
+
+  // ── Novedades por hora del día ──
+  var horaMap = {};
+  for (var h = 0; h < 24; h++) horaMap[h] = 0;
+  novs.forEach(function(n) {
+    if (!n.created_at) return;
+    var hAR = (new Date(n.created_at).getUTCHours() - 3 + 24) % 24;
+    horaMap[hAR]++;
+  });
+  var horaData = Object.keys(horaMap).map(function(k) { return { label: k + 'h', val: horaMap[k] }; });
+  var elH = document.getElementById('mp-nov-hora');
+  if (elH) elH.innerHTML = mpEvol(horaData, '#3b82f6');
+
+  // ── Evolución novedades ──
+  var evolNov = mpEvolPorDia(novs, 'created_at', desde, hasta);
+  var elEv = document.getElementById('mp-nov-evol');
+  if (elEv) elEv.innerHTML = mpEvol(evolNov, '#3b82f6');
+
+  // ── Fichajes por barrio ──
+  var fichBarrio = mpContarPor(fichs, 'puesto');
+  var maxFB = fichBarrio.length ? fichBarrio[0].val : 1;
+  var elFB = document.getElementById('mp-fich-barrio');
+  if (elFB) elFB.innerHTML = fichBarrio.length ? fichBarrio.slice(0, 8).map(function(x, i) {
+    return mpBar(x.key, x.val, maxFB, MP_COLORES[i % MP_COLORES.length]);
+  }).join('') : '<div class="mp-empty">Sin datos</div>';
+
+  // ── Promedio horas por barrio ──
+  var horasBarrio = {};
+  var countBarrio = {};
+  fichsFinalizados.forEach(function(f) {
+    var p = f.puesto || 'Sin puesto';
+    var hrs = (new Date(f.salida) - new Date(f.entrada)) / 3600000;
+    if (hrs > 0 && hrs < 24) {
+      horasBarrio[p] = (horasBarrio[p] || 0) + hrs;
+      countBarrio[p] = (countBarrio[p] || 0) + 1;
+    }
+  });
+  var horasBarrioArr = Object.keys(horasBarrio).map(function(k) {
+    return { key: k, val: parseFloat((horasBarrio[k] / countBarrio[k]).toFixed(1)) };
+  }).sort(function(a, b) { return b.val - a.val; });
+  var maxHB = horasBarrioArr.length ? horasBarrioArr[0].val : 1;
+  var elFH = document.getElementById('mp-fich-horas');
+  if (elFH) elFH.innerHTML = horasBarrioArr.length ? horasBarrioArr.slice(0, 8).map(function(x, i) {
+    return mpBar(x.key + ' (' + x.val + 'h)', x.val, maxHB, MP_COLORES[i % MP_COLORES.length]);
+  }).join('') : '<div class="mp-empty">Sin datos</div>';
+
+  // ── Agentes que más ficharon ──
+  var fichAgente = mpContarPor(fichs, 'nombre');
+  var maxFA = fichAgente.length ? fichAgente[0].val : 1;
+  var elFA = document.getElementById('mp-fich-agentes');
+  if (elFA) elFA.innerHTML = fichAgente.length ? fichAgente.slice(0, 10).map(function(x, i) {
+    return mpBar(x.key, x.val, maxFA, MP_COLORES[i % MP_COLORES.length]);
+  }).join('') : '<div class="mp-empty">Sin datos</div>';
+
+  // ── C.Objetivo por barrio ──
+  var objBarrio = mpContarPor(objs, 'puesto');
+  var maxOB = objBarrio.length ? objBarrio[0].val : 1;
+  var elOB = document.getElementById('mp-obj-barrio');
+  if (elOB) elOB.innerHTML = objBarrio.length ? objBarrio.slice(0, 8).map(function(x, i) {
+    return mpBar(x.key, x.val, maxOB, MP_COLORES[i % MP_COLORES.length]);
+  }).join('') : '<div class="mp-empty">Sin datos</div>';
+
+  // ── Puntos por agente ──
+  var puntosAgente = {};
+  objs.forEach(function(o) {
+    var ag = o.cargado_por || 'Sin dato';
+    puntosAgente[ag] = (puntosAgente[ag] || 0) + (o.actualizaciones || []).length;
+  });
+  var puntosArr = Object.keys(puntosAgente).map(function(k) { return { key: k, val: puntosAgente[k] }; })
+    .sort(function(a, b) { return b.val - a.val; });
+  var maxPA = puntosArr.length ? puntosArr[0].val : 1;
+  var elOP = document.getElementById('mp-obj-puntos');
+  if (elOP) elOP.innerHTML = puntosArr.length ? puntosArr.slice(0, 8).map(function(x, i) {
+    return mpBar(x.key, x.val, maxPA, MP_COLORES[i % MP_COLORES.length]);
+  }).join('') : '<div class="mp-empty">Sin datos</div>';
+
+  // ── Incidencias en recorridos ──
+  var incMap = {};
+  objs.forEach(function(o) {
+    (o.actualizaciones || []).forEach(function(p) {
+      if (p.incidencia) {
+        var k = o.puesto || 'Sin barrio';
+        incMap[k] = (incMap[k] || 0) + 1;
+      }
+    });
+  });
+  var incArr = Object.keys(incMap).map(function(k) { return { key: k, val: incMap[k] }; })
+    .sort(function(a, b) { return b.val - a.val; });
+  var maxIC = incArr.length ? incArr[0].val : 1;
+  var elOI = document.getElementById('mp-obj-inc');
+  if (elOI) elOI.innerHTML = incArr.length ? incArr.map(function(x, i) {
+    return mpBar(x.key, x.val, maxIC, '#ef4444');
+  }).join('') : '<div class="mp-empty">Sin incidencias en el per\xEDodo</div>';
+
+  // ── Comparativa: Novedades vs Recorridos por barrio ──
+  var todosBarrios = {};
+  novs.forEach(function(n) { var k = n.puesto || 'Sin barrio'; if (!todosBarrios[k]) todosBarrios[k] = { nov: 0, rec: 0 }; todosBarrios[k].nov++; });
+  objs.forEach(function(o) { var k = o.puesto || 'Sin barrio'; if (!todosBarrios[k]) todosBarrios[k] = { nov: 0, rec: 0 }; todosBarrios[k].rec++; });
+  var compBarArr = Object.keys(todosBarrios).sort();
+  var elCB = document.getElementById('mp-comp-barrio');
+  if (elCB) {
+    if (compBarArr.length) {
+      var html = '';
+      compBarArr.forEach(function(k) {
+        var d = todosBarrios[k];
+        var maxV = Math.max(d.nov, d.rec, 1);
+        html += '<div style="margin-bottom:8px"><div style="font-size:11px;font-weight:700;color:var(--text);margin-bottom:3px">' + escapeHTML(k) + '</div>';
+        html += '<div style="display:flex;gap:4px;align-items:center"><span style="font-size:9px;color:#3b82f6;width:60px">Novedades</span><div class="mp-bar-track" style="flex:1"><div class="mp-bar-fill" style="width:' + Math.round(d.nov/maxV*100) + '%;background:#3b82f6"></div></div><span style="font-size:9px;color:var(--text3);width:20px;text-align:right">' + d.nov + '</span></div>';
+        html += '<div style="display:flex;gap:4px;align-items:center"><span style="font-size:9px;color:#8b5cf6;width:60px">Recorridos</span><div class="mp-bar-track" style="flex:1"><div class="mp-bar-fill" style="width:' + Math.round(d.rec/maxV*100) + '%;background:#8b5cf6"></div></div><span style="font-size:9px;color:var(--text3);width:20px;text-align:right">' + d.rec + '</span></div>';
+        html += '</div>';
+      });
+      elCB.innerHTML = html;
+    } else elCB.innerHTML = '<div class="mp-empty">Sin datos</div>';
+  }
+
+  // ── Actividad por día de la semana ──
+  var diasNom = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  var diasNovCount = [0,0,0,0,0,0,0];
+  novs.forEach(function(n) {
+    if (!n.created_at) return;
+    var dow = new Date(new Date(n.created_at).getTime() - 3*3600000).getDay();
+    diasNovCount[dow]++;
+  });
+  var diasData = diasNom.map(function(d, i) { return { label: d, val: diasNovCount[i] }; });
+  var elDS = document.getElementById('mp-comp-diasem');
+  if (elDS) elDS.innerHTML = mpEvol(diasData, '#10b981');
+
+  // ── Casos abiertos vs cerrados ──
+  var casosCerr = novs.filter(function(n) { return !n.pendiente; }).length;
+  var casosAb = novs.filter(function(n) { return n.pendiente; }).length;
+  var elCC = document.getElementById('mp-comp-casos');
+  if (elCC) {
+    var totalCasos = casosAb + casosCerr || 1;
+    elCC.innerHTML =
+      mpBar('Cerrados / Sin seguimiento', casosCerr, totalCasos, '#10b981') +
+      mpBar('Abiertos / Pendientes', casosAb, totalCasos, '#f59e0b') +
+      '<div style="font-size:11px;color:var(--text3);margin-top:8px;text-align:center">' + casosAb + ' abiertos de ' + totalCasos + ' novedades (' + Math.round(casosAb/totalCasos*100) + '%)</div>';
+  }
+
+  // ── Novedades con fuerza pública ──
+  var fpSi = novs.filter(function(n) { return n.fuerza_publica; });
+  var fpNo = novs.filter(function(n) { return !n.fuerza_publica; });
+  var elFP = document.getElementById('mp-comp-fp');
+  if (elFP) {
+    if (fpSi.length === 0) {
+      elFP.innerHTML = '<div class="mp-empty">Sin intervenciones de fuerza p\xFAblica en el per\xEDodo</div>';
+    } else {
+      var fpBarrio = mpContarPor(fpSi, 'puesto');
+      var maxFP = fpBarrio.length ? fpBarrio[0].val : 1;
+      elFP.innerHTML = '<div style="font-size:11px;color:var(--text);margin-bottom:8px">' + fpSi.length + ' intervenci\xF3n' + (fpSi.length !== 1 ? 'es' : '') + ' de fuerza p\xFAblica</div>' +
+        fpBarrio.map(function(x, i) { return mpBar(x.key, x.val, maxFP, '#ef4444'); }).join('');
+    }
   }
 }
 
 
-// ── TAB INFORME DIARIO ──────────────────────────────────
 var PD_CACHE = [];
 var PD_CACHE_FILTRADO = [];
 
