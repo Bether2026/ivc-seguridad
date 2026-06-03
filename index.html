@@ -2253,114 +2253,6 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
         </div>
         <div id="admin-tabla-content"><div class="empty"><div class="icon">📂</div><p>Seleccioná una tabla para ver los registros</p></div></div>
       </div>
-    </div>
-  </main>
-  <nav class="bottomnav">
-    <button class="nav-btn active" onclick="goView('dashboard')" id="nb-dashboard">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Panel</span>
-    </button>
-    <button class="nav-btn" onclick="goView('fichaje')" id="nb-fichaje">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg><span>Fichaje</span>
-    </button>
-    <button class="nav-btn" onclick="goView('novedades')" id="nb-novedades">
-      <div class="nav-badge" id="nb-badge" style="display:none">0</div>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z"/><polyline points="14,2 14,8 20,8"/></svg><span>Novedades</span>
-    </button>
-    <button class="nav-btn" onclick="goView('objetivos')" id="nb-objetivos">
-      <div class="nav-badge" id="nb-badge-obj" style="display:none">0</div>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg><span>C. Objetivo</span>
-    </button>
-    <button class="nav-btn" onclick="goView('choferes')" id="nb-choferes">
-      <div class="nav-badge" id="nb-badge-ruta" style="display:none">0</div>
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg><span>Choferes</span>
-    </button>
-    <button class="nav-btn" onclick="goView('llaves')" id="nb-llaves" style="display:none">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg><span>Llaves</span>
-    </button>
-    <button class="nav-btn" onclick="goView('estadisticas')" id="nb-estadisticas" style="display:none">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span>Estadísticas</span>
-    </button>
-    <button class="nav-btn" onclick="goView('inmuebles')" id="nb-inmuebles" style="display:none">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-      <span>Inmuebles</span>
-    </button>
-    <button class="nav-btn" onclick="goView('rrhh')" id="nb-rrhh" style="display:none">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span>RRHH</span>
-    </button>
-    <button class="nav-btn" onclick="goView('pendientes')" id="nb-pendientes" style="display:none">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/><path d="M8 12h.01M16 12h.01"/></svg>
-      <span>Pendientes</span>
-    </button>
-    <button class="nav-btn" onclick="goView('inventario')" id="nb-inventario" style="display:none">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
-      <span>Inventario</span>
-    </button>
-    <button class="nav-btn" onclick="goView('agenda')" id="nb-agenda" style="display:none">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Agenda</span>
-    </button>
-    <button class="nav-btn" onclick="goView('admin')" id="nb-admin" style="display:none">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6"/><path d="M18 14l2 2 4-4" stroke-width="2"/></svg><span>Admin</span>
-    </button>
-  </nav>
-</div>
-<div class="overlay" id="ov-agenda">
-  <div class="modal">
-    <div class="modal-head"><span class="modal-title">📅 Nuevo Operativo</span><button class="btn-close" onclick="closeOv('ov-agenda')">×</button></div>
-    <div class="form-group"><label class="form-label">Asunto / Tipo de pedido</label><input class="form-input" id="ag-asunto" placeholder="Ej: Desalojo, Custodia, Acompañamiento..."/></div>
-    <div class="form-row">
-      <div class="form-group"><label class="form-label">Barrio / Lugar</label><input class="form-input" id="ag-barrio" placeholder="Ej: Villa 31, Lugano..."/></div>
-      <div class="form-group"><label class="form-label">Horario solicitado</label><input class="form-input" type="time" id="ag-horario"/></div>
-    </div>
-    <div class="form-group">
-      <label class="form-label">📆 Fechas del operativo <small style="color:var(--text3)">(podés agregar varias)</small></label>
-      <div id="ag-fechas-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px"></div>
-      <div style="display:flex;gap:8px">
-        <input class="form-input" type="date" id="ag-fecha-nueva" style="flex:1"/>
-        <button onclick="agregarFechaAgenda()" style="padding:10px 14px;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);color:var(--accent3);font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">+ Agregar</button>
-      </div>
-    </div>
-    <div class="form-row">
-      <div class="form-group"><label class="form-label">Agentes requeridos</label><input class="form-input" type="number" id="ag-agentes" placeholder="Cantidad" min="1"/></div>
-      <div class="form-group"><label class="form-label">Nro. de contacto</label><input class="form-input" type="tel" id="ag-telefono" placeholder="Ej: 11 4567-8901"/></div>
-    </div>
-    <div class="form-group"><label class="form-label">Quién lo solicita</label><input class="form-input" id="ag-solicitante" placeholder="Nombre y cargo de la autoridad solicitante"/></div>
-    <div class="form-group"><label class="form-label">Detalle del operativo</label><textarea class="form-textarea" id="ag-detalle" placeholder="Descripción completa del operativo solicitado..." style="min-height:80px"></textarea></div>
-    <button class="btn-login" id="btn-save-agenda" onclick="saveAgenda()">📅 Guardar Operativo</button>
-  </div>
-</div>
-<div class="overlay" id="ov-puesto-detalle">
-  <div class="modal">
-    <div class="modal-head"><span class="modal-title" id="puesto-det-titulo">Detalle del puesto</span><button class="btn-close" onclick="closeOv('ov-puesto-detalle')">×</button></div>
-    <div id="puesto-det-contenido"></div>
-  </div>
-</div>
-<div class="overlay" id="ov-agenda-hoy">
-  <div class="modal">
-    <div class="modal-head"><span class="modal-title">📅 Operativos de hoy</span><button class="btn-close" onclick="closeOv('ov-agenda-hoy')">×</button></div>
-    <div id="agenda-hoy-contenido"></div>
-    <button onclick="closeOv('ov-agenda-hoy');goView('agenda');setTimeout(function(){agendaTab('semana',document.querySelectorAll('#view-agenda .tab')[1]);},100)" style="width:100%;margin-top:14px;padding:11px;border-radius:10px;border:1px solid rgba(251,191,36,0.3);background:rgba(251,191,36,0.08);color:#fbbf24;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
-      📆 Ver toda la semana →
-    </button>
-  </div>
-</div>
-<div class="overlay" id="ov-edit">
-  <div class="modal">
-    <div class="modal-head"><span class="modal-title">✏️ Editar registro</span><button class="btn-close" onclick="closeOv('ov-edit')">×</button></div>
-    <input type="hidden" id="edit-tabla">
-    <input type="hidden" id="edit-id">
-    <div id="edit-fields"></div>
-    <button class="btn-login" id="btn-save-edit" onclick="saveEdit()">💾 Guardar cambios</button>
-  </div>
-</div>
-    <input type="hidden" id="edit-tabla">
-    <input type="hidden" id="edit-id">
-    <div id="edit-fields"></div>
-    <button class="btn-login" id="btn-save-edit" onclick="saveEdit()">💾 Guardar cambios</button>
-  </div>
-</div>
-
-      </div><!-- /adm-panel-general -->
-
       <!-- TAB HORAS REALES -->
       <div id="adm-panel-horas" style="display:none">
 
@@ -2587,6 +2479,114 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
           <div class="empty"><div class="icon">&#x1F465;</div><p>Carg&#xE1; el panel tocando la pesta&#xF1;a</p></div>
         </div>
       </div>
+    </div>
+  </main>
+  <nav class="bottomnav">
+    <button class="nav-btn active" onclick="goView('dashboard')" id="nb-dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Panel</span>
+    </button>
+    <button class="nav-btn" onclick="goView('fichaje')" id="nb-fichaje">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg><span>Fichaje</span>
+    </button>
+    <button class="nav-btn" onclick="goView('novedades')" id="nb-novedades">
+      <div class="nav-badge" id="nb-badge" style="display:none">0</div>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8l-6-6z"/><polyline points="14,2 14,8 20,8"/></svg><span>Novedades</span>
+    </button>
+    <button class="nav-btn" onclick="goView('objetivos')" id="nb-objetivos">
+      <div class="nav-badge" id="nb-badge-obj" style="display:none">0</div>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg><span>C. Objetivo</span>
+    </button>
+    <button class="nav-btn" onclick="goView('choferes')" id="nb-choferes">
+      <div class="nav-badge" id="nb-badge-ruta" style="display:none">0</div>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg><span>Choferes</span>
+    </button>
+    <button class="nav-btn" onclick="goView('llaves')" id="nb-llaves" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 11-7.778 7.778 5.5 5.5 0 017.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg><span>Llaves</span>
+    </button>
+    <button class="nav-btn" onclick="goView('estadisticas')" id="nb-estadisticas" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span>Estadísticas</span>
+    </button>
+    <button class="nav-btn" onclick="goView('inmuebles')" id="nb-inmuebles" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span>Inmuebles</span>
+    </button>
+    <button class="nav-btn" onclick="goView('rrhh')" id="nb-rrhh" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg><span>RRHH</span>
+    </button>
+    <button class="nav-btn" onclick="goView('pendientes')" id="nb-pendientes" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/><path d="M8 12h.01M16 12h.01"/></svg>
+      <span>Pendientes</span>
+    </button>
+    <button class="nav-btn" onclick="goView('inventario')" id="nb-inventario" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="16" x2="13" y2="16"/></svg>
+      <span>Inventario</span>
+    </button>
+    <button class="nav-btn" onclick="goView('agenda')" id="nb-agenda" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Agenda</span>
+    </button>
+    <button class="nav-btn" onclick="goView('admin')" id="nb-admin" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6"/><path d="M18 14l2 2 4-4" stroke-width="2"/></svg><span>Admin</span>
+    </button>
+  </nav>
+</div>
+<div class="overlay" id="ov-agenda">
+  <div class="modal">
+    <div class="modal-head"><span class="modal-title">📅 Nuevo Operativo</span><button class="btn-close" onclick="closeOv('ov-agenda')">×</button></div>
+    <div class="form-group"><label class="form-label">Asunto / Tipo de pedido</label><input class="form-input" id="ag-asunto" placeholder="Ej: Desalojo, Custodia, Acompañamiento..."/></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Barrio / Lugar</label><input class="form-input" id="ag-barrio" placeholder="Ej: Villa 31, Lugano..."/></div>
+      <div class="form-group"><label class="form-label">Horario solicitado</label><input class="form-input" type="time" id="ag-horario"/></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">📆 Fechas del operativo <small style="color:var(--text3)">(podés agregar varias)</small></label>
+      <div id="ag-fechas-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px"></div>
+      <div style="display:flex;gap:8px">
+        <input class="form-input" type="date" id="ag-fecha-nueva" style="flex:1"/>
+        <button onclick="agregarFechaAgenda()" style="padding:10px 14px;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);color:var(--accent3);font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">+ Agregar</button>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Agentes requeridos</label><input class="form-input" type="number" id="ag-agentes" placeholder="Cantidad" min="1"/></div>
+      <div class="form-group"><label class="form-label">Nro. de contacto</label><input class="form-input" type="tel" id="ag-telefono" placeholder="Ej: 11 4567-8901"/></div>
+    </div>
+    <div class="form-group"><label class="form-label">Quién lo solicita</label><input class="form-input" id="ag-solicitante" placeholder="Nombre y cargo de la autoridad solicitante"/></div>
+    <div class="form-group"><label class="form-label">Detalle del operativo</label><textarea class="form-textarea" id="ag-detalle" placeholder="Descripción completa del operativo solicitado..." style="min-height:80px"></textarea></div>
+    <button class="btn-login" id="btn-save-agenda" onclick="saveAgenda()">📅 Guardar Operativo</button>
+  </div>
+</div>
+<div class="overlay" id="ov-puesto-detalle">
+  <div class="modal">
+    <div class="modal-head"><span class="modal-title" id="puesto-det-titulo">Detalle del puesto</span><button class="btn-close" onclick="closeOv('ov-puesto-detalle')">×</button></div>
+    <div id="puesto-det-contenido"></div>
+  </div>
+</div>
+<div class="overlay" id="ov-agenda-hoy">
+  <div class="modal">
+    <div class="modal-head"><span class="modal-title">📅 Operativos de hoy</span><button class="btn-close" onclick="closeOv('ov-agenda-hoy')">×</button></div>
+    <div id="agenda-hoy-contenido"></div>
+    <button onclick="closeOv('ov-agenda-hoy');goView('agenda');setTimeout(function(){agendaTab('semana',document.querySelectorAll('#view-agenda .tab')[1]);},100)" style="width:100%;margin-top:14px;padding:11px;border-radius:10px;border:1px solid rgba(251,191,36,0.3);background:rgba(251,191,36,0.08);color:#fbbf24;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+      📆 Ver toda la semana →
+    </button>
+  </div>
+</div>
+<div class="overlay" id="ov-edit">
+  <div class="modal">
+    <div class="modal-head"><span class="modal-title">✏️ Editar registro</span><button class="btn-close" onclick="closeOv('ov-edit')">×</button></div>
+    <input type="hidden" id="edit-tabla">
+    <input type="hidden" id="edit-id">
+    <div id="edit-fields"></div>
+    <button class="btn-login" id="btn-save-edit" onclick="saveEdit()">💾 Guardar cambios</button>
+  </div>
+</div>
+    <input type="hidden" id="edit-tabla">
+    <input type="hidden" id="edit-id">
+    <div id="edit-fields"></div>
+    <button class="btn-login" id="btn-save-edit" onclick="saveEdit()">💾 Guardar cambios</button>
+  </div>
+</div>
+
+      </div><!-- /adm-panel-general -->
+
 
 <div class="overlay" id="ov-mapa">
   <div class="modal">
