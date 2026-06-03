@@ -419,11 +419,17 @@ body::after { display: none; }
 /* VIEWS */
 .view { display: none; animation: fadeView .35s cubic-bezier(.16,1,.3,1); }
 .view.active { display: block; }
-/* Admin: el contenido de tabs scrollea internamente */
+/* Admin tabs: la barra queda fija y el contenido scrollea solo */
+#adm-tabs-bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--bg);
+  padding-bottom: 12px;
+  margin-bottom: 0 !important;
+}
 #adm-tabs-content {
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  padding-top: 12px;
+  padding-top: 4px;
 }
 @keyframes fadeView { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
 
@@ -6634,12 +6640,11 @@ var HR_BUSQUEDA = '';
 // ── SUBTABS ADMIN + GENERADOR DE INFORME DIARIO ──────────
 
 function scrollAdminTop() {
-  requestAnimationFrame(function() {
-    var tc = document.getElementById('adm-tabs-content');
-    if (tc) tc.scrollTop = 0;
-    var mc = document.getElementById('main-content');
-    if (mc) mc.scrollTop = 0;
-  });
+  // Scroll the tabs bar into view — works regardless of which element has the scroll
+  var bar = document.getElementById('adm-tabs-bar');
+  if (bar) {
+    bar.scrollIntoView({ behavior: 'instant', block: 'start' });
+  }
 }
 
 function selAdminTab(tab) {
