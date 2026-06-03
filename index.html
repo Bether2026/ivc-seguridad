@@ -2356,42 +2356,57 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
           <button id="inf-tab-generar" onclick="selInfTab('generar')" style="padding:7px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">&#x1F4C4; Generar informe HTML</button>
         </div>
 
-        <!-- SUB-TAB: PD / Novedades con seleccion para informe -->
+        <!-- SUB-TAB: PD / Novedades -->
         <div id="inf-panel-novedades">
           <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:14px;margin-bottom:12px">
             <div style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;margin-bottom:10px">
               <div>
-                <label style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:4px">Fecha</label>
-                <input type="date" id="pd-fecha" class="form-input" style="padding:8px 12px;width:160px;margin-bottom:0"/>
+                <label style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:4px">Fecha desde</label>
+                <input type="date" id="pd-fecha-desde" class="form-input" style="padding:8px 12px;width:155px;margin-bottom:0"/>
+              </div>
+              <div>
+                <label style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:4px">Fecha hasta</label>
+                <input type="date" id="pd-fecha-hasta" class="form-input" style="padding:8px 12px;width:155px;margin-bottom:0"/>
               </div>
               <div>
                 <label style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:4px">Buscar</label>
-                <input type="text" id="pd-buscar" class="form-input" placeholder="Barrio, agente, asunto..." style="padding:8px 12px;width:190px;margin-bottom:0" oninput="filtrarPD()"/>
+                <input type="text" id="pd-buscar" class="form-input" placeholder="Barrio, agente..." style="padding:8px 12px;width:160px;margin-bottom:0" oninput="filtrarPD()"/>
               </div>
               <button onclick="cargarPD()" style="padding:8px 16px;border-radius:8px;border:1px solid rgba(59,130,246,.35);background:rgba(59,130,246,.1);color:#93c5fd;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">&#x1F504; Buscar</button>
             </div>
             <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
               <div id="pd-resumen" style="font-size:12px;color:var(--text3)"></div>
-              <div id="pd-sel-info" style="display:none;font-size:12px;color:var(--green);font-weight:700"><span id="pd-sel-count">0</span> para el informe</div>
+              <div id="pd-sel-info" style="display:none;font-size:12px;color:var(--green);font-weight:700"><span id="pd-sel-count">0</span> seleccionadas</div>
             </div>
           </div>
           <div style="background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.15);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#93c5fd;line-height:1.6">
-            &#x2714; <strong>Tild&#xE1;</strong> las novedades que quer&#xE9;s incluir. Pod&#xE9;s agregar un <strong>texto editorial</strong> formal para cada una &#x2014; el texto original del agente queda intacto.
+            &#x2714; <strong>Tild&#xE1;</strong> las novedades para incluirlas. Pod&#xE9;s agregar texto editorial en cada una. El texto original del agente <strong>queda intacto</strong>.
           </div>
-          <div id="pd-lista"><div class="empty"><div class="icon">&#x1F4CB;</div><p>Selecci&#xF3;n la fecha y hac&#xE9; clic en Buscar</p></div></div>
+          <div id="pd-lista"><div class="empty"><div class="icon">&#x1F4CB;</div><p>Selecci&#xF3;n el rango de fechas y hac&#xE9; clic en Buscar</p></div></div>
+          <!-- Panel generar preview -->
           <div id="pd-generar-wrap" style="display:none;margin-top:14px;padding:14px;background:var(--bg2);border:1px solid var(--border2);border-radius:12px">
-            <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px">Generar informe con las novedades seleccionadas</div>
+            <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px">Generar preview editable</div>
             <div style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap">
               <div>
                 <label style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:4px">Elaborado por</label>
                 <input type="text" id="pd-autor" class="form-input" placeholder="Nombre del responsable" style="padding:8px 12px;width:220px;margin-bottom:0"/>
               </div>
-              <button onclick="generarInformeDesdeSeleccion()" style="padding:9px 18px;border-radius:10px;border:1px solid rgba(16,185,129,.35);background:rgba(16,185,129,.1);color:#6ee7b7;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">&#x1F4C4; Generar informe HTML</button>
+              <button onclick="generarPreviewEditable()" style="padding:9px 18px;border-radius:10px;border:1px solid rgba(16,185,129,.35);background:rgba(16,185,129,.1);color:#6ee7b7;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">&#x1F441; Generar preview</button>
             </div>
           </div>
-          <div id="pd-inf-preview" style="margin-top:12px"></div>
+          <!-- Preview editable del informe -->
+          <div id="pd-preview-container" style="display:none;margin-top:16px">
+            <div style="background:var(--bg2);border:1px solid rgba(16,185,129,.3);border-radius:12px;padding:14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+              <div>
+                <div style="font-size:13px;font-weight:700;color:var(--green)">&#x2713; Preview listo &#x2014; edit&#xE1;lo directamente</div>
+                <div style="font-size:11px;color:var(--text3);margin-top:3px">Hac&#xE9; clic en cualquier texto para editarlo. Bot&#xF3;n &#x1F5D1; para eliminar una fila. Cuando est&#xE9; listo, descarg&#xE1; el archivo final.</div>
+              </div>
+              <button onclick="descargarInformeFinal()" style="padding:9px 18px;border-radius:10px;border:1px solid rgba(16,185,129,.35);background:rgba(16,185,129,.15);color:#6ee7b7;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">&#x2B07; Descargar archivo final</button>
+            </div>
+            <!-- El iframe editable -->
+            <div id="pd-preview-frame" style="border:1px solid var(--border2);border-radius:10px;overflow:hidden;background:#fff;min-height:400px"></div>
+          </div>
         </div>
-
 
         <!-- SUB-TAB: Generador HTML -->
         <div id="inf-panel-generar" style="display:none">
@@ -6709,29 +6724,40 @@ function selInfTab(tab) {
 }
 
 function cargarPD() {
-  var lista  = document.getElementById('pd-lista');
+  var lista   = document.getElementById('pd-lista');
   var resumen = document.getElementById('pd-resumen');
   if (!lista) return;
 
-  var fechaEl = document.getElementById('pd-fecha');
-  var fechaVal = fechaEl ? fechaEl.value : '';
+  var desdeEl = document.getElementById('pd-fecha-desde');
+  var hastaEl = document.getElementById('pd-fecha-hasta');
+  var desdeVal = desdeEl ? desdeEl.value : '';
+  var hastaVal = hastaEl ? hastaEl.value : '';
 
   lista.innerHTML = '<div class="empty"><div class="icon"><span class="spinner"></span></div><p>Cargando novedades...</p></div>';
 
-  var query = db.from('novedades').select('*').order('created_at', { ascending: false });
+  var query = db.from('novedades').select('*').order('created_at', { ascending: true });
 
-  if (fechaVal) {
-    var desde = fechaVal + 'T03:00:00.000Z';
-    var hasta = new Date(new Date(fechaVal + 'T03:00:00Z').getTime() + 86400000).toISOString();
-    query = query.gte('created_at', desde).lte('created_at', hasta);
-  } else {
+  if (desdeVal) {
+    var desde = desdeVal + 'T03:00:00.000Z';
+    query = query.gte('created_at', desde);
+  }
+  if (hastaVal) {
+    // hasta = fin del día hasta (hora 26:59 = siguiente día 02:59 UTC)
+    var d = new Date(hastaVal + 'T03:00:00.000Z');
+    d.setDate(d.getDate() + 1);
+    query = query.lte('created_at', d.toISOString());
+  }
+  if (!desdeVal && !hastaVal) {
     query = query.limit(50);
   }
 
   query.then(function(r) {
     if (r.error) { lista.innerHTML = '<div class="empty"><p>Error: ' + r.error.message + '</p></div>'; return; }
     PD_CACHE = r.data || [];
-    if (resumen) resumen.textContent = PD_CACHE.length + ' novedad' + (PD_CACHE.length !== 1 ? 'es' : '') + (fechaVal ? ' del ' + fechaVal.split('-').reverse().join('/') : ' (últimas 50)');
+    var rango = desdeVal && hastaVal ? desdeVal.split('-').reverse().join('/') + ' al ' + hastaVal.split('-').reverse().join('/') :
+                desdeVal ? 'desde ' + desdeVal.split('-').reverse().join('/') :
+                hastaVal ? 'hasta ' + hastaVal.split('-').reverse().join('/') : 'últimas 50';
+    if (resumen) resumen.textContent = PD_CACHE.length + ' novedad' + (PD_CACHE.length !== 1 ? 'es' : '') + ' (' + rango + ')';
     filtrarPD();
   });
 }
@@ -6814,7 +6840,9 @@ function actualizarContadorSel() {
   if (wrap) wrap.style.display = count > 0 ? 'block' : 'none';
 }
 
-function generarInformeDesdeSeleccion() {
+var INFORME_HTML_ACTUAL = '';
+
+function generarPreviewEditable() {
   var seleccionadas = [];
   PD_CACHE_FILTRADO.forEach(function(n) {
     var chk = document.getElementById('pd-chk-' + n.id);
@@ -6827,16 +6855,28 @@ function generarInformeDesdeSeleccion() {
   });
   if (!seleccionadas.length) { toast('Selecci\xF3n al menos una novedad', 'err'); return; }
 
-  var fechaEl = document.getElementById('pd-fecha');
-  var autor   = (document.getElementById('pd-autor') || {}).value || (USER ? USER.nombre : '') || 'Administraci\xF3n';
-  var fechaVal = fechaEl ? fechaEl.value : '';
-  var partes = fechaVal ? fechaVal.split('-') : [];
-  var fechaDisplay = partes.length === 3 ? partes[2] + '/' + partes[1] + '/' + partes[0] : new Date().toLocaleDateString('es-AR');
-  var diasNom = ['domingo','lunes','martes','mi\xE9rcoles','jueves','viernes','s\xE1bado'];
-  var diaNom  = fechaVal ? diasNom[new Date(fechaVal + 'T12:00:00').getDay()] : '';
+  var container = document.getElementById('pd-preview-container');
+  var frame     = document.getElementById('pd-preview-frame');
+  if (container) container.style.display = 'none';
+  if (frame) frame.innerHTML = '<div class="empty"><div class="icon"><span class="spinner"></span></div><p>Cargando fotos...</p></div>';
+  if (container) container.style.display = 'block';
 
-  var preview = document.getElementById('pd-inf-preview');
-  if (preview) preview.innerHTML = '<div class="empty"><div class="icon"><span class="spinner"></span></div><p>Cargando fotos y generando...</p></div>';
+  var autor    = (document.getElementById('pd-autor') || {}).value || (USER ? USER.nombre : '') || 'Administraci\xF3n';
+  var desdeVal = (document.getElementById('pd-fecha-desde') || {}).value || '';
+  var hastaVal = (document.getElementById('pd-fecha-hasta') || {}).value || '';
+  var fechaVal = desdeVal || hastaVal || '';
+  var fechaDisplay = '';
+  if (desdeVal && hastaVal && desdeVal !== hastaVal) {
+    fechaDisplay = desdeVal.split('-').reverse().join('/') + ' al ' + hastaVal.split('-').reverse().join('/');
+  } else if (fechaVal) {
+    var p = fechaVal.split('-');
+    fechaDisplay = p[2] + '/' + p[1] + '/' + p[0];
+  } else {
+    var ahAR = fechaHoyAR();
+    fechaDisplay = ahAR ? ahAR.fecha : new Date().toLocaleDateString('es-AR');
+  }
+  var diasNom = ['domingo','lunes','martes','mi\xE9rcoles','jueves','viernes','s\xE1bado'];
+  var diaNom  = desdeVal && desdeVal === hastaVal ? diasNom[new Date(desdeVal + 'T12:00:00').getDay()] : '';
 
   var porPuesto = {};
   seleccionadas.forEach(function(n) {
@@ -6845,6 +6885,7 @@ function generarInformeDesdeSeleccion() {
     porPuesto[p].push(n);
   });
 
+  // Cargar fotos
   var fotosMap = {};
   var fotoPromises = [];
   seleccionadas.forEach(function(n) {
@@ -6869,9 +6910,54 @@ function generarInformeDesdeSeleccion() {
   });
 
   Promise.all(fotoPromises).then(function() {
-    var html = construirHTMLInforme(porPuesto, seleccionadas, fotosMap, fechaDisplay, diaNom, autor, fechaVal);
-    mostrarPreviewInforme(html, fechaVal, preview);
+    var html = construirHTMLEditablePreview(porPuesto, seleccionadas, fotosMap, fechaDisplay, diaNom, autor);
+    INFORME_HTML_ACTUAL = html;
+
+    // Mostrar en un div editable dentro del contenedor
+    if (frame) {
+      frame.innerHTML = html;
+      // Hacer el contenido editable
+      var page = frame.querySelector('.page');
+      if (page) {
+        // Hacer editables los textos
+        var novTexts = frame.querySelectorAll('.nov-txt, .obs-txt, .puesto-tipo, .c1-meta');
+        novTexts.forEach(function(el) {
+          el.contentEditable = 'true';
+          el.style.outline = 'none';
+          el.style.borderBottom = '1px dashed rgba(59,130,246,.3)';
+          el.title = 'Clic para editar';
+        });
+      }
+    }
+    toast('&#x1F441; Preview listo \u2014 edit\xE1lo directamente');
   });
+}
+
+function descargarInformeFinal() {
+  var frame = document.getElementById('pd-preview-frame');
+  if (!frame) return;
+
+  // Capturar el HTML actual del frame (con las ediciones del usuario)
+  var contenido = frame.innerHTML;
+
+  // Limpiar los estilos de edición antes de guardar
+  contenido = contenido
+    .replace(/contenteditable="true"/g, '')
+    .replace(/border-bottom: 1px dashed rgba\(59,130,246,\.3\);?/g, '')
+    .replace(/outline: none;?/g, '');
+
+  // Envolver en un documento HTML completo
+  var htmlFinal = '<!DOCTYPE html>\n<html lang="es">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n<title>Parte Diario</title>\n</head>\n<body style="margin:0;padding:0;background:#fff">\n' + contenido + '\n</body>\n</html>';
+
+  var blob = new Blob([htmlFinal], { type: 'text/html;charset=utf-8' });
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
+  var fechaStr = (new Date()).toLocaleDateString('es-AR').replace(/\//g,'-');
+  a.href = url;
+  a.download = 'Parte_Diario_' + fechaStr + '_FINAL.html';
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('&#x2B07; Archivo descargado');
 }
 
 function abrirEditarPD(id) {
@@ -7068,6 +7154,71 @@ function generarInformeDiario() {
       mostrarPreviewInforme(html, fechaVal, preview);
     });
   });
+}
+
+function construirHTMLEditablePreview(porPuesto, novedades, fotosMap, fechaDisplay, diaNom, autor) {
+  var AZUL_OSC = '#061b34'; var AZUL_MID = '#0a2747'; var AZUL = '#2563eb'; var AZUL_CL = '#eff6ff'; var AZUL_BR = '#bfdbfe';
+  var partes = (fechaDisplay || '').split('/');
+  var diaN = partes.length >= 1 ? partes[0] : '';
+  var mesIdx = partes.length >= 2 ? parseInt(partes[1])-1 : -1;
+  var mesNombres = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  var mesN = mesIdx >= 0 ? (mesNombres[mesIdx] || '') + (partes[2] ? ' ' + partes[2] : '') : '';
+
+  var style = '<style>\n* { box-sizing:border-box; margin:0; padding:0; }\nbody { font-family:Lato,Arial,sans-serif; font-size:10.5pt; color:#1a1a2e; background:#fff; }\n.page { max-width:100%; }\n.header { background:' + AZUL_OSC + '; padding:14px 28px; display:flex; align-items:center; gap:20px; }\n.logo-wrap { flex-shrink:0; width:58px; height:58px; background:rgba(255,255,255,.1); border-radius:13px; padding:4px; display:flex; align-items:center; justify-content:center; }\n.logo-wrap img { width:50px; height:50px; object-fit:contain; border-radius:10px; }\n.hc { flex:1; }\n.h-parte { font-size:13pt; font-weight:900; color:rgba(255,255,255,.5); letter-spacing:.35em; text-transform:uppercase; }\n.h-main { font-size:15pt; font-weight:900; color:#fff; letter-spacing:.04em; text-transform:uppercase; margin-top:2px; }\n.h-org { font-size:7pt; color:rgba(255,255,255,.45); text-transform:uppercase; letter-spacing:.12em; margin-top:3px; }\n.h-fecha { text-align:right; flex-shrink:0; color:#fff; }\n.h-dia { font-size:30pt; font-weight:900; line-height:1; }\n.h-mes { font-size:8.5pt; color:rgba(255,255,255,.8); margin-top:3px; font-weight:700; text-transform:capitalize; }\n.h-dnom { font-size:7.5pt; color:rgba(255,255,255,.45); font-style:italic; text-transform:capitalize; }\n.col-bar { display:grid; grid-template-columns:170px 1fr 210px; background:' + AZUL_MID + '; }\n.col-bar-h { padding:8px 14px; font-size:8pt; font-weight:900; color:#fff; text-transform:uppercase; letter-spacing:.1em; text-align:center; }\n.col-bar-h:not(:last-child) { border-right:1px solid rgba(255,255,255,.15); }\n.novedad { display:grid; grid-template-columns:170px 1fr 210px; border-bottom:1px solid #dde3ef; position:relative; }\n.novedad:nth-child(even) { background:#f8f9fc; }\n.col1 { padding:13px 12px; border-right:1px solid #dde3ef; }\n.c1-tipo { font-size:11pt; font-weight:900; color:' + AZUL + '; line-height:1.2; }\n.c1-meta { font-size:7.5pt; color:#555; margin-top:3px; line-height:1.7; }\n.badge-fp { display:inline-block; font-size:7pt; font-weight:900; padding:2px 7px; border-radius:3px; background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; margin-top:4px; }\n.col2 { padding:13px 14px; border-right:1px solid #dde3ef; }\n.nov-txt { font-size:9.5pt; line-height:1.65; color:#2a2a2a; white-space:pre-wrap; }\n.nov-ag { margin-top:8px; font-size:8pt; color:#555; padding-top:7px; border-top:1px solid #e8ecf5; }\n.fotos-wrap { margin-top:10px; padding-top:10px; border-top:1px solid #e8ecf5; }\n.fotos-lbl { font-size:7.5pt; font-weight:700; color:' + AZUL + '; text-transform:uppercase; letter-spacing:.1em; margin-bottom:7px; }\n.fotos-grid { display:flex; flex-wrap:wrap; gap:6px; }\n.foto-t { width:100px; height:75px; object-fit:cover; border:1.5px solid #dde3ef; border-radius:4px; }\n.col3 { padding:13px 12px; }\n.obs-txt { font-family:serif; font-size:8.5pt; line-height:1.7; color:#555; font-style:italic; }\n.barrio-sep { background:' + AZUL_CL + '; border-top:2px solid ' + AZUL + '; border-bottom:1px solid ' + AZUL_BR + '; padding:7px 16px; font-size:8pt; font-weight:900; color:#1e40af; text-transform:uppercase; letter-spacing:.12em; display:flex; align-items:center; gap:8px; }\n.footer { background:' + AZUL_OSC + '; padding:13px 24px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px; }\n.fi { font-size:8pt; color:rgba(255,255,255,.8); }\n.footer-brand { text-align:center; font-size:7pt; color:#9ca3af; padding:6px 24px; letter-spacing:.08em; text-transform:uppercase; }\n.btn-del-row { position:absolute; top:6px; right:6px; width:22px; height:22px; border-radius:50%; background:rgba(239,68,68,.85); border:none; color:#fff; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; z-index:10; font-weight:bold; }\n[contenteditable]:hover { background:rgba(59,130,246,.05); border-radius:3px; }\n[contenteditable]:focus { background:rgba(59,130,246,.08); outline:1px dashed rgba(59,130,246,.4); border-radius:3px; }\n@media print { .btn-del-row { display:none!important; } [contenteditable] { outline:none!important; background:transparent!important; } }\n</style>\n';
+
+  var html = style + '<div class="page">\n';
+  html += '<div class="header">\n';
+  html += '<div class="logo-wrap"><img src="' + IVC_LOGO_B64 + '" alt="IVC"></div>\n';
+  html += '<div class="hc"><div class="h-parte">Parte Diario</div><div class="h-main">Seguridad y Emergencias</div><div class="h-org">Gerencia Operativa de Apoyo Territorial &middot; Direcci&oacute;n de Servicios Generales</div></div>\n';
+  html += '<div class="h-fecha"><div class="h-dia">' + escapeHTML(diaN) + '</div><div class="h-mes">' + escapeHTML(mesN) + '</div><div class="h-dnom">' + escapeHTML(diaNom) + '</div></div>\n</div>\n';
+  html += '<div class="col-bar"><div class="col-bar-h">Novedades</div><div class="col-bar-h">Detalle</div><div class="col-bar-h">Observaciones</div></div>\n';
+
+  var todasFotos = [];
+  var puestos = Object.keys(porPuesto).sort();
+  var nInforme = 0;
+
+  puestos.forEach(function(puesto) {
+    var novs = porPuesto[puesto];
+    html += '<div class="barrio-sep">&#x1F4CD; ' + escapeHTML(puesto) + ' <span style="font-weight:400;color:' + AZUL + '">&mdash; ' + novs.length + ' novedad' + (novs.length !== 1 ? 'es' : '') + '</span></div>\n';
+    novs.forEach(function(n) {
+      nInforme++;
+      var horaStr = '';
+      if (n.created_at) {
+        var d = new Date(n.created_at);
+        var hAR = d.getUTCHours() - 3; if (hAR < 0) hAR += 24;
+        horaStr = String(hAR).padStart(2,'0') + ':' + String(d.getUTCMinutes()).padStart(2,'0');
+      }
+      var fotos = [];
+      if (n.foto_url)  fotos.push(n.foto_url);
+      if (n.foto_url2) fotos.push(n.foto_url2);
+      if (n.foto_url3) fotos.push(n.foto_url3);
+      if (n.fotos && Array.isArray(n.fotos)) fotos = fotos.concat(n.fotos);
+      fotos = fotos.filter(Boolean);
+      var fotosB64 = fotos.map(function(u){return{u:u,b:fotosMap[u]||null};}).filter(function(f){return f.b;});
+
+      html += '<div class="novedad">\n';
+      html += '<button class="btn-del-row" onclick="this.closest(\'.novedad\').remove()" title="Eliminar fila">&times;</button>\n';
+      html += '<div class="col1"><div class="c1-tipo" contenteditable="true">' + escapeHTML(n.tipo || n.asunto || 'Novedad') + '</div>';
+      html += '<div class="c1-meta" contenteditable="true"><strong>' + escapeHTML(fechaDisplay) + '</strong><br>' + escapeHTML(horaStr) + ' hs</div>';
+      if (n.fuerza_publica) html += '<span class="badge-fp">Fuerza P&uacute;blica</span>';
+      html += '</div>\n';
+      html += '<div class="col2"><div class="nov-txt" contenteditable="true">' + escapeHTML(n.detalle || '\u2014') + '</div>';
+      if (n.agente) html += '<div class="nov-ag"><strong>Agente/s:</strong> ' + escapeHTML(n.agente) + '</div>';
+      if (fotosB64.length > 0) {
+        html += '<div class="fotos-wrap"><div class="fotos-lbl">Imágenes</div><div class="fotos-grid">';
+        fotosB64.forEach(function(f){html += '<img class="foto-t" src="' + f.b + '">';});
+        html += '</div></div>';
+      }
+      html += '</div>\n';
+      html += '<div class="col3">';
+      if (n.observaciones) html += '<p class="obs-txt" contenteditable="true">' + escapeHTML(n.observaciones) + '</p>';
+      html += '</div>\n</div>\n';
+    });
+  });
+
+  html += '<div class="footer"><div class="fi">' + novedades.length + ' novedades</div><div class="fi">IVC &middot; ' + escapeHTML(fechaDisplay) + '</div></div>\n';
+  html += '<div class="footer-brand">Instituto de Vivienda de la Ciudad &middot; Gerencia Operativa de Apoyo Territorial</div>\n</div>\n';
+  return html;
 }
 
 var IVC_LOGO_B64 = 'data:image/jpeg;base64,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';
