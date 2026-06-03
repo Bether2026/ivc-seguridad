@@ -1108,6 +1108,13 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
     </div>
     <div class="form-group">
       <label class="form-check"><input type="checkbox" id="n-pend"> Marcar caso como abierto</label>
+    <div class="form-group">
+      <label class="form-check" style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:10px 12px;cursor:pointer;display:block">
+        <input type="checkbox" id="n-urgente" style="accent-color:#ef4444">
+        <span style="color:#fca5a5;font-weight:700">&#x1F6A8; Comunicaci&#xF3;n inmediata</span>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px;font-weight:400">Env&#xED;a una notificaci&#xF3;n urgente a todos los usuarios</div>
+      </label>
+    </div>
     </div>
 
     <div class="form-group">
@@ -7874,11 +7881,44 @@ function renderAgentesAdmin() {
     html += '</div>';
     // Botones
     html += '<div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">';
-    html += '<button onclick="editarAgente(' + a.id + ')" style="padding:5px 12px;border-radius:7px;border:1px solid rgba(59,130,246,.3);background:rgba(59,130,246,.08);color:#93c5fd;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">&#x270E; Editar</button>';
-    html += '<button onclick="eliminarAgenteAdmin(' + a.id + ',\'' + (a.nombre||'').replace(/'/g,'') + '\')" style="padding:5px 12px;border-radius:7px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.08);color:#fca5a5;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">&#x1F5D1;</button>';
+    html += '<button onclick="editarAgenteAdmin(\'' + a.id + '\')" style="padding:5px 12px;border-radius:7px;border:1px solid rgba(59,130,246,.3);background:rgba(59,130,246,.08);color:#93c5fd;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">&#x270E; Editar</button>';
+    html += '<button onclick="eliminarAgenteAdmin(\'' + a.id + '\',\'' + (a.nombre||'').replace(/'/g,'') + '\')" style="padding:5px 12px;border-radius:7px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.08);color:#fca5a5;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">&#x1F5D1;</button>';
     html += '</div></div></div>';
   });
   lista.innerHTML = html;
+}
+
+function editarAgenteAdmin(id) {
+  var a = ADM_AG_CACHE.find(function(x) { return String(x.id) === String(id); });
+  if (!a) { toast('Agente no encontrado', 'err'); return; }
+  document.getElementById('agente-modal-title').textContent = 'Editar Agente';
+  document.getElementById('agente-edit-id').value = id;
+  document.getElementById('ag-nombre').value  = a.nombre  || '';
+  document.getElementById('ag-dni').value     = a.dni     || '';
+  document.getElementById('ag-legajo').value  = a.legajo  || '';
+  document.getElementById('ag-puesto').value  = a.puesto  || '';
+  document.getElementById('ag-cargo').value   = a.cargo   || '';
+  document.getElementById('ag-turno').value   = a.turno   || '';
+  document.getElementById('ag-tipo').value    = a.tipo    || '';
+  document.getElementById('ag-telefono').value = a.telefono || '';
+  document.getElementById('ag-obs').value     = a.observaciones || '';
+  var nacEl = document.getElementById('ag-nacimiento');
+  var ingEl = document.getElementById('ag-ingreso');
+  if (nacEl && a.fecha_nacimiento) nacEl.value = a.fecha_nacimiento;
+  if (ingEl && a.fecha_ingreso)    ingEl.value = a.fecha_ingreso;
+  var licOrd = document.getElementById('ag-lic-ord');
+  if (licOrd) licOrd.value = a.lic_ordinaria  || 14;
+  var licEnf = document.getElementById('ag-lic-enf');
+  if (licEnf) licEnf.value = a.lic_enfermedad || 30;
+  var licPart = document.getElementById('ag-lic-part');
+  if (licPart) licPart.value = a.lic_particular || 3;
+  var licFr = document.getElementById('ag-lic-franco');
+  if (licFr) licFr.value = a.lic_franco || 0;
+  var licFam = document.getElementById('ag-lic-fam');
+  if (licFam) licFam.value = a.lic_familiar || 5;
+  var licDuel = document.getElementById('ag-lic-duelo');
+  if (licDuel) licDuel.value = a.lic_duelo || 3;
+  openOv('ov-agente');
 }
 
 function nuevoAgenteAdmin() {
@@ -9954,12 +9994,27 @@ function _saveNov() {
           setLoading('btn-save-nov', false);
           closeOv('ov-nov');
           toast('OK Novedad guardada' + (FOTOS_PENDIENTES.length ? " con ".concat(FOTOS_PENDIENTES.length, " foto(s)") : ''));
+          // Push si es comunicación inmediata
+          if ($('n-urgente') && $('n-urgente').checked) {
+            var tituloNov = $('n-tipo') ? ($('n-tipo').value === 'Otro' ? ($('n-asunto-otro') ? $('n-asunto-otro').value : 'Novedad') : $('n-tipo').value) : 'Novedad';
+            var puestoNov = USER ? USER.puesto : '';
+            var msg = '&#x1F6A8; ' + tituloNov + ' en ' + puestoNov;
+            // Push local al dispositivo
+            enviarNotificacion('&#x1F6A8; COMUNICACI\xD3N INMEDIATA', msg, '');
+            // Push a todos via servidor
+            fetch(PUSH_SERVER_URL + '/api/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ titulo: '&#x1F6A8; COMUNICACI\xD3N INMEDIATA — ' + puestoNov, cuerpo: tituloNov, url: '/' })
+            }).catch(function() {});
+          }
           FOTOS_PENDIENTES = [];
           ['n-asunto-otro', 'n-ubicacion', 'n-detalle', 'n-texto-informe', 'n-nro-pd', 'n-nro-pu'].forEach(function (id) {
             var el = document.getElementById(id); if (el) el.value = '';
           });
           if ($('n-area')) $('n-area').value = '';
           $('n-pend').checked = false;
+          if ($('n-urgente')) $('n-urgente').checked = false;
           
           if ($('n-puesto-sel')) $('n-puesto-sel').value = '';
           document.getElementById('foto-preview').innerHTML = '';
@@ -10907,6 +10962,7 @@ function _finRuta() {
 }
 function goView(name) {
   LAST_ACTIVE_SECTION = name;
+  actualizarFABvisibilidad(name);
   // Siempre ir al top al cambiar de sección
   var _mc = document.getElementById('main-content');
   if (_mc) _mc.scrollTop = 0;
@@ -11000,24 +11056,32 @@ function fabClick() {
   else if (CUR_VIEW === 'rrhh') abrirNuevoAgente();
   else if (CUR_VIEW === 'novedades') abrirNuevaNovedad();
   else if (CUR_VIEW === 'objetivos') {
-    // En los 3 barrios automáticos no se puede crear manualmente
     if (BARRIOS_AUTO_FAB.indexOf(USER ? USER.puesto : '') >= 0) {
       toast('El recorrido se inicia autom\xE1ticamente al fichar entrada', 'err');
-    } else {
-      abrirIniciarRecorrido();
-    }
+    } else { abrirIniciarRecorrido(); }
   }
   else if (CUR_VIEW === 'fichaje') {
     if (CUR_FICH_TAB === 'licencias') openOv('ov-licencia');else openOv('ov-nov');
   } else if (CUR_VIEW === 'agenda') {
-    var isAdminAgenda = ['Administración', 'Administrador', 'Gerencia', 'Jefe de departamento'].includes(USER ? USER.puesto : '');
+    var isAdminAgenda = ['Administraci\xF3n', 'Administrador', 'Gerencia', 'Jefe de departamento'].includes(USER ? USER.puesto : '');
     if (isAdminAgenda) {
       AGENDA_FECHAS_PENDIENTES = [];
       renderFechasAgenda();
       openOv('ov-agenda');
-    } else toast('Solo administración puede cargar operativos', 'err');
+    } else toast('Solo administraci\xF3n puede cargar operativos', 'err');
   } else if (CUR_VIEW === 'choferes') {
     if (CUR_CHOF_SUBTAB === 'rutas') openOv('ov-chof');else if (CUR_CHOF_SUBTAB === 'combustible') openOv('ov-combustible');else if (CUR_CHOF_SUBTAB === 'incidencias') openOv('ov-incidencia');else if (CUR_CHOF_SUBTAB === 'taller') openOv('ov-taller');
+  }
+}
+// Ocultar FAB en C.Objetivo para barrios con recorrido automático
+function actualizarFABvisibilidad(name) {
+  var fab = document.getElementById('fab');
+  if (!fab || !USER) return;
+  var BARRIOS_AUTO = ['Rodrigo Bueno', 'Papa Francisco', 'Fraga'];
+  if (name === 'objetivos' && BARRIOS_AUTO.indexOf(USER.puesto) >= 0) {
+    fab.style.display = 'none';
+  } else {
+    fab.style.display = '';
   }
 }
 function formatTs(ts) {
