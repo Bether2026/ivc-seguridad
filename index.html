@@ -1100,6 +1100,13 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
 
     <!-- OPCIONALES -->
     <div class="form-group">
+      <label class="form-label" style="color:var(--text3)">&#x1F3F7; &#xC1;rea <span style="font-size:10px;font-weight:400">(opcional)</span></label>
+      <select class="form-select" id="n-area">
+        <option value="">— Sin &#xE1;rea —</option>
+        <option>Seguridad</option><option>Social</option><option>T&#xE9;cnica</option><option>Coordinaci&#xF3;n</option>
+      </select>
+    </div>
+    <div class="form-group">
       <label class="form-check"><input type="checkbox" id="n-pend"> Marcar caso como abierto</label>
     </div>
 
@@ -2630,12 +2637,7 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
     <button class="btn-login" id="btn-save-edit" onclick="saveEdit()">💾 Guardar cambios</button>
   </div>
 </div>
-    <input type="hidden" id="edit-tabla">
-    <input type="hidden" id="edit-id">
-    <div id="edit-fields"></div>
-    <button class="btn-login" id="btn-save-edit" onclick="saveEdit()">💾 Guardar cambios</button>
-  </div>
-</div>
+    
 
 
 <div class="overlay" id="ov-mapa">
@@ -9911,6 +9913,7 @@ function _saveNov() {
             nro_pd: ($('n-nro-pd') && $('n-nro-pd').value) ? parseInt($('n-nro-pd').value) : null,
             nro_pu: ($('n-nro-pu') && $('n-nro-pu').value) ? parseInt($('n-nro-pu').value) : null,
             relevancia: 'Normal',
+            area: ($('n-area') && $('n-area').value) ? $('n-area').value : null,
             pendiente: pend,
             caso: null,
             cargado_por: $('n-agente').value || null,
@@ -9953,8 +9956,9 @@ function _saveNov() {
           toast('OK Novedad guardada' + (FOTOS_PENDIENTES.length ? " con ".concat(FOTOS_PENDIENTES.length, " foto(s)") : ''));
           FOTOS_PENDIENTES = [];
           ['n-asunto-otro', 'n-ubicacion', 'n-detalle', 'n-texto-informe', 'n-nro-pd', 'n-nro-pu'].forEach(function (id) {
-            return $(id).value = '';
+            var el = document.getElementById(id); if (el) el.value = '';
           });
+          if ($('n-area')) $('n-area').value = '';
           $('n-pend').checked = false;
           
           if ($('n-puesto-sel')) $('n-puesto-sel').value = '';
