@@ -6832,50 +6832,36 @@ function generarPreviewEditable() {
 }
 
 function descargarInformeFinal() {
-  var frame = document.getElementById('pd-preview-frame');
-  if (!frame) return;
+  var frame = document.getElementById('inf-preview-frame');
+  if (!frame || !frame.innerHTML.trim()) { toast('Primero generá el preview', 'err'); return; }
 
-  // Capturar el HTML actual del frame (con las ediciones del usuario)
   var contenido = frame.innerHTML;
+  // Limpiar atributos de edición
+  contenido = contenido.replace(/ contenteditable="true"/g, '').replace(/ contenteditable=""/g, '');
 
-  // Limpiar los estilos de edición antes de guardar
-  contenido = contenido
-    .replace(/contenteditable="true"/g, '')
-    .replace(/border-bottom: 1px dashed rgba\(59,130,246,\.3\);?/g, '')
-    .replace(/outline: none;?/g, '');
-
-  // Envolver en un documento HTML completo
-  var htmlFinal = '<!DOCTYPE html>\n<html lang="es">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n<title>Parte Diario</title>\n</head>\n<body style="margin:0;padding:0;background:#fff">\n' + contenido + '\n</body>\n</html>';
+  var htmlFinal = '<!DOCTYPE html>\n<html lang="es">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n<title>Parte Diario IVC</title>\n</head>\n<body style="margin:0;padding:0;background:#fff">\n' + contenido + '\n</body>\n</html>';
 
   var blob = new Blob([htmlFinal], { type: 'text/html;charset=utf-8' });
   var url  = URL.createObjectURL(blob);
   var a    = document.createElement('a');
-  var fechaStr = (new Date()).toLocaleDateString('es-AR').replace(/\//g,'-');
-  a.href = url;
-  a.download = 'Parte_Diario_' + fechaStr + '_FINAL.html';
+
+  var desdeEl  = document.getElementById('inf-fecha-desde');
+  var hastaEl  = document.getElementById('inf-fecha-hasta');
+  var desdeVal = desdeEl  ? desdeEl.value.replace(/-/g,'')  : '';
+  var hastaVal = hastaEl ? hastaEl.value.replace(/-/g,'') : '';
+  var nombre   = 'Parte_Diario_' + (desdeVal || 'sin_fecha') + (hastaVal && hastaVal !== desdeVal ? '_al_' + hastaVal : '') + '.html';
+
+  a.href     = url;
+  a.download = nombre;
+  document.body.appendChild(a);
   a.click();
-  URL.revokeObjectURL(url);
-  toast('&#x2B07; Archivo descargado');
+  document.body.removeChild(a);
+  setTimeout(function() { URL.revokeObjectURL(url); }, 1000);
+  toast('&#x2B07; ' + nombre);
 }
 
-function abrirEditarPD(id) {
-  document.getElementById('pd-edit-objetivo').value = n.puesto || '';
-  document.getElementById('pd-edit-asunto').value = n.tipo || n.asunto || '';
-  document.getElementById('pd-edit-responsable').value = n.responsable || '';
-  document.getElementById('pd-edit-agentes').value = n.agente || '';
-  document.getElementById('pd-edit-novedades').value = n.detalle || '';
-  document.getElementById('pd-edit-obs').value = n.observaciones || '';
-  // Fecha y hora
-  if (n.created_at) {
-    var d = new Date(n.created_at);
-    var h = d.getUTCHours() - 3; if (h < 0) h += 24;
-    var fechaAR = new Date(d.getTime() - 3 * 3600000);
-    document.getElementById('pd-edit-fecha').value = fechaAR.toISOString().substring(0,10);
-    document.getElementById('pd-edit-hora').value = String(h).padStart(2,'0') + ':' + String(d.getUTCMinutes()).padStart(2,'0');
-  }
-  document.getElementById('btn-del-pd').style.display = 'inline-block';
-  openOv('ov-pd-edit');
-}
+
+
 
 function abrirNuevoPD() {
   document.getElementById('pd-edit-title').textContent = 'Nueva novedad';
