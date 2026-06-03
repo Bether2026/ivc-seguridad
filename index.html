@@ -1047,22 +1047,94 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
 </div>
 <div class="overlay" id="ov-nov">
   <div class="modal">
-    <div class="modal-head"><span class="modal-title">Nueva Novedad</span><button class="btn-close" onclick="closeOv('ov-nov')">×</button></div>
+    <div class="modal-head"><span class="modal-title">Nueva Novedad</span><button class="btn-close" onclick="closeOv('ov-nov')">&#xD7;</button></div>
+
+    <!-- Solo gestión: selector de puesto -->
     <div class="form-group" id="n-puesto-wrap" style="display:none">
-      <label class="form-label">📍 Cargar en nombre de puesto</label>
+      <label class="form-label">&#x1F4CD; Cargar en nombre de puesto</label>
       <select class="form-select" id="n-puesto-sel">
         <option value="">— Seleccioná el puesto —</option>
-        <option value="Papa Francisco">Papa Francisco</option>
-<option value="Rodrigo Bueno">Rodrigo Bueno</option>
-<option value="Fraga">Fraga</option>
-<option value="Base Castañares">Base Castañares</option>
-<option value="Obrador Savio">Obrador Savio</option>
-<option value="CAV">CAV</option>
-<option value="Necochea">Necochea</option>
-<option value="Complejo Orma">Complejo Orma</option>
-<option value="Padre Mugica">Padre Mugica</option>
+        <option>Papa Francisco</option><option>Rodrigo Bueno</option><option>Fraga</option>
+        <option>Base Castañares</option><option>Obrador Savio</option><option>CAV</option>
+        <option>Necochea</option><option>Complejo Orma</option><option>Padre Mugica</option>
       </select>
     </div>
+
+    <!-- OBLIGATORIOS -->
+    <div class="form-group">
+      <label class="form-label">Asunto <span style="color:var(--red)">*</span></label>
+      <select class="form-select" id="n-tipo" onchange="toggleOtroAsunto()">
+        <option value="">— Seleccioná el asunto —</option>
+        <option>Construcci&#xF3;n indebida</option>
+        <option>Intrusi&#xF3;n / Intento de intrusi&#xF3;n</option>
+        <option>Control</option>
+        <option>Da&#xF1;os</option>
+        <option>Demolici&#xF3;n</option>
+        <option>Poda / Corte de pasto</option>
+        <option>Acompa&#xF1;amiento</option>
+        <option>Atenci&#xF3;n al p&#xFA;blico</option>
+        <option>Otro</option>
+      </select>
+    </div>
+    <div class="form-group" id="n-otro-wrap" style="display:none">
+      <label class="form-label">Especificar asunto <span style="color:var(--red)">*</span></label>
+      <input class="form-input" id="n-asunto-otro" placeholder="Describ&#xED; el asunto..."/>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Ubicaci&#xF3;n / Sector <span style="color:var(--red)">*</span></label>
+      <input class="form-input" id="n-ubicacion" placeholder="Ej: Manzana 4, Orden 87, Local N&#xB0;3..."/>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Detalle <span style="color:var(--red)">*</span></label>
+      <textarea class="form-textarea" id="n-detalle" placeholder="Describ&#xED; los hechos con detalle..."></textarea>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">&#x1F464; Cargado por (Agente) <span style="color:var(--red)">*</span></label>
+      <select class="form-select" id="n-agente">
+        <option value="">— Seleccionar agente —</option>
+      </select>
+    </div>
+
+    <!-- OPCIONALES -->
+    <div class="form-group">
+      <label class="form-check"><input type="checkbox" id="n-pend"> Marcar caso como abierto</label>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" style="color:var(--text3);font-size:11px;text-transform:uppercase;letter-spacing:.06em">&#x1F4F7; Fotos / Evidencia <span style="font-weight:400">(opcional)</span></label>
+      <div id="foto-drop-zone" onclick="agregarFoto()" style="border:2px dashed var(--border2);border-radius:var(--radius-sm);padding:14px;text-align:center;cursor:pointer;background:var(--bg3)">
+        <div style="font-size:24px;margin-bottom:4px">&#x1F4F7;</div>
+        <div style="font-size:13px;color:var(--text2);font-weight:600">Toc&#xE1; para agregar foto</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">C&#xE1;mara &#xB7; Galer&#xED;a</div>
+      </div>
+      <input type="file" id="foto-input" accept="image/*" style="display:none" onchange="fotoCapturada(this)">
+      <div id="foto-preview" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"></div>
+      <div id="btn-mas-foto" style="display:none;margin-top:8px">
+        <button type="button" onclick="agregarFoto()" style="width:100%;padding:10px;border-radius:var(--radius-xs);border:1px dashed var(--border2);background:none;color:var(--accent3);font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer">+ Agregar otra foto</button>
+      </div>
+    </div>
+
+    <!-- Sección administrativa (solo gestión) -->
+    <div class="form-group" id="n-informe-wrap" style="display:none">
+      <div style="background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.2);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px">
+        <div style="font-size:11px;font-weight:700;color:var(--accent3);text-transform:uppercase;letter-spacing:.08em">&#x1F4CB; Secci&#xF3;n administrativa &#x2014; Informe</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div><label class="form-label" style="font-size:10px">N&#xB0; de PD</label><input class="form-input" id="n-nro-pd" placeholder="Ej: 2326" type="number" style="margin-bottom:0"/></div>
+          <div><label class="form-label" style="font-size:10px">N&#xB0; de PU</label><input class="form-input" id="n-nro-pu" placeholder="Ej: 45" type="number" style="margin-bottom:0"/></div>
+        </div>
+        <div>
+          <label class="form-label" style="font-size:10px">Texto del informe <span style="font-weight:400;color:var(--text3)">(peg&#xE1; el texto del Access)</span></label>
+          <textarea class="form-textarea" id="n-texto-informe" style="min-height:80px;border-color:rgba(59,130,246,.3);margin-bottom:0" placeholder="Peg&#xE1; ac&#xE1; el texto formal..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-login" id="btn-save-nov" onclick="saveNov()">Guardar Novedad</button>
+  </div>
+</div>
     <div class="form-group"><label class="form-label">Asunto</label>
       <select class="form-select" id="n-tipo" onchange="toggleOtroAsunto()">
         <option>Construcción indebida</option>
@@ -9889,6 +9961,16 @@ function _saveNov() {
     return _regenerator().w(function (_context39) {
       while (1) switch (_context39.n) {
         case 0:
+          // Validar campos obligatorios
+          var tipoVal = $('n-tipo') ? $('n-tipo').value : '';
+          var ubVal   = $('n-ubicacion') ? $('n-ubicacion').value.trim() : '';
+          var detVal  = $('n-detalle') ? $('n-detalle').value.trim() : '';
+          var agVal   = $('n-agente') ? $('n-agente').value : '';
+          if (!tipoVal) { toast('Seleccioná el Asunto', 'err'); return _context39.a(2); }
+          if (tipoVal === 'Otro' && !($('n-asunto-otro') && $('n-asunto-otro').value.trim())) { toast('Especificá el asunto', 'err'); return _context39.a(2); }
+          if (!ubVal)   { toast('Ingres\xE1 la Ubicaci\xF3n / Sector', 'err'); return _context39.a(2); }
+          if (!detVal)  { toast('Ingres\xE1 el Detalle', 'err'); return _context39.a(2); }
+          if (!agVal)   { toast('Selecci\xF3n el Agente', 'err'); return _context39.a(2); }
           pend = $('n-pend').checked;
           setLoading('btn-save-nov', true);
           payload = {
@@ -9900,7 +9982,7 @@ function _saveNov() {
             texto_informe: ($('n-texto-informe') && $('n-texto-informe').value.trim()) ? $('n-texto-informe').value.trim() : null,
             nro_pd: ($('n-nro-pd') && $('n-nro-pd').value) ? parseInt($('n-nro-pd').value) : null,
             nro_pu: ($('n-nro-pu') && $('n-nro-pu').value) ? parseInt($('n-nro-pu').value) : null,
-            relevancia: $('n-relev').value,
+            relevancia: 'Normal',
             pendiente: pend,
             caso: null,
             cargado_por: $('n-agente').value || null,
