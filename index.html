@@ -4313,6 +4313,7 @@ function _marcarSalidaDirecta() {
                 case 5:
                   registrarEvento('SALIDA', nombreAgente, 'Salida registrada desde turno activo');
                   toast('Salida registrada — ' + nombreAgente);
+                  cerrarRecorridoAuto(USER.puesto);
                   loadFichajes();
                   loadDash();
                 case 6:
@@ -4327,6 +4328,28 @@ function _marcarSalidaDirecta() {
   }));
   return _marcarSalidaDirecta.apply(this, arguments);
 }
+function cerrarRecorridoAuto(puesto) {
+  var BARRIOS = ['Rodrigo Bueno', 'Papa Francisco', 'Fraga'];
+  if (BARRIOS.indexOf(puesto) < 0) return;
+  // Buscar recorridos auto activos del puesto — sin filtrar por cargado_por
+  db.from('objetivos').select('id,actualizaciones')
+    .eq('puesto', puesto)
+    .eq('estado', 'activo')
+    .then(function(ro) {
+      if (ro.error || !ro.data) return;
+      ro.data.forEach(function(rec) {
+        // Solo procesar los que fueron creados automáticamente
+        // (auto_fichaje puede no existir como columna — usamos la ausencia de nombre como indicador)
+        var puntos = rec.actualizaciones || [];
+        if (puntos.length === 0) {
+          db.from('objetivos').delete().eq('id', rec.id).then(function() { loadObjetivos(); });
+        } else {
+          db.from('objetivos').update({ estado: 'finalizado', progreso: 100, fin: new Date().toISOString() }).eq('id', rec.id).then(function() { loadObjetivos(); });
+        }
+      });
+    });
+}
+
 function formatFechaCompleta(dateStr) {
   if (!dateStr) return '';
   var d = new Date(dateStr);
@@ -9734,27 +9757,9 @@ function _doSalida() {
                   return db.from('fichajes').update(updates).eq('agente', SEL_AGENT).eq('activo', true);
                 case 4:
                   toast("Salida registrada \u2014 ".concat(SEL_AGENT));
-                  // Cerrar recorrido automático si existe
-                  var BARRIOS_REC = ['Rodrigo Bueno', 'Papa Francisco', 'Fraga'];
-                  if (BARRIOS_REC.indexOf(USER.puesto) >= 0) {
-                    db.from('objetivos')
-                      .select('id, actualizaciones')
-                      .eq('puesto', USER.puesto)
-                      .eq('estado', 'activo')
-                      .eq('auto_fichaje', true)
-                      .order('created_at', { ascending: false })
-                      .limit(1)
-                      .then(function(ro) {
-                        if (ro.error || !ro.data || !ro.data.length) return;
-                        var rec = ro.data[0];
-                        var puntos = rec.actualizaciones || [];
-                        if (puntos.length === 0) {
-                          db.from('objetivos').delete().eq('id', rec.id).then(function() { loadObjetivos(); });
-                        } else {
-                          db.from('objetivos').update({ estado: 'finalizado', progreso: 100, fin: new Date().toISOString() }).eq('id', rec.id).then(function() { loadObjetivos(); });
-                        }
-                      });
-                  }
+                  cerrarRecorridoAuto(USER.puesto);
+                  loadFichajes();
+                  loadDash();
                   loadFichajes();
                   loadDash();
                 case 5:
@@ -10976,8 +10981,20 @@ function chofSubTab(tab, btn) {
   }
 }
 function fabClick() {
-  if (CUR_VIEW === 'llaves') openOv('ov-nueva-llave');else if (CUR_VIEW === 'rrhh') abrirNuevoAgente();else if (CUR_VIEW === 'novedades') abrirNuevaNovedad();else if (CUR_VIEW === 'objetivos') abrirIniciarRecorrido();else if (CUR_VIEW === 'fichaje') {
-    if (CUR_FICH_TAB === 'licencias') openOv('ov-licencia');else openOv('ov-nov'); // fallback
+  var BARRIOS_AUTO_FAB = ['Rodrigo Bueno', 'Papa Francisco', 'Fraga'];
+  if (CUR_VIEW === 'llaves') openOv('ov-nueva-llave');
+  else if (CUR_VIEW === 'rrhh') abrirNuevoAgente();
+  else if (CUR_VIEW === 'novedades') abrirNuevaNovedad();
+  else if (CUR_VIEW === 'objetivos') {
+    // En los 3 barrios automáticos no se puede crear manualmente
+    if (BARRIOS_AUTO_FAB.indexOf(USER ? USER.puesto : '') >= 0) {
+      toast('El recorrido se inicia autom\xE1ticamente al fichar entrada', 'err');
+    } else {
+      abrirIniciarRecorrido();
+    }
+  }
+  else if (CUR_VIEW === 'fichaje') {
+    if (CUR_FICH_TAB === 'licencias') openOv('ov-licencia');else openOv('ov-nov');
   } else if (CUR_VIEW === 'agenda') {
     var isAdminAgenda = ['Administración', 'Administrador', 'Gerencia', 'Jefe de departamento'].includes(USER ? USER.puesto : '');
     if (isAdminAgenda) {
