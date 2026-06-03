@@ -2348,146 +2348,54 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
       </div>
 
       <!-- TAB INFORME DIARIO -->
+      <!-- TAB INFORME DIARIO -->
       <div id="adm-panel-informe" style="display:none">
 
-        <!-- Sub-tabs -->
-        <div style="display:flex;gap:8px;margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:12px">
-          <button id="inf-tab-novedades" onclick="selInfTab('novedades')" style="padding:7px 16px;border-radius:8px;border:1px solid rgba(16,185,129,.35);background:rgba(16,185,129,.15);color:#6ee7b7;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">&#x1F4CB; PD / Novedades</button>
-          <button id="inf-tab-generar" onclick="selInfTab('generar')" style="padding:7px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">&#x1F4C4; Generar informe HTML</button>
-        </div>
-
-        <!-- SUB-TAB: PD / Novedades -->
-        <div id="inf-panel-novedades">
-          <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:14px;margin-bottom:12px">
-            <div style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;margin-bottom:10px">
-              <div>
-                <label style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:4px">Fecha desde</label>
-                <input type="date" id="pd-fecha-desde" class="form-input" style="padding:8px 12px;width:155px;margin-bottom:0"/>
-              </div>
-              <div>
-                <label style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:4px">Fecha hasta</label>
-                <input type="date" id="pd-fecha-hasta" class="form-input" style="padding:8px 12px;width:155px;margin-bottom:0"/>
-              </div>
-              <div>
-                <label style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:4px">Buscar</label>
-                <input type="text" id="pd-buscar" class="form-input" placeholder="Barrio, agente..." style="padding:8px 12px;width:160px;margin-bottom:0" oninput="filtrarPD()"/>
-              </div>
-              <button onclick="cargarPD()" style="padding:8px 16px;border-radius:8px;border:1px solid rgba(59,130,246,.35);background:rgba(59,130,246,.1);color:#93c5fd;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">&#x1F504; Buscar</button>
-            </div>
-            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
-              <div id="pd-resumen" style="font-size:12px;color:var(--text3)"></div>
-              <div id="pd-sel-info" style="display:none;font-size:12px;color:var(--green);font-weight:700"><span id="pd-sel-count">0</span> seleccionadas</div>
-            </div>
+        <!-- GENERADOR -->
+        <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:16px;margin-bottom:14px">
+          <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">&#x1F4C4; Generador de Parte Diario</div>
+          <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">
+            Selecion&#xE1; el rango de fechas, generá el preview y edit&#xE1;lo directamente antes de descargar.
           </div>
-          <div style="background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.15);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#93c5fd;line-height:1.6">
-            &#x2714; <strong>Tild&#xE1;</strong> las novedades para incluirlas. Pod&#xE9;s agregar texto editorial en cada una. El texto original del agente <strong>queda intacto</strong>.
-          </div>
-          <div id="pd-lista"><div class="empty"><div class="icon">&#x1F4CB;</div><p>Selecci&#xF3;n el rango de fechas y hac&#xE9; clic en Buscar</p></div></div>
-          <!-- Panel generar preview -->
-          <div id="pd-generar-wrap" style="display:none;margin-top:14px;padding:14px;background:var(--bg2);border:1px solid var(--border2);border-radius:12px">
-            <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px">Generar preview editable</div>
-            <div style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap">
-              <div>
-                <label style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:4px">Elaborado por</label>
-                <input type="text" id="pd-autor" class="form-input" placeholder="Nombre del responsable" style="padding:8px 12px;width:220px;margin-bottom:0"/>
-              </div>
-              <button onclick="generarPreviewEditable()" style="padding:9px 18px;border-radius:10px;border:1px solid rgba(16,185,129,.35);background:rgba(16,185,129,.1);color:#6ee7b7;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">&#x1F441; Generar preview</button>
+          <div style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap">
+            <div>
+              <label style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:4px">Fecha desde</label>
+              <input type="date" id="inf-fecha-desde" class="form-input" style="padding:8px 12px;width:160px;margin-bottom:0"/>
             </div>
-          </div>
-          <!-- Preview editable del informe -->
-          <div id="pd-preview-container" style="display:none;margin-top:16px">
-            <div style="background:var(--bg2);border:1px solid rgba(16,185,129,.3);border-radius:12px;padding:14px;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
-              <div>
-                <div style="font-size:13px;font-weight:700;color:var(--green)">&#x2713; Preview listo &#x2014; edit&#xE1;lo directamente</div>
-                <div style="font-size:11px;color:var(--text3);margin-top:3px">Hac&#xE9; clic en cualquier texto para editarlo. Bot&#xF3;n &#x1F5D1; para eliminar una fila. Cuando est&#xE9; listo, descarg&#xE1; el archivo final.</div>
-              </div>
-              <button onclick="descargarInformeFinal()" style="padding:9px 18px;border-radius:10px;border:1px solid rgba(16,185,129,.35);background:rgba(16,185,129,.15);color:#6ee7b7;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">&#x2B07; Descargar archivo final</button>
+            <div>
+              <label style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:4px">Fecha hasta</label>
+              <input type="date" id="inf-fecha-hasta" class="form-input" style="padding:8px 12px;width:160px;margin-bottom:0"/>
             </div>
-            <!-- El iframe editable -->
-            <div id="pd-preview-frame" style="border:1px solid var(--border2);border-radius:10px;overflow:hidden;background:#fff;min-height:400px"></div>
+            <div>
+              <label style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:4px">Elaborado por</label>
+              <input type="text" id="inf-autor" class="form-input" placeholder="Nombre del responsable" style="padding:8px 12px;width:200px;margin-bottom:0"/>
+            </div>
+            <button onclick="generarPreviewInforme()" style="padding:9px 18px;border-radius:10px;border:1px solid rgba(16,185,129,.35);background:rgba(16,185,129,.1);color:#6ee7b7;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">
+              &#x1F441; Generar preview
+            </button>
           </div>
         </div>
 
-        <!-- SUB-TAB: Generador HTML -->
-        <div id="inf-panel-generar" style="display:none">
-          <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:16px;margin-bottom:14px">
-            <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">&#x1F4C4; Generador de Parte Diario HTML</div>
-            <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">
-              Genera el informe HTML con novedades y fotos del d&#xEDa. Se puede enviar como adjunto de email.
+        <!-- Estado carga -->
+        <div id="inf-status" style="display:none;padding:12px 16px;background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2);border-radius:10px;margin-bottom:14px;font-size:13px;color:#93c5fd;align-items:center;gap:10px">
+          <span class="spinner" style="width:14px;height:14px;border-width:2px"></span>
+          <span id="inf-status-txt">Cargando novedades...</span>
+        </div>
+
+        <!-- Preview editable -->
+        <div id="inf-preview-container" style="display:none">
+          <div style="background:var(--bg2);border:1px solid rgba(16,185,129,.3);border-radius:12px;padding:14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--green)">&#x2713; Preview listo &#x2014; edit&#xE1;lo directamente</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:3px">Hac&#xE9; clic en cualquier texto para editarlo. Bot&#xF3;n &#xD7; para eliminar una fila. Cuando est&#xE9; listo, descarg&#xE1;.</div>
             </div>
-            <div style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap">
-              <div>
-                <label style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:4px">Fecha del informe</label>
-                <input type="date" id="inf-fecha" class="form-input" style="padding:8px 12px;width:160px;margin-bottom:0"/>
-              </div>
-              <div>
-                <label style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:4px">Elaborado por</label>
-                <input type="text" id="inf-autor" class="form-input" placeholder="Nombre del responsable" style="padding:8px 12px;width:220px;margin-bottom:0"/>
-              </div>
-              <button onclick="generarInformeDiario()" style="padding:9px 18px;border-radius:10px;border:1px solid rgba(16,185,129,.35);background:rgba(16,185,129,.1);color:#6ee7b7;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">
-                &#x1F4C4; Generar informe
-              </button>
-            </div>
+            <button onclick="descargarInformeFinal()" style="padding:9px 18px;border-radius:10px;border:1px solid rgba(16,185,129,.35);background:rgba(16,185,129,.15);color:#6ee7b7;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">&#x2B07; Descargar archivo final</button>
           </div>
-          <div id="inf-status" style="display:none;padding:12px 16px;background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2);border-radius:10px;margin-bottom:14px;font-size:13px;color:#93c5fd;align-items:center;gap:10px">
-            <span class="spinner" style="width:14px;height:14px;border-width:2px"></span>
-            <span id="inf-status-txt">Cargando novedades...</span>
-          </div>
-          <div id="inf-preview"></div>
+          <div id="inf-preview-frame" style="border:1px solid var(--border2);border-radius:10px;overflow:hidden;background:#fff;min-height:300px"></div>
         </div>
 
       </div>
 
-      <!-- OVERLAY: Editar/Nueva novedad PD -->
-      <div class="overlay" id="ov-pd-edit">
-        <div class="modal">
-          <div class="modal-head">
-            <span class="modal-title" id="pd-edit-title">&#x1F4CB; Novedad</span>
-            <button class="btn-close" onclick="closeOv('ov-pd-edit')">&#xD7;</button>
-          </div>
-          <input type="hidden" id="pd-edit-id">
-          <div class="form-group">
-            <label class="form-label">Barrio / Objetivo <span style="color:var(--red)">*</span></label>
-            <input class="form-input" id="pd-edit-objetivo" placeholder="Ej: Papa Francisco, Rodrigo Bueno..."/>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-            <div class="form-group">
-              <label class="form-label">Fecha</label>
-              <input type="date" class="form-input" id="pd-edit-fecha"/>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Hora</label>
-              <input type="time" class="form-input" id="pd-edit-hora"/>
-            </div>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Asunto <span style="color:var(--red)">*</span></label>
-            <input class="form-input" id="pd-edit-asunto" placeholder="Ej: Relevamiento general, Construcci&#xF3;n clandestina..."/>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Responsable</label>
-            <input class="form-input" id="pd-edit-responsable" placeholder="Nombre del responsable de turno"/>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Agentes intervinientes</label>
-            <input class="form-input" id="pd-edit-agentes" placeholder="Ej: Castro Víctor — Reschigna Thiago"/>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Novedades <span style="color:var(--red)">*</span></label>
-            <textarea class="form-textarea" id="pd-edit-novedades" style="min-height:120px" placeholder="Descrip&#xF3; las novedades del informe..."></textarea>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Observaciones</label>
-            <textarea class="form-textarea" id="pd-edit-obs" style="min-height:70px" placeholder="Observaciones adicionales..."></textarea>
-          </div>
-          <div style="display:flex;gap:8px">
-            <button class="btn-login" id="btn-save-pd" onclick="guardarPD()" style="flex:1">&#x2713; Guardar</button>
-            <button id="btn-del-pd" onclick="eliminarPD()" style="padding:14px;border-radius:10px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.08);color:#fca5a5;font-family:var(--font);font-size:14px;cursor:pointer">&#x1F5D1;</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- TAB PERSONAL (lista completa de agentes) -->
       <div id="adm-panel-personal" style="display:none">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;flex-wrap:wrap">
           <input id="adm-ag-search" oninput="filtrarAgentesAdmin(this.value)" placeholder="&#x1F50D; Buscar agente, legajo, DNI..." style="flex:1;min-width:180px;padding:9px 14px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--font);font-size:13px;outline:none"/>
@@ -6689,17 +6597,7 @@ function selAdminTab(tab) {
   if (tab === 'horas')    { selHRTab('detalle'); }
   if (tab === 'personal') { loadAgentesAdmin(); }
   if (tab === 'informe')  {
-    selInfTab('novedades');
     iniciarTabInforme();
-    var fechaEl = document.getElementById('pd-fecha');
-    if (fechaEl && !fechaEl.value) {
-      var ahAR = fechaHoyAR();
-      if (ahAR && ahAR.fecha) {
-        var p = ahAR.fecha.split('/');
-        fechaEl.value = p[2] + '-' + p[1] + '-' + p[0];
-      }
-    }
-    cargarPD();
   }
 }
 
@@ -7049,55 +6947,55 @@ function eliminarPD() {
 }
 
 function iniciarTabInforme() {
-  // Setear fecha de hoy por defecto
-  var fechaEl = document.getElementById('inf-fecha');
-  if (fechaEl && !fechaEl.value) {
-    var ahAR = fechaHoyAR();
-    if (ahAR && ahAR.fecha) {
-      // fecha viene DD/MM/YYYY → convertir a YYYY-MM-DD para input date
-      var partes = ahAR.fecha.split('/');
-      if (partes.length === 3) {
-        fechaEl.value = partes[2] + '-' + partes[1] + '-' + partes[0];
-      } else {
-        fechaEl.value = ahAR.fecha;
-      }
-    }
-  }
-  // Setear autor con el usuario actual
+  // Setear fecha de hoy en los nuevos inputs
+  var desdeEl = document.getElementById('inf-fecha-desde');
+  var hastaEl = document.getElementById('inf-fecha-hasta');
   var autorEl = document.getElementById('inf-autor');
+  var ahAR = fechaHoyAR();
+  if (ahAR && ahAR.fecha) {
+    var p = ahAR.fecha.split('/');
+    var hoy = p[2] + '-' + p[1] + '-' + p[0];
+    if (desdeEl && !desdeEl.value) desdeEl.value = hoy;
+    if (hastaEl && !hastaEl.value) hastaEl.value = hoy;
+  }
   if (autorEl && !autorEl.value && USER) {
     autorEl.value = USER.nombre || USER.puesto || '';
   }
 }
 
-function generarInformeDiario() {
-  var fechaEl  = document.getElementById('inf-fecha');
-  var autorEl  = document.getElementById('inf-autor');
-  var statusEl = document.getElementById('inf-status');
+function generarPreviewInforme() {
+  var desdeEl   = document.getElementById('inf-fecha-desde');
+  var hastaEl   = document.getElementById('inf-fecha-hasta');
+  var autorEl   = document.getElementById('inf-autor');
+  var statusEl  = document.getElementById('inf-status');
   var statusTxt = document.getElementById('inf-status-txt');
-  var preview  = document.getElementById('inf-preview');
+  var container = document.getElementById('inf-preview-container');
+  var frame     = document.getElementById('inf-preview-frame');
 
-  if (!fechaEl || !fechaEl.value) { toast('Seleccioná la fecha del informe', 'err'); return; }
+  var desdeVal = desdeEl ? desdeEl.value : '';
+  var hastaVal = hastaEl ? hastaEl.value : '';
+  var autor    = autorEl ? (autorEl.value.trim() || 'Administración') : 'Administración';
 
-  var fechaVal = fechaEl.value; // YYYY-MM-DD
-  var autor    = (autorEl && autorEl.value.trim()) ? autorEl.value.trim() : 'Administración';
+  if (!desdeVal && !hastaVal) { toast('Selecioná al menos una fecha', 'err'); return; }
 
-  // Convertir a formato legible
-  var partes = fechaVal.split('-');
-  var fechaDisplay = partes[2] + '/' + partes[1] + '/' + partes[0];
-  var diasNom = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
-  var fechaObj = new Date(fechaVal + 'T12:00:00');
-  var diaNom = diasNom[fechaObj.getDay()];
+  if (statusEl) { statusEl.style.display = 'flex'; }
+  if (statusTxt) statusTxt.textContent = 'Cargando novedades...';
+  if (container) container.style.display = 'none';
 
-  // Rango del día en UTC (AR = UTC-3)
-  var desdeUTC = fechaVal + 'T03:00:00.000Z';
-  var hastaUTC = fechaVal + 'T26:59:59.000Z';
+  // Construir rango UTC
+  var desdeUTC = desdeVal ? desdeVal + 'T03:00:00.000Z' : '2020-01-01T00:00:00.000Z';
+  var hastaUTC;
+  if (hastaVal) {
+    // fin del día hasta en AR = siguiente día a las 02:59:59 UTC
+    var d = new Date(hastaVal + 'T03:00:00.000Z');
+    d.setUTCDate(d.getUTCDate() + 1);
+    hastaUTC = d.toISOString();
+  } else {
+    var d2 = new Date(desdeVal + 'T03:00:00.000Z');
+    d2.setUTCDate(d2.getUTCDate() + 1);
+    hastaUTC = d2.toISOString();
+  }
 
-  if (statusEl) statusEl.style.display = 'flex';
-  if (statusTxt) statusTxt.textContent = 'Cargando novedades del ' + fechaDisplay + '...';
-  if (preview) preview.innerHTML = '';
-
-  // Cargar novedades del día con sus fotos
   db.from('novedades').select('*').gte('created_at', desdeUTC).lte('created_at', hastaUTC).order('created_at', { ascending: true }).then(function(r) {
     if (r.error) {
       if (statusEl) statusEl.style.display = 'none';
@@ -7105,7 +7003,12 @@ function generarInformeDiario() {
       return;
     }
     var novedades = r.data || [];
-    if (statusTxt) statusTxt.textContent = 'Procesando ' + novedades.length + ' novedades...';
+    if (!novedades.length) {
+      if (statusEl) statusEl.style.display = 'none';
+      toast('Sin novedades para el período seleccionado', 'err');
+      return;
+    }
+    if (statusTxt) statusTxt.textContent = 'Cargando fotos (' + novedades.length + ' novedades)...';
 
     // Agrupar por puesto
     var porPuesto = {};
@@ -7115,43 +7018,52 @@ function generarInformeDiario() {
       porPuesto[p].push(n);
     });
 
-    // Cargar imágenes como base64 para embeber
-    var fotoPromises = [];
-    var fotosMap = {}; // url → base64
+    // Construir fecha display
+    var fechaDisplay = '';
+    if (desdeVal && hastaVal && desdeVal !== hastaVal) {
+      fechaDisplay = desdeVal.split('-').reverse().join('/') + ' al ' + hastaVal.split('-').reverse().join('/');
+    } else {
+      var fv = desdeVal || hastaVal;
+      var fp = fv.split('-');
+      fechaDisplay = fp[2] + '/' + fp[1] + '/' + fp[0];
+    }
+    var diasNom = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+    var diaNom = (desdeVal && desdeVal === hastaVal) ? diasNom[new Date(desdeVal + 'T12:00:00').getDay()] : '';
 
+    // Cargar fotos como base64
+    var fotosMap = {};
+    var fotoPromises = [];
     novedades.forEach(function(n) {
       var fotos = [];
       if (n.foto_url)  fotos.push(n.foto_url);
       if (n.foto_url2) fotos.push(n.foto_url2);
       if (n.foto_url3) fotos.push(n.foto_url3);
       if (n.fotos && Array.isArray(n.fotos)) fotos = fotos.concat(n.fotos);
-      fotos = fotos.filter(Boolean);
-
-      fotos.forEach(function(url) {
+      fotos.filter(Boolean).forEach(function(url) {
         if (!fotosMap[url]) {
           fotosMap[url] = null;
           fotoPromises.push(
-            fetch(url).then(function(resp) {
-              return resp.blob();
-            }).then(function(blob) {
-              return new Promise(function(resolve) {
-                var reader = new FileReader();
-                reader.onload = function(e) { fotosMap[url] = e.target.result; resolve(); };
-                reader.onerror = function() { resolve(); };
-                reader.readAsDataURL(blob);
+            fetch(url).then(function(resp){ return resp.blob(); }).then(function(blob){
+              return new Promise(function(res){
+                var fr = new FileReader();
+                fr.onload = function(e){ fotosMap[url] = e.target.result; res(); };
+                fr.onerror = function(){ res(); };
+                fr.readAsDataURL(blob);
               });
-            }).catch(function() { /* foto no disponible */ })
+            }).catch(function(){})
           );
         }
       });
     });
 
-    if (statusTxt) statusTxt.textContent = 'Cargando fotos (' + fotoPromises.length + ')...';
+    if (statusTxt) statusTxt.textContent = 'Generando informe...';
 
     Promise.all(fotoPromises).then(function() {
       if (statusEl) statusEl.style.display = 'none';
-      var html = construirHTMLInforme(porPuesto, novedades, fotosMap, fechaDisplay, diaNom, autor, fechaVal);
-      mostrarPreviewInforme(html, fechaVal, preview);
+      var html = construirHTMLEditablePreview(porPuesto, novedades, fotosMap, fechaDisplay, diaNom, autor);
+      if (frame) frame.innerHTML = html;
+      if (container) container.style.display = 'block';
+      toast('&#x1F441; Preview listo — editá y descargá');
     });
   });
 }
