@@ -2159,16 +2159,13 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
         <p>Gestión y limpieza de datos del sistema</p>
       </div>
 
-      <!-- TABS DEL PANEL ADMIN -->
-      <div id="adm-tabs-bar" style="display:flex;gap:8px;margin-bottom:0;padding-bottom:12px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px">
+      <div style="display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px">
         <button id="adm-tab-general" onclick="selAdminTab('general')" style="flex-shrink:0;padding:8px 18px;border-radius:8px;border:1px solid rgba(248,113,113,.35);background:rgba(248,113,113,.15);color:#fca5a5;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">⚙️ General</button>
         <button id="adm-tab-horas" onclick="selAdminTab('horas')" style="flex-shrink:0;padding:8px 18px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">📊 Horas Reales</button>
         <button id="adm-tab-personal" onclick="selAdminTab('personal')" style="flex-shrink:0;padding:8px 18px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">👤 Personal</button>
         <button id="adm-tab-informe" onclick="selAdminTab('informe')" style="flex-shrink:0;padding:8px 18px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">📄 Informe Diario</button>
       </div>
-      <div id="adm-tabs-content">
 
-      <!-- TAB GENERAL -->
       <div id="adm-panel-general">
       <!-- HISTORIAL DE SESIONES -->
       <div class="card" style="border-left:3px solid var(--accent3);margin-bottom:14px">
@@ -2492,7 +2489,7 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
           <div class="empty"><div class="icon">&#x1F465;</div><p>Carg&#xE1; el panel tocando la pesta&#xF1;a</p></div>
         </div>
       </div>
-    </div>
+        </div><!-- /view-admin -->
   </main>
   <nav class="bottomnav">
     <button class="nav-btn active" onclick="goView('dashboard')" id="nb-dashboard">
@@ -2541,7 +2538,6 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6"/><path d="M18 14l2 2 4-4" stroke-width="2"/></svg><span>Admin</span>
     </button>
   </nav>
-</div>
       </div><!-- /adm-tabs-content -->
 <div class="overlay" id="ov-agenda">
   <div class="modal">
@@ -2598,8 +2594,6 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
     <button class="btn-login" id="btn-save-edit" onclick="saveEdit()">💾 Guardar cambios</button>
   </div>
 </div>
-
-      </div><!-- /adm-panel-general -->
 
 
 <div class="overlay" id="ov-mapa">
