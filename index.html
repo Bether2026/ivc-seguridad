@@ -1494,6 +1494,10 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
         <label>Contraseña</label>
         <input type="password" id="inp-pass" placeholder="••••••••"/>
       </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <input type="checkbox" id="inp-remember" style="width:16px;height:16px;cursor:pointer;accent-color:var(--accent3)">
+        <label for="inp-remember" style="font-size:13px;color:var(--text2);cursor:pointer;font-weight:500">Recordarme en este dispositivo</label>
+      </div>
       <button class="btn-login" id="btn-login" onclick="doLogin()">Ingresar</button>
       <div class="auth-err" id="auth-err"></div>
     </div>
@@ -5714,6 +5718,15 @@ function _doLogin() {
             localStorage.removeItem('ivc_block_' + puesto);
           } catch (e) {}
           registrarEvento('LOGIN_OK', puesto, 'Inicio de sesion exitoso');
+          // Guardar credenciales si tildó "Recordarme"
+          var rememberEl = document.getElementById('inp-remember');
+          if (rememberEl && rememberEl.checked) {
+            try {
+              localStorage.setItem('ivc_remember_user', puesto + '|' + rol);
+            } catch(e) {}
+          } else {
+            try { localStorage.removeItem('ivc_remember_user'); } catch(e) {}
+          }
           // Verificar dispositivo (2FA) antes de entrar
           verificarAccesoDispositivo(puesto, function () {
             USER = {
@@ -5749,6 +5762,7 @@ function doLogout() {
     registrarLogout();
     USER = null;
     clearSession();
+    try { localStorage.removeItem('ivc_remember_user'); } catch(e) {}
     clearInterval(TIMER);
     $('app').style.display = 'none';
     $('auth-screen').style.display = 'flex';
@@ -13449,6 +13463,8 @@ function loadSession() {
 function clearSession() {
   try { localStorage.removeItem(SESSION_KEY); } catch(e) {}
   try { sessionStorage.removeItem(SESSION_KEY); } catch(e) {}
+  // No borrar ivc_remember_user — el usuario eligió recordarse
+  // Solo se borra si hace logout explícito desde el botón
 }
 function refreshSession() {
   if (USER) saveSession();
@@ -15085,7 +15101,23 @@ setTimeout(function () {
       $('sb-puesto') && ($('sb-puesto').textContent = session.puesto);
       initApp();
     } else {
-      $('auth-screen').style.display = 'flex';
+      // Verificar si hay sesión recordada
+      var remembered = null;
+      try { remembered = localStorage.getItem('ivc_remember_user'); } catch(e) {}
+      if (remembered) {
+        var partsR = remembered.split('|');
+        var puestoR = partsR[0];
+        var rolR = partsR[1] || '';
+        USER = { puesto: puestoR, rol: rolR };
+        $('auth-screen').style.display = 'none';
+        $('app').style.display = 'flex';
+        $('tp-puesto').textContent = puestoR;
+        $('sb-puesto') && ($('sb-puesto').textContent = puestoR);
+        saveSession();
+        initApp();
+      } else {
+        $('auth-screen').style.display = 'flex';
+      }
     }
   }, 400);
 }, 1600);
