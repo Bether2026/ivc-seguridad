@@ -5721,11 +5721,11 @@ function _doLogin() {
           // Guardar credenciales si tildó "Recordarme"
           var rememberEl = document.getElementById('inp-remember');
           if (rememberEl && rememberEl.checked) {
-            try {
-              localStorage.setItem('ivc_remember_user', puesto + '|' + rol);
-            } catch(e) {}
+            try { localStorage.setItem('ivc_remember_user', puesto + '|' + rol); } catch(e) {}
+            try { sessionStorage.setItem('ivc_remember_user', puesto + '|' + rol); } catch(e) {}
           } else {
             try { localStorage.removeItem('ivc_remember_user'); } catch(e) {}
+            try { sessionStorage.removeItem('ivc_remember_user'); } catch(e) {}
           }
           // Verificar dispositivo (2FA) antes de entrar
           verificarAccesoDispositivo(puesto, function () {
@@ -5763,6 +5763,7 @@ function doLogout() {
     USER = null;
     clearSession();
     try { localStorage.removeItem('ivc_remember_user'); } catch(e) {}
+    try { sessionStorage.removeItem('ivc_remember_user'); } catch(e) {}
     clearInterval(TIMER);
     $('app').style.display = 'none';
     $('auth-screen').style.display = 'flex';
@@ -15104,10 +15105,12 @@ setTimeout(function () {
       // Verificar si hay sesión recordada
       var remembered = null;
       try { remembered = localStorage.getItem('ivc_remember_user'); } catch(e) {}
+      if (!remembered) { try { remembered = sessionStorage.getItem('ivc_remember_user'); } catch(e) {} }
       if (remembered) {
         var partsR = remembered.split('|');
         var puestoR = partsR[0];
         var rolR = partsR[1] || '';
+        // Intentar auto-login directo
         USER = { puesto: puestoR, rol: rolR };
         $('auth-screen').style.display = 'none';
         $('app').style.display = 'flex';
@@ -15115,6 +15118,10 @@ setTimeout(function () {
         $('sb-puesto') && ($('sb-puesto').textContent = puestoR);
         saveSession();
         initApp();
+        // Mostrar toast informativo
+        setTimeout(function() {
+          toast('&#x1F44B; Bienvenido/a, ' + puestoR);
+        }, 800);
       } else {
         $('auth-screen').style.display = 'flex';
       }
