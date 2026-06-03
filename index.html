@@ -224,7 +224,7 @@ body::after { display: none; }
 }
 
 /* APP SHELL */
-#app { display: none; flex-direction: column; height: 100vh; height: 100dvh; max-height: 100vh; max-height: 100dvh; overflow: hidden; position: relative; z-index: 1; }
+#app { display: none; flex-direction: column; min-height: 100vh; min-height: 100dvh; position: relative; z-index: 1; }
 
 /* TOPBAR */
 .topbar {
@@ -6640,12 +6640,11 @@ var HR_BUSQUEDA = '';
 // ── SUBTABS ADMIN + GENERADOR DE INFORME DIARIO ──────────
 
 function scrollAdminTop() {
-  // El scroll puede estar en main-content, body, o documentElement
-  var mc = document.getElementById('main-content');
-  if (mc) mc.scrollTop = 0;
+  window.scrollTo({ top: 0, behavior: 'instant' });
   document.body.scrollTop = 0;
   document.documentElement.scrollTop = 0;
-  window.scrollTo(0, 0);
+  var mc = document.getElementById('main-content');
+  if (mc) mc.scrollTop = 0;
 }
 
 function selAdminTab(tab) {
@@ -6659,8 +6658,14 @@ function selAdminTab(tab) {
       btn.style.color       = active ? '#fca5a5' : 'var(--text3)';
       btn.style.borderColor = active ? 'rgba(248,113,113,.35)' : 'var(--border)';
     }
-    if (panel) panel.style.display = active ? 'block' : 'none';
+    if (panel) {
+      panel.style.display = active ? 'block' : 'none';
+      panel.style.visibility = 'visible';
+      panel.style.opacity = '1';
+    }
   });
+
+  scrollAdminTop();
 
   if (tab === 'general') {
     if (typeof loadAdminTabla === 'function') loadAdminTabla('fichajes');
