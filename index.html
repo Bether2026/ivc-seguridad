@@ -2650,16 +2650,43 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
   <div class="modal">
     <div class="modal-head"><span class="modal-title">&#x1F4CB; Cargar informe</span><button class="btn-close" onclick="closeOv('ov-cargar-inf')">&#xD7;</button></div>
     <input type="hidden" id="ci-nov-id">
-    <div style="font-size:12px;color:var(--text3);margin-bottom:12px;line-height:1.6">Complet&#xE1; los datos del informe formal. El texto original del agente queda intacto.</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
-      <div class="form-group" style="margin:0"><label class="form-label" style="font-size:10px">N&#xB0; de PD</label><input class="form-input" id="ci-nro-pd" placeholder="Ej: 2326" type="number"/></div>
-      <div class="form-group" style="margin:0"><label class="form-label" style="font-size:10px">N&#xB0; de PU</label><input class="form-input" id="ci-nro-pu" placeholder="Ej: 45" type="number"/></div>
+    <input type="hidden" id="ci-tipo-sel">
+
+    <!-- Selector PD / PU -->
+    <div id="ci-selector" style="margin-bottom:14px">
+      <div style="font-size:12px;color:var(--text3);margin-bottom:12px;line-height:1.6">
+        &#xBFEste informe es un Parte Diario (PD) o un Parte de Urgencia (PU)?
+      </div>
+      <div style="display:flex;gap:10px">
+        <button onclick="selTipoInforme('PD')" id="ci-btn-pd"
+          style="flex:1;padding:16px;border-radius:12px;border:2px solid rgba(59,130,246,.4);background:rgba(59,130,246,.08);color:#93c5fd;font-family:var(--font);font-size:15px;font-weight:900;cursor:pointer;letter-spacing:.05em">
+          &#x1F4CB; PD
+          <div style="font-size:10px;font-weight:400;margin-top:4px;opacity:.7">Parte Diario</div>
+        </button>
+        <button onclick="selTipoInforme('PU')" id="ci-btn-pu"
+          style="flex:1;padding:16px;border-radius:12px;border:2px solid rgba(245,158,11,.4);background:rgba(245,158,11,.08);color:#fbbf24;font-family:var(--font);font-size:15px;font-weight:900;cursor:pointer;letter-spacing:.05em">
+          &#x26A0; PU
+          <div style="font-size:10px;font-weight:400;margin-top:4px;opacity:.7">Parte de Urgencia</div>
+        </button>
+      </div>
     </div>
-    <div class="form-group">
-      <label class="form-label">Texto del informe <span style="font-size:10px;font-weight:400;color:var(--text3)">(peg&#xE1; el texto del Access)</span></label>
-      <textarea class="form-textarea" id="ci-texto" style="min-height:120px;border-color:rgba(59,130,246,.3)" placeholder="Peg&#xE1; ac&#xE1; el texto formal. Si lo dejás vacío se usa el texto del agente."></textarea>
+
+    <!-- Formulario (aparece después de seleccionar) -->
+    <div id="ci-form" style="display:none">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding:10px 14px;border-radius:8px;background:var(--bg3)">
+        <span id="ci-tipo-label" style="font-size:14px;font-weight:900;color:var(--accent3)"></span>
+        <button onclick="resetSelTipo()" style="font-size:11px;color:var(--text3);background:none;border:none;cursor:pointer;font-family:var(--font);text-decoration:underline">Cambiar</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label" id="ci-nro-label">N&#xB0; de PD</label>
+        <input class="form-input" id="ci-nro" placeholder="Ingres&#xE1; el n&#xFA;mero" type="number"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Texto del informe <span style="font-size:10px;font-weight:400;color:var(--text3)">(peg&#xE1; el texto del Access)</span></label>
+        <textarea class="form-textarea" id="ci-texto" style="min-height:120px;border-color:rgba(59,130,246,.3)" placeholder="Peg&#xE1; ac&#xE1; el texto formal. Si lo dej&#xE1;s vac&#xED;o se usa el texto del agente."></textarea>
+      </div>
+      <button class="btn-login" id="ci-btn-save" onclick="guardarInformeNovedad()">&#x2713; Guardar informe</button>
     </div>
-    <button class="btn-login" id="ci-btn-save" onclick="guardarInformeNovedad()">&#x2713; Guardar informe</button>
   </div>
 </div>
 
@@ -2668,16 +2695,43 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
   <div class="modal">
     <div class="modal-head"><span class="modal-title">&#x1F4CB; Informe del recorrido</span><button class="btn-close" onclick="closeOv('ov-cargar-inf-obj')">&#xD7;</button></div>
     <input type="hidden" id="cio-obj-id">
-    <div style="font-size:12px;color:var(--text3);margin-bottom:12px;line-height:1.6">El texto que ingreses aqu&#xED; aparece en el Informe Diario. El registro del agente queda intacto.</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
-      <div class="form-group" style="margin:0"><label class="form-label" style="font-size:10px">N&#xB0; de PD</label><input class="form-input" id="cio-nro-pd" placeholder="Ej: 2326" type="number"/></div>
-      <div class="form-group" style="margin:0"><label class="form-label" style="font-size:10px">N&#xB0; de PU</label><input class="form-input" id="cio-nro-pu" placeholder="Ej: 45" type="number"/></div>
+    <input type="hidden" id="cio-tipo-sel">
+
+    <!-- Selector PD / PU -->
+    <div id="cio-selector" style="margin-bottom:14px">
+      <div style="font-size:12px;color:var(--text3);margin-bottom:12px;line-height:1.6">
+        &#xBFEste informe es un Parte Diario (PD) o un Parte de Urgencia (PU)?
+      </div>
+      <div style="display:flex;gap:10px">
+        <button onclick="selTipoInformeObj('PD')" id="cio-btn-pd"
+          style="flex:1;padding:16px;border-radius:12px;border:2px solid rgba(59,130,246,.4);background:rgba(59,130,246,.08);color:#93c5fd;font-family:var(--font);font-size:15px;font-weight:900;cursor:pointer;letter-spacing:.05em">
+          &#x1F4CB; PD
+          <div style="font-size:10px;font-weight:400;margin-top:4px;opacity:.7">Parte Diario</div>
+        </button>
+        <button onclick="selTipoInformeObj('PU')" id="cio-btn-pu"
+          style="flex:1;padding:16px;border-radius:12px;border:2px solid rgba(245,158,11,.4);background:rgba(245,158,11,.08);color:#fbbf24;font-family:var(--font);font-size:15px;font-weight:900;cursor:pointer;letter-spacing:.05em">
+          &#x26A0; PU
+          <div style="font-size:10px;font-weight:400;margin-top:4px;opacity:.7">Parte de Urgencia</div>
+        </button>
+      </div>
     </div>
-    <div class="form-group">
-      <label class="form-label">Texto del informe <span style="font-size:10px;font-weight:400;color:var(--text3)">(peg&#xE1; el texto del Access)</span></label>
-      <textarea class="form-textarea" id="cio-texto" style="min-height:120px;border-color:rgba(59,130,246,.3)" placeholder="Peg&#xE1; el texto formal del recorrido..."></textarea>
+
+    <!-- Formulario -->
+    <div id="cio-form" style="display:none">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding:10px 14px;border-radius:8px;background:var(--bg3)">
+        <span id="cio-tipo-label" style="font-size:14px;font-weight:900;color:var(--accent3)"></span>
+        <button onclick="resetSelTipoObj()" style="font-size:11px;color:var(--text3);background:none;border:none;cursor:pointer;font-family:var(--font);text-decoration:underline">Cambiar</button>
+      </div>
+      <div class="form-group">
+        <label class="form-label" id="cio-nro-label">N&#xB0; de PD</label>
+        <input class="form-input" id="cio-nro" placeholder="Ingres&#xE1; el n&#xFA;mero" type="number"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Texto del informe <span style="font-size:10px;font-weight:400;color:var(--text3)">(peg&#xE1; el texto del Access)</span></label>
+        <textarea class="form-textarea" id="cio-texto" style="min-height:120px;border-color:rgba(59,130,246,.3)" placeholder="Peg&#xE1; el texto formal del recorrido..."></textarea>
+      </div>
+      <button class="btn-login" id="cio-btn-save" onclick="guardarInformeObj()">&#x2713; Guardar informe</button>
     </div>
-    <button class="btn-login" id="cio-btn-save" onclick="guardarInformeObj()">&#x2713; Guardar informe</button>
   </div>
 </div>
 
@@ -3821,36 +3875,75 @@ function guardarInformeObj() {
   });
 }
 
+// ── Informe Novedad ──
+function selTipoInforme(tipo) {
+  document.getElementById('ci-tipo-sel').value = tipo;
+  document.getElementById('ci-selector').style.display = 'none';
+  document.getElementById('ci-form').style.display = 'block';
+  document.getElementById('ci-tipo-label').textContent = (tipo === 'PD' ? '📋 Parte Diario (PD)' : '⚠️ Parte de Urgencia (PU)');
+  document.getElementById('ci-nro-label').textContent = 'N° de ' + tipo;
+}
+function resetSelTipo() {
+  document.getElementById('ci-selector').style.display = 'block';
+  document.getElementById('ci-form').style.display = 'none';
+  document.getElementById('ci-nro').value = '';
+}
+
 function abrirCargarInforme(novId) {
   document.getElementById('ci-nov-id').value = novId;
-  document.getElementById('ci-nro-pd').value = '';
-  document.getElementById('ci-nro-pu').value = '';
   document.getElementById('ci-texto').value  = '';
+  document.getElementById('ci-nro').value    = '';
+  // Resetear selector
+  document.getElementById('ci-selector').style.display = 'block';
+  document.getElementById('ci-form').style.display = 'none';
+
+  // Si ya tiene informe, pre-cargar y mostrar formulario directamente
   db.from('novedades').select('texto_informe,nro_pd,nro_pu').eq('id', novId).single().then(function(r) {
     var d = r.data || {};
-    document.getElementById('ci-nro-pd').value = d.nro_pd  || '';
-    document.getElementById('ci-nro-pu').value = d.nro_pu  || '';
-    document.getElementById('ci-texto').value  = d.texto_informe || '';
+    if (d.nro_pd || d.nro_pu || d.texto_informe) {
+      // Tiene datos — abrir formulario con el tipo ya seleccionado
+      var tipo = d.nro_pu ? 'PU' : 'PD';
+      selTipoInforme(tipo);
+      document.getElementById('ci-nro').value   = d.nro_pd || d.nro_pu || '';
+      document.getElementById('ci-texto').value = d.texto_informe || '';
+    }
   });
   openOv('ov-cargar-inf');
 }
 
-
 function guardarInformeNovedad() {
-  var id      = document.getElementById('ci-nov-id').value;
-  var nroPD   = document.getElementById('ci-nro-pd').value   ? parseInt(document.getElementById('ci-nro-pd').value)  : null;
-  var nroPU   = document.getElementById('ci-nro-pu').value   ? parseInt(document.getElementById('ci-nro-pu').value)  : null;
-  var texto   = document.getElementById('ci-texto').value.trim() || null;
-
+  var id    = document.getElementById('ci-nov-id').value;
+  var tipo  = document.getElementById('ci-tipo-sel').value;
+  var nro   = document.getElementById('ci-nro').value ? parseInt(document.getElementById('ci-nro').value) : null;
+  var texto = document.getElementById('ci-texto').value.trim() || null;
+  if (!tipo) { toast('Selecci\xF3n PD o PU primero', 'err'); return; }
+  var payload = { texto_informe: texto };
+  if (tipo === 'PD') { payload.nro_pd = nro; payload.nro_pu = null; }
+  else               { payload.nro_pu = nro; payload.nro_pd = null; }
   setLoading('ci-btn-save', true);
-  db.from('novedades').update({ texto_informe: texto, nro_pd: nroPD, nro_pu: nroPU }).eq('id', id).then(function(r) {
+  db.from('novedades').update(payload).eq('id', id).then(function(r) {
     setLoading('ci-btn-save', false);
     if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
-    toast('\u2713 Informe guardado');
+    toast('\u2713 Informe ' + tipo + (nro ? ' N\xB0 ' + nro : '') + ' guardado');
     closeOv('ov-cargar-inf');
     loadNovedades();
   });
 }
+
+// ── Informe Objetivo ──
+function selTipoInformeObj(tipo) {
+  document.getElementById('cio-tipo-sel').value = tipo;
+  document.getElementById('cio-selector').style.display = 'none';
+  document.getElementById('cio-form').style.display = 'block';
+  document.getElementById('cio-tipo-label').textContent = (tipo === 'PD' ? '📋 Parte Diario (PD)' : '⚠️ Parte de Urgencia (PU)');
+  document.getElementById('cio-nro-label').textContent = 'N° de ' + tipo;
+}
+function resetSelTipoObj() {
+  document.getElementById('cio-selector').style.display = 'block';
+  document.getElementById('cio-form').style.display = 'none';
+  document.getElementById('cio-nro').value = '';
+}
+
 
 async function abrirActualizarNovedad(id) {
   // Get novedad data from cache (set during render)
