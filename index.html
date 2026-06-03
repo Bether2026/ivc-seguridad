@@ -2356,37 +2356,42 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
           <button id="inf-tab-generar" onclick="selInfTab('generar')" style="padding:7px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">&#x1F4C4; Generar informe HTML</button>
         </div>
 
-        <!-- SUB-TAB: PD / Novedades con filtro y edición -->
+        <!-- SUB-TAB: PD / Novedades con seleccion para informe -->
         <div id="inf-panel-novedades">
-          <!-- Filtros -->
           <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:12px;padding:14px;margin-bottom:12px">
-            <div style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+            <div style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap;margin-bottom:10px">
               <div>
                 <label style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:4px">Fecha</label>
                 <input type="date" id="pd-fecha" class="form-input" style="padding:8px 12px;width:160px;margin-bottom:0"/>
               </div>
               <div>
-                <label style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:4px">Tipo</label>
-                <select id="pd-tipo" class="form-select" style="padding:8px 12px;width:120px">
-                  <option value="todos">Todos</option>
-                  <option value="novedades">Novedades (PD)</option>
-                  <option value="pendientes">Pendientes</option>
-                </select>
-              </div>
-              <div>
                 <label style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:4px">Buscar</label>
-                <input type="text" id="pd-buscar" class="form-input" placeholder="Barrio, agente, asunto..." style="padding:8px 12px;width:200px;margin-bottom:0" oninput="filtrarPD()"/>
+                <input type="text" id="pd-buscar" class="form-input" placeholder="Barrio, agente, asunto..." style="padding:8px 12px;width:190px;margin-bottom:0" oninput="filtrarPD()"/>
               </div>
               <button onclick="cargarPD()" style="padding:8px 16px;border-radius:8px;border:1px solid rgba(59,130,246,.35);background:rgba(59,130,246,.1);color:#93c5fd;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">&#x1F504; Buscar</button>
-              <button onclick="abrirNuevoPD()" style="padding:8px 16px;border-radius:8px;border:1px solid rgba(16,185,129,.35);background:rgba(16,185,129,.1);color:#6ee7b7;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">+ Nueva novedad</button>
             </div>
-            <div id="pd-resumen" style="font-size:12px;color:var(--text3)"></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+              <div id="pd-resumen" style="font-size:12px;color:var(--text3)"></div>
+              <div id="pd-sel-info" style="display:none;font-size:12px;color:var(--green);font-weight:700"><span id="pd-sel-count">0</span> para el informe</div>
+            </div>
           </div>
-          <!-- Lista de PD -->
-          <div id="pd-lista">
-            <div class="empty"><div class="icon">&#x1F4CB;</div><p>Selecci&#xF3;n la fecha y hac&#xE9; clic en Buscar</p></div>
+          <div style="background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.15);border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#93c5fd;line-height:1.6">
+            &#x2714; <strong>Tild&#xE1;</strong> las novedades que quer&#xE9;s incluir. Pod&#xE9;s agregar un <strong>texto editorial</strong> formal para cada una &#x2014; el texto original del agente queda intacto.
           </div>
+          <div id="pd-lista"><div class="empty"><div class="icon">&#x1F4CB;</div><p>Selecci&#xF3;n la fecha y hac&#xE9; clic en Buscar</p></div></div>
+          <div id="pd-generar-wrap" style="display:none;margin-top:14px;padding:14px;background:var(--bg2);border:1px solid var(--border2);border-radius:12px">
+            <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px">Generar informe con las novedades seleccionadas</div>
+            <div style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap">
+              <div>
+                <label style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:4px">Elaborado por</label>
+                <input type="text" id="pd-autor" class="form-input" placeholder="Nombre del responsable" style="padding:8px 12px;width:220px;margin-bottom:0"/>
+              </div>
+              <button onclick="generarInformeDesdeSeleccion()" style="padding:9px 18px;border-radius:10px;border:1px solid rgba(16,185,129,.35);background:rgba(16,185,129,.1);color:#6ee7b7;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">&#x1F4C4; Generar informe HTML</button>
+            </div>
+          </div>
+          <div id="pd-inf-preview" style="margin-top:12px"></div>
         </div>
+
 
         <!-- SUB-TAB: Generador HTML -->
         <div id="inf-panel-generar" style="display:none">
@@ -6759,37 +6764,117 @@ function renderPDLista(data) {
       var h = d.getUTCHours() - 3; if (h < 0) h += 24;
       horaStr = String(h).padStart(2,'0') + ':' + String(d.getUTCMinutes()).padStart(2,'0');
     }
-    var tipoColor = n.fuerza_publica ? '#fca5a5' : 'var(--accent3)';
-    html += '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:8px">';
-    // Header
-    html += '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px">';
-    html += '<div style="flex:1">';
-    html += '<div style="font-size:13px;font-weight:800;color:var(--text)">' + (n.puesto || '—') + '</div>';
-    html += '<div style="font-size:11px;font-weight:700;color:' + tipoColor + '">' + (n.tipo || n.asunto || '—') + '</div>';
-    html += '<div style="font-size:10px;color:var(--text3);margin-top:2px">' + (n.agente || '') + (horaStr ? ' · ' + horaStr + ' hs' : '') + '</div>';
+    html += '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:8px;transition:border-color .2s,background .2s" id="pd-card-' + n.id + '">';
+    html += '<div style="display:flex;align-items:flex-start;gap:10px">';
+    html += '<input type="checkbox" id="pd-chk-' + n.id + '" onchange="togglePDSel(' + n.id + ')" style="width:20px;height:20px;margin-top:2px;flex-shrink:0;cursor:pointer">';
+    html += '<div style="flex:1;min-width:0">';
+    html += '<div style="font-size:13px;font-weight:800;color:var(--text)">' + escapeHTML(n.puesto || '\u2014') + '</div>';
+    html += '<div style="font-size:11px;font-weight:700;color:var(--accent3)">' + escapeHTML(n.tipo || n.asunto || '\u2014') + '</div>';
+    if (n.agente) html += '<div style="font-size:10px;color:var(--text3);margin-top:1px">Agente: ' + escapeHTML(n.agente) + (horaStr ? ' \u00b7 ' + horaStr + ' hs' : '') + '</div>';
     html += '</div>';
-    html += '<button onclick="abrirEditarPD(\'' + n.id + '\')" style="flex-shrink:0;padding:6px 12px;border-radius:7px;border:1px solid rgba(59,130,246,.3);background:rgba(59,130,246,.08);color:#93c5fd;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">&#x270E; Editar</button>';
+    if (n.fuerza_publica) html += '<span style="flex-shrink:0;font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.3)">&#x1F6A8; FP</span>';
     html += '</div>';
-    // Cuerpo truncado
     if (n.detalle) {
-      var det = n.detalle.length > 200 ? n.detalle.substring(0, 200) + '…' : n.detalle;
-      html += '<div style="font-size:11px;color:var(--text2);line-height:1.6;white-space:pre-wrap;border-top:1px solid var(--border);padding-top:8px">' + escapeHTML(det) + '</div>';
+      html += '<div style="margin-top:8px;padding:8px 10px;background:var(--bg3);border-radius:6px;border-left:2px solid var(--border2)">';
+      html += '<div style="font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:3px">Texto del agente \u2014 no se modifica</div>';
+      var det = n.detalle.length > 180 ? n.detalle.substring(0,180) + '\u2026' : n.detalle;
+      html += '<div style="font-size:11px;color:var(--text2);line-height:1.6;white-space:pre-wrap">' + escapeHTML(det) + '</div>';
+      html += '</div>';
     }
-    if (n.observaciones) {
-      html += '<div style="font-size:11px;color:var(--text3);margin-top:5px;font-style:italic">' + escapeHTML(n.observaciones) + '</div>';
-    }
-    if (n.fuerza_publica) html += '<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.3);margin-top:6px;display:inline-block">&#x1F6A8; FUERZA P\xDABLICA</span>';
+    html += '<div id="pd-editorial-' + n.id + '" style="display:none;margin-top:8px">';
+    html += '<label style="font-size:10px;font-weight:700;color:var(--accent3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:4px">&#x270E; Texto editorial para el informe (opcional)</label>';
+    html += '<textarea id="pd-txt-' + n.id + '" style="width:100%;padding:8px 10px;background:var(--bg3);border:1px solid rgba(59,130,246,.3);border-radius:6px;color:var(--text);font-family:var(--font);font-size:12px;line-height:1.6;min-height:80px;outline:none;resize:vertical" placeholder="Dej\xE1 vac\xEDo para usar el texto del agente tal cual..."></textarea>';
+    html += '</div>';
     html += '</div>';
   });
   lista.innerHTML = html;
+  actualizarContadorSel();
+}
+
+function togglePDSel(id) {
+  var chk = document.getElementById('pd-chk-' + id);
+  var editorial = document.getElementById('pd-editorial-' + id);
+  var card = document.getElementById('pd-card-' + id);
+  if (!chk) return;
+  var sel = chk.checked;
+  if (editorial) editorial.style.display = sel ? 'block' : 'none';
+  if (card) { card.style.borderColor = sel ? 'rgba(16,185,129,.4)' : 'var(--border)'; card.style.background = sel ? 'rgba(16,185,129,.04)' : 'var(--bg2)'; }
+  actualizarContadorSel();
+}
+
+function actualizarContadorSel() {
+  var checkboxes = document.querySelectorAll('[id^="pd-chk-"]');
+  var count = 0;
+  checkboxes.forEach(function(c) { if (c.checked) count++; });
+  var info = document.getElementById('pd-sel-info');
+  var cnt  = document.getElementById('pd-sel-count');
+  var wrap = document.getElementById('pd-generar-wrap');
+  if (cnt)  cnt.textContent = count;
+  if (info) info.style.display = count > 0 ? 'block' : 'none';
+  if (wrap) wrap.style.display = count > 0 ? 'block' : 'none';
+}
+
+function generarInformeDesdeSeleccion() {
+  var seleccionadas = [];
+  PD_CACHE_FILTRADO.forEach(function(n) {
+    var chk = document.getElementById('pd-chk-' + n.id);
+    if (!chk || !chk.checked) return;
+    var txtEl = document.getElementById('pd-txt-' + n.id);
+    var textoEditorial = txtEl ? txtEl.value.trim() : '';
+    var nov = {}; for (var k in n) nov[k] = n[k];
+    if (textoEditorial) nov.detalle = textoEditorial;
+    seleccionadas.push(nov);
+  });
+  if (!seleccionadas.length) { toast('Selecci\xF3n al menos una novedad', 'err'); return; }
+
+  var fechaEl = document.getElementById('pd-fecha');
+  var autor   = (document.getElementById('pd-autor') || {}).value || (USER ? USER.nombre : '') || 'Administraci\xF3n';
+  var fechaVal = fechaEl ? fechaEl.value : '';
+  var partes = fechaVal ? fechaVal.split('-') : [];
+  var fechaDisplay = partes.length === 3 ? partes[2] + '/' + partes[1] + '/' + partes[0] : new Date().toLocaleDateString('es-AR');
+  var diasNom = ['domingo','lunes','martes','mi\xE9rcoles','jueves','viernes','s\xE1bado'];
+  var diaNom  = fechaVal ? diasNom[new Date(fechaVal + 'T12:00:00').getDay()] : '';
+
+  var preview = document.getElementById('pd-inf-preview');
+  if (preview) preview.innerHTML = '<div class="empty"><div class="icon"><span class="spinner"></span></div><p>Cargando fotos y generando...</p></div>';
+
+  var porPuesto = {};
+  seleccionadas.forEach(function(n) {
+    var p = n.puesto || 'Sin barrio';
+    if (!porPuesto[p]) porPuesto[p] = [];
+    porPuesto[p].push(n);
+  });
+
+  var fotosMap = {};
+  var fotoPromises = [];
+  seleccionadas.forEach(function(n) {
+    var fotos = [];
+    if (n.foto_url)  fotos.push(n.foto_url);
+    if (n.foto_url2) fotos.push(n.foto_url2);
+    if (n.foto_url3) fotos.push(n.foto_url3);
+    if (n.fotos && Array.isArray(n.fotos)) fotos = fotos.concat(n.fotos);
+    fotos.filter(Boolean).forEach(function(url) {
+      if (!fotosMap[url]) {
+        fotosMap[url] = null;
+        fotoPromises.push(fetch(url).then(function(r){return r.blob();}).then(function(b){
+          return new Promise(function(res){
+            var fr = new FileReader();
+            fr.onload = function(e){fotosMap[url]=e.target.result;res();};
+            fr.onerror = function(){res();};
+            fr.readAsDataURL(b);
+          });
+        }).catch(function(){}));
+      }
+    });
+  });
+
+  Promise.all(fotoPromises).then(function() {
+    var html = construirHTMLInforme(porPuesto, seleccionadas, fotosMap, fechaDisplay, diaNom, autor, fechaVal);
+    mostrarPreviewInforme(html, fechaVal, preview);
+  });
 }
 
 function abrirEditarPD(id) {
-  var n = PD_CACHE.find(function(x) { return String(x.id) === String(id); });
-  if (!n) { toast('Novedad no encontrada', 'err'); return; }
-
-  document.getElementById('pd-edit-title').textContent = 'Editar novedad #' + id;
-  document.getElementById('pd-edit-id').value = id;
   document.getElementById('pd-edit-objetivo').value = n.puesto || '';
   document.getElementById('pd-edit-asunto').value = n.tipo || n.asunto || '';
   document.getElementById('pd-edit-responsable').value = n.responsable || '';
