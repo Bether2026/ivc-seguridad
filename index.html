@@ -224,7 +224,7 @@ body::after { display: none; }
 }
 
 /* APP SHELL */
-#app { display: none; flex-direction: column; min-height: 100vh; min-height: 100dvh; position: relative; z-index: 1; }
+#app { display: none; flex-direction: column; height: 100vh; height: 100dvh; max-height: 100vh; max-height: 100dvh; overflow: hidden; position: relative; z-index: 1; }
 
 /* TOPBAR */
 .topbar {
@@ -6640,11 +6640,12 @@ var HR_BUSQUEDA = '';
 // ── SUBTABS ADMIN + GENERADOR DE INFORME DIARIO ──────────
 
 function scrollAdminTop() {
-  // Scroll the tabs bar into view — works regardless of which element has the scroll
-  var bar = document.getElementById('adm-tabs-bar');
-  if (bar) {
-    bar.scrollIntoView({ behavior: 'instant', block: 'start' });
-  }
+  // El scroll puede estar en main-content, body, o documentElement
+  var mc = document.getElementById('main-content');
+  if (mc) mc.scrollTop = 0;
+  document.body.scrollTop = 0;
+  document.documentElement.scrollTop = 0;
+  window.scrollTo(0, 0);
 }
 
 function selAdminTab(tab) {
