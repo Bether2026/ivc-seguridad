@@ -6836,8 +6836,12 @@ function descargarInformeFinal() {
   if (!frame || !frame.innerHTML.trim()) { toast('Primero generá el preview', 'err'); return; }
 
   var contenido = frame.innerHTML;
-  // Limpiar atributos de edición
-  contenido = contenido.replace(/ contenteditable="true"/g, '').replace(/ contenteditable=""/g, '');
+  // Eliminar botones borrar y edicion — solo en el archivo final
+  var tmpDiv = document.createElement('div');
+  tmpDiv.innerHTML = contenido;
+  tmpDiv.querySelectorAll('.btn-del-row').forEach(function(b) { b.remove(); });
+  tmpDiv.querySelectorAll('[contenteditable]').forEach(function(el) { el.removeAttribute('contenteditable'); });
+  contenido = tmpDiv.innerHTML;
 
   var htmlFinal = '<!DOCTYPE html>\n<html lang="es">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n<title>Parte Diario IVC</title>\n</head>\n<body style="margin:0;padding:0;background:#fff">\n' + contenido + '\n</body>\n</html>';
 
