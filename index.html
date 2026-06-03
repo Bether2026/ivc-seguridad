@@ -9647,6 +9647,23 @@ function _doEntrada() {
           return _context35.a(2);
         case 6:
           toast("OK Entrada registrada \u2014 ".concat(SEL_AGENT));
+          // Abrir recorrido automático para Rodrigo Bueno, Papa Francisco y Fraga
+          var BARRIOS_RECORRIDO = ['Rodrigo Bueno', 'Papa Francisco', 'Fraga'];
+          if (BARRIOS_RECORRIDO.indexOf(USER.puesto) >= 0) {
+            db.from('objetivos').insert({
+              puesto:       USER.puesto,
+              cargado_por:  USER.nombre || SEL_AGENT || USER.puesto,
+              estado:       'activo',
+              progreso:     0,
+              auto_fichaje: true,
+              created_at:   new Date().toISOString()
+            }).then(function(ro) {
+              if (!ro.error) {
+                toast('&#x1F3AF; Recorrido iniciado autom\xE1ticamente');
+                loadObjetivos();
+              }
+            });
+          }
           loadFichajes();
           loadDash();
         case 7:
@@ -9717,6 +9734,38 @@ function _doSalida() {
                   return db.from('fichajes').update(updates).eq('agente', SEL_AGENT).eq('activo', true);
                 case 4:
                   toast("Salida registrada \u2014 ".concat(SEL_AGENT));
+                  // Cerrar recorrido automático si existe
+                  var BARRIOS_REC = ['Rodrigo Bueno', 'Papa Francisco', 'Fraga'];
+                  if (BARRIOS_REC.indexOf(USER.puesto) >= 0) {
+                    db.from('objetivos')
+                      .select('id, actualizaciones')
+                      .eq('puesto', USER.puesto)
+                      .eq('cargado_por', USER.nombre || SEL_AGENT || USER.puesto)
+                      .eq('estado', 'activo')
+                      .eq('auto_fichaje', true)
+                      .order('created_at', { ascending: false })
+                      .limit(1)
+                      .then(function(ro) {
+                        if (ro.error || !ro.data || !ro.data.length) return;
+                        var rec = ro.data[0];
+                        var puntos = rec.actualizaciones || [];
+                        if (puntos.length === 0) {
+                          // Sin puntos → eliminar el recorrido
+                          db.from('objetivos').delete().eq('id', rec.id).then(function() {
+                            loadObjetivos();
+                          });
+                        } else {
+                          // Con puntos → finalizar
+                          db.from('objetivos').update({
+                            estado: 'finalizado',
+                            progreso: 100,
+                            fin: new Date().toISOString()
+                          }).eq('id', rec.id).then(function() {
+                            loadObjetivos();
+                          });
+                        }
+                      });
+                  }
                   loadFichajes();
                   loadDash();
                 case 5:
@@ -10252,6 +10301,27 @@ function _loadObjetivos() {
           return _context40.a(2);
         case 2:
           list = rows || [];
+          // Banner recorrido activo propio para los 3 barrios
+          var BARRIOS_AUTO = ['Rodrigo Bueno', 'Papa Francisco', 'Fraga'];
+          if (BARRIOS_AUTO.indexOf(USER.puesto) >= 0) {
+            var miRec = list.find(function(o) {
+              return o.estado === 'activo' && o.auto_fichaje &&
+                     (o.cargado_por === (USER.nombre || USER.puesto));
+            });
+            var bannerEl = document.getElementById('obj-mi-recorrido');
+            if (!bannerEl) {
+              bannerEl = document.createElement('div');
+              bannerEl.id = 'obj-mi-recorrido';
+              var objListEl = document.getElementById('obj-list');
+              if (objListEl && objListEl.parentNode) objListEl.parentNode.insertBefore(bannerEl, objListEl);
+            }
+            if (miRec) {
+              var puntosMios = (miRec.actualizaciones || []).length;
+              bannerEl.innerHTML = '<div onclick="openUpdObj(\'' + miRec.id + '\',' + Math.min(100, puntosMios*10) + ')" style="background:linear-gradient(135deg,rgba(167,139,250,.2),rgba(124,58,237,.1));border:2px solid rgba(167,139,250,.5);border-radius:14px;padding:16px;margin-bottom:14px;cursor:pointer"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px"><div><div style="font-size:11px;font-weight:700;color:#a78bfa;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px">&#x1F3AF; Tu recorrido activo</div><div style="font-size:15px;font-weight:800;color:var(--text)">' + (USER.nombre || USER.puesto) + '</div><div style="font-size:12px;color:var(--text3);margin-top:2px">' + puntosMios + ' punto' + (puntosMios !== 1 ? 's' : '') + ' registrado' + (puntosMios !== 1 ? 's' : '') + '</div></div><button style="padding:10px 20px;border-radius:10px;border:1px solid rgba(167,139,250,.5);background:rgba(167,139,250,.15);color:#c4b5fd;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">&#x1F4CD; Registrar punto</button></div></div>';
+            } else {
+              if (bannerEl) bannerEl.innerHTML = '';
+            }
+          }
           if (list.length) {
             _context40.n = 3;
             break;
@@ -10360,7 +10430,12 @@ function _loadObjetivos() {
                 if (isAct) {
                   ohtml += '<div class="obj-actions" style="margin-top:10px">';
                   ohtml += '<button class="btn-sm" onclick="event.stopPropagation();openUpdObj(\'' + o.id + '\',' + prog + ')">📍 Registrar punto</button>';
-                  ohtml += '<button class="btn-sm ok" onclick="event.stopPropagation();finObj(\'' + o.id + '\')">✓ Finalizar</button>';
+                  // Solo mostrar Finalizar si NO es recorrido automático de fichaje
+                  if (!o.auto_fichaje) {
+                    ohtml += '<button class="btn-sm ok" onclick="event.stopPropagation();finObj(\'' + o.id + '\')">✓ Finalizar</button>';
+                  } else {
+                    ohtml += '<span style="font-size:10px;color:var(--text3);padding:4px 8px;background:var(--bg3);border-radius:6px">Se cierra al fichar salida</span>';
+                  }
                   ohtml += '</div>';
                 }
 
