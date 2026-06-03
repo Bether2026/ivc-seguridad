@@ -9740,7 +9740,6 @@ function _doSalida() {
                     db.from('objetivos')
                       .select('id, actualizaciones')
                       .eq('puesto', USER.puesto)
-                      .eq('cargado_por', USER.nombre || SEL_AGENT || USER.puesto)
                       .eq('estado', 'activo')
                       .eq('auto_fichaje', true)
                       .order('created_at', { ascending: false })
@@ -9750,19 +9749,9 @@ function _doSalida() {
                         var rec = ro.data[0];
                         var puntos = rec.actualizaciones || [];
                         if (puntos.length === 0) {
-                          // Sin puntos → eliminar el recorrido
-                          db.from('objetivos').delete().eq('id', rec.id).then(function() {
-                            loadObjetivos();
-                          });
+                          db.from('objetivos').delete().eq('id', rec.id).then(function() { loadObjetivos(); });
                         } else {
-                          // Con puntos → finalizar
-                          db.from('objetivos').update({
-                            estado: 'finalizado',
-                            progreso: 100,
-                            fin: new Date().toISOString()
-                          }).eq('id', rec.id).then(function() {
-                            loadObjetivos();
-                          });
+                          db.from('objetivos').update({ estado: 'finalizado', progreso: 100, fin: new Date().toISOString() }).eq('id', rec.id).then(function() { loadObjetivos(); });
                         }
                       });
                   }
