@@ -6626,10 +6626,16 @@ var HR_BUSQUEDA = '';
 // ── SUBTABS ADMIN + GENERADOR DE INFORME DIARIO ──────────
 
 function scrollAdminTop() {
-  var mc = document.getElementById('main-content');
-  if (mc) { mc.scrollTop = 0; mc.scrollTo(0, 0); }
-  document.documentElement.scrollTop = 0;
-  document.body.scrollTop = 0;
+  // Usar requestAnimationFrame para esperar el repaint del DOM
+  requestAnimationFrame(function() {
+    var mc = document.getElementById('main-content');
+    if (mc) mc.scrollTop = 0;
+    // Segunda pasada en el siguiente frame
+    requestAnimationFrame(function() {
+      var mc2 = document.getElementById('main-content');
+      if (mc2) mc2.scrollTop = 0;
+    });
+  });
 }
 
 function selAdminTab(tab) {
