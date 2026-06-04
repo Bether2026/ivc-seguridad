@@ -316,61 +316,89 @@ body::after { display: none; }
 .llama:nth-child(3) { animation-delay: -0.6s; }
 .llama:nth-child(4) { animation-delay: -0.15s; }
 
-/* ── EMOJIS FESTIVOS FLOTANTES ── */
-@keyframes festivo {
-  0%          { transform: translateY(0)    rotate(-8deg)  scale(1);    opacity:1; }
-  25%         { transform: translateY(-10px) rotate(6deg)  scale(1.12); opacity:1; }
-  50%         { transform: translateY(-4px)  rotate(-4deg) scale(0.96); opacity:1; }
-  75%         { transform: translateY(-12px) rotate(8deg)  scale(1.08); opacity:1; }
-  100%        { transform: translateY(0)    rotate(-8deg)  scale(1);    opacity:1; }
+/* ── CONFETTI CSS ── */
+@keyframes confettiCaer {
+  0%   { transform: translateY(-10px) rotate(0deg)   scale(1);   opacity:1; }
+  80%  { opacity:1; }
+  100% { transform: translateY(150px) rotate(540deg) scale(0.5); opacity:0; }
 }
-.emoji-festivo {
-  display: inline-block;
-  animation: festivo 1.8s ease-in-out infinite;
+@keyframes globoSubir {
+  0%,100% { transform: translateY(0)     scale(1)    rotate(-4deg); }
+  50%      { transform: translateY(-16px) scale(1.07) rotate(4deg);  }
+}
+.cumple-confetti {
+  position: absolute;
+  font-size: 13px;
+  pointer-events: none;
+  animation: confettiCaer linear infinite;
   will-change: transform;
 }
-.emoji-festivo:nth-child(2) { animation-delay: -0.45s; }
-.emoji-festivo:nth-child(3) { animation-delay: -0.9s;  }
-.emoji-festivo:nth-child(4) { animation-delay: -1.2s;  }
-.emoji-festivo:nth-child(5) { animation-delay: -0.6s;  }
+.cumple-globo {
+  display: inline-block;
+  animation: globoSubir 2s ease-in-out infinite;
+  will-change: transform;
+}
+.cumple-globo:nth-child(2) { animation-delay:-0.5s;  animation-duration:2.2s; }
+.cumple-globo:nth-child(3) { animation-delay:-1.1s;  animation-duration:1.9s; }
+.cumple-globo:nth-child(4) { animation-delay:-0.7s;  animation-duration:2.4s; }
+.cumple-globo:nth-child(5) { animation-delay:-1.5s;  animation-duration:2.1s; }
 
 /* ── TORTA PULSANTE ── */
 @keyframes tortaPulse {
-  0%,100% { transform: scale(1)    rotate(0deg);   }
-  30%     { transform: scale(1.08) rotate(-3deg);  }
-  60%     { transform: scale(1.04) rotate(2deg);   }
+  0%,100% { transform: scale(1)    rotate(0deg);  }
+  30%     { transform: scale(1.1)  rotate(-4deg); }
+  60%     { transform: scale(1.05) rotate(3deg);  }
 }
 .torta-anim {
   display: inline-block;
-  animation: tortaPulse 2.2s ease-in-out infinite;
+  animation: tortaPulse 2s ease-in-out infinite;
   will-change: transform;
 }
 
-/* ── SIRENA URGENTE ── */
+/* ── SIRENA URGENTE — más lenta ── */
 @keyframes sirenaGiro {
   0%   { transform: rotate(0deg)   scale(1);    }
-  15%  { transform: rotate(-18deg) scale(1.15); }
-  30%  { transform: rotate(18deg)  scale(1.2);  }
-  45%  { transform: rotate(-14deg) scale(1.15); }
-  60%  { transform: rotate(14deg)  scale(1.1);  }
-  75%  { transform: rotate(-8deg)  scale(1.05); }
+  20%  { transform: rotate(-20deg) scale(1.18); }
+  40%  { transform: rotate(20deg)  scale(1.22); }
+  60%  { transform: rotate(-14deg) scale(1.15); }
+  80%  { transform: rotate(10deg)  scale(1.08); }
   100% { transform: rotate(0deg)   scale(1);    }
 }
 @keyframes sirenaGlow {
-  0%,100% { text-shadow: 0 0 6px rgba(239,68,68,0.4);  }
-  50%     { text-shadow: 0 0 22px rgba(239,68,68,1), 0 0 40px rgba(239,68,68,0.6); }
+  0%,100% { text-shadow: 0 0 4px rgba(239,68,68,0.3);  }
+  50%     { text-shadow: 0 0 20px rgba(239,68,68,1), 0 0 38px rgba(239,68,68,0.5); }
 }
 @keyframes urgenteBg {
-  0%,100% { background: linear-gradient(135deg,rgba(239,68,68,0.18),rgba(185,28,28,0.1)); border-color: rgba(239,68,68,0.5); }
-  50%     { background: linear-gradient(135deg,rgba(239,68,68,0.30),rgba(185,28,28,0.2)); border-color: rgba(239,68,68,0.95); }
+  0%,100% { background:linear-gradient(135deg,rgba(239,68,68,0.12),rgba(185,28,28,0.06)); border-color:rgba(239,68,68,0.4); box-shadow:none; }
+  50%     { background:linear-gradient(135deg,rgba(239,68,68,0.28),rgba(185,28,28,0.18)); border-color:rgba(239,68,68,0.9); box-shadow:0 0 18px rgba(239,68,68,0.2); }
 }
 .sirena-anim {
   display: inline-block;
-  animation: sirenaGiro 0.7s ease-in-out infinite, sirenaGlow 0.7s ease-in-out infinite;
+  animation: sirenaGiro 1.4s ease-in-out infinite, sirenaGlow 1.4s ease-in-out infinite;
   will-change: transform;
 }
 .card-urgente-anim {
-  animation: urgenteBg 0.9s ease-in-out infinite !important;
+  animation: urgenteBg 2s ease-in-out infinite !important;
+  cursor: pointer;
+}
+.card-urgente-anim.pausado {
+  animation-play-state: paused !important;
+}
+/* Overlay lectura urgente */
+#ov-urgente-leer {
+  display:none; position:fixed; inset:0; z-index:9999;
+  background:rgba(0,0,0,0.78);
+  align-items:center; justify-content:center; padding:20px;
+}
+#ov-urgente-leer.abierto { display:flex; animation:fadeIn .2s ease; }
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+#ov-urgente-leer .urgente-modal {
+  background:linear-gradient(135deg,rgba(28,5,5,0.99),rgba(55,8,8,0.99));
+  border:2px solid rgba(239,68,68,0.7);
+  border-radius:16px; padding:24px;
+  max-width:480px; width:100%;
+  box-shadow:0 0 40px rgba(239,68,68,0.3);
+  position:relative;
 }
 @keyframes slideDown {
   from { transform: translateY(-100%); opacity: 0; }
@@ -3072,6 +3100,22 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
 </div>
 
 <!-- ── OVERLAY: NUEVO/EDITAR TURNO ── -->
+<!-- ── OVERLAY LECTURA URGENTE ── -->
+<div id="ov-urgente-leer">
+  <div class="urgente-modal">
+    <button onclick="cerrarUrgenteOverlay()" style="position:absolute;top:12px;right:14px;background:rgba(239,68,68,.2);border:1px solid rgba(239,68,68,.4);color:#fca5a5;border-radius:8px;padding:4px 10px;font-family:var(--font);font-size:12px;cursor:pointer">✕ Cerrar</button>
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+      <span id="ou-icon" style="font-size:28px"></span>
+      <div>
+        <div style="font-size:11px;font-weight:800;color:#fca5a5;text-transform:uppercase;letter-spacing:.1em">🚨 Comunicación urgente</div>
+        <div id="ou-titulo" style="font-size:16px;font-weight:900;color:#fff;margin-top:2px"></div>
+      </div>
+    </div>
+    <div id="ou-mensaje" style="font-size:14px;color:rgba(255,255,255,0.85);line-height:1.7;background:rgba(239,68,68,.08);border-radius:10px;padding:14px;border:1px solid rgba(239,68,68,.2)"></div>
+    <div id="ou-meta" style="font-size:11px;color:rgba(255,255,255,0.35);margin-top:12px;text-align:right"></div>
+  </div>
+</div>
+
 <div class="overlay" id="ov-turno">
   <div class="modal">
     <div class="modal-head"><span class="modal-title">🕐 Configurar turno</span><button class="btn-close" onclick="closeOv('ov-turno')">×</button></div>
@@ -13896,18 +13940,29 @@ function _loadNoticias() {
               nh += '</div>';
               nh += '</div>';
             } else if (n.es_cumple) {
-              // ── BIRTHDAY CARD ──
-              nh += '<div style="' + slideStyle + 'background:linear-gradient(135deg,rgba(251,191,36,0.15),rgba(236,72,153,0.15),rgba(139,92,246,0.1));border:1px solid rgba(251,191,36,0.4);border-radius:12px;padding:16px;margin-bottom:' + (list.length > 1 ? '0' : '6px') + ';position:relative;overflow:hidden;text-align:center">';
-              nh += '<div style="position:absolute;top:0;right:0;font-size:80px;opacity:.06;line-height:1;pointer-events:none">🎂</div>';
-              // Torta pulsante con llamas animadas
-              nh += '<div style="font-size:48px;margin-bottom:4px"><span class="torta-anim">🎂</span></div>';
-              nh += '<div style="font-size:18px;margin-bottom:8px;letter-spacing:4px"><span class="llama">🔥</span><span class="llama">🔥</span><span class="llama">🔥</span></div>';
-              nh += '<div style="font-size:15px;font-weight:900;background:linear-gradient(135deg,#fbbf24,#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px">' + n.titulo + '</div>';
-              nh += '<div style="font-size:11px;color:rgba(251,191,36,0.8);font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">🎉 ¡Hoy cumple años!</div>';
-              nh += '<div style="font-size:13px;color:var(--text2);line-height:1.55;border-top:1px solid rgba(251,191,36,0.2);padding-top:10px;margin-bottom:10px">' + n.mensaje + '</div>';
-              // Emojis festivos con animación individual
-              nh += '<div style="display:flex;gap:8px;justify-content:center;font-size:22px">';
-              nh += '<span class="emoji-festivo">🎈</span><span class="emoji-festivo">🎊</span><span class="emoji-festivo">✨</span><span class="emoji-festivo">🥳</span><span class="emoji-festivo">🎁</span>';
+              // ── BIRTHDAY CARD con confetti CSS ──
+              var confettiItems = ['🎊','🎉','⭐','💛','🩷','🎈','✨','🎀','💫','🌟'];
+              var confettiHtml = '';
+              for (var ci3 = 0; ci3 < 14; ci3++) {
+                var em = confettiItems[ci3 % confettiItems.length];
+                var left = (ci3 * 7 + 3) % 96;
+                var dur = (1.4 + (ci3 % 5) * 0.4).toFixed(1);
+                var delay = ((ci3 * 0.3) % 2).toFixed(1);
+                var top = (ci3 % 3 === 0) ? '-5px' : ((ci3 % 3 === 1) ? '10px' : '0px');
+                confettiHtml += '<span class="cumple-confetti" style="left:' + left + '%;top:' + top + ';animation-duration:' + dur + 's;animation-delay:-' + delay + 's">' + em + '</span>';
+              }
+              nh += '<div style="' + slideStyle + 'background:linear-gradient(160deg,rgba(139,92,246,0.25),rgba(236,72,153,0.2),rgba(251,191,36,0.2));border:1px solid rgba(251,191,36,0.45);border-radius:12px;padding:20px 16px;margin-bottom:' + (list.length > 1 ? '0' : '6px') + ';position:relative;overflow:hidden;text-align:center">';
+              // Confetti de fondo
+              nh += confettiHtml;
+              // Torta grande
+              nh += '<div style="font-size:56px;margin-bottom:2px;position:relative;z-index:1"><span class="torta-anim">🎂</span></div>';
+              nh += '<div style="font-size:20px;margin-bottom:10px;letter-spacing:6px;position:relative;z-index:1"><span class="llama">🔥</span><span class="llama">🔥</span><span class="llama">🔥</span></div>';
+              nh += '<div style="font-size:16px;font-weight:900;background:linear-gradient(135deg,#fbbf24,#f472b6,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:6px;position:relative;z-index:1">' + n.titulo + '</div>';
+              nh += '<div style="font-size:11px;color:rgba(251,191,36,0.9);font-weight:700;text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px;position:relative;z-index:1">🎉 ¡Hoy cumple años!</div>';
+              nh += '<div style="font-size:13px;color:var(--text2);line-height:1.6;background:rgba(0,0,0,0.25);border-radius:10px;padding:10px 12px;margin-bottom:14px;position:relative;z-index:1">' + n.mensaje + '</div>';
+              // Globos animados
+              nh += '<div style="display:flex;gap:10px;justify-content:center;font-size:26px;position:relative;z-index:1">';
+              nh += '<span class="cumple-globo">🎈</span><span class="cumple-globo">🎊</span><span class="cumple-globo">🥳</span><span class="cumple-globo">🎁</span><span class="cumple-globo">🎈</span>';
               nh += '</div>';
               nh += '</div>';
             } else {
@@ -13917,7 +13972,8 @@ function _loadNoticias() {
                 ? 'background:linear-gradient(135deg,rgba(239,68,68,0.18),rgba(185,28,28,0.1));border:1px solid rgba(239,68,68,0.5);border-left:3px solid #ef4444;'
                 : 'background:var(--bg3);border-left:3px solid ' + color + ';';
               var extraClass = isUrgente ? ' card-urgente-anim' : '';
-              nh += '<div style="' + slideStyle + cardStyle + 'border-radius:8px;padding:11px 13px;margin-bottom:' + (list.length > 1 ? '0' : '6px') + '" class="' + extraClass + '">';
+              var urgenteOnclick = isUrgente ? ' onclick="abrirUrgenteOverlay(\'' + (n.id||'') + '\',this)"' : '';
+              nh += '<div style="' + slideStyle + cardStyle + 'border-radius:8px;padding:11px 13px;margin-bottom:' + (list.length > 1 ? '0' : '6px') + '" class="' + extraClass + '"' + urgenteOnclick + '>';
               nh += '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:5px">';
               nh += '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">';
               var iconDisplay = isUrgente ? '<span class="sirena-anim" style="font-size:18px">' + icon + '</span>' : '<span style="font-size:18px">' + icon + '</span>';
@@ -13933,8 +13989,9 @@ function _loadNoticias() {
               else if (n.importancia === 'Importante') nh += '<span class="badge b-yellow">IMPORTANTE</span>';
               nh += '</div>';
               nh += '<div style="font-size:12px;color:var(--text2);line-height:1.5">' + (n.mensaje || '') + '</div>';
+              if (isUrgente) nh += '<div style="font-size:10px;color:rgba(239,68,68,0.6);margin-top:6px;text-align:right">👆 Tocá para leer con detalle</div>';
               if (canDelete && !n.es_automatico) {
-                nh += '<div style="margin-top:8px;text-align:right"><button onclick="deleteNoticia(&quot;' + n.id + '&quot;)" style="font-size:10px;padding:3px 8px;border-radius:4px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.1);color:#f87171;font-family:var(--font);cursor:pointer">Eliminar</button></div>';
+                nh += '<div style="margin-top:8px;text-align:right"><button onclick="event.stopPropagation();deleteNoticia(&quot;' + n.id + '&quot;)" style="font-size:10px;padding:3px 8px;border-radius:4px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.1);color:#f87171;font-family:var(--font);cursor:pointer">Eliminar</button></div>';
               }
               nh += '</div>';
             }
@@ -15550,6 +15607,61 @@ function renderNovedadesList(list) {
   }).join('');
   document.getElementById('nov-list').innerHTML = html;
 }
+
+// ── Overlay lectura comunicación urgente ──
+var _urgenteCardEl = null;
+function abrirUrgenteOverlay(noticiaId, cardEl) {
+  // Pausar animación de la card
+  if (cardEl) {
+    cardEl.classList.add('pausado');
+    _urgenteCardEl = cardEl;
+  }
+  // Buscar datos en el DOM o en la cache global de noticias
+  var titulo = '';
+  var mensaje = '';
+  var icon = '🚨';
+  var meta = '';
+  // Leer del DOM de la card misma
+  var tituloEl = cardEl ? cardEl.querySelector('[style*="font-weight:700"]') : null;
+  if (tituloEl) titulo = tituloEl.textContent || '';
+  var mensajeEl = cardEl ? cardEl.querySelectorAll('div') : [];
+  for (var mi = 0; mi < mensajeEl.length; mi++) {
+    var fs = mensajeEl[mi].style.fontSize;
+    if (fs === '12px' && mensajeEl[mi].style.lineHeight) {
+      mensaje = mensajeEl[mi].textContent || '';
+      break;
+    }
+  }
+  var metaEl = cardEl ? cardEl.querySelector('[style*="font-size:10px"][style*="color:var(--text3)"]') : null;
+  if (metaEl) meta = metaEl.textContent || '';
+  var ouIcon = document.getElementById('ou-icon');
+  var ouTit  = document.getElementById('ou-titulo');
+  var ouMsg  = document.getElementById('ou-mensaje');
+  var ouMeta = document.getElementById('ou-meta');
+  if (ouIcon) ouIcon.textContent = icon;
+  if (ouTit)  ouTit.textContent  = titulo;
+  if (ouMsg)  ouMsg.textContent  = mensaje;
+  if (ouMeta) ouMeta.textContent = meta;
+  var ov = document.getElementById('ov-urgente-leer');
+  if (ov) ov.classList.add('abierto');
+}
+function cerrarUrgenteOverlay() {
+  var ov = document.getElementById('ov-urgente-leer');
+  if (ov) ov.classList.remove('abierto');
+  if (_urgenteCardEl) {
+    _urgenteCardEl.classList.remove('pausado');
+    _urgenteCardEl = null;
+  }
+}
+// Cerrar al tocar el fondo oscuro
+(function() {
+  var ov = document.getElementById('ov-urgente-leer');
+  if (ov) {
+    ov.addEventListener('click', function(e) {
+      if (e.target === ov) cerrarUrgenteOverlay();
+    });
+  }
+})();
 
 // ══════════════════════════════════════════════════════════════
 //  MÓDULO GESTIÓN DE TURNOS
