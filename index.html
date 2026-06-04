@@ -3546,6 +3546,21 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
       </div>
     </div>
 
+    <div style="background:var(--bg3);border-radius:8px;padding:12px;margin-bottom:12px;border-left:3px solid #f59e0b">
+      <div style="font-size:11px;font-weight:700;color:#fcd34d;text-transform:uppercase;margin-bottom:10px">⏰ Horario fijo (para alertas de turno)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="form-group" style="margin:0">
+          <label class="form-label" style="font-size:10px">Hora entrada</label>
+          <input class="form-input" type="time" id="ag-hora-entrada"/>
+        </div>
+        <div class="form-group" style="margin:0">
+          <label class="form-label" style="font-size:10px">Hora salida</label>
+          <input class="form-input" type="time" id="ag-hora-salida"/>
+        </div>
+      </div>
+      <p style="font-size:11px;color:var(--text3);margin:8px 0 0 0">Si no completás estos campos, el agente no genera alertas de turno.</p>
+    </div>
+
     <div class="form-group"><label class="form-label">Observaciones</label><textarea class="form-textarea" id="ag-obs" style="min-height:60px" placeholder="Notas sobre el agente..."></textarea></div>
     <button class="btn-login" id="btn-save-agente" onclick="saveAgente()">&#128101; Guardar Agente</button>
   </div>
@@ -3892,7 +3907,9 @@ function _saveAgente() {
             lic_particular: parseInt(document.getElementById('ag-lic-part').value) || 0,
             lic_franco: parseInt(document.getElementById('ag-lic-franco').value) || 0,
             lic_familiar: parseInt(document.getElementById('ag-lic-fam').value) || 0,
-            lic_duelo: parseInt(document.getElementById('ag-lic-duelo').value) || 0
+            lic_duelo: parseInt(document.getElementById('ag-lic-duelo').value) || 0,
+            hora_entrada: document.getElementById('ag-hora-entrada').value || null,
+            hora_salida: document.getElementById('ag-hora-salida').value || null
           };
           editId = document.getElementById('agente-edit-id').value;
           if (!editId) {
@@ -8582,6 +8599,10 @@ function editarAgenteAdmin(id) {
   if (licFam) licFam.value = a.lic_familiar || 5;
   var licDuel = document.getElementById('ag-lic-duelo');
   if (licDuel) licDuel.value = a.lic_duelo || 3;
+  var heEl = document.getElementById('ag-hora-entrada');
+  var hsEl = document.getElementById('ag-hora-salida');
+  if (heEl) heEl.value = a.hora_entrada || '';
+  if (hsEl) hsEl.value = a.hora_salida || '';
   openOv('ov-agente');
 }
 
@@ -8604,6 +8625,10 @@ function nuevoAgenteAdmin() {
   document.getElementById('ag-lic-franco').value = '0';
   document.getElementById('ag-lic-fam').value = '5';
   document.getElementById('ag-lic-duelo').value = '3';
+  var heNEl = document.getElementById('ag-hora-entrada');
+  var hsNEl = document.getElementById('ag-hora-salida');
+  if (heNEl) heNEl.value = '';
+  if (hsNEl) hsNEl.value = '';
   openOv('ov-agente');
 }
 
@@ -15753,77 +15778,69 @@ function ejecutarMonitorTurnos() {
   var hoy = fechaHoyAR();
   var horaAR = horaActualAR();
 
-  // Cargar turnos configurados
-  db.from('turnos_puesto').select('*').then(function(rTurnos) {
-    if (!rTurnos || !rTurnos.data || !rTurnos.data.length) return;
-    var turnos = rTurnos.data;
+  // Cargar agentes que tienen horario configurado
+  db.from('agentes').select('id, nombre, puesto, hora_entrada, hora_salida')
+    .not('hora_entrada', 'is', null)
+    .not('hora_salida', 'is', null)
+    .then(function(rAg) {
+      if (!rAg || !rAg.data || !rAg.data.length) return;
+      var agentes = rAg.data;
 
-    // Cargar fichajes de hoy
-    db.from('fichajes').select('nombre, puesto, entrada, salida, activo')
-      .gte('entrada', hoy + 'T00:00:00')
-      .lt('entrada', hoy + 'T23:59:59')
-      .then(function(rFich) {
-        var fichajes = (rFich && rFich.data) ? rFich.data : [];
+      // Cargar fichajes de hoy
+      db.from('fichajes').select('nombre, puesto, entrada, salida, activo')
+        .gte('entrada', hoy + 'T00:00:00')
+        .lt('entrada', hoy + 'T23:59:59')
+        .then(function(rFich) {
+          var fichajes = (rFich && rFich.data) ? rFich.data : [];
 
-        // Cargar licencias activas hoy
-        db.from('licencias').select('agente, tipo, desde, hasta, estado')
-          .eq('estado', 'aprobada')
-          .lte('desde', hoy)
-          .gte('hasta', hoy)
-          .then(function(rLic) {
-            var licencias = (rLic && rLic.data) ? rLic.data : [];
-            var licenciados = licencias.map(function(l) { return l.agente; });
+          // Licencias activas hoy
+          db.from('licencias').select('agente')
+            .eq('estado', 'aprobada')
+            .lte('desde', hoy)
+            .gte('hasta', hoy)
+            .then(function(rLic) {
+              var licenciados = (rLic && rLic.data) ? rLic.data.map(function(l) { return l.agente; }) : [];
 
-            // Cargar justificaciones previas de hoy
-            db.from('justificaciones_turno').select('agente').eq('fecha', hoy).then(function(rJust) {
-              var justificados = (rJust && rJust.data) ? rJust.data.map(function(j) { return j.agente; }) : [];
+              // Justificaciones previas de hoy
+              db.from('justificaciones_turno').select('agente').eq('fecha', hoy).then(function(rJust) {
+                var justificados = (rJust && rJust.data) ? rJust.data.map(function(j) { return j.agente; }) : [];
 
-              // Cargar alertas ya disparadas hoy para no duplicar
-              db.from('alertas_turno').select('agente, tipo').eq('fecha', hoy).then(function(rAlt) {
-                var yaAlertados = (rAlt && rAlt.data) ? rAlt.data : [];
+                // Alertas ya disparadas hoy
+                db.from('alertas_turno').select('agente, tipo').eq('fecha', hoy).then(function(rAlt) {
+                  var yaAlertados = (rAlt && rAlt.data) ? rAlt.data : [];
 
-                // Cargar agentes por puesto
-                db.from('agentes').select('nombre, puesto').then(function(rAg) {
-                  var agentes = (rAg && rAg.data) ? rAg.data : [];
+                  agentes.forEach(function(ag) {
+                    if (licenciados.indexOf(ag.nombre) >= 0) return;
+                    if (!ag.hora_entrada || !ag.hora_salida) return;
 
-                  turnos.forEach(function(turno) {
-                    var tolerancia = turno.tolerancia || 20;
-                    var minDesdeEntrada = diffMinutos(turno.hora_entrada, horaAR);
-                    var minDesdeSalida = diffMinutos(turno.hora_salida, horaAR);
+                    var tolerancia = 20; // fijo por ahora — podría hacerse por agente
+                    var minDesdeEntrada = diffMinutos(ag.hora_entrada, horaAR);
+                    var minDesdeSalida  = diffMinutos(ag.hora_salida,  horaAR);
+                    var ventana = MONITOR_TURNO_MS / 60000 + 2; // margen de ventana del interval
 
-                    var agentesDelPuesto = agentes.filter(function(ag) { return ag.puesto === turno.puesto; });
+                    var fichajeAg = fichajes.filter(function(f) { return f.nombre === ag.nombre; })[0];
 
-                    agentesDelPuesto.forEach(function(ag) {
-                      // Salteamos licenciados y justificados
-                      if (licenciados.indexOf(ag.nombre) >= 0) return;
-
-                      var fichajeAg = fichajes.filter(function(f) {
-                        return f.nombre === ag.nombre || f.puesto === turno.puesto;
-                      })[0];
-
-                      // ALERTA ENTRADA: pasaron más de `tolerancia` min y no fichó
-                      if (minDesdeEntrada >= tolerancia && minDesdeEntrada < tolerancia + MONITOR_TURNO_MS / 60000 + 2) {
-                        var yaEntrada = yaAlertados.filter(function(x) { return x.agente === ag.nombre && x.tipo === 'entrada'; })[0];
-                        if (!yaEntrada && !fichajeAg && justificados.indexOf(ag.nombre) < 0) {
-                          dispararAlertaTurno(ag.nombre, turno.puesto, 'entrada', turno.hora_entrada);
-                        }
+                    // ALERTA ENTRADA: pasó el tiempo de gracia y no fichó
+                    if (minDesdeEntrada >= tolerancia && minDesdeEntrada < tolerancia + ventana) {
+                      var yaEntrada = yaAlertados.filter(function(x) { return x.agente === ag.nombre && x.tipo === 'entrada'; })[0];
+                      if (!yaEntrada && !fichajeAg && justificados.indexOf(ag.nombre) < 0) {
+                        dispararAlertaTurno(ag.nombre, ag.puesto, 'entrada', ag.hora_entrada);
                       }
+                    }
 
-                      // ALERTA SALIDA: pasaron más de `tolerancia` min del horario de salida y sigue activo
-                      if (minDesdeSalida >= tolerancia && minDesdeSalida < tolerancia + MONITOR_TURNO_MS / 60000 + 2) {
-                        var yaSalida = yaAlertados.filter(function(x) { return x.agente === ag.nombre && x.tipo === 'salida'; })[0];
-                        if (!yaSalida && fichajeAg && fichajeAg.activo) {
-                          dispararAlertaTurno(ag.nombre, turno.puesto, 'salida', turno.hora_salida);
-                        }
+                    // ALERTA SALIDA: pasó el tiempo de gracia y sigue con fichaje activo
+                    if (minDesdeSalida >= tolerancia && minDesdeSalida < tolerancia + ventana) {
+                      var yaSalida = yaAlertados.filter(function(x) { return x.agente === ag.nombre && x.tipo === 'salida'; })[0];
+                      if (!yaSalida && fichajeAg && fichajeAg.activo) {
+                        dispararAlertaTurno(ag.nombre, ag.puesto, 'salida', ag.hora_salida);
                       }
-                    });
+                    }
                   });
                 });
               });
             });
-          });
-      });
-  });
+        });
+    });
 }
 
 function dispararAlertaTurno(agente, puesto, tipo, horaEsperada) {
