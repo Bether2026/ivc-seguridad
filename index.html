@@ -296,6 +296,82 @@ body::after { display: none; }
   0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); border-color: rgba(239,68,68,0.5); }
   50% { box-shadow: 0 0 16px 4px rgba(239,68,68,0.25); border-color: rgba(239,68,68,0.9); }
 }
+
+/* ── LLAMA DE VELAS ── */
+@keyframes llama {
+  0%,100% { transform: scaleY(1)    scaleX(1)    rotate(-2deg); filter: brightness(1);   }
+  20%      { transform: scaleY(1.12) scaleX(0.92) rotate(3deg);  filter: brightness(1.2); }
+  40%      { transform: scaleY(0.94) scaleX(1.06) rotate(-4deg); filter: brightness(0.9); }
+  60%      { transform: scaleY(1.08) scaleX(0.95) rotate(2deg);  filter: brightness(1.15);}
+  80%      { transform: scaleY(0.97) scaleX(1.03) rotate(-1deg); filter: brightness(1);   }
+}
+.llama {
+  display: inline-block;
+  transform-origin: bottom center;
+  animation: llama 0.9s ease-in-out infinite;
+  will-change: transform;
+}
+/* Cada vela con delay distinto para que no sean sincrónicas */
+.llama:nth-child(2) { animation-delay: -0.3s; }
+.llama:nth-child(3) { animation-delay: -0.6s; }
+.llama:nth-child(4) { animation-delay: -0.15s; }
+
+/* ── EMOJIS FESTIVOS FLOTANTES ── */
+@keyframes festivo {
+  0%          { transform: translateY(0)    rotate(-8deg)  scale(1);    opacity:1; }
+  25%         { transform: translateY(-10px) rotate(6deg)  scale(1.12); opacity:1; }
+  50%         { transform: translateY(-4px)  rotate(-4deg) scale(0.96); opacity:1; }
+  75%         { transform: translateY(-12px) rotate(8deg)  scale(1.08); opacity:1; }
+  100%        { transform: translateY(0)    rotate(-8deg)  scale(1);    opacity:1; }
+}
+.emoji-festivo {
+  display: inline-block;
+  animation: festivo 1.8s ease-in-out infinite;
+  will-change: transform;
+}
+.emoji-festivo:nth-child(2) { animation-delay: -0.45s; }
+.emoji-festivo:nth-child(3) { animation-delay: -0.9s;  }
+.emoji-festivo:nth-child(4) { animation-delay: -1.2s;  }
+.emoji-festivo:nth-child(5) { animation-delay: -0.6s;  }
+
+/* ── TORTA PULSANTE ── */
+@keyframes tortaPulse {
+  0%,100% { transform: scale(1)    rotate(0deg);   }
+  30%     { transform: scale(1.08) rotate(-3deg);  }
+  60%     { transform: scale(1.04) rotate(2deg);   }
+}
+.torta-anim {
+  display: inline-block;
+  animation: tortaPulse 2.2s ease-in-out infinite;
+  will-change: transform;
+}
+
+/* ── SIRENA URGENTE ── */
+@keyframes sirenaGiro {
+  0%   { transform: rotate(0deg)   scale(1);    }
+  15%  { transform: rotate(-18deg) scale(1.15); }
+  30%  { transform: rotate(18deg)  scale(1.2);  }
+  45%  { transform: rotate(-14deg) scale(1.15); }
+  60%  { transform: rotate(14deg)  scale(1.1);  }
+  75%  { transform: rotate(-8deg)  scale(1.05); }
+  100% { transform: rotate(0deg)   scale(1);    }
+}
+@keyframes sirenaGlow {
+  0%,100% { text-shadow: 0 0 6px rgba(239,68,68,0.4);  }
+  50%     { text-shadow: 0 0 22px rgba(239,68,68,1), 0 0 40px rgba(239,68,68,0.6); }
+}
+@keyframes urgenteBg {
+  0%,100% { background: linear-gradient(135deg,rgba(239,68,68,0.18),rgba(185,28,28,0.1)); border-color: rgba(239,68,68,0.5); }
+  50%     { background: linear-gradient(135deg,rgba(239,68,68,0.30),rgba(185,28,28,0.2)); border-color: rgba(239,68,68,0.95); }
+}
+.sirena-anim {
+  display: inline-block;
+  animation: sirenaGiro 0.7s ease-in-out infinite, sirenaGlow 0.7s ease-in-out infinite;
+  will-change: transform;
+}
+.card-urgente-anim {
+  animation: urgenteBg 0.9s ease-in-out infinite !important;
+}
 @keyframes slideDown {
   from { transform: translateY(-100%); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
@@ -13823,22 +13899,29 @@ function _loadNoticias() {
               // ── BIRTHDAY CARD ──
               nh += '<div style="' + slideStyle + 'background:linear-gradient(135deg,rgba(251,191,36,0.15),rgba(236,72,153,0.15),rgba(139,92,246,0.1));border:1px solid rgba(251,191,36,0.4);border-radius:12px;padding:16px;margin-bottom:' + (list.length > 1 ? '0' : '6px') + ';position:relative;overflow:hidden;text-align:center">';
               nh += '<div style="position:absolute;top:0;right:0;font-size:80px;opacity:.06;line-height:1;pointer-events:none">🎂</div>';
-              nh += '<div style="font-size:48px;margin-bottom:8px">🎂</div>';
+              // Torta pulsante con llamas animadas
+              nh += '<div style="font-size:48px;margin-bottom:4px"><span class="torta-anim">🎂</span></div>';
+              nh += '<div style="font-size:18px;margin-bottom:8px;letter-spacing:4px"><span class="llama">🔥</span><span class="llama">🔥</span><span class="llama">🔥</span></div>';
               nh += '<div style="font-size:15px;font-weight:900;background:linear-gradient(135deg,#fbbf24,#f472b6);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px">' + n.titulo + '</div>';
               nh += '<div style="font-size:11px;color:rgba(251,191,36,0.8);font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">🎉 ¡Hoy cumple años!</div>';
               nh += '<div style="font-size:13px;color:var(--text2);line-height:1.55;border-top:1px solid rgba(251,191,36,0.2);padding-top:10px;margin-bottom:10px">' + n.mensaje + '</div>';
-              nh += '<div style="display:flex;gap:8px;justify-content:center;font-size:20px">🎈🎊✨🥳🎁</div>';
+              // Emojis festivos con animación individual
+              nh += '<div style="display:flex;gap:8px;justify-content:center;font-size:22px">';
+              nh += '<span class="emoji-festivo">🎈</span><span class="emoji-festivo">🎊</span><span class="emoji-festivo">✨</span><span class="emoji-festivo">🥳</span><span class="emoji-festivo">🎁</span>';
+              nh += '</div>';
               nh += '</div>';
             } else {
               // ── REGULAR / URGENTE NOTICIA CARD ──
               var isUrgente = n.importancia === 'Urgente';
               var cardStyle = isUrgente
-                ? 'background:linear-gradient(135deg,rgba(239,68,68,0.18),rgba(185,28,28,0.1));border:1px solid rgba(239,68,68,0.5);border-left:3px solid #ef4444;animation:pulseUrgente 2s infinite;'
+                ? 'background:linear-gradient(135deg,rgba(239,68,68,0.18),rgba(185,28,28,0.1));border:1px solid rgba(239,68,68,0.5);border-left:3px solid #ef4444;'
                 : 'background:var(--bg3);border-left:3px solid ' + color + ';';
-              nh += '<div style="' + slideStyle + cardStyle + 'border-radius:8px;padding:11px 13px;margin-bottom:' + (list.length > 1 ? '0' : '6px') + '">';
+              var extraClass = isUrgente ? ' card-urgente-anim' : '';
+              nh += '<div style="' + slideStyle + cardStyle + 'border-radius:8px;padding:11px 13px;margin-bottom:' + (list.length > 1 ? '0' : '6px') + '" class="' + extraClass + '">';
               nh += '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:5px">';
               nh += '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">';
-              nh += '<span style="font-size:18px">' + icon + '</span>';
+              var iconDisplay = isUrgente ? '<span class="sirena-anim" style="font-size:18px">' + icon + '</span>' : '<span style="font-size:18px">' + icon + '</span>';
+              nh += iconDisplay;
               nh += '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">' + (n.titulo || '') + '</div>';
               destText = '';
               if (n.destinatarios && Array.isArray(n.destinatarios) && n.destinatarios.length > 0) {
