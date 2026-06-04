@@ -458,6 +458,7 @@ body::after { display: none; }
   background: linear-gradient(90deg, transparent, rgba(124,176,255,0.4), transparent);
 }
 .stat-card[onclick] { cursor: pointer; }
+.stat-card:hover { transform: translateY(-2px); border-color: var(--border3); box-shadow: 0 8px 28px rgba(0,0,0,0.3), 0 0 0 1px rgba(124,176,255,0.07); }
 .stat-card[onclick]:hover { transform: translateY(-2px); border-color: var(--border3); box-shadow: 0 8px 24px rgba(0,0,0,0.25); }
 .stat-card[onclick]:active { transform: translateY(0); }
 .stat-lbl {
@@ -503,7 +504,8 @@ body::after { display: none; }
   top: 0; left: 16px; right: 16px; height: 1px;
   background: linear-gradient(90deg, transparent, rgba(124,176,255,0.35), transparent);
 }
-.card:hover { border-color: var(--border2); box-shadow: 0 8px 32px rgba(0,0,0,0.25); }
+.card:hover { border-color: var(--border2); box-shadow: 0 8px 32px rgba(0,0,0,0.35), 0 0 0 1px rgba(124,176,255,0.08); transform: translateY(-2px); }
+.card:active { transform: translateY(0); box-shadow: none; }
 .card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; gap: 10px; }
 .card-lbl {
   font-size: 11px; font-weight: 700;
@@ -1129,11 +1131,16 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
     <div class="form-group">
       <label class="form-check"><input type="checkbox" id="n-pend"> Marcar caso como abierto</label>
     <div class="form-group">
-      <label class="form-check" style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:10px 12px;cursor:pointer;display:block">
-        <input type="checkbox" id="n-urgente" style="accent-color:#ef4444">
-        <span style="color:#fca5a5;font-weight:700">&#x1F6A8; Comunicaci&#xF3;n inmediata</span>
-        <div style="font-size:10px;color:var(--text3);margin-top:2px;font-weight:400">Env&#xED;a una notificaci&#xF3;n urgente a todos los usuarios</div>
-      </label>
+      <input type="hidden" id="n-urgente" value="0">
+      <button type="button" id="btn-urgente-toggle" onclick="toggleUrgente()"
+        style="width:100%;padding:12px 16px;border-radius:10px;border:1px solid rgba(239,68,68,.25);background:rgba(239,68,68,.06);color:var(--text3);font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:10px;transition:all .2s;text-align:left">
+        <span id="btn-urgente-icon" style="font-size:20px;transition:transform .2s">🔔</span>
+        <span style="flex:1">
+          <span id="btn-urgente-label" style="display:block">Comunicación inmediata</span>
+          <span style="font-size:10px;font-weight:400;color:var(--text3)">Envía notificación urgente a todos los usuarios</span>
+        </span>
+        <span id="btn-urgente-badge" style="display:none;background:#ef4444;color:#fff;border-radius:6px;padding:2px 8px;font-size:10px;font-weight:800">ACTIVO</span>
+      </button>
     </div>
     </div>
 
@@ -10684,7 +10691,7 @@ function _saveNov() {
           closeOv('ov-nov');
           toast('OK Novedad guardada' + (FOTOS_PENDIENTES.length ? " con ".concat(FOTOS_PENDIENTES.length, " foto(s)") : ''));
           // Push si es comunicación inmediata
-          if ($('n-urgente') && $('n-urgente').checked) {
+          if ($('n-urgente') && $('n-urgente').value === '1') {
             var tituloNov = $('n-tipo') ? ($('n-tipo').value === 'Otro' ? ($('n-asunto-otro') ? $('n-asunto-otro').value : 'Novedad') : $('n-tipo').value) : 'Novedad';
             var puestoNov = USER ? USER.puesto : '';
             var msg = '&#x1F6A8; ' + tituloNov + ' en ' + puestoNov;
@@ -10703,7 +10710,7 @@ function _saveNov() {
           });
           if ($('n-area')) $('n-area').value = '';
           $('n-pend').checked = false;
-          if ($('n-urgente')) $('n-urgente').checked = false;
+          if ($('n-urgente')) { $('n-urgente').value = '0'; resetUrgenteBtn(); }
           
           if ($('n-puesto-sel')) $('n-puesto-sel').value = '';
           document.getElementById('foto-preview').innerHTML = '';
@@ -10719,6 +10726,42 @@ function _saveNov() {
 $('n-pend').addEventListener('change', function () {
   
 });
+
+// ── Toggle botón comunicación inmediata ──
+function toggleUrgente() {
+  var inp = document.getElementById('n-urgente');
+  var btn = document.getElementById('btn-urgente-toggle');
+  var icon = document.getElementById('btn-urgente-icon');
+  var badge = document.getElementById('btn-urgente-badge');
+  if (!inp || !btn) return;
+  var activo = inp.value !== '1';
+  inp.value = activo ? '1' : '0';
+  if (activo) {
+    btn.style.background = 'rgba(239,68,68,.18)';
+    btn.style.borderColor = 'rgba(239,68,68,.6)';
+    btn.style.color = '#fca5a5';
+    if (icon) { icon.textContent = '🚨'; icon.style.transform = 'scale(1.2)'; }
+    if (badge) badge.style.display = 'inline-block';
+  } else {
+    btn.style.background = 'rgba(239,68,68,.06)';
+    btn.style.borderColor = 'rgba(239,68,68,.25)';
+    btn.style.color = 'var(--text3)';
+    if (icon) { icon.textContent = '🔔'; icon.style.transform = 'scale(1)'; }
+    if (badge) badge.style.display = 'none';
+  }
+}
+
+function resetUrgenteBtn() {
+  var inp = document.getElementById('n-urgente');
+  var btn = document.getElementById('btn-urgente-toggle');
+  var icon = document.getElementById('btn-urgente-icon');
+  var badge = document.getElementById('btn-urgente-badge');
+  if (inp) inp.value = '0';
+  if (btn) { btn.style.background = 'rgba(239,68,68,.06)'; btn.style.borderColor = 'rgba(239,68,68,.25)'; btn.style.color = 'var(--text3)'; }
+  if (icon) { icon.textContent = '🔔'; icon.style.transform = 'scale(1)'; }
+  if (badge) badge.style.display = 'none';
+}
+
 // ─── CONTROL DE OBJETIVO — COMPLETO ───
 var OBJ_FOTO_FILE = null;
 var OBJ_UPD_FOTO_FILE = null;
