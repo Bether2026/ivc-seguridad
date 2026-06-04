@@ -318,9 +318,10 @@ body::after { display: none; }
 
 /* ── CONFETTI CSS ── */
 @keyframes confettiCaer {
-  0%   { transform: translateY(-10px) rotate(0deg)   scale(1);   opacity:1; }
+  0%   { transform: translateY(-10px) rotateZ(0deg)   rotateX(0deg)  scaleX(1);   opacity:1; }
+  50%  { transform: translateY(70px)  rotateZ(200deg) rotateX(60deg) scaleX(0.4); opacity:1; }
   80%  { opacity:1; }
-  100% { transform: translateY(150px) rotate(540deg) scale(0.5); opacity:0; }
+  100% { transform: translateY(155px) rotateZ(480deg) rotateX(120deg) scaleX(1);  opacity:0; }
 }
 @keyframes globoSubir {
   0%,100% { transform: translateY(0)     scale(1)    rotate(-4deg); }
@@ -328,8 +329,8 @@ body::after { display: none; }
 }
 .cumple-confetti {
   position: absolute;
-  font-size: 13px;
   pointer-events: none;
+  border-radius: 2px;
   animation: confettiCaer linear infinite;
   will-change: transform;
 }
@@ -13941,15 +13942,17 @@ function _loadNoticias() {
               nh += '</div>';
             } else if (n.es_cumple) {
               // ── BIRTHDAY CARD con confetti CSS ──
-              var confettiItems = ['🎊','🎉','⭐','💛','🩷','🎈','✨','🎀','💫','🌟'];
+              var confettiColores = ['#fbbf24','#f472b6','#a78bfa','#34d399','#60a5fa','#f87171','#fb923c','#e879f9','#4ade80','#38bdf8','#facc15','#f9a8d4'];
               var confettiHtml = '';
-              for (var ci3 = 0; ci3 < 14; ci3++) {
-                var em = confettiItems[ci3 % confettiItems.length];
-                var left = (ci3 * 7 + 3) % 96;
-                var dur = (1.4 + (ci3 % 5) * 0.4).toFixed(1);
-                var delay = ((ci3 * 0.3) % 2).toFixed(1);
-                var top = (ci3 % 3 === 0) ? '-5px' : ((ci3 % 3 === 1) ? '10px' : '0px');
-                confettiHtml += '<span class="cumple-confetti" style="left:' + left + '%;top:' + top + ';animation-duration:' + dur + 's;animation-delay:-' + delay + 's">' + em + '</span>';
+              for (var ci3 = 0; ci3 < 20; ci3++) {
+                var col = confettiColores[ci3 % confettiColores.length];
+                var left = (ci3 * 5 + 2) % 96;
+                var dur = (1.2 + (ci3 % 6) * 0.35).toFixed(2);
+                var delay = ((ci3 * 0.28) % 2.5).toFixed(2);
+                var w = (ci3 % 3 === 0) ? 6 : (ci3 % 3 === 1) ? 8 : 5;
+                var h = (ci3 % 4 === 0) ? 12 : (ci3 % 4 === 1) ? 8 : (ci3 % 4 === 2) ? 14 : 10;
+                var topPx = (ci3 % 4 === 0) ? -8 : (ci3 % 4 === 1) ? 2 : (ci3 % 4 === 2) ? -4 : 6;
+                confettiHtml += '<div class="cumple-confetti" style="left:' + left + '%;top:' + topPx + 'px;width:' + w + 'px;height:' + h + 'px;background:' + col + ';animation-duration:' + dur + 's;animation-delay:-' + delay + 's;opacity:0.9"></div>';
               }
               nh += '<div style="' + slideStyle + 'background:linear-gradient(160deg,rgba(139,92,246,0.25),rgba(236,72,153,0.2),rgba(251,191,36,0.2));border:1px solid rgba(251,191,36,0.45);border-radius:12px;padding:20px 16px;margin-bottom:' + (list.length > 1 ? '0' : '6px') + ';position:relative;overflow:hidden;text-align:center">';
               // Confetti de fondo
