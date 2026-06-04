@@ -2316,6 +2316,7 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
         <button id="adm-tab-personal" onclick="selAdminTab('personal')" style="flex-shrink:0;padding:8px 18px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">👤 Personal</button>
         <button id="adm-tab-informe" onclick="selAdminTab('informe')" style="flex-shrink:0;padding:8px 18px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">📄 Informe Diario</button>
         <button id="adm-tab-metricas" onclick="selAdminTab('metricas')" style="flex-shrink:0;padding:8px 18px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">📈 Métricas</button>
+        <button id="adm-tab-turnos" onclick="selAdminTab('turnos')" style="flex-shrink:0;padding:8px 18px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;position:relative">🕐 Turnos<span id="adm-tab-turnos-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:#ef4444;color:#fff;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:800;line-height:16px;text-align:center">!</span></button>
       </div>
 
       <div id="adm-panel-general">
@@ -2667,6 +2668,67 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
         </div><!-- /mp-contenido -->
       </div><!-- /adm-panel-metricas -->
 
+      <!-- ══════════════════════════════════════════════════════
+           PANEL TURNOS
+           ══════════════════════════════════════════════════════ -->
+      <div id="adm-panel-turnos" style="display:none">
+
+        <!-- KPIs rápidos -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
+          <div class="stat-card" style="border-left:3px solid #ef4444">
+            <div class="stat-lbl">Alertas hoy</div>
+            <div class="stat-val c-red" id="trn-kpi-alertas">—</div>
+            <div class="stat-sub">sin resolver</div>
+          </div>
+          <div class="stat-card" style="border-left:3px solid #f59e0b">
+            <div class="stat-lbl">Tardanzas</div>
+            <div class="stat-val c-yellow" id="trn-kpi-tardanzas">—</div>
+            <div class="stat-sub">hoy</div>
+          </div>
+          <div class="stat-card" style="border-left:3px solid #10b981">
+            <div class="stat-lbl">En horario</div>
+            <div class="stat-val c-green" id="trn-kpi-ok">—</div>
+            <div class="stat-sub">ficharon hoy</div>
+          </div>
+        </div>
+
+        <!-- Tabs internas -->
+        <div style="display:flex;gap:8px;margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:8px">
+          <button id="trn-tab-alertas" onclick="selTurnosTab('alertas')" style="padding:7px 16px;border-radius:8px 8px 0 0;border:none;background:rgba(239,68,68,.15);color:#fca5a5;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">🚨 Alertas</button>
+          <button id="trn-tab-config" onclick="selTurnosTab('config')" style="padding:7px 16px;border-radius:8px 8px 0 0;border:none;background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">⚙️ Configurar turnos</button>
+          <button id="trn-tab-justif" onclick="selTurnosTab('justif')" style="padding:7px 16px;border-radius:8px 8px 0 0;border:none;background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">📝 Justificaciones</button>
+        </div>
+
+        <!-- TAB: Alertas -->
+        <div id="trn-panel-alertas">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <span style="color:var(--text2);font-size:13px;font-weight:600">Alertas del día — <span id="trn-fecha-hoy"></span></span>
+            <button onclick="cargarAlertasTurno()" style="padding:6px 14px;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-family:var(--font);font-size:12px;cursor:pointer">🔄 Actualizar</button>
+          </div>
+          <div id="trn-alertas-lista"><div class="empty"><div class="icon">✅</div><p>Sin alertas pendientes hoy</p></div></div>
+        </div>
+
+        <!-- TAB: Configurar turnos -->
+        <div id="trn-panel-config" style="display:none">
+          <div class="card" style="margin-bottom:12px">
+            <div class="card-head"><span class="card-lbl">🕐 Horarios por puesto</span><span class="card-sub">Turnos fijos — 7 días</span></div>
+            <p style="font-size:12px;color:var(--text3);margin:0 0 12px 0">Definí el horario de entrada y salida esperado para cada puesto. El monitor alertará si un agente no ficha dentro de los 20 minutos.</p>
+            <div id="trn-config-lista"><div class="empty"><div class="icon">⏳</div><p>Cargando...</p></div></div>
+            <button onclick="abrirNuevoTurno()" style="margin-top:12px;width:100%;padding:10px;border-radius:10px;border:1px dashed var(--border2);background:transparent;color:var(--text3);font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">+ Agregar puesto</button>
+          </div>
+        </div>
+
+        <!-- TAB: Justificaciones cargadas -->
+        <div id="trn-panel-justif" style="display:none">
+          <div style="margin-bottom:10px">
+            <input id="trn-justif-fecha" type="date" style="padding:8px 12px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--font);font-size:13px;outline:none" onchange="cargarJustificaciones()"/>
+            <span style="color:var(--text3);font-size:12px;margin-left:8px">Filtrá por fecha</span>
+          </div>
+          <div id="trn-justif-lista"><div class="empty"><div class="icon">📝</div><p>Sin justificaciones para la fecha seleccionada</p></div></div>
+        </div>
+
+      </div><!-- /adm-panel-turnos -->
+
       <div id="adm-panel-personal" style="display:none">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;flex-wrap:wrap">
           <input id="adm-ag-search" oninput="filtrarAgentesAdmin(this.value)" placeholder="&#x1F50D; Buscar agente, legajo, DNI..." style="flex:1;min-width:180px;padding:9px 14px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--font);font-size:13px;outline:none"/>
@@ -2912,6 +2974,103 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
     <button class="btn-login" id="btn-save-ef" onclick="guardarEditarFichaje()">
       &#x2713; Guardar cambios
     </button>
+  </div>
+</div>
+
+<!-- ── OVERLAY: NUEVO/EDITAR TURNO ── -->
+<div class="overlay" id="ov-turno">
+  <div class="modal">
+    <div class="modal-head"><span class="modal-title">🕐 Configurar turno</span><button class="btn-close" onclick="closeOv('ov-turno')">×</button></div>
+    <input type="hidden" id="trn-edit-id"/>
+    <div style="display:flex;flex-direction:column;gap:14px;padding:4px 0">
+      <div>
+        <label class="form-label">Puesto *</label>
+        <select id="trn-puesto" class="form-select">
+          <option value="">— Seleccioná un puesto —</option>
+          <option>Rodrigo Bueno</option>
+          <option>Papa Francisco</option>
+          <option>Fraga</option>
+          <option>Administración</option>
+          <option>Emergencias</option>
+          <option>Choferes</option>
+          <option>Central</option>
+          <option>Otro</option>
+        </select>
+        <input type="text" id="trn-puesto-otro" class="form-input" style="margin-top:6px;display:none" placeholder="Nombre del puesto..."/>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div>
+          <label class="form-label">Hora entrada *</label>
+          <input type="time" id="trn-hora-entrada" class="form-input"/>
+        </div>
+        <div>
+          <label class="form-label">Hora salida *</label>
+          <input type="time" id="trn-hora-salida" class="form-input"/>
+        </div>
+      </div>
+      <div>
+        <label class="form-label">Tolerancia alerta (minutos)</label>
+        <input type="number" id="trn-tolerancia" class="form-input" value="20" min="5" max="60"/>
+        <p style="font-size:11px;color:var(--text3);margin:4px 0 0 0">Tiempo de gracia antes de disparar la alerta. Por defecto: 20 min.</p>
+      </div>
+      <div>
+        <label class="form-label">Observaciones del turno</label>
+        <input type="text" id="trn-obs-config" class="form-input" placeholder="Ej: turno día, incluye cobertura zona norte..."/>
+      </div>
+      <button onclick="guardarTurnoConfig()" class="btn-primary" style="width:100%;margin-top:4px">💾 Guardar turno</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── OVERLAY: OBSERVACIÓN DE ALERTA ── -->
+<div class="overlay" id="ov-alerta-obs">
+  <div class="modal">
+    <div class="modal-head"><span class="modal-title">📝 Observación de alerta</span><button class="btn-close" onclick="closeOv('ov-alerta-obs')">×</button></div>
+    <input type="hidden" id="alerta-obs-id"/>
+    <div style="display:flex;flex-direction:column;gap:14px;padding:4px 0">
+      <div id="alerta-obs-resumen" style="background:var(--bg3);border-radius:10px;padding:12px;font-size:13px;color:var(--text2)"></div>
+      <div>
+        <label class="form-label">Observación / Justificación *</label>
+        <textarea id="alerta-obs-texto" class="form-textarea" style="min-height:90px" placeholder="Ej: Entra más tarde por trámite personal, autorizado por el responsable de turno..."></textarea>
+      </div>
+      <div>
+        <label class="form-label">Estado</label>
+        <select id="alerta-obs-estado" class="form-select">
+          <option value="justificado">✅ Justificado</option>
+          <option value="pendiente">⏳ Pendiente de resolución</option>
+          <option value="ausente">❌ Ausente sin aviso</option>
+        </select>
+      </div>
+      <button onclick="guardarObservacionAlerta()" class="btn-primary" style="width:100%">💾 Guardar observación</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── OVERLAY: JUSTIFICACIÓN PREVIA (antes de que dispare) ── -->
+<div class="overlay" id="ov-justif-previa">
+  <div class="modal">
+    <div class="modal-head"><span class="modal-title">⏰ Justificar retraso</span><button class="btn-close" onclick="closeOv('ov-justif-previa')">×</button></div>
+    <div style="display:flex;flex-direction:column;gap:14px;padding:4px 0">
+      <p style="font-size:13px;color:var(--text2);margin:0">Cargá una justificación <strong>antes</strong> de que venza el tiempo. Si el agente tiene justificación activa, la alerta no se dispara.</p>
+      <div>
+        <label class="form-label">Agente *</label>
+        <select id="jp-agente" class="form-select"><option value="">— Seleccioná agente —</option></select>
+      </div>
+      <div>
+        <label class="form-label">Tipo</label>
+        <select id="jp-tipo" class="form-select">
+          <option value="tardanza">⏰ Tardanza autorizada</option>
+          <option value="cambio_turno">🔄 Cambio de turno</option>
+          <option value="tramite">📋 Trámite personal</option>
+          <option value="otro">Otro</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Detalle *</label>
+        <textarea id="jp-detalle" class="form-textarea" style="min-height:70px" placeholder="Autorizado por el RT, motivo..."></textarea>
+      </div>
+      <button onclick="guardarJustifPrevia()" class="btn-primary" style="width:100%">💾 Guardar justificación</button>
+    </div>
   </div>
 </div>
 
@@ -15229,6 +15388,555 @@ function renderNovedadesList(list) {
   }).join('');
   document.getElementById('nov-list').innerHTML = html;
 }
+
+// ══════════════════════════════════════════════════════════════
+//  MÓDULO GESTIÓN DE TURNOS
+//  - Configuración horaria por puesto
+//  - Monitor automático (cada 5 min cuando rol = Administración)
+//  - Alertas de tardanza/salida tardía con observaciones
+//  - Justificaciones previas para evitar falsos positivos
+// ══════════════════════════════════════════════════════════════
+
+var TURNOS_CONFIG_CACHE = [];     // Turnos configurados por puesto
+var ALERTAS_TURNO_CACHE = [];     // Alertas de hoy
+var MONITOR_TURNO_INTERVAL = null;// setInterval del monitor
+var MONITOR_TURNO_MS = 5 * 60 * 1000; // 5 minutos
+
+// ── Utilidad: hora AR actual como "HH:MM" ──
+function horaActualAR() {
+  var ahora = new Date();
+  var argOffset = -3 * 60;
+  var localOffset = ahora.getTimezoneOffset();
+  var diffMs = (localOffset - argOffset) * 60 * 1000;
+  var argDate = new Date(ahora.getTime() - diffMs);
+  var hh = String(argDate.getUTCHours()).padStart(2, '0');
+  var mm = String(argDate.getUTCMinutes()).padStart(2, '0');
+  return hh + ':' + mm;
+}
+
+// ── Diferencia en minutos entre dos strings "HH:MM" ──
+function diffMinutos(horaBase, horaActual) {
+  var partsBase = horaBase.split(':');
+  var partsActual = horaActual.split(':');
+  var baseMin = parseInt(partsBase[0], 10) * 60 + parseInt(partsBase[1], 10);
+  var actualMin = parseInt(partsActual[0], 10) * 60 + parseInt(partsActual[1], 10);
+  return actualMin - baseMin;
+}
+
+// ── Seleccionar tab interna del módulo Turnos ──
+function selTurnosTab(tab) {
+  var tabs = ['alertas', 'config', 'justif'];
+  tabs.forEach(function(t) {
+    var btn = document.getElementById('trn-tab-' + t);
+    var panel = document.getElementById('trn-panel-' + t);
+    var active = t === tab;
+    if (btn) {
+      btn.style.background = active ? 'rgba(239,68,68,.15)' : 'transparent';
+      btn.style.color = active ? '#fca5a5' : 'var(--text3)';
+    }
+    if (panel) panel.style.display = active ? 'block' : 'none';
+  });
+  if (tab === 'alertas') cargarAlertasTurno();
+  if (tab === 'config')  cargarConfigTurnos();
+  if (tab === 'justif')  {
+    var el = document.getElementById('trn-justif-fecha');
+    if (el && !el.value) el.value = fechaHoyAR();
+    cargarJustificaciones();
+  }
+}
+
+// ══ CONFIGURACIÓN DE TURNOS ══════════════════════════════════
+
+function cargarConfigTurnos() {
+  var lista = document.getElementById('trn-config-lista');
+  if (!lista) return;
+  lista.innerHTML = '<div class="empty"><div class="icon">⏳</div><p>Cargando...</p></div>';
+  db.from('turnos_puesto').select('*').order('puesto').then(function(r) {
+    TURNOS_CONFIG_CACHE = (r && r.data) ? r.data : [];
+    renderConfigTurnos();
+  });
+}
+
+function renderConfigTurnos() {
+  var lista = document.getElementById('trn-config-lista');
+  if (!lista) return;
+  if (!TURNOS_CONFIG_CACHE.length) {
+    lista.innerHTML = '<div class="empty"><div class="icon">🕐</div><p>No hay turnos configurados aún</p></div>';
+    return;
+  }
+  lista.innerHTML = TURNOS_CONFIG_CACHE.map(function(t) {
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">' +
+      '<div>' +
+        '<div style="font-size:14px;font-weight:700;color:var(--text)">' + t.puesto + '</div>' +
+        '<div style="font-size:12px;color:var(--text3);margin-top:2px">🟢 Entrada: <strong style="color:var(--text2)">' + t.hora_entrada + '</strong> &nbsp;🔴 Salida: <strong style="color:var(--text2)">' + t.hora_salida + '</strong> &nbsp;⏱ Tolerancia: ' + (t.tolerancia || 20) + ' min</div>' +
+        (t.observaciones ? '<div style="font-size:11px;color:var(--text3);margin-top:2px">📌 ' + t.observaciones + '</div>' : '') +
+      '</div>' +
+      '<div style="display:flex;gap:6px">' +
+        '<button onclick="editarTurnoConfig(\'' + t.id + '\')" style="padding:5px 10px;border-radius:7px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:11px;cursor:pointer">✏️</button>' +
+        '<button onclick="eliminarTurnoConfig(\'' + t.id + '\')" style="padding:5px 10px;border-radius:7px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.1);color:#fca5a5;font-size:11px;cursor:pointer">🗑</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function abrirNuevoTurno() {
+  document.getElementById('trn-edit-id').value = '';
+  document.getElementById('trn-puesto').value = '';
+  document.getElementById('trn-puesto-otro').style.display = 'none';
+  document.getElementById('trn-hora-entrada').value = '';
+  document.getElementById('trn-hora-salida').value = '';
+  document.getElementById('trn-tolerancia').value = '20';
+  document.getElementById('trn-obs-config').value = '';
+  openOv('ov-turno');
+}
+
+function editarTurnoConfig(id) {
+  var t = TURNOS_CONFIG_CACHE.filter(function(x) { return x.id === id; })[0];
+  if (!t) return;
+  document.getElementById('trn-edit-id').value = id;
+  var selPuesto = document.getElementById('trn-puesto');
+  var opts = Array.prototype.slice.call(selPuesto.options).map(function(o) { return o.value; });
+  if (opts.indexOf(t.puesto) >= 0) {
+    selPuesto.value = t.puesto;
+    document.getElementById('trn-puesto-otro').style.display = 'none';
+  } else {
+    selPuesto.value = 'Otro';
+    document.getElementById('trn-puesto-otro').style.display = 'block';
+    document.getElementById('trn-puesto-otro').value = t.puesto;
+  }
+  document.getElementById('trn-hora-entrada').value = t.hora_entrada;
+  document.getElementById('trn-hora-salida').value = t.hora_salida;
+  document.getElementById('trn-tolerancia').value = t.tolerancia || 20;
+  document.getElementById('trn-obs-config').value = t.observaciones || '';
+  openOv('ov-turno');
+}
+
+function guardarTurnoConfig() {
+  var id = document.getElementById('trn-edit-id').value;
+  var selPuesto = document.getElementById('trn-puesto').value;
+  var puesto = selPuesto === 'Otro' ? document.getElementById('trn-puesto-otro').value.trim() : selPuesto;
+  var entrada = document.getElementById('trn-hora-entrada').value;
+  var salida = document.getElementById('trn-hora-salida').value;
+  var tolerancia = parseInt(document.getElementById('trn-tolerancia').value, 10) || 20;
+  var obs = document.getElementById('trn-obs-config').value.trim();
+
+  if (!puesto || !entrada || !salida) {
+    toast('Completá puesto, hora de entrada y salida');
+    return;
+  }
+
+  var payload = { puesto: puesto, hora_entrada: entrada, hora_salida: salida, tolerancia: tolerancia, observaciones: obs };
+
+  var op = id
+    ? db.from('turnos_puesto').update(payload).eq('id', id)
+    : db.from('turnos_puesto').insert(payload);
+
+  op.then(function(r) {
+    if (r && r.error) { toast('Error: ' + r.error.message); return; }
+    toast('Turno guardado');
+    closeOv('ov-turno');
+    cargarConfigTurnos();
+  });
+}
+
+function eliminarTurnoConfig(id) {
+  if (!confirm('¿Eliminar este turno?')) return;
+  db.from('turnos_puesto').delete().eq('id', id).then(function(r) {
+    if (r && r.error) { toast('Error: ' + r.error.message); return; }
+    toast('Turno eliminado');
+    cargarConfigTurnos();
+  });
+}
+
+// Mostrar/ocultar campo "Otro puesto"
+(function() {
+  var sel = document.getElementById('trn-puesto');
+  if (sel) {
+    sel.addEventListener('change', function() {
+      var otro = document.getElementById('trn-puesto-otro');
+      if (otro) otro.style.display = this.value === 'Otro' ? 'block' : 'none';
+    });
+  }
+})();
+
+// ══ ALERTAS ══════════════════════════════════════════════════
+
+function cargarAlertasTurno() {
+  var hoy = fechaHoyAR();
+  var el = document.getElementById('trn-fecha-hoy');
+  if (el) el.textContent = hoy;
+  var lista = document.getElementById('trn-alertas-lista');
+  if (lista) lista.innerHTML = '<div class="empty"><div class="icon">⏳</div><p>Cargando...</p></div>';
+
+  db.from('alertas_turno').select('*')
+    .eq('fecha', hoy)
+    .order('created_at', { ascending: false })
+    .then(function(r) {
+      ALERTAS_TURNO_CACHE = (r && r.data) ? r.data : [];
+      renderAlertasTurno();
+      actualizarKpisTurnos();
+    });
+}
+
+function renderAlertasTurno() {
+  var lista = document.getElementById('trn-alertas-lista');
+  if (!lista) return;
+  if (!ALERTAS_TURNO_CACHE.length) {
+    lista.innerHTML = '<div class="empty"><div class="icon">✅</div><p>Sin alertas hoy</p></div>';
+    return;
+  }
+  lista.innerHTML = ALERTAS_TURNO_CACHE.map(function(a) {
+    var colorBorder = a.estado === 'justificado' ? '#10b981' : (a.estado === 'ausente' ? '#ef4444' : '#f59e0b');
+    var iconTipo = a.tipo === 'entrada' ? '🟢' : '🔴';
+    var labelTipo = a.tipo === 'entrada' ? 'No fichó entrada' : 'No fichó salida';
+    var badgeEstado = a.estado === 'justificado'
+      ? '<span style="background:rgba(16,185,129,.15);color:#6ee7b7;border:1px solid rgba(16,185,129,.3);border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700">✅ Justificado</span>'
+      : (a.estado === 'ausente'
+        ? '<span style="background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.3);border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700">❌ Ausente</span>'
+        : '<span style="background:rgba(245,158,11,.15);color:#fcd34d;border:1px solid rgba(245,158,11,.3);border-radius:6px;padding:2px 8px;font-size:10px;font-weight:700">⏳ Pendiente</span>');
+    return '<div style="background:var(--bg2);border-radius:12px;padding:12px;margin-bottom:8px;border-left:3px solid ' + colorBorder + '">' +
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">' +
+        '<div>' +
+          '<div style="font-size:14px;font-weight:700;color:var(--text)">' + iconTipo + ' ' + a.agente + '</div>' +
+          '<div style="font-size:12px;color:var(--text3);margin-top:2px">📍 ' + a.puesto + ' · ' + labelTipo + ' · Esperada: <strong>' + a.hora_esperada + '</strong></div>' +
+        '</div>' +
+        badgeEstado +
+      '</div>' +
+      (a.observacion ? '<div style="font-size:12px;color:var(--text2);background:var(--bg3);border-radius:8px;padding:8px;margin-top:6px">📝 ' + a.observacion + '</div>' : '') +
+      '<div style="display:flex;gap:6px;margin-top:8px">' +
+        '<button onclick="abrirObsAlerta(\'' + a.id + '\')" style="flex:1;padding:7px;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer">✏️ ' + (a.observacion ? 'Editar obs.' : 'Agregar obs.') + '</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function actualizarKpisTurnos() {
+  var hoy = fechaHoyAR();
+  var alertasHoy = ALERTAS_TURNO_CACHE.filter(function(a) { return a.estado !== 'justificado'; }).length;
+  var tardanzas = ALERTAS_TURNO_CACHE.filter(function(a) { return a.tipo === 'entrada'; }).length;
+
+  var kpiA = document.getElementById('trn-kpi-alertas');
+  var kpiT = document.getElementById('trn-kpi-tardanzas');
+  if (kpiA) kpiA.textContent = alertasHoy;
+  if (kpiT) kpiT.textContent = tardanzas;
+
+  // Contar quién fichó hoy
+  db.from('fichajes').select('nombre', { count: 'exact' })
+    .eq('activo', false)
+    .gte('entrada', hoy + 'T00:00:00')
+    .lt('entrada', hoy + 'T23:59:59')
+    .then(function(r) {
+      var kpiOk = document.getElementById('trn-kpi-ok');
+      if (kpiOk) kpiOk.textContent = (r && r.count) ? r.count : 0;
+    });
+
+  // Badge en el tab
+  var badge = document.getElementById('adm-tab-turnos-badge');
+  if (badge) badge.style.display = alertasHoy > 0 ? 'inline-block' : 'none';
+}
+
+// ══ OBSERVACIONES EN ALERTA ══════════════════════════════════
+
+function abrirObsAlerta(alertaId) {
+  var a = ALERTAS_TURNO_CACHE.filter(function(x) { return x.id === alertaId; })[0];
+  if (!a) return;
+  document.getElementById('alerta-obs-id').value = alertaId;
+  var iconTipo = a.tipo === 'entrada' ? '🟢 No fichó entrada' : '🔴 No fichó salida';
+  document.getElementById('alerta-obs-resumen').innerHTML =
+    '<strong>' + a.agente + '</strong> — ' + a.puesto + '<br>' +
+    iconTipo + ' · Hora esperada: <strong>' + a.hora_esperada + '</strong>';
+  document.getElementById('alerta-obs-texto').value = a.observacion || '';
+  document.getElementById('alerta-obs-estado').value = a.estado || 'pendiente';
+  openOv('ov-alerta-obs');
+}
+
+function guardarObservacionAlerta() {
+  var id = document.getElementById('alerta-obs-id').value;
+  var obs = document.getElementById('alerta-obs-texto').value.trim();
+  var estado = document.getElementById('alerta-obs-estado').value;
+  if (!obs) { toast('Escribí una observación'); return; }
+
+  var responsable = USER ? USER.nombre : 'Administración';
+  db.from('alertas_turno').update({
+    observacion: obs,
+    estado: estado,
+    responsable: responsable,
+    updated_at: new Date().toISOString()
+  }).eq('id', id).then(function(r) {
+    if (r && r.error) { toast('Error: ' + r.error.message); return; }
+    toast('Observación guardada');
+    closeOv('ov-alerta-obs');
+    cargarAlertasTurno();
+  });
+}
+
+// ══ JUSTIFICACIONES PREVIAS ══════════════════════════════════
+
+function abrirJustifPrevia() {
+  var sel = document.getElementById('jp-agente');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— Seleccioná agente —</option>';
+  db.from('agentes').select('nombre, puesto').order('nombre').then(function(r) {
+    if (r && r.data) {
+      r.data.forEach(function(ag) {
+        var opt = document.createElement('option');
+        opt.value = ag.nombre;
+        opt.textContent = ag.nombre + ' (' + ag.puesto + ')';
+        sel.appendChild(opt);
+      });
+    }
+    openOv('ov-justif-previa');
+  });
+}
+
+function guardarJustifPrevia() {
+  var agente = document.getElementById('jp-agente').value;
+  var tipo = document.getElementById('jp-tipo').value;
+  var detalle = document.getElementById('jp-detalle').value.trim();
+  if (!agente || !detalle) { toast('Completá agente y detalle'); return; }
+
+  db.from('justificaciones_turno').insert({
+    agente: agente,
+    tipo: tipo,
+    detalle: detalle,
+    fecha: fechaHoyAR(),
+    cargado_por: USER ? USER.nombre : 'Administración',
+    created_at: new Date().toISOString()
+  }).then(function(r) {
+    if (r && r.error) { toast('Error: ' + r.error.message); return; }
+    toast('Justificación guardada — no se disparará la alerta para este agente hoy');
+    closeOv('ov-justif-previa');
+  });
+}
+
+function cargarJustificaciones() {
+  var fecha = document.getElementById('trn-justif-fecha');
+  if (!fecha || !fecha.value) return;
+  var lista = document.getElementById('trn-justif-lista');
+  if (lista) lista.innerHTML = '<div class="empty"><div class="icon">⏳</div><p>Cargando...</p></div>';
+
+  db.from('justificaciones_turno').select('*')
+    .eq('fecha', fecha.value)
+    .order('created_at', { ascending: false })
+    .then(function(r) {
+      var data = (r && r.data) ? r.data : [];
+      if (!data.length) {
+        if (lista) lista.innerHTML = '<div class="empty"><div class="icon">📝</div><p>Sin justificaciones para esta fecha</p></div>';
+        return;
+      }
+      if (lista) lista.innerHTML = data.map(function(j) {
+        var labelTipo = { tardanza: '⏰ Tardanza', cambio_turno: '🔄 Cambio de turno', tramite: '📋 Trámite', otro: '📌 Otro' }[j.tipo] || j.tipo;
+        return '<div style="background:var(--bg2);border-radius:10px;padding:10px 12px;margin-bottom:8px;border-left:3px solid #10b981">' +
+          '<div style="font-size:14px;font-weight:700;color:var(--text)">' + j.agente + '</div>' +
+          '<div style="font-size:12px;color:var(--text3);margin-top:2px">' + labelTipo + ' · Cargado por: ' + (j.cargado_por || '—') + '</div>' +
+          '<div style="font-size:12px;color:var(--text2);margin-top:6px">' + j.detalle + '</div>' +
+        '</div>';
+      }).join('');
+    });
+}
+
+// ══ MONITOR AUTOMÁTICO ═══════════════════════════════════════
+// Corre solo en el cliente cuando el usuario es Administración/Gerencia
+
+function iniciarMonitorTurnos() {
+  if (MONITOR_TURNO_INTERVAL) return; // ya activo
+  // Solo para roles que deben recibir alertas
+  if (!USER) return;
+  var ROLES_MONITOR = ['Administración', 'Administrador', 'Gerencia', 'Jefe de departamento'];
+  if (ROLES_MONITOR.indexOf(USER.puesto) < 0 && USER.rol !== 'ADMIN') return;
+
+  ejecutarMonitorTurnos(); // primera ejecución inmediata
+  MONITOR_TURNO_INTERVAL = setInterval(ejecutarMonitorTurnos, MONITOR_TURNO_MS);
+}
+
+function ejecutarMonitorTurnos() {
+  var hoy = fechaHoyAR();
+  var horaAR = horaActualAR();
+
+  // Cargar turnos configurados
+  db.from('turnos_puesto').select('*').then(function(rTurnos) {
+    if (!rTurnos || !rTurnos.data || !rTurnos.data.length) return;
+    var turnos = rTurnos.data;
+
+    // Cargar fichajes de hoy
+    db.from('fichajes').select('nombre, puesto, entrada, salida, activo')
+      .gte('entrada', hoy + 'T00:00:00')
+      .lt('entrada', hoy + 'T23:59:59')
+      .then(function(rFich) {
+        var fichajes = (rFich && rFich.data) ? rFich.data : [];
+
+        // Cargar licencias activas hoy
+        db.from('licencias').select('agente, tipo, desde, hasta, estado')
+          .eq('estado', 'aprobada')
+          .lte('desde', hoy)
+          .gte('hasta', hoy)
+          .then(function(rLic) {
+            var licencias = (rLic && rLic.data) ? rLic.data : [];
+            var licenciados = licencias.map(function(l) { return l.agente; });
+
+            // Cargar justificaciones previas de hoy
+            db.from('justificaciones_turno').select('agente').eq('fecha', hoy).then(function(rJust) {
+              var justificados = (rJust && rJust.data) ? rJust.data.map(function(j) { return j.agente; }) : [];
+
+              // Cargar alertas ya disparadas hoy para no duplicar
+              db.from('alertas_turno').select('agente, tipo').eq('fecha', hoy).then(function(rAlt) {
+                var yaAlertados = (rAlt && rAlt.data) ? rAlt.data : [];
+
+                // Cargar agentes por puesto
+                db.from('agentes').select('nombre, puesto').then(function(rAg) {
+                  var agentes = (rAg && rAg.data) ? rAg.data : [];
+
+                  turnos.forEach(function(turno) {
+                    var tolerancia = turno.tolerancia || 20;
+                    var minDesdeEntrada = diffMinutos(turno.hora_entrada, horaAR);
+                    var minDesdeSalida = diffMinutos(turno.hora_salida, horaAR);
+
+                    var agentesDelPuesto = agentes.filter(function(ag) { return ag.puesto === turno.puesto; });
+
+                    agentesDelPuesto.forEach(function(ag) {
+                      // Salteamos licenciados y justificados
+                      if (licenciados.indexOf(ag.nombre) >= 0) return;
+
+                      var fichajeAg = fichajes.filter(function(f) {
+                        return f.nombre === ag.nombre || f.puesto === turno.puesto;
+                      })[0];
+
+                      // ALERTA ENTRADA: pasaron más de `tolerancia` min y no fichó
+                      if (minDesdeEntrada >= tolerancia && minDesdeEntrada < tolerancia + MONITOR_TURNO_MS / 60000 + 2) {
+                        var yaEntrada = yaAlertados.filter(function(x) { return x.agente === ag.nombre && x.tipo === 'entrada'; })[0];
+                        if (!yaEntrada && !fichajeAg && justificados.indexOf(ag.nombre) < 0) {
+                          dispararAlertaTurno(ag.nombre, turno.puesto, 'entrada', turno.hora_entrada);
+                        }
+                      }
+
+                      // ALERTA SALIDA: pasaron más de `tolerancia` min del horario de salida y sigue activo
+                      if (minDesdeSalida >= tolerancia && minDesdeSalida < tolerancia + MONITOR_TURNO_MS / 60000 + 2) {
+                        var yaSalida = yaAlertados.filter(function(x) { return x.agente === ag.nombre && x.tipo === 'salida'; })[0];
+                        if (!yaSalida && fichajeAg && fichajeAg.activo) {
+                          dispararAlertaTurno(ag.nombre, turno.puesto, 'salida', turno.hora_salida);
+                        }
+                      }
+                    });
+                  });
+                });
+              });
+            });
+          });
+      });
+  });
+}
+
+function dispararAlertaTurno(agente, puesto, tipo, horaEsperada) {
+  var hoy = fechaHoyAR();
+  var labelTipo = tipo === 'entrada' ? 'No fichó entrada' : 'No fichó salida';
+  var payload = {
+    agente: agente,
+    puesto: puesto,
+    tipo: tipo,
+    hora_esperada: horaEsperada,
+    fecha: hoy,
+    estado: 'pendiente',
+    observacion: null,
+    responsable: null,
+    created_at: new Date().toISOString()
+  };
+
+  db.from('alertas_turno').insert(payload).then(function(r) {
+    if (r && r.error) return;
+
+    // Notificación local
+    var titulo = '⏰ Alerta de turno — ' + puesto;
+    var cuerpo = agente + ': ' + labelTipo + '. Esperado a las ' + horaEsperada;
+    if (typeof enviarNotificacion === 'function') enviarNotificacion(titulo, cuerpo, '');
+
+    // Push al servidor (llega a todos los dispositivos con rol Administración)
+    fetch(PUSH_SERVER_URL + '/api/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        titulo: titulo,
+        cuerpo: cuerpo,
+        url: '/'
+      })
+    }).catch(function() {});
+
+    // Si el panel está abierto, refrescar badge y lista
+    var badge = document.getElementById('adm-tab-turnos-badge');
+    if (badge) badge.style.display = 'inline-block';
+    toast('⏰ Alerta: ' + agente + ' — ' + labelTipo);
+  });
+}
+
+// ══ INTEGRACIÓN CON selAdminTab ══════════════════════════════
+// Parchamos selAdminTab para incluir el nuevo tab 'turnos'
+
+var _selAdminTab_orig = selAdminTab;
+selAdminTab = function(tab) {
+  // Agregar 'turnos' al array de tabs activos
+  var trnBtn = document.getElementById('adm-tab-turnos');
+  var trnPanel = document.getElementById('adm-panel-turnos');
+  if (trnBtn) {
+    trnBtn.style.background  = tab === 'turnos' ? 'rgba(248,113,113,.15)' : 'transparent';
+    trnBtn.style.color       = tab === 'turnos' ? '#fca5a5' : 'var(--text3)';
+    trnBtn.style.borderColor = tab === 'turnos' ? 'rgba(248,113,113,.35)' : 'var(--border)';
+  }
+  if (trnPanel) trnPanel.style.display = tab === 'turnos' ? 'block' : 'none';
+
+  if (tab === 'turnos') {
+    scrollAdminTop();
+    selTurnosTab('alertas');
+  } else {
+    _selAdminTab_orig(tab);
+  }
+};
+
+// ══ ARRANQUE DEL MONITOR AL HACER LOGIN ══════════════════════
+// Hook en el flujo de login existente — esperamos a que USER esté seteado
+(function() {
+  var _intervCheck = setInterval(function() {
+    if (typeof USER !== 'undefined' && USER && USER.nombre) {
+      clearInterval(_intervCheck);
+      iniciarMonitorTurnos();
+    }
+  }, 2000);
+})();
+
+// ══ SQL REQUERIDO (ejecutar en Supabase) ═════════════════════
+/*
+CREATE TABLE IF NOT EXISTS turnos_puesto (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  puesto text NOT NULL,
+  hora_entrada text NOT NULL,
+  hora_salida text NOT NULL,
+  tolerancia integer DEFAULT 20,
+  observaciones text,
+  created_at timestamptz DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS alertas_turno (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  agente text NOT NULL,
+  puesto text NOT NULL,
+  tipo text NOT NULL, -- 'entrada' | 'salida'
+  hora_esperada text NOT NULL,
+  fecha date NOT NULL,
+  estado text DEFAULT 'pendiente', -- 'pendiente' | 'justificado' | 'ausente'
+  observacion text,
+  responsable text,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz
+);
+
+CREATE TABLE IF NOT EXISTS justificaciones_turno (
+  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
+  agente text NOT NULL,
+  tipo text NOT NULL,
+  detalle text NOT NULL,
+  fecha date NOT NULL,
+  cargado_por text,
+  created_at timestamptz DEFAULT now()
+);
+*/
 
 </script>
 
