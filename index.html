@@ -4781,7 +4781,11 @@ function _marcarSalidaDirecta() {
                 case 5:
                   registrarEvento('SALIDA', nombreAgente, 'Salida registrada desde turno activo');
                   toast('Salida registrada — ' + nombreAgente);
-                  cerrarRecorridoAuto(USER.puesto);
+                  // Buscar el puesto del agente que fichó (no USER.puesto que puede ser el admin)
+                  db.from('fichajes').select('puesto').eq('id', fichajeId).maybeSingle().then(function(rf) {
+                    var puestoAgente = (rf.data && rf.data.puesto) ? rf.data.puesto : nombreAgente;
+                    cerrarRecorridoAuto(puestoAgente);
+                  });
                   loadFichajes();
                   loadDash();
                 case 6:
@@ -4797,22 +4801,28 @@ function _marcarSalidaDirecta() {
   return _marcarSalidaDirecta.apply(this, arguments);
 }
 function cerrarRecorridoAuto(puesto) {
-  var BARRIOS = ['Rodrigo Bueno', 'Papa Francisco', 'Fraga'];
+  var BARRIOS = ['Rodrigo Bueno', 'Papa Francisco', 'Fraga', 'Responsable de turno'];
   if (BARRIOS.indexOf(puesto) < 0) return;
-  // Buscar recorridos auto activos del puesto — sin filtrar por cargado_por
+  // Filtrar solo los creados automáticamente (auto_fichaje=true)
   db.from('objetivos').select('id,actualizaciones')
     .eq('puesto', puesto)
     .eq('estado', 'activo')
+    .eq('auto_fichaje', true)
     .then(function(ro) {
-      if (ro.error || !ro.data) return;
+      if (ro.error || !ro.data || !ro.data.length) {
+        console.warn('[Recorrido] No se encontró recorrido auto_fichaje activo para:', puesto);
+        return;
+      }
       ro.data.forEach(function(rec) {
-        // Solo procesar los que fueron creados automáticamente
-        // (auto_fichaje puede no existir como columna — usamos la ausencia de nombre como indicador)
         var puntos = rec.actualizaciones || [];
         if (puntos.length === 0) {
-          db.from('objetivos').delete().eq('id', rec.id).then(function() { loadObjetivos(); });
+          db.from('objetivos').delete().eq('id', rec.id).then(function(rd) {
+            if (!rd.error) { console.log('[Recorrido] Sin puntos → eliminado', rec.id); loadObjetivos(); }
+          });
         } else {
-          db.from('objetivos').update({ estado: 'finalizado', progreso: 100, fin: new Date().toISOString() }).eq('id', rec.id).then(function() { loadObjetivos(); });
+          db.from('objetivos').update({ estado: 'finalizado', progreso: 100, fin: new Date().toISOString() }).eq('id', rec.id).then(function(ru) {
+            if (!ru.error) { console.log('[Recorrido] Con puntos → finalizado', rec.id); loadObjetivos(); }
+          });
         }
       });
     });
@@ -10582,7 +10592,7 @@ function _doEntrada() {
         case 6:
           toast("OK Entrada registrada \u2014 ".concat(SEL_AGENT));
           // Abrir recorrido automático para Rodrigo Bueno, Papa Francisco y Fraga
-          var BARRIOS_RECORRIDO = ['Rodrigo Bueno', 'Papa Francisco', 'Fraga'];
+          var BARRIOS_RECORRIDO = ['Rodrigo Bueno', 'Papa Francisco', 'Fraga', 'Responsable de turno'];
           if (BARRIOS_RECORRIDO.indexOf(USER.puesto) >= 0) {
             db.from('objetivos').insert({
               puesto:       USER.puesto,
@@ -11270,7 +11280,7 @@ function _loadObjetivos() {
         case 2:
           list = rows || [];
           // Banner recorrido activo propio para los 3 barrios
-          var BARRIOS_AUTO = ['Rodrigo Bueno', 'Papa Francisco', 'Fraga'];
+          var BARRIOS_AUTO = ['Rodrigo Bueno', 'Papa Francisco', 'Fraga', 'Responsable de turno'];
           if (BARRIOS_AUTO.indexOf(USER.puesto) >= 0) {
             var miRec = list.find(function(o) {
               return o.estado === 'activo' && o.auto_fichaje &&
@@ -11956,7 +11966,7 @@ function chofSubTab(tab, btn) {
   }
 }
 function fabClick() {
-  var BARRIOS_AUTO_FAB = ['Rodrigo Bueno', 'Papa Francisco', 'Fraga'];
+  var BARRIOS_AUTO_FAB = ['Rodrigo Bueno', 'Papa Francisco', 'Fraga', 'Responsable de turno'];
   if (CUR_VIEW === 'llaves') openOv('ov-nueva-llave');
   else if (CUR_VIEW === 'rrhh') abrirNuevoAgente();
   else if (CUR_VIEW === 'novedades') abrirNuevaNovedad();
@@ -11982,7 +11992,7 @@ function fabClick() {
 function actualizarFABvisibilidad(name) {
   var fab = document.getElementById('fab');
   if (!fab || !USER) return;
-  var BARRIOS_AUTO = ['Rodrigo Bueno', 'Papa Francisco', 'Fraga'];
+  var BARRIOS_AUTO = ['Rodrigo Bueno', 'Papa Francisco', 'Fraga', 'Responsable de turno'];
   if (name === 'objetivos' && BARRIOS_AUTO.indexOf(USER.puesto) >= 0) {
     fab.style.display = 'none';
   } else {
