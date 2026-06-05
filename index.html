@@ -13351,7 +13351,7 @@ function _loadGPS() {
           return _context65.a(2);
         case 2:
           document.getElementById('gps-moviles-list').innerHTML = list.map(function(p) {
-            return '<div class="agent-row"><div class="agent-av" style="background:var(--greeng);color:var(--green)">M</div><div class="agent-info"><div class="agent-name">' + (p.movil || p.chofer) + '</div><div class="agent-sub">' + (p.direccion || 'Ubicando...') + '</div></div><div style="text-align:right"><span class="badge b-green"><span class="pulse"></span> Activo</span><div style="font-size:10px;color:var(--text3);margin-top:3px">' + formatTs(p.updated_at) + '</div></div></div>';
+            return '<div class="agent-row"><div class="agent-av" style="background:var(--greeng);color:var(--green)">M</div><div class="agent-info"><div class="agent-name">' + (p.movil || p.chofer) + '</div><div style="font-size:11px;font-weight:600;color:var(--text2);margin-top:1px">🧑‍✈️ ' + (p.chofer || '') + '</div><div class="agent-sub">' + (p.direccion || 'Ubicando...') + '</div></div><div style="text-align:right"><span class="badge b-green"><span class="pulse"></span> Activo</span><div style="font-size:10px;color:var(--text3);margin-top:3px">' + formatTs(p.updated_at) + '</div></div></div>';
           }).join('');
           renderMapaLeaflet(list);
 
@@ -13450,7 +13450,7 @@ function _dibujarMapa(list) {
     if (!p.lat || !p.lng) return;
     L.marker([p.lat, p.lng], { icon: icon })
       .addTo(map)
-      .bindPopup('<strong>' + (p.movil || p.chofer) + '</strong><br>' + (p.direccion || '') + '<br><small>' + formatTs(p.updated_at) + '</small>');
+      .bindPopup('<strong>' + (p.movil || p.chofer) + '</strong><br>🧑‍✈️ ' + (p.chofer || '') + '<br>' + (p.direccion || '') + '<br><small>' + formatTs(p.updated_at) + '</small>');
   });
 
   // Si hay huellas GPS, dibujar polyline — usar campo 'movil' (texto) no movil_id
