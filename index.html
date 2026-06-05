@@ -13527,6 +13527,10 @@ function _startGPSTransmission() {
                     }
                   });
                 });
+                // Notificar al SW para transmisión en background
+                if (typeof notificarGPSalSW === 'function') {
+                  notificarGPSalSW(geo.lat, geo.lng, movil, chofer);
+                }
                 // También guardar en gps_track para historial de huellas
                 db.from('gps_track').insert({
                   chofer: chofer, movil: movil,
@@ -16282,20 +16286,59 @@ CREATE TABLE IF NOT EXISTS justificaciones_turno (
 
 
 <script>
-// PWA - Service Worker inline
+// ── SERVICE WORKER con Background GPS ──────────────────────
 if ('serviceWorker' in navigator) {
   var swCode = [
-    "const CACHE='ivc-v2';",
-    "self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.add('/'))));",
-    "self.addEventListener('fetch',e=>e.respondWith(caches.match(e.request).then(r=>r||fetch(e.request))));"
+    "const CACHE = 'ivc-v3';",
+    "const GPS_TAG = 'ivc-gps-sync';",
+    "self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.add('/'))); self.skipWaiting(); });",
+    "self.addEventListener('activate', e => { e.waitUntil(clients.claim()); });",
+    "self.addEventListener('fetch', e => { e.respondWith(caches.match(e.request).then(r => r || fetch(e.request))); });",
+    "self.addEventListener('sync', e => { if (e.tag === GPS_TAG) e.waitUntil(transmitirGPSdesdeSW()); });",
+    "self.addEventListener('periodicsync', e => { if (e.tag === GPS_TAG) e.waitUntil(transmitirGPSdesdeSW()); });",
+    "self.addEventListener('message', e => {",
+    "  if (e.data && e.data.tipo === 'GPS_COORDS') self._lastGeo = e.data;",
+    "  if (e.data && e.data.tipo === 'GPS_CONFIG') self._gpsConfig = e.data;",
+    "});",
+    "async function transmitirGPSdesdeSW() {",
+    "  if (!self._lastGeo || !self._gpsConfig) return;",
+    "  var cfg = self._gpsConfig; var geo = self._lastGeo;",
+    "  try {",
+    "    var ts = new Date().toISOString();",
+    "    var h = { 'Content-Type': 'application/json', 'apikey': cfg.supaKey, 'Authorization': 'Bearer ' + cfg.supaKey, 'Prefer': 'return=minimal' };",
+    "    await fetch(cfg.supaUrl + '/rest/v1/gps_track', { method: 'POST', headers: h, body: JSON.stringify({ movil: cfg.movil, chofer: cfg.chofer, lat: geo.lat, lng: geo.lng, ts: ts, created_at: ts }) });",
+    "    await fetch(cfg.supaUrl + '/rest/v1/gps_moviles?movil=eq.' + encodeURIComponent(cfg.movil), { method: 'DELETE', headers: h });",
+    "    await fetch(cfg.supaUrl + '/rest/v1/gps_moviles', { method: 'POST', headers: h, body: JSON.stringify({ movil: cfg.movil, chofer: cfg.chofer, lat: geo.lat, lng: geo.lng, activo: true, updated_at: ts }) });",
+    "  } catch(err) { console.warn('[SW GPS]', err); }",
+    "}"
   ].join('\n');
-  var blob = new Blob([swCode], {type:'application/javascript'});
+  var blob = new Blob([swCode], { type: 'application/javascript' });
   var swUrl = URL.createObjectURL(blob);
   navigator.serviceWorker.register(swUrl).then(function(reg) {
-    console.log('SW registrado');
-  }).catch(function(e) {
-    console.log('SW error:', e);
+    window.SW_REGISTRATION = reg;
+    console.log('[SW] Registrado OK');
+    if ('periodicSync' in reg) {
+      navigator.permissions.query({ name: 'periodic-background-sync' }).then(function(status) {
+        if (status.state === 'granted') {
+          reg.periodicSync.register('ivc-gps-sync', { minInterval: 30000 }).catch(function() {});
+        }
+      }).catch(function() {});
+    }
+  }).catch(function(e) { console.warn('[SW] Error:', e); });
+}
+
+function notificarGPSalSW(lat, lng, movil, chofer) {
+  if (!navigator.serviceWorker || !navigator.serviceWorker.controller) return;
+  navigator.serviceWorker.controller.postMessage({
+    tipo: 'GPS_CONFIG',
+    supaUrl: 'https://cuwvmvmrmxprqozfnlva.supabase.co',
+    supaKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1d3Ztdm1ybXhwcnFvemZubHZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5OTUyODYsImV4cCI6MjA5MjU3MTI4Nn0.l-k8ev4zdQBVCyBaEfe7VeFczshIc',
+    movil: movil, chofer: chofer
   });
+  navigator.serviceWorker.controller.postMessage({ tipo: 'GPS_COORDS', lat: lat, lng: lng, ts: new Date().toISOString() });
+  if (window.SW_REGISTRATION && 'sync' in window.SW_REGISTRATION) {
+    window.SW_REGISTRATION.sync.register('ivc-gps-sync').catch(function() {});
+  }
 }
 </script>
 
