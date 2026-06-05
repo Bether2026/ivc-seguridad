@@ -10456,6 +10456,8 @@ function _getGeoSilent() {
               return;
             }
             navigator.geolocation.getCurrentPosition(function (pos) {
+              // Descartar posiciones con precision mayor a 80m
+              if (pos.coords.accuracy > 80) { resolve(null); return; }
               return resolve({
                 lat: pos.coords.latitude,
                 lng: pos.coords.longitude,
@@ -10464,8 +10466,8 @@ function _getGeoSilent() {
             }, function () {
               return resolve(null);
             }, {
-              timeout: 8000,
-              maximumAge: 10000,
+              timeout: 12000,
+              maximumAge: 0,
               enableHighAccuracy: true
             });
           }));
@@ -13011,7 +13013,7 @@ function verMapa(geo, agente, tipo) {
       var _lc = document.createElement('link'); _lc.id='leaflet-css'; _lc.rel='stylesheet'; _lc.href='https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'; document.head.appendChild(_lc);
     }
     if (!document.getElementById('leaflet-js')) {
-      var _ls = document.createElement('script'); _ls.id='leaflet-js'; _ls.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'; _ls.onload=_mostrarMapaAgente; document.head.appendChild(_ls);
+      var _ls = document.createElement('script'); _ls.id='leaflet-js'; _ls.src='https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'; _ls.crossOrigin='anonymous'; _ls.onload=_mostrarMapaAgente; _ls.onerror=function(){ console.warn('[Mapa] Leaflet no disponible'); }; document.head.appendChild(_ls);
     } else { _mostrarMapaAgente(); }
   }
   openOv('ov-mapa');
@@ -13385,6 +13387,7 @@ function renderMapaLeaflet(list) {
     var css = document.createElement('link');
     css.id = 'leaflet-css';
     css.rel = 'stylesheet';
+    css.crossOrigin = 'anonymous';
     css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
     document.head.appendChild(css);
   }
@@ -13392,15 +13395,21 @@ function renderMapaLeaflet(list) {
     var script = document.createElement('script');
     script.id = 'leaflet-js';
     script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    script.crossOrigin = 'anonymous';
     script.onload = function() { _dibujarMapa(list); };
-    script.onerror = function() { _fallbackIframe(list); };
+    script.onerror = function() {
+      console.warn('[GPS] Leaflet no disponible, usando fallback');
+      _fallbackIframe(list);
+    };
     document.head.appendChild(script);
   } else {
-    // Script ya insertado pero cargando — esperar
-    setTimeout(function() {
-      if (window.L) _dibujarMapa(list);
-      else _fallbackIframe(list);
-    }, 1500);
+    // Script ya insertado pero puede estar cargando — reintentar con backoff
+    var intentos = 0;
+    var esperar = setInterval(function() {
+      intentos++;
+      if (window.L) { clearInterval(esperar); _dibujarMapa(list); }
+      else if (intentos > 8) { clearInterval(esperar); _fallbackIframe(list); }
+    }, 400);
   }
 }
 
@@ -13454,13 +13463,27 @@ function _dibujarMapa(list) {
       .limit(500)
       .then(function(r) {
         if (r.data && r.data.length > 1) {
-          var puntos = r.data.map(function(t) { return [t.lat, t.lng]; });
-          L.polyline(puntos, { color: '#10b981', weight: 4, opacity: 0.8 }).addTo(map);
-          // Marcador de inicio de recorrido
-          var inicio = puntos[0];
-          L.circleMarker(inicio, { radius: 8, color: '#3b82f6', fillColor: '#3b82f6', fillOpacity: 1, weight: 2 })
-            .addTo(map)
-            .bindTooltip('Inicio de recorrido');
+          // Filtrar puntos GPS con saltos anomalos (>0.008 grados ~ 800m)
+          var puntosRaw = r.data;
+          var puntosFiltrados = [puntosRaw[0]];
+          for (var pi = 1; pi < puntosRaw.length; pi++) {
+            var prev = puntosRaw[pi - 1];
+            var curr = puntosRaw[pi];
+            var dLat = Math.abs(curr.lat - prev.lat);
+            var dLng = Math.abs(curr.lng - prev.lng);
+            if (dLat < 0.008 && dLng < 0.008) {
+              puntosFiltrados.push(curr);
+            }
+          }
+          if (puntosFiltrados.length > 1) {
+            var puntos = puntosFiltrados.map(function(t) { return [t.lat, t.lng]; });
+            L.polyline(puntos, { color: '#10b981', weight: 4, opacity: 0.85, lineJoin: 'round', lineCap: 'round' }).addTo(map);
+            // Marcador de inicio
+            L.circleMarker(puntos[0], { radius: 8, color: '#3b82f6', fillColor: '#3b82f6', fillOpacity: 1, weight: 2 })
+              .addTo(map).bindTooltip('Inicio de recorrido');
+            // Ajustar zoom al recorrido completo
+            try { map.fitBounds(L.polyline(puntos).getBounds(), { padding: [20, 20] }); } catch(e) {}
+          }
         }
       });
   }
