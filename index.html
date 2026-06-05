@@ -5235,11 +5235,56 @@ window.addEventListener('unhandledrejection', function (e) {
     }
   }, 1000);
 })();
-var R2_ENDPOINT = 'https://4633f7a5c2873a639eb305058f898659.r2.cloudflarestorage.com';
+var R2_ENDPOINT = 'https://ivc-push.vercel.app'; // proxy seguro — credenciales solo en el servidor
 var R2_BUCKET = 'ivcfotos';
-var R2_ACCESS_KEY = 'ee6e0c112948faad6b8617b797cc29e4';
-var R2_SECRET_KEY = '067887f8230bfdfd1d1f028caf71f2686149fac63d454db3a3dd5dfd37f30d46';
+// R2_ACCESS_KEY y R2_SECRET_KEY eliminadas del cliente por seguridad
+// Las subidas van a /api/upload en el servidor (ivc-push.vercel.app)
+// UPLOAD_SECRET se configura como variable de entorno en Vercel, no en el cliente
+var R2_PUBLIC_URL = 'https://pub-438b0d51c7a246f38a92859d01cedecd.r2.dev';
 var FOTOS_PENDIENTES = []; // files staged for upload
+
+// ── Upload seguro a R2 via servidor proxy ──────────────────
+// Las credenciales R2 viven SOLO en el servidor (Vercel env vars)
+// El cliente envía la foto en base64 al endpoint /api/upload
+// que firma y sube a R2 con las credenciales del servidor
+function uploadToR2Comprimido(file, carpeta) {
+  return new Promise(function(resolve, reject) {
+    comprimirImagen(file).then(function(comprimido) {
+      var reader = new FileReader();
+      reader.onload = function(e) {
+        // e.target.result = "data:image/jpeg;base64,XXXX..."
+        var dataUrl = e.target.result;
+        var base64 = dataUrl.split(',')[1];
+        var contentType = comprimido.type || 'image/jpeg';
+        var nombre = Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+
+        fetch(PUSH_SERVER_URL + '/api/upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            carpeta: carpeta || 'general',
+            nombre: nombre,
+            base64: base64,
+            contentType: contentType
+          })
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          if (data && data.url) {
+            resolve(data.url);
+          } else {
+            reject(new Error(data.error || 'Sin URL en respuesta'));
+          }
+        })
+        .catch(function(err) {
+          reject(err);
+        });
+      };
+      reader.onerror = function() { reject(new Error('Error leyendo archivo')); };
+      reader.readAsDataURL(comprimido);
+    }).catch(reject);
+  });
+}
 function agregarFoto() {
   abrirSelectorFoto('foto-input');
 }
@@ -10426,7 +10471,7 @@ function _getGeoSilent() {
               return resolve(null);
             }, {
               timeout: 8000,
-              maximumAge: 60000,
+              maximumAge: 10000,
               enableHighAccuracy: true
             });
           }));
@@ -13313,6 +13358,17 @@ function _loadGPS() {
             return '<div class="agent-row"><div class="agent-av" style="background:var(--greeng);color:var(--green)">M</div><div class="agent-info"><div class="agent-name">' + (p.movil || p.chofer) + '</div><div class="agent-sub">' + (p.direccion || 'Ubicando...') + '</div></div><div style="text-align:right"><span class="badge b-green"><span class="pulse"></span> Activo</span><div style="font-size:10px;color:var(--text3);margin-top:3px">' + formatTs(p.updated_at) + '</div></div></div>';
           }).join('');
           renderMapaLeaflet(list);
+
+          // Auto-refresh cada 30 segundos para mantener el mapa vivo
+          if (!window._gpsMapRefresh) {
+            window._gpsMapRefresh = setInterval(function() {
+              // Solo refrescar si el panel GPS está visible
+              var panel = document.getElementById('gps-map-frame');
+              if (panel && panel.offsetParent !== null) {
+                loadGPS();
+              }
+            }, 30000);
+          }
           return _context65.a(2);
       }
     }, _callee65);
@@ -13394,14 +13450,25 @@ function _dibujarMapa(list) {
       .bindPopup('<strong>' + (p.movil || p.chofer) + '</strong><br>' + (p.direccion || '') + '<br><small>' + formatTs(p.updated_at) + '</small>');
   });
 
-  // Si hay huellas GPS, dibujar polyline
-  if (list.length === 1 && list[0].id) {
-    db.from('gps_track').select('lat,lng,created_at').eq('movil_id', list[0].id).order('created_at', { ascending: true }).limit(200).then(function(r) {
-      if (r.data && r.data.length > 1) {
-        var puntos = r.data.map(function(t) { return [t.lat, t.lng]; });
-        L.polyline(puntos, { color: '#10b981', weight: 3, opacity: 0.7 }).addTo(map);
-      }
-    });
+  // Si hay huellas GPS, dibujar polyline — usar campo 'movil' (texto) no movil_id
+  if (list.length === 1) {
+    var movNombre = list[0].movil || list[0].chofer;
+    db.from('gps_track').select('lat,lng,ts')
+      .eq('movil', movNombre)
+      .gte('ts', new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString()) // últimas 8hs
+      .order('ts', { ascending: true })
+      .limit(500)
+      .then(function(r) {
+        if (r.data && r.data.length > 1) {
+          var puntos = r.data.map(function(t) { return [t.lat, t.lng]; });
+          L.polyline(puntos, { color: '#10b981', weight: 4, opacity: 0.8 }).addTo(map);
+          // Marcador de inicio de recorrido
+          var inicio = puntos[0];
+          L.circleMarker(inicio, { radius: 8, color: '#3b82f6', fillColor: '#3b82f6', fillOpacity: 1, weight: 2 })
+            .addTo(map)
+            .bindTooltip('Inicio de recorrido');
+        }
+      });
   }
 
   // Fix: Leaflet necesita saber el tamaño real del contenedor
@@ -13464,6 +13531,7 @@ function _startGPSTransmission() {
                 db.from('gps_track').insert({
                   chofer: chofer, movil: movil,
                   lat: geo.lat, lng: geo.lng,
+                  ts: new Date().toISOString(),
                   created_at: new Date().toISOString()
                 }).then(function() {});
               });
