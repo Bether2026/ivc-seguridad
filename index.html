@@ -5244,44 +5244,38 @@ var R2_PUBLIC_URL = 'https://pub-438b0d51c7a246f38a92859d01cedecd.r2.dev';
 var FOTOS_PENDIENTES = []; // files staged for upload
 
 // ── Upload seguro a R2 via servidor proxy ──────────────────
-// Las credenciales R2 viven SOLO en el servidor (Vercel env vars)
-// El cliente envía la foto en base64 al endpoint /api/upload
-// que firma y sube a R2 con las credenciales del servidor
+// Las credenciales R2 viven SOLO en el servidor (ivc-push/api/r2-upload.js)
+// El cliente envía la foto como binario con headers de autenticación simples
 function uploadToR2Comprimido(file, carpeta) {
   return new Promise(function(resolve, reject) {
     comprimirImagen(file).then(function(comprimido) {
       var reader = new FileReader();
       reader.onload = function(e) {
-        // e.target.result = "data:image/jpeg;base64,XXXX..."
-        var dataUrl = e.target.result;
-        var base64 = dataUrl.split(',')[1];
-        var contentType = comprimido.type || 'image/jpeg';
-        var nombre = Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+        var arrayBuffer = e.target.result;
+        var ext = (comprimido.type || 'image/jpeg').includes('png') ? 'png' : 'jpg';
+        var filename = (carpeta || 'general') + '/' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) + '.' + ext;
 
-        fetch(PUSH_SERVER_URL + '/api/upload', {
+        fetch('https://ivc-push.vercel.app/api/r2-upload', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            carpeta: carpeta || 'general',
-            nombre: nombre,
-            base64: base64,
-            contentType: contentType
-          })
+          headers: {
+            'Content-Type': comprimido.type || 'image/jpeg',
+            'X-IVC-Secret': 'ivc2024secure',
+            'X-IVC-Filename': filename
+          },
+          body: arrayBuffer
         })
         .then(function(res) { return res.json(); })
         .then(function(data) {
-          if (data && data.url) {
-            resolve(data.url);
+          if (data && data.publicUrl) {
+            resolve(data.publicUrl);
           } else {
             reject(new Error(data.error || 'Sin URL en respuesta'));
           }
         })
-        .catch(function(err) {
-          reject(err);
-        });
+        .catch(reject);
       };
       reader.onerror = function() { reject(new Error('Error leyendo archivo')); };
-      reader.readAsDataURL(comprimido);
+      reader.readAsArrayBuffer(comprimido);
     }).catch(reject);
   });
 }
