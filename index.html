@@ -13427,6 +13427,11 @@ function _dibujarMapa(list) {
   var frame = document.getElementById('gps-map-frame');
   if (!frame || !window.L) return;
 
+  // Limpiar markers anteriores para evitar _leaflet_pos error
+  if (window._leafletMarkers) {
+    window._leafletMarkers.forEach(function(m) { try { m.remove(); } catch(e) {} });
+    window._leafletMarkers = [];
+  }
   // Limpiar mapa anterior si existe
   if (window._leafletMap) {
     try { window._leafletMap.remove(); } catch(e) {}
@@ -13456,11 +13461,13 @@ function _dibujarMapa(list) {
     popupAnchor: [0, -20]
   });
 
+  window._leafletMarkers = [];
   list.forEach(function(p) {
     if (!p.lat || !p.lng) return;
-    L.marker([p.lat, p.lng], { icon: icon })
+    var mk = L.marker([p.lat, p.lng], { icon: icon })
       .addTo(map)
       .bindPopup('<strong>' + (p.movil || p.chofer) + '</strong><br>🧑‍✈️ ' + (p.chofer || '') + '<br>' + (p.direccion || '') + '<br><small>' + formatTs(p.updated_at) + '</small>');
+    window._leafletMarkers.push(mk);
   });
 
   // Si hay huellas GPS, dibujar polyline — usar campo 'movil' (texto) no movil_id
@@ -13571,7 +13578,19 @@ function _startGPSTransmission() {
           _context67.n = 2;
           return transmit();
         case 2:
-          GPS_INTERVAL = setInterval(transmit, 30000); // cada 30 segundos
+          GPS_INTERVAL = setInterval(function() {
+            // Verificar si la ruta sigue activa antes de transmitir (por si fue cerrada desde otro dispositivo)
+            db.from('rutas').select('id,estado').eq('chofer', chofer).eq('estado', 'activo').maybeSingle().then(function(rv) {
+              if (!rv.data) {
+                // Ruta finalizada externamente — detener GPS
+                console.log('[GPS] Ruta finalizada externamente, deteniendo transmision');
+                stopGPSTransmission(movil);
+                toast('GPS desactivado — ruta finalizada', 'err');
+              } else {
+                transmit();
+              }
+            });
+          }, 30000); // cada 30 segundos
           toast('GPS activado \u2014 transmitiendo ubicaci\xF3n cada 30s');
         case 3:
           return _context67.a(2);
