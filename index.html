@@ -11758,7 +11758,7 @@ function confirmarFinRuta() {
     closeOv('ov-fin-ruta');
     RUTA_FOTOS.fin = [];
     toast('🏁 Hoja de ruta finalizada');
-    // Detener GPS del propio chofer al finalizar su ruta
+    // Detener GPS al finalizar ruta
     db.from('rutas').select('movil').eq('id', rutaId).maybeSingle().then(function(rv) {
       if (rv.data && rv.data.movil) stopGPSTransmission(rv.data.movil);
     });
@@ -13427,16 +13427,112 @@ function renderMapaLeaflet(list) {
   }
 }
 
+// ── Animación GPS ──────────────────────────────────────────────
+window._gpsAnimState = window._gpsAnimState || {};
+
+function _animarMarcador(movil, latDest, lngDest) {
+  var s = window._gpsAnimState[movil];
+  if (!s || !s.marker) return;
+  if (s.rafId) { cancelAnimationFrame(s.rafId); s.rafId = null; }
+
+  var latOrig = s.lat;
+  var lngOrig = s.lng;
+
+  // Si el origen y destino son iguales o muy cercanos, no animar
+  if (Math.abs(latDest - latOrig) < 0.00001 && Math.abs(lngDest - lngOrig) < 0.00001) return;
+
+  // Pedir ruta por calles a OSRM (gratuito, sin API key)
+  var osrmUrl = 'https://router.project-osrm.org/route/v1/driving/' +
+    lngOrig + ',' + latOrig + ';' + lngDest + ',' + latDest +
+    '?overview=full&geometries=geojson&steps=false';
+
+  fetch(osrmUrl)
+    .then(function(res) { return res.json(); })
+    .then(function(data) {
+      var puntos;
+      if (data && data.routes && data.routes[0] && data.routes[0].geometry && data.routes[0].geometry.coordinates && data.routes[0].geometry.coordinates.length > 1) {
+        // OSRM devuelve [lng, lat] — invertir a [lat, lng]
+        puntos = data.routes[0].geometry.coordinates.map(function(c) { return [c[1], c[0]]; });
+      } else {
+        // Fallback: linea recta si OSRM falla
+        puntos = [[latOrig, lngOrig], [latDest, lngDest]];
+      }
+      _animarPorPuntos(movil, puntos, latDest, lngDest);
+    })
+    .catch(function() {
+      // Sin internet o error OSRM: animar en linea recta
+      _animarPorPuntos(movil, [[latOrig, lngOrig], [latDest, lngDest]], latDest, lngDest);
+    });
+}
+
+function _animarPorPuntos(movil, puntos, latDestFinal, lngDestFinal) {
+  var s = window._gpsAnimState[movil];
+  if (!s || !s.marker) return;
+  if (s.rafId) { cancelAnimationFrame(s.rafId); s.rafId = null; }
+
+  var duracion = 14000; // 14s para recorrer todos los puntos
+  var inicio = null;
+  var nPuntos = puntos.length;
+
+  function step(ts) {
+    if (!inicio) inicio = ts;
+    var t = Math.min((ts - inicio) / duracion, 1);
+    // Easing suave
+    var e = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+
+    // Interpolacion a lo largo de los puntos de la ruta
+    var idx = e * (nPuntos - 1);
+    var i = Math.floor(idx);
+    var frac = idx - i;
+    if (i >= nPuntos - 1) { i = nPuntos - 2; frac = 1; }
+
+    var lat = puntos[i][0] + (puntos[i+1][0] - puntos[i][0]) * frac;
+    var lng = puntos[i][1] + (puntos[i+1][1] - puntos[i][1]) * frac;
+
+    try { s.marker.setLatLng([lat, lng]); } catch(err) { return; }
+
+    if (t < 1) {
+      s.rafId = requestAnimationFrame(step);
+    } else {
+      s.lat = latDestFinal;
+      s.lng = lngDestFinal;
+      s.rafId = null;
+    }
+  }
+  s.rafId = requestAnimationFrame(step);
+}
+
 function _dibujarMapa(list) {
   var frame = document.getElementById('gps-map-frame');
   if (!frame || !window.L) return;
 
-  // Limpiar markers anteriores para evitar _leaflet_pos error
+  var esPrimerRender = !window._leafletMap;
+
+  if (!esPrimerRender) {
+    // Mapa ya existe: solo animar markers a nueva posicion
+    list.forEach(function(p) {
+      if (!p.lat || !p.lng) return;
+      var key = p.movil || p.chofer;
+      var s = window._gpsAnimState[key];
+      if (s && s.marker) {
+        _animarMarcador(key, p.lat, p.lng);
+        s.marker.setPopupContent('<strong>' + (p.movil || p.chofer) + '</strong><br>' + (p.chofer || '') + '<br>' + (p.direccion || '') + '<br><small>' + formatTs(p.updated_at) + '</small>');
+      }
+    });
+    return;
+  }
+
+  // Primera vez: crear mapa completo
+  Object.keys(window._gpsAnimState).forEach(function(k) {
+    var s = window._gpsAnimState[k];
+    if (s && s.rafId) cancelAnimationFrame(s.rafId);
+  });
+  window._gpsAnimState = {};
+
   if (window._leafletMarkers) {
     window._leafletMarkers.forEach(function(m) { try { m.remove(); } catch(e) {} });
     window._leafletMarkers = [];
   }
-  // Limpiar mapa anterior si existe
   if (window._leafletMap) {
     try { window._leafletMap.remove(); } catch(e) {}
     window._leafletMap = null;
@@ -13472,6 +13568,8 @@ function _dibujarMapa(list) {
       .addTo(map)
       .bindPopup('<strong>' + (p.movil || p.chofer) + '</strong><br>🧑‍✈️ ' + (p.chofer || '') + '<br>' + (p.direccion || '') + '<br><small>' + formatTs(p.updated_at) + '</small>');
     window._leafletMarkers.push(mk);
+    var key = p.movil || p.chofer;
+    window._gpsAnimState[key] = { marker: mk, lat: p.lat, lng: p.lng, rafId: null };
   });
 
   // Si hay huellas GPS, dibujar polyline — usar campo 'movil' (texto) no movil_id
