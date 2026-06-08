@@ -11758,6 +11758,10 @@ function confirmarFinRuta() {
     closeOv('ov-fin-ruta');
     RUTA_FOTOS.fin = [];
     toast('🏁 Hoja de ruta finalizada');
+    // Detener GPS del propio chofer al finalizar su ruta
+    db.from('rutas').select('movil').eq('id', rutaId).maybeSingle().then(function(rv) {
+      if (rv.data && rv.data.movil) stopGPSTransmission(rv.data.movil);
+    });
     loadChoferes();
     loadDash();
   }).catch(function(e) {
@@ -13427,46 +13431,17 @@ function _dibujarMapa(list) {
   var frame = document.getElementById('gps-map-frame');
   if (!frame || !window.L) return;
 
-  // Limpiar markers y polylines anteriores SIN destruir el contenedor del mapa
+  // Limpiar markers anteriores para evitar _leaflet_pos error
   if (window._leafletMarkers) {
     window._leafletMarkers.forEach(function(m) { try { m.remove(); } catch(e) {} });
     window._leafletMarkers = [];
   }
-  if (window._leafletPolylines) {
-    window._leafletPolylines.forEach(function(pl) { try { pl.remove(); } catch(e) {} });
-    window._leafletPolylines = [];
-  }
-
-  // Reusar mapa existente si el contenedor ya existe — evita _leaflet_pos / appendChild
-  var contenedor = document.getElementById('leaflet-container');
-  if (window._leafletMap && contenedor) {
-    // Mapa ya inicializado: solo actualizar vista y markers
-    var map = window._leafletMap;
-    var avgLat2 = list.reduce(function(s,p) { return s + (p.lat||0); }, 0) / list.length;
-    var avgLng2 = list.reduce(function(s,p) { return s + (p.lng||0); }, 0) / list.length;
-    map.setView([avgLat2, avgLng2], list.length === 1 ? 16 : 13);
-    var icon2 = L.divIcon({
-      className: '',
-      html: '<div style="width:36px;height:36px;background:#10b981;border-radius:50%;border:3px solid white;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.4);font-size:16px">&#x1F69A;</div>',
-      iconSize: [36, 36], iconAnchor: [18, 18], popupAnchor: [0, -20]
-    });
-    window._leafletMarkers = [];
-    list.forEach(function(p) {
-      if (!p.lat || !p.lng) return;
-      var mk = L.marker([p.lat, p.lng], { icon: icon2 })
-        .addTo(map)
-        .bindPopup('<strong>' + (p.movil || p.chofer) + '</strong><br>🧑‍✈️ ' + (p.chofer || '') + '<br>' + (p.direccion || '') + '<br><small>' + formatTs(p.updated_at) + '</small>');
-      window._leafletMarkers.push(mk);
-    });
-    _cargarHuellas(map, list);
-    return;
-  }
-
-  // Primera vez: crear contenedor e inicializar mapa
+  // Limpiar mapa anterior si existe
   if (window._leafletMap) {
     try { window._leafletMap.remove(); } catch(e) {}
     window._leafletMap = null;
   }
+
   frame.innerHTML = '<div id="leaflet-container" style="width:100%;height:320px;border-radius:10px;overflow:hidden"></div>';
 
   var avgLat = list.reduce(function(s,p) { return s + (p.lat||0); }, 0) / list.length;
@@ -13499,52 +13474,43 @@ function _dibujarMapa(list) {
     window._leafletMarkers.push(mk);
   });
 
-  // Cargar huellas GPS del recorrido
-  _cargarHuellas(map, list);
+  // Si hay huellas GPS, dibujar polyline — usar campo 'movil' (texto) no movil_id
+  if (list.length === 1) {
+    var movNombre = list[0].movil || list[0].chofer;
+    db.from('gps_track').select('lat,lng,ts')
+      .eq('movil', movNombre)
+      .gte('ts', new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString()) // últimas 8hs
+      .order('ts', { ascending: true })
+      .limit(500)
+      .then(function(r) {
+        if (r.data && r.data.length > 1) {
+          // Filtrar puntos GPS con saltos anomalos (>0.008 grados ~ 800m)
+          var puntosRaw = r.data;
+          var puntosFiltrados = [puntosRaw[0]];
+          for (var pi = 1; pi < puntosRaw.length; pi++) {
+            var prev = puntosRaw[pi - 1];
+            var curr = puntosRaw[pi];
+            var dLat = Math.abs(curr.lat - prev.lat);
+            var dLng = Math.abs(curr.lng - prev.lng);
+            if (dLat < 0.008 && dLng < 0.008) {
+              puntosFiltrados.push(curr);
+            }
+          }
+          if (puntosFiltrados.length > 1) {
+            var puntos = puntosFiltrados.map(function(t) { return [t.lat, t.lng]; });
+            L.polyline(puntos, { color: '#10b981', weight: 4, opacity: 0.85, lineJoin: 'round', lineCap: 'round' }).addTo(map);
+            // Marcador de inicio
+            L.circleMarker(puntos[0], { radius: 8, color: '#3b82f6', fillColor: '#3b82f6', fillOpacity: 1, weight: 2 })
+              .addTo(map).bindTooltip('Inicio de recorrido');
+            // Ajustar zoom al recorrido completo
+            try { map.fitBounds(L.polyline(puntos).getBounds(), { padding: [20, 20] }); } catch(e) {}
+          }
+        }
+      });
+  }
 
   // Fix: Leaflet necesita saber el tamaño real del contenedor
   setTimeout(function() { if (window._leafletMap) window._leafletMap.invalidateSize(); }, 300);
-}
-
-function _cargarHuellas(map, list) {
-  if (!list || list.length !== 1) return;
-  if (!window._leafletPolylines) window._leafletPolylines = [];
-  var movNombre = list[0].movil || list[0].chofer;
-  db.from('gps_track').select('lat,lng,ts')
-    .eq('movil', movNombre)
-    .gte('ts', new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString())
-    .order('ts', { ascending: true })
-    .limit(500)
-    .then(function(r) {
-      if (!r.data || r.data.length < 2) return;
-      // Umbral aumentado a 0.05 grados (~5km) para no filtrar recorridos largos
-      // El filtro solo elimina teleportaciones reales (GPS glitch), no trayectos normales
-      var UMBRAL = 0.05;
-      var puntosRaw = r.data;
-      var puntosFiltrados = [puntosRaw[0]];
-      for (var pi = 1; pi < puntosRaw.length; pi++) {
-        var prev = puntosRaw[pi - 1];
-        var curr = puntosRaw[pi];
-        var dLat = Math.abs(curr.lat - prev.lat);
-        var dLng = Math.abs(curr.lng - prev.lng);
-        if (dLat < UMBRAL && dLng < UMBRAL) {
-          puntosFiltrados.push(curr);
-        }
-      }
-      if (puntosFiltrados.length < 2) return;
-      var puntos = puntosFiltrados.map(function(t) { return [t.lat, t.lng]; });
-      // Limpiar polylines anteriores antes de dibujar nuevas
-      if (window._leafletPolylines) {
-        window._leafletPolylines.forEach(function(pl) { try { pl.remove(); } catch(e) {} });
-        window._leafletPolylines = [];
-      }
-      var pl = L.polyline(puntos, { color: '#10b981', weight: 4, opacity: 0.85, lineJoin: 'round', lineCap: 'round' }).addTo(map);
-      window._leafletPolylines.push(pl);
-      var cm = L.circleMarker(puntos[0], { radius: 8, color: '#3b82f6', fillColor: '#3b82f6', fillOpacity: 1, weight: 2 })
-        .addTo(map).bindTooltip('Inicio de recorrido');
-      window._leafletPolylines.push(cm);
-      try { map.fitBounds(pl.getBounds(), { padding: [20, 20] }); } catch(e) {}
-    });
 }
 
 function _fallbackIframe(list) {
@@ -13617,8 +13583,6 @@ function _startGPSTransmission() {
           return transmit();
         case 2:
           GPS_INTERVAL = setInterval(function() {
-            // Si GPS fue detenido manualmente, salir inmediatamente
-            if (!GPS_TRACKING) { clearInterval(GPS_INTERVAL); GPS_INTERVAL = null; return; }
             // Verificar si la ruta sigue activa antes de transmitir (por si fue cerrada desde otro dispositivo)
             db.from('rutas').select('id,estado').eq('chofer', chofer).eq('estado', 'activo').maybeSingle().then(function(rv) {
               if (!rv.data) {
