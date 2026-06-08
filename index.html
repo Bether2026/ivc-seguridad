@@ -11867,7 +11867,19 @@ function _finRuta() {
                   return stopGPSTransmission(ruta.movil);
                 case 3:
                   // Limpiar registro GPS activo al finalizar
-                  if (ruta && ruta.movil) db.from('gps_moviles').delete().eq('movil', ruta.movil).then(function() {});
+                  if (ruta && ruta.movil) {
+                    db.from('gps_moviles').delete().eq('movil', ruta.movil).then(function() {
+                      window._leafletMap = null;
+                      window._gpsAnimState = {};
+                      if (window._leafletMarkers) {
+                        window._leafletMarkers.forEach(function(m) { try { m.remove(); } catch(e) {} });
+                        window._leafletMarkers = [];
+                      }
+                      var gpsFrame = document.getElementById('gps-map-frame');
+                      if (gpsFrame) gpsFrame.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:320px;color:var(--text3);font-size:13px">Sin m\u00f3viles activos con GPS</div>';
+                      if (typeof loadGPS === 'function') loadGPS();
+                    });
+                  }
                   toast('Hoja de ruta finalizada \u2014 GPS desactivado');
                   loadChoferes();
                 case 4:
