@@ -11758,9 +11758,12 @@ function confirmarFinRuta() {
     closeOv('ov-fin-ruta');
     RUTA_FOTOS.fin = [];
     toast('🏁 Hoja de ruta finalizada');
-    // Detener GPS al finalizar ruta
-    db.from('rutas').select('movil').eq('id', rutaId).maybeSingle().then(function(rv) {
-      if (rv.data && rv.data.movil) stopGPSTransmission(rv.data.movil);
+    // Detener GPS al finalizar — usar movil capturado del campo del formulario
+    var _ridFin = rutaId; // capturar antes de que el overlay se limpie
+    db.from('rutas').select('movil').eq('id', _ridFin).maybeSingle().then(function(rv) {
+      if (rv.data && rv.data.movil) {
+        stopGPSTransmission(rv.data.movil);
+      }
     });
     loadChoferes();
     loadDash();
@@ -13715,10 +13718,18 @@ function _stopGPSTransmission() {
             GPS_INTERVAL = null;
           }
           _context68.n = 1;
-          return db.from('gps_moviles').update({
-            activo: false
-          }).eq('movil', movil);
+          return db.from('gps_moviles').delete().eq('movil', movil);
         case 1:
+          // Forzar recarga inmediata del panel GPS y limpiar mapa
+          window._leafletMap = null;
+          window._gpsAnimState = {};
+          if (window._leafletMarkers) {
+            window._leafletMarkers.forEach(function(m) { try { m.remove(); } catch(e) {} });
+            window._leafletMarkers = [];
+          }
+          var gpsFrame = document.getElementById('gps-map-frame');
+          if (gpsFrame) gpsFrame.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:320px;color:var(--text3);font-size:13px">Sin m\u00f3viles activos con GPS</div>';
+          if (typeof loadGPS === 'function') loadGPS();
           toast('GPS desactivado');
         case 2:
           return _context68.a(2);
