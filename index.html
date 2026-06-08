@@ -6211,7 +6211,7 @@ function initApp() {
     $('nb-estadisticas').style.display = 'flex';
     $('si-estadisticas') && ($('si-estadisticas').style.display = 'flex');
   }
-  var canSeeGPS = ['Gerencia', 'Administración', 'Administrador', 'Jefe de departamento'].includes(USER.puesto);
+  var canSeeGPS = ['Gerencia', 'Administrador'].includes(USER.puesto);
   if (canSeeGPS && $('tab-gps')) $('tab-gps').style.display = 'flex';
   if (canSeeGPS) startGPSRefresh();
   var isAdminUser = ['Administración', 'Administrador', 'Gerencia', 'Jefe de departamento'].includes(USER.puesto) || USER.rol === 'ADMIN';
