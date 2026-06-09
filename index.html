@@ -13695,18 +13695,11 @@ function verRecorridoGPS(rutaId, movil, chofer, inicio, fin) {
           '<span style="font-size:11px;padding:4px 10px;border-radius:20px;background:rgba(16,185,129,.1);color:#10b981">⏱️ ' + formatTs(pts[0].ts) + ' → ' + formatTs(pts[pts.length-1].ts) + '</span>';
       }
 
-      // Dibujar mapa con Leaflet
-      if (!window.L) {
-        if (mapEl) mapEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text3);font-size:13px">Leaflet no disponible</div>';
-        return;
-      }
-
-      if (mapEl) mapEl.innerHTML = '<div id="gps-hist-leaflet" style="width:100%;height:400px"></div>';
-
-      // Destruir mapa anterior si existe
-      if (window._leafletHistMap) { try { window._leafletHistMap.remove(); } catch(e) {} window._leafletHistMap = null; }
-
-      setTimeout(function() {
+      // Dibujar mapa con Leaflet — cargar si no está disponible
+      function _dibujarHistMap() {
+        if (mapEl) mapEl.innerHTML = '<div id="gps-hist-leaflet" style="width:100%;height:400px"></div>';
+        if (window._leafletHistMap) { try { window._leafletHistMap.remove(); } catch(e) {} window._leafletHistMap = null; }
+        setTimeout(function() {
         var coords = pts.map(function(p) { return [p.lat, p.lng]; });
         var map = L.map('gps-hist-leaflet', { zoomControl: true, scrollWheelZoom: true });
         window._leafletHistMap = map;
@@ -13734,7 +13727,38 @@ function verRecorridoGPS(rutaId, movil, chofer, inicio, fin) {
         // Ajustar zoom
         try { map.fitBounds(L.polyline(coords).getBounds(), { padding: [30, 30] }); } catch(e) {}
         map.invalidateSize();
-      }, 300);
+        }, 300);
+      }
+
+      if (window.L) {
+        _dibujarHistMap();
+      } else {
+        // Cargar Leaflet si no está disponible
+        if (!document.getElementById('leaflet-css')) {
+          var css = document.createElement('link');
+          css.id = 'leaflet-css'; css.rel = 'stylesheet'; css.crossOrigin = 'anonymous';
+          css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+          document.head.appendChild(css);
+        }
+        if (!document.getElementById('leaflet-js')) {
+          var scr = document.createElement('script');
+          scr.id = 'leaflet-js'; scr.crossOrigin = 'anonymous';
+          scr.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+          scr.onload = _dibujarHistMap;
+          scr.onerror = function() {
+            if (mapEl) mapEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text3);font-size:13px">Error cargando mapa</div>';
+          };
+          document.head.appendChild(scr);
+        } else {
+          // Script insertado pero cargando — esperar
+          var intentos = 0;
+          var espera = setInterval(function() {
+            intentos++;
+            if (window.L) { clearInterval(espera); _dibujarHistMap(); }
+            else if (intentos > 10) { clearInterval(espera); if (mapEl) mapEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text3);font-size:13px">Error cargando mapa</div>'; }
+          }, 400);
+        }
+      }
     });
 }
 
