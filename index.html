@@ -6212,7 +6212,13 @@ function initApp() {
     $('si-estadisticas') && ($('si-estadisticas').style.display = 'flex');
   }
   var canSeeGPS = ['Gerencia', 'Administrador'].includes(USER.puesto);
-  if (canSeeGPS && $('tab-gps')) $('tab-gps').style.display = 'flex';
+  if ($('tab-gps')) $('tab-gps').style.display = canSeeGPS ? 'flex' : 'none';
+  if (!canSeeGPS) {
+    var _gpsSub = document.getElementById('chof-sub-gps');
+    if (_gpsSub) _gpsSub.style.display = 'none';
+    if (typeof CUR_CHOF_SUBTAB !== 'undefined' && CUR_CHOF_SUBTAB === 'gps') CUR_CHOF_SUBTAB = 'rutas';
+    if (typeof GPS_REFRESH_INTERVAL !== 'undefined' && GPS_REFRESH_INTERVAL) { clearInterval(GPS_REFRESH_INTERVAL); GPS_REFRESH_INTERVAL = null; }
+  }
   if (canSeeGPS) startGPSRefresh();
   var isAdminUser = ['Administración', 'Administrador', 'Gerencia', 'Jefe de departamento'].includes(USER.puesto) || USER.rol === 'ADMIN';
   // Roles que pueden ver licencias y elegir puesto manualmente
@@ -11981,6 +11987,11 @@ function chofSubTab(tab, btn) {
   else if (tab === 'incidencias') loadIncidencias();
   else if (tab === 'taller') loadTaller();
   else if (tab === 'gps') {
+    if (!USER || ['Gerencia', 'Administrador'].indexOf(USER.puesto) < 0) {
+      var elG = document.getElementById('chof-sub-gps');
+      if (elG) elG.style.display = 'none';
+      return;
+    }
     loadGPS();
     // Auto-refresh cada 30 segundos mientras se ve el mapa
     if (GPS_REFRESH_INTERVAL) clearInterval(GPS_REFRESH_INTERVAL);
@@ -13358,10 +13369,31 @@ function _finalizarTaller() {
   return _finalizarTaller.apply(this, arguments);
 }
 var GPS_INTERVAL = null;
+var _WAKE_LOCK = null;
+
+function _adquirirWakeLock() {
+  if (!('wakeLock' in navigator)) return;
+  navigator.wakeLock.request('screen').then(function(wl) {
+    _WAKE_LOCK = wl;
+    console.log('[GPS] Wake Lock activo \u2014 pantalla no se apagar\u00e1');
+    wl.addEventListener('release', function() { _WAKE_LOCK = null; });
+  }).catch(function(e) {
+    console.warn('[GPS] Wake Lock no disponible:', e.message);
+  });
+}
+
+function _liberarWakeLock() {
+  if (_WAKE_LOCK) {
+    try { _WAKE_LOCK.release(); } catch(e) {}
+    _WAKE_LOCK = null;
+  }
+}
 var GPS_TRACKING = false;
 var GPS_REFRESH_INTERVAL = null;
 
 function loadGPS() {
+  // Capa de seguridad: solo Gerencia y Administrador
+  if (!USER || ['Gerencia', 'Administrador'].indexOf(USER.puesto) < 0) return;
   return _loadGPS.apply(this, arguments);
 }
 function _loadGPS() {
@@ -13537,6 +13569,10 @@ function _dibujarMapa(list) {
       var s = window._gpsAnimState[key];
       if (s && s.marker) {
         _animarMarcador(key, p.lat, p.lng);
+        // Centrar el mapa suavemente en la nueva posicion del movil
+        if (window._leafletMap) {
+          try { window._leafletMap.panTo([p.lat, p.lng], { animate: true, duration: 1.5 }); } catch(e) {}
+        }
         s.marker.setPopupContent('<strong>' + (p.movil || p.chofer) + '</strong><br>' + (p.chofer || '') + '<br>' + (p.direccion || '') + '<br><small>' + formatTs(p.updated_at) + '</small>');
       }
     });
@@ -13633,6 +13669,8 @@ function _dibujarMapa(list) {
 }
 
 function verRecorridoGPS(rutaId, movil, chofer, inicio, fin) {
+  // Capa de seguridad: solo Gerencia y Administrador
+  if (!USER || ['Gerencia', 'Administrador'].indexOf(USER.puesto) < 0) return;
   // Crear overlay dinamico si no existe
   var ovId = 'ov-gps-historial';
   var ov = document.getElementById(ovId);
@@ -13838,13 +13876,24 @@ function _startGPSTransmission() {
                 // Ruta finalizada externamente — detener GPS
                 console.log('[GPS] Ruta finalizada externamente, deteniendo transmision');
                 stopGPSTransmission(movil);
-                toast('GPS desactivado — ruta finalizada', 'err');
               } else {
                 transmit();
               }
             });
           }, 15000); // cada 15 segundos
-          toast('GPS activado \u2014 transmitiendo ubicaci\xF3n cada 30s');
+          // Wake Lock: mantener pantalla activa mientras transmite GPS
+          _adquirirWakeLock();
+          // Re-adquirir wake lock si el usuario vuelve a la app
+          if (!window._wakeLockListener) {
+            window._wakeLockListener = true;
+            document.addEventListener('visibilitychange', function() {
+              if (document.visibilityState === 'visible' && GPS_TRACKING) {
+                _adquirirWakeLock();
+                // Transmitir inmediatamente al volver (recupera puntos perdidos en background)
+                if (typeof transmit === 'function') try { transmit(); } catch(e) {}
+              }
+            });
+          }
         case 3:
           return _context67.a(2);
       }
@@ -13865,6 +13914,7 @@ function _stopGPSTransmission() {
             clearInterval(GPS_INTERVAL);
             GPS_INTERVAL = null;
           }
+          _liberarWakeLock();
           _context68.n = 1;
           return db.from('gps_moviles').delete().eq('movil', movil);
         case 1:
@@ -13878,7 +13928,6 @@ function _stopGPSTransmission() {
           var gpsFrame = document.getElementById('gps-map-frame');
           if (gpsFrame) gpsFrame.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:320px;color:var(--text3);font-size:13px">Sin m\u00f3viles activos con GPS</div>';
           if (typeof loadGPS === 'function') loadGPS();
-          toast('GPS desactivado');
         case 2:
           return _context68.a(2);
       }
