@@ -6245,10 +6245,14 @@ function initApp() {
       }
     }
   }
-  var canSeeStats = ['Gerencia', 'Administración', 'Administrador', 'Jefe de departamento'].includes(USER.puesto) && USER.puesto !== 'Responsable de turno';
+  var canSeeStats = ['Gerencia', 'Administrador'].includes(USER.puesto);
+  // Forzar ocultar estadisticas para todos excepto Gerencia y Administrador
   if (canSeeStats) {
     $('nb-estadisticas').style.display = 'flex';
     $('si-estadisticas') && ($('si-estadisticas').style.display = 'flex');
+  } else {
+    $('nb-estadisticas').style.display = 'none';
+    $('si-estadisticas') && ($('si-estadisticas').style.display = 'none');
   }
   var canSeeGPS = ['Gerencia', 'Administrador'].includes(USER.puesto);
   if ($('tab-gps')) $('tab-gps').style.display = canSeeGPS ? 'flex' : 'none';
@@ -6272,12 +6276,12 @@ function initApp() {
   }
   // Admin sees all sections like TODOS
   if (USER.rol === 'ADMIN' || USER.rol === 'TODOS') {
-    var allNavBtns = ['nb-fichaje', 'nb-novedades', 'nb-objetivos', 'nb-choferes', 'nb-estadisticas', 'nb-agenda'];
+    var allNavBtns = ['nb-fichaje', 'nb-novedades', 'nb-objetivos', 'nb-choferes', 'nb-agenda'];
     allNavBtns.forEach(function (id) {
       var el = document.getElementById(id);
       if (el) el.style.display = 'flex';
     });
-    var allSideBtns = ['si-fichaje', 'si-novedades', 'si-objetivos', 'si-choferes', 'si-estadisticas', 'si-agenda'];
+    var allSideBtns = ['si-fichaje', 'si-novedades', 'si-objetivos', 'si-choferes', 'si-agenda'];
     allSideBtns.forEach(function (id) {
       var el = document.getElementById(id);
       if (el) el.style.display = 'flex';
@@ -11546,10 +11550,16 @@ function _loadChoferes() {
               }
               if (_fechaRuta && _fechaRuta !== _ultimaFechaRuta) {
                 _ultimaFechaRuta = _fechaRuta;
-                chtml += '<div style="display:flex;align-items:center;gap:10px;margin:14px 0 8px">' +
-                  '<div style="flex:1;height:1px;background:rgba(255,255,255,.08)"></div>' +
-                  '<span style="font-size:11px;font-weight:700;color:var(--text3);white-space:nowrap;text-transform:uppercase;letter-spacing:.08em">' + _fechaLabel + '</span>' +
-                  '<div style="flex:1;height:1px;background:rgba(255,255,255,.08)"></div>' +
+                var _esHoy = _fechaLabel.indexOf('Hoy') === 0;
+                var _esAyer = _fechaLabel.indexOf('Ayer') === 0;
+                var _colBg = _esHoy ? 'rgba(16,185,129,.15)' : _esAyer ? 'rgba(59,130,246,.12)' : 'rgba(255,255,255,.06)';
+                var _colBorder = _esHoy ? 'rgba(16,185,129,.4)' : _esAyer ? 'rgba(59,130,246,.35)' : 'rgba(255,255,255,.12)';
+                var _colText = _esHoy ? '#10b981' : _esAyer ? 'var(--accent3)' : 'var(--text3)';
+                var _prefijo = _esHoy ? '?? ' : _esAyer ? '?? ' : '??️ ';
+                chtml += '<div style="display:flex;align-items:center;gap:10px;margin:16px 0 10px">' +
+                  '<div style="flex:1;height:1px;background:' + _colBorder + '"></div>' +
+                  '<span style="font-size:11px;font-weight:800;color:' + _colText + ';white-space:nowrap;text-transform:uppercase;letter-spacing:.08em;padding:5px 14px;border-radius:20px;background:' + _colBg + ';border:1px solid ' + _colBorder + '">' + _prefijo + _fechaLabel + '</span>' +
+                  '<div style="flex:1;height:1px;background:' + _colBorder + '"></div>' +
                   '</div>';
               }
             }
@@ -11598,8 +11608,15 @@ function _loadChoferes() {
             // Fotos de la ruta
             var todasFotosRuta = [];
             if (r.foto_inicio) todasFotosRuta.push({ url: r.foto_inicio, label: 'Inicio' });
-            if (r.foto_fin)    todasFotosRuta.push({ url: r.foto_fin,    label: 'Fin' });
-            (r.paradas || []).forEach(function(p) { if (p.foto) todasFotosRuta.push({ url: p.foto, label: p.puesto || 'Parada' }); });
+            if (r.foto_fin) todasFotosRuta.push({ url: r.foto_fin, label: 'Fin' });
+            // fotos_fin es array de URLs (campo alternativo)
+            if (!r.foto_fin && r.fotos_fin && r.fotos_fin.length) {
+              r.fotos_fin.forEach(function(u, i) { if (u) todasFotosRuta.push({ url: u, label: 'Fin ' + (i + 1) }); });
+            }
+            (r.paradas || []).forEach(function(p) {
+              if (p.foto) todasFotosRuta.push({ url: p.foto, label: p.puesto || 'Parada' });
+              if (p.fotos && p.fotos.length) p.fotos.forEach(function(u, i) { if (u) todasFotosRuta.push({ url: u, label: (p.puesto || 'Parada') + ' ' + (i+1) }); });
+            });
             if (todasFotosRuta.length > 0) {
               chtml += '<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border)">';
               chtml += '<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">&#x1F4F7; Fotos del recorrido</div>';
