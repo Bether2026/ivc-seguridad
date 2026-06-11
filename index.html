@@ -11290,7 +11290,7 @@ function _loadObjetivos() {
           _dbgEl = document.getElementById('obj-list');
           if (_dbgEl) _dbgEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3)">Cargando datos...</div>';
           f = filtro();
-          q = db.from('objetivos').select('*').order('id', {
+          q = db.from('objetivos').select('*').order('created_at', {
             ascending: false
           });
           if (f) q = q.eq('puesto', f);
@@ -11482,8 +11482,9 @@ function _loadChoferes() {
           console.log('DEBUG: loadChoferes llamado, USER=', USER ? USER.puesto : 'null');
           _dbgEl = document.getElementById('chof-list');
           if (_dbgEl) _dbgEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3)">Cargando datos...</div>';
-          q = db.from('rutas').select('*').order('id', {
-            ascending: false
+          q = db.from('rutas').select('*').order('inicio', {
+            ascending: false,
+            nullsFirst: false
           });
           if (CUR_CHOF_TAB === 'activas') q = q.eq('estado', 'activo');else q = q.eq('estado', 'finalizado');
           _context41.n = 1;
@@ -11503,6 +11504,7 @@ function _loadChoferes() {
             return _context41.a(2);
           }
           chtml = '';
+          var _ultimaFechaRuta = null; // para agrupar por fecha
           // Si el usuario es chofer y tiene ruta activa → reactivar GPS
           if (!GPS_TRACKING) {
             var rutaActiva = list.find(function(r) { return r.estado === 'activo' && r.chofer === (USER.nombre || USER.puesto); });
@@ -11513,6 +11515,32 @@ function _loadChoferes() {
           for (ci = 0; ci < list.length; ci++) {
             r = list[ci];
             isAct = r.estado === 'activo';
+            // Separador de fecha (solo historial finalizado)
+            if (!isAct) {
+              var _fechaRuta = (r.inicio || r.created_at || '').substring(0, 10);
+              var _fechaLabel = '';
+              if (_fechaRuta) {
+                var _partes = _fechaRuta.split('-');
+                var _dRuta = new Date(_fechaRuta + 'T00:00:00');
+                var _hoy = new Date(); _hoy.setHours(0,0,0,0);
+                var _ayer = new Date(_hoy); _ayer.setDate(_ayer.getDate() - 1);
+                if (_dRuta.getTime() === _hoy.getTime()) {
+                  _fechaLabel = 'Hoy — ' + _dRuta.toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long' });
+                } else if (_dRuta.getTime() === _ayer.getTime()) {
+                  _fechaLabel = 'Ayer — ' + _dRuta.toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long' });
+                } else {
+                  _fechaLabel = _dRuta.toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+                }
+              }
+              if (_fechaRuta && _fechaRuta !== _ultimaFechaRuta) {
+                _ultimaFechaRuta = _fechaRuta;
+                chtml += '<div style="display:flex;align-items:center;gap:10px;margin:14px 0 8px">' +
+                  '<div style="flex:1;height:1px;background:rgba(255,255,255,.08)"></div>' +
+                  '<span style="font-size:11px;font-weight:700;color:var(--text3);white-space:nowrap;text-transform:uppercase;letter-spacing:.08em">' + _fechaLabel + '</span>' +
+                  '<div style="flex:1;height:1px;background:rgba(255,255,255,.08)"></div>' +
+                  '</div>';
+              }
+            }
             var paradas = r.paradas || [];
             var conInc = paradas.filter(function(p) { return p.con_incidencia; }).length;
             chtml += '<div class="chofer-card">';
