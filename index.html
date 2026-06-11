@@ -2440,6 +2440,7 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
         <button id="adm-tab-informe" onclick="selAdminTab('informe')" style="flex-shrink:0;padding:8px 18px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">📄 Informe Diario</button>
         <button id="adm-tab-metricas" onclick="selAdminTab('metricas')" style="flex-shrink:0;padding:8px 18px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">📈 Métricas</button>
         <button id="adm-tab-turnos" onclick="selAdminTab('turnos')" style="flex-shrink:0;padding:8px 18px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;position:relative">🕐 Turnos<span id="adm-tab-turnos-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:#ef4444;color:#fff;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:800;line-height:16px;text-align:center">!</span></button>
+        <button id="adm-tab-dispositivos" onclick="selAdminTab('dispositivos')" style="flex-shrink:0;padding:8px 18px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;display:none">📱 Dispositivos</button>
       </div>
 
       <div id="adm-panel-general">
@@ -4963,7 +4964,7 @@ function _autorizarDispositivo() {
       while (1) switch (_context19.p = _context19.n) {
         case 0:
           fp = getDeviceFingerprint();
-          expiry = Date.now() + 60 * 24 * 60 * 60 * 1000; // 60 dias
+          expiry = Date.now() + 100 * 365 * 24 * 60 * 60 * 1000; // Permanente (100 años)
           data = {
             fp: fp,
             puesto: puesto,
@@ -4989,8 +4990,11 @@ function _autorizarDispositivo() {
             puesto: puesto,
             user_agent: (navigator.userAgent || '').substring(0, 200),
             autorizado_hasta: new Date(expiry).toISOString(),
+            revocado: false,
             pin_token: null,
-            pin_usado: true
+            pin_usado: true,
+            nombre_dispositivo: (navigator.userAgent.indexOf('Android') >= 0 ? 'Android' : navigator.userAgent.indexOf('iPhone') >= 0 ? 'iPhone' : 'PC/Desktop'),
+            fecha_autorizacion: new Date().toISOString()
           }, {
             onConflict: 'fingerprint'
           });
@@ -5013,16 +5017,30 @@ function dispositivoAutorizado(puesto) {
     var raw = localStorage.getItem(DEVICE_KEY);
     if (!raw) return false;
     var data = JSON.parse(raw);
-    if (data.expiry < Date.now()) {
+    // Si fue revocado remotamente, limpiar y rechazar
+    if (data.revocado) {
       localStorage.removeItem(DEVICE_KEY);
       return false;
     }
-    // Verificar fingerprint
     var fp = getDeviceFingerprint();
     return data.fp === fp;
   } catch (e) {
     return false;
   }
+}
+
+// Verificar revocacion en Supabase (se llama al inicio de sesion)
+function verificarRevocacionRemota(callbackOk, callbackFail) {
+  var fp = getDeviceFingerprint();
+  db.from('dispositivos_auth').select('revocado,puesto').eq('fingerprint', fp).eq('pin_usado', true).maybeSingle().then(function(r) {
+    if (!r.data) { callbackFail(); return; }
+    if (r.data.revocado) {
+      localStorage.removeItem(DEVICE_KEY);
+      callbackFail();
+      return;
+    }
+    callbackOk();
+  }).catch(function() { callbackOk(); }); // Si hay error de red, dejar pasar
 }
 
 // Mostrar pantalla de verificacion 2FA
@@ -5151,7 +5169,10 @@ function verificarAccesoDispositivo(puesto, callbackOk) {
     return;
   }
   if (dispositivoAutorizado(puesto)) {
-    callbackOk();
+    // Verificar contra Supabase si fue revocado remotamente
+    verificarRevocacionRemota(callbackOk, function() {
+      mostrar2FA(callbackOk);
+    });
   } else {
     mostrar2FA(callbackOk);
   }
@@ -5377,8 +5398,6 @@ function limpiarFoto(inputId, previewId) {
   };
   if (varMap[inputId]) varMap[inputId]();
 }
-function agregarFoto() { abrirSelectorFoto('foto-input'); }
-
 function comprimirImagen(_x7) {
   return _comprimirImagen.apply(this, arguments);
 }
@@ -8835,10 +8854,6 @@ function eliminarAgenteAdmin(id, nombre) {
       loadRRHH();
     });
   }, 'Eliminar', 'var(--red)');
-}
-
-function loadPersonalHR() {
-  loadAgentesAdmin(); // Redirigir al tab de personal del admin
 }
 
 function selAdminTab2(tab) { selAdminTab(tab); } // alias por compatibilidad
@@ -16696,6 +16711,122 @@ function notificarGPSalSW(lat, lng, movil, chofer) {
     window.SW_REGISTRATION.sync.register('ivc-gps-sync').catch(function() {});
   }
 }
+
+
+// ══ DISPOSITIVOS AUTORIZADOS ══════════════════════════════════════
+// Patch de selAdminTab para incluir tab dispositivos (solo Administrador)
+
+var _selAdminTabDisp_orig = selAdminTab;
+selAdminTab = function(tab) {
+  var dispBtn   = document.getElementById('adm-tab-dispositivos');
+  var dispPanel = document.getElementById('adm-dispositivos');
+
+  if (dispBtn) {
+    dispBtn.style.background  = tab === 'dispositivos' ? 'rgba(248,113,113,.15)' : 'transparent';
+    dispBtn.style.color       = tab === 'dispositivos' ? '#fca5a5' : 'var(--text3)';
+    dispBtn.style.borderColor = tab === 'dispositivos' ? 'rgba(248,113,113,.35)' : 'var(--border)';
+  }
+  if (dispPanel) dispPanel.style.display = tab === 'dispositivos' ? 'block' : 'none';
+
+  if (tab === 'dispositivos') {
+    scrollAdminTop();
+    cargarDispositivos();
+  } else {
+    _selAdminTabDisp_orig(tab);
+  }
+};
+
+// Mostrar tab dispositivos solo para Administrador del sistema
+(function() {
+  var _chkDisp = setInterval(function() {
+    if (typeof USER !== 'undefined' && USER && USER.puesto) {
+      clearInterval(_chkDisp);
+      if (USER.puesto === 'Administrador') {
+        var btn = document.getElementById('adm-tab-dispositivos');
+        if (btn) btn.style.display = 'flex';
+      }
+    }
+  }, 1000);
+})();
+
+function cargarDispositivos() {
+  var lista = document.getElementById('dispositivos-lista');
+  if (!lista) return;
+  lista.innerHTML = '<div class="empty"><div class="icon"><span class="spinner"></span></div><div>Cargando...</div></div>';
+
+  db.from('dispositivos_auth').select('*').eq('pin_usado', true).order('fecha_autorizacion', { ascending: false }).then(function(r) {
+    if (r.error || !r.data || !r.data.length) {
+      lista.innerHTML = '<div class="empty"><div class="icon">\u{1F4F1}</div><div>No hay dispositivos autorizados</div></div>';
+      return;
+    }
+    lista.innerHTML = '';
+    r.data.forEach(function(d) {
+      var revocado = d.revocado;
+      var fecha = d.fecha_autorizacion ? new Date(d.fecha_autorizacion).toLocaleDateString('es-AR') : 'Desconocida';
+      var tipo = d.nombre_dispositivo || (d.user_agent && d.user_agent.indexOf('Android') >= 0 ? 'Android' : d.user_agent && d.user_agent.indexOf('iPhone') >= 0 ? 'iPhone' : 'PC/Desktop');
+      var icono = tipo === 'Android' ? '\u{1F4F1}' : tipo === 'iPhone' ? '\u{1F34E}' : '\u{1F4BB}';
+
+      var div = document.createElement('div');
+      div.style.cssText = 'display:flex;align-items:center;gap:12px;padding:12px 16px;background:' + (revocado ? 'rgba(239,68,68,.05)' : 'rgba(255,255,255,.03)') + ';border:1px solid ' + (revocado ? 'rgba(239,68,68,.2)' : 'rgba(255,255,255,.07)') + ';border-radius:12px;margin-bottom:8px';
+
+      var iconDiv = document.createElement('div');
+      iconDiv.style.cssText = 'font-size:24px;flex-shrink:0';
+      iconDiv.textContent = icono;
+
+      var infoDiv = document.createElement('div');
+      infoDiv.style.cssText = 'flex:1;min-width:0';
+      infoDiv.innerHTML = '<div style="font-size:13px;font-weight:600;color:var(--white)">' + (d.puesto || 'Sin puesto') + '</div>' +
+        '<div style="font-size:11px;color:var(--text3);margin-top:2px">' + tipo + ' &nbsp;&middot;&nbsp; Autorizado: ' + fecha + '</div>';
+
+      var actDiv = document.createElement('div');
+      if (revocado) {
+        actDiv.style.cssText = 'display:flex;gap:6px;align-items:center';
+        var span = document.createElement('span');
+        span.style.cssText = 'font-size:10px;padding:3px 8px;border-radius:20px;background:rgba(239,68,68,.1);color:#f87171';
+        span.textContent = 'Revocado';
+        var btnR = document.createElement('button');
+        btnR.className = 'btn-sm';
+        btnR.style.cssText = 'font-size:10px;padding:3px 8px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);color:#10b981';
+        btnR.textContent = 'Restaurar';
+        (function(fp){ btnR.onclick = function(){ restaurarDispositivo(fp); }; })(d.fingerprint);
+        actDiv.appendChild(span);
+        actDiv.appendChild(btnR);
+      } else {
+        var btnRev = document.createElement('button');
+        btnRev.className = 'btn-sm';
+        btnRev.style.cssText = 'background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#f87171';
+        btnRev.textContent = '\u{1F6AB} Revocar';
+        (function(fp){ btnRev.onclick = function(){ revocarDispositivo(fp); }; })(d.fingerprint);
+        actDiv.appendChild(btnRev);
+      }
+
+      div.appendChild(iconDiv);
+      div.appendChild(infoDiv);
+      div.appendChild(actDiv);
+      lista.appendChild(div);
+    });
+  });
+}
+
+
+function revocarDispositivo(fingerprint) {
+  confirmar('¿Revocar este dispositivo? El usuario tendrá que volver a verificarse con un PIN.', function() {
+    db.from('dispositivos_auth').update({ revocado: true }).eq('fingerprint', fingerprint).then(function(r) {
+      if (r.error) { toast('Error al revocar', 'err'); return; }
+      toast('Dispositivo revocado');
+      cargarDispositivos();
+    });
+  }, 'Revocar', 'var(--red)');
+}
+
+function restaurarDispositivo(fingerprint) {
+  db.from('dispositivos_auth').update({ revocado: false }).eq('fingerprint', fingerprint).then(function(r) {
+    if (r.error) { toast('Error al restaurar', 'err'); return; }
+    toast('Dispositivo restaurado');
+    cargarDispositivos();
+  });
+}
+// ══════════════════════════════════════════════════════════════════
 </script>
 
 </body>
