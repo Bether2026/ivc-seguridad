@@ -6245,7 +6245,7 @@ function initApp() {
       }
     }
   }
-  var canSeeStats = ['Gerencia', 'Administración', 'Administrador', 'Jefe de departamento'].includes(USER.puesto);
+  var canSeeStats = ['Gerencia', 'Administración', 'Administrador', 'Jefe de departamento'].includes(USER.puesto) && USER.puesto !== 'Responsable de turno';
   if (canSeeStats) {
     $('nb-estadisticas').style.display = 'flex';
     $('si-estadisticas') && ($('si-estadisticas').style.display = 'flex');
@@ -11817,7 +11817,7 @@ function confirmarFinRuta() {
   var combFin = document.getElementById('fin-comb').value;
   if (!kmFin) { toast('Ingresá los KM finales', 'err'); return; }
   if (!combFin) { toast('Seleccioná el nivel de combustible final', 'err'); return; }
-  if (!RUTA_FOTOS.fin.length) { toast('Agregá al menos 1 foto final', 'err'); return; }
+  // Foto final opcional
 
   setLoading('btn-fin-ruta', true);
   uploadFotosRuta(RUTA_FOTOS.fin, 'rutas/fin').then(function(urls) {
@@ -16834,7 +16834,9 @@ function cargarDispositivos() {
 
       var infoDiv = document.createElement('div');
       infoDiv.style.cssText = 'flex:1;min-width:0';
+      var nombreCustom = d.nombre_dispositivo && ['Android','iPhone','PC/Desktop'].indexOf(d.nombre_dispositivo) < 0 ? d.nombre_dispositivo : '';
       infoDiv.innerHTML = '<div style="font-size:13px;font-weight:600;color:var(--white)">' + (d.puesto || 'Sin puesto') + '</div>' +
+        (nombreCustom ? '<div style="font-size:12px;color:var(--accent3);margin-top:1px">?? ' + nombreCustom + '</div>' : '') +
         '<div style="font-size:11px;color:var(--text3);margin-top:2px">' + tipo + ' &nbsp;&middot;&nbsp; Autorizado: ' + fecha + '</div>';
 
       var actDiv = document.createElement('div');
@@ -16858,6 +16860,15 @@ function cargarDispositivos() {
         (function(fp){ btnRev.onclick = function(){ revocarDispositivo(fp); }; })(d.fingerprint);
         actDiv.appendChild(btnRev);
       }
+
+      // Boton editar nombre
+      var btnEdit = document.createElement('button');
+      btnEdit.className = 'btn-sm';
+      btnEdit.style.cssText = 'background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);color:var(--accent3)';
+      btnEdit.textContent = '✏️';
+      btnEdit.title = 'Editar nombre';
+      (function(fp, nom){ btnEdit.onclick = function(){ editarNombreDispositivo(fp, nom); }; })(d.fingerprint, d.nombre_dispositivo || '');
+      actDiv.insertBefore(btnEdit, actDiv.firstChild);
 
       div.appendChild(iconDiv);
       div.appendChild(infoDiv);
@@ -16938,6 +16949,67 @@ function marcarAlertasDispositivosLeidas() {
     });
 }
 // ══════════════════════════════════════════════════════════════
+
+function confirmar(msg, callbackSi, labelSi, colorSi) {
+  var ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  var modal = document.createElement('div');
+  modal.style.cssText = 'background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:320px;width:100%;text-align:center';
+  modal.innerHTML = '<div style="font-size:15px;font-weight:600;color:var(--white);margin-bottom:18px;line-height:1.5">' + msg + '</div>';
+  var btnSi = document.createElement('button');
+  btnSi.className = 'btn-login';
+  btnSi.style.cssText = 'width:100%;margin-bottom:8px;background:' + (colorSi || 'var(--red)');
+  btnSi.textContent = labelSi || 'Confirmar';
+  btnSi.onclick = function() { document.body.removeChild(ov); callbackSi(); };
+  var btnNo = document.createElement('button');
+  btnNo.className = 'btn-login';
+  btnNo.style.cssText = 'width:100%;background:var(--bg3);border:1px solid var(--border)';
+  btnNo.textContent = 'Cancelar';
+  btnNo.onclick = function() { document.body.removeChild(ov); };
+  modal.appendChild(btnSi);
+  modal.appendChild(btnNo);
+  ov.appendChild(modal);
+  document.body.appendChild(ov);
+}
+
+function editarNombreDispositivo(fingerprint, nombreActual) {
+  var ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  var modal = document.createElement('div');
+  modal.style.cssText = 'background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:320px;width:100%';
+  modal.innerHTML = '<div style="font-size:15px;font-weight:700;color:var(--white);margin-bottom:14px">✏️ Nombre del dispositivo</div>';
+  var inp = document.createElement('input');
+  inp.type = 'text';
+  inp.value = nombreActual || '';
+  inp.placeholder = 'Ej: Celular Gomez, iPad Portería...';
+  inp.className = 'form-input';
+  inp.style.cssText = 'width:100%;box-sizing:border-box;margin-bottom:14px';
+  var btnOk = document.createElement('button');
+  btnOk.className = 'btn-login';
+  btnOk.style.cssText = 'width:100%;margin-bottom:8px';
+  btnOk.textContent = '✓ Guardar';
+  btnOk.onclick = function() {
+    var nuevoNombre = inp.value.trim();
+    if (!nuevoNombre) { toast('Ingresá un nombre', 'err'); return; }
+    db.from('dispositivos_auth').update({ nombre_dispositivo: nuevoNombre }).eq('fingerprint', fingerprint).then(function(r) {
+      if (r.error) { toast('Error al guardar', 'err'); return; }
+      toast('Nombre guardado');
+      document.body.removeChild(ov);
+      cargarDispositivos();
+    });
+  };
+  var btnCan = document.createElement('button');
+  btnCan.className = 'btn-login';
+  btnCan.style.cssText = 'width:100%;background:var(--bg3);border:1px solid var(--border)';
+  btnCan.textContent = 'Cancelar';
+  btnCan.onclick = function() { document.body.removeChild(ov); };
+  modal.appendChild(inp);
+  modal.appendChild(btnOk);
+  modal.appendChild(btnCan);
+  ov.appendChild(modal);
+  document.body.appendChild(ov);
+  setTimeout(function() { inp.focus(); inp.select(); }, 100);
+}
 </script>
 
 </body>
