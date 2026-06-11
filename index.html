@@ -4999,6 +4999,14 @@ function _autorizarDispositivo() {
             onConflict: 'fingerprint'
           });
         case 2:
+          // Registrar alerta para Administrador del sistema
+          db.from('alertas_turno').insert({
+            tipo: 'dispositivo_nuevo',
+            puesto: 'Administrador',
+            mensaje: '?? Nuevo dispositivo autorizado — Usuario: ' + puesto + ' — Dispositivo: ' + (navigator.userAgent.indexOf('Android') >= 0 ? 'Android' : navigator.userAgent.indexOf('iPhone') >= 0 ? 'iPhone' : 'PC/Desktop') + ' — ' + new Date().toLocaleString('es-AR'),
+            leida: false,
+            created_at: new Date().toISOString()
+          }).then(function() {});
           _context19.n = 4;
           break;
         case 3:
@@ -5162,8 +5170,8 @@ function _verificar2FA() {
 }
 function verificarAccesoDispositivo(puesto, callbackOk) {
   window._2fa_puesto = puesto;
-  // Administrador, Gerencia y Administracion entran sin 2FA (ellos son quienes autorizan)
-  var exemptRoles = ['Administrador', 'Gerencia', 'Administración'];
+  // Solo Gerencia y Administrador entran sin 2FA
+  var exemptRoles = ['Administrador', 'Gerencia'];
   if (exemptRoles.indexOf(puesto) !== -1) {
     callbackOk();
     return;
@@ -16609,6 +16617,7 @@ selAdminTab = function(tab) {
     if (typeof USER !== 'undefined' && USER && USER.nombre) {
       clearInterval(_intervCheck);
       iniciarMonitorTurnos();
+      iniciarMonitorDispositivos();
     }
   }, 2000);
 })();
@@ -16731,6 +16740,7 @@ selAdminTab = function(tab) {
   if (tab === 'dispositivos') {
     scrollAdminTop();
     cargarDispositivos();
+    marcarAlertasDispositivosLeidas();
   } else {
     _selAdminTabDisp_orig(tab);
   }
@@ -16827,6 +16837,58 @@ function restaurarDispositivo(fingerprint) {
   });
 }
 // ══════════════════════════════════════════════════════════════════
+
+// ══ ALERTAS DISPOSITIVOS NUEVOS (solo Administrador) ═══════════
+var _dispAlertInterval = null;
+
+function iniciarMonitorDispositivos() {
+  if (!USER || USER.puesto !== 'Administrador') return;
+  // Verificar alertas no leidas al entrar
+  _chequearAlertasDispositivos();
+  // Revisar cada 60 segundos
+  if (_dispAlertInterval) clearInterval(_dispAlertInterval);
+  _dispAlertInterval = setInterval(_chequearAlertasDispositivos, 60000);
+}
+
+function _chequearAlertasDispositivos() {
+  if (!USER || USER.puesto !== 'Administrador') return;
+  db.from('alertas_turno').select('id,mensaje,created_at')
+    .eq('tipo', 'dispositivo_nuevo')
+    .eq('puesto', 'Administrador')
+    .eq('leida', false)
+    .order('created_at', { ascending: false })
+    .then(function(r) {
+      if (!r.data || !r.data.length) return;
+      // Mostrar badge en tab dispositivos
+      var btn = document.getElementById('adm-tab-dispositivos');
+      if (btn && !btn.querySelector('.disp-badge')) {
+        var badge = document.createElement('span');
+        badge.className = 'disp-badge';
+        badge.style.cssText = 'display:inline-block;margin-left:4px;background:#ef4444;color:#fff;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:800;line-height:16px;text-align:center';
+        badge.textContent = r.data.length;
+        btn.appendChild(badge);
+      } else if (btn && btn.querySelector('.disp-badge')) {
+        btn.querySelector('.disp-badge').textContent = r.data.length;
+      }
+      // Toast de alerta (una sola vez por sesion)
+      if (!window._dispAlertMostrado) {
+        window._dispAlertMostrado = true;
+        toast('?? ' + r.data.length + ' nuevo(s) dispositivo(s) autorizado(s) — revisá el panel');
+      }
+    });
+}
+
+function marcarAlertasDispositivosLeidas() {
+  db.from('alertas_turno').update({ leida: true })
+    .eq('tipo', 'dispositivo_nuevo')
+    .eq('puesto', 'Administrador')
+    .eq('leida', false)
+    .then(function() {
+      var badge = document.querySelector('#adm-tab-dispositivos .disp-badge');
+      if (badge) badge.remove();
+    });
+}
+// ══════════════════════════════════════════════════════════════
 </script>
 
 </body>
