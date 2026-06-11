@@ -2851,6 +2851,18 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
           <div id="trn-justif-lista"><div class="empty"><div class="icon">📝</div><p>Sin justificaciones para la fecha seleccionada</p></div></div>
         </div>
 
+      </div>
+      <div id="adm-dispositivos" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <div>
+            <div style="font-size:16px;font-weight:700">📱 Dispositivos Autorizados</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:2px">Gestioná los dispositivos con acceso a la app</div>
+          </div>
+          <button class="btn-sm" onclick="cargarDispositivos()" style="background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);color:var(--accent3)">🔄 Actualizar</button>
+        </div>
+        <div id="dispositivos-lista">
+          <div class="empty"><div class="icon">📱</div><div>Tocá Actualizar para cargar</div></div>
+        </div>
       </div><!-- /adm-panel-turnos -->
 
       <div id="adm-panel-personal" style="display:none">
@@ -16758,14 +16770,23 @@ selAdminTab = function(tab) {
   var dispBtn   = document.getElementById('adm-tab-dispositivos');
   var dispPanel = document.getElementById('adm-dispositivos');
 
+  // Ocultar panel dispositivos cuando se va a otro tab
+  if (dispPanel) dispPanel.style.display = tab === 'dispositivos' ? 'block' : 'none';
+
+  // Estilo activo/inactivo del boton
   if (dispBtn) {
     dispBtn.style.background  = tab === 'dispositivos' ? 'rgba(248,113,113,.15)' : 'transparent';
     dispBtn.style.color       = tab === 'dispositivos' ? '#fca5a5' : 'var(--text3)';
     dispBtn.style.borderColor = tab === 'dispositivos' ? 'rgba(248,113,113,.35)' : 'var(--border)';
   }
-  if (dispPanel) dispPanel.style.display = tab === 'dispositivos' ? 'block' : 'none';
 
   if (tab === 'dispositivos') {
+    // Ocultar todos los otros panels del admin
+    var otrosPanels = ['adm-panel-general','adm-panel-horas','adm-panel-personal','adm-panel-informe','adm-panel-metricas','adm-panel-turnos'];
+    otrosPanels.forEach(function(pid) {
+      var el = document.getElementById(pid);
+      if (el) el.style.display = 'none';
+    });
     scrollAdminTop();
     cargarDispositivos();
     marcarAlertasDispositivosLeidas();
