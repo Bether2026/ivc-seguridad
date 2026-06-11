@@ -6247,13 +6247,10 @@ function initApp() {
   }
   var canSeeStats = ['Gerencia', 'Administrador'].includes(USER.puesto);
   // Forzar ocultar estadisticas para todos excepto Gerencia y Administrador
-  if (canSeeStats) {
-    $('nb-estadisticas').style.display = 'flex';
-    $('si-estadisticas') && ($('si-estadisticas').style.display = 'flex');
-  } else {
-    $('nb-estadisticas').style.display = 'none';
-    $('si-estadisticas') && ($('si-estadisticas').style.display = 'none');
-  }
+  // Estadisticas SOLO para Gerencia y Administrador — forzado, no overrideable por permisos
+  var _puedeStats = ['Gerencia', 'Administrador'].indexOf(USER.puesto) >= 0;
+  $('nb-estadisticas').style.display = _puedeStats ? 'flex' : 'none';
+  if ($('si-estadisticas')) $('si-estadisticas').style.display = _puedeStats ? 'flex' : 'none';
   var canSeeGPS = ['Gerencia', 'Administrador'].includes(USER.puesto);
   if ($('tab-gps')) $('tab-gps').style.display = canSeeGPS ? 'flex' : 'none';
   if (!canSeeGPS) {
@@ -12511,7 +12508,7 @@ var DEFAULT_PERMISOS = {
     objetivos: 1,
     choferes: 1,
     llaves: 1,
-    estadisticas: 1,
+    estadisticas: 0,
     rrhh: 1,
     agenda: 1,
     inmuebles: 1,
@@ -12537,7 +12534,7 @@ var DEFAULT_PERMISOS = {
     objetivos: 1,
     choferes: 1,
     llaves: 0,
-    estadisticas: 1,
+    estadisticas: 0,
     rrhh: 0,
     agenda: 1,
     inmuebles: 1,
@@ -12550,7 +12547,7 @@ var DEFAULT_PERMISOS = {
     objetivos: 1,
     choferes: 1,
     llaves: 0,
-    estadisticas: 1,
+    estadisticas: 0,
     rrhh: 1,
     agenda: 1,
     inmuebles: 1,
@@ -12639,13 +12636,16 @@ function aplicarPermisosAlLogin() {
     if (siAdm) siAdm.style.display = 'flex';
     return;
   }
-  // TODOS: ven todo excepto admin panel
+  // TODOS: ven todo excepto admin panel — estadisticas solo Gerencia y Administrador
   if (USER.rol === 'TODOS') {
+    var _puedeStatsT = ['Gerencia', 'Administrador'].indexOf(USER.puesto) >= 0;
     SECCIONES_PERMISOS.forEach(function(sec) {
       var nb = document.getElementById('nb-' + sec.id);
       var si = document.getElementById('si-' + sec.id);
-      if (nb) nb.style.display = 'flex';
-      if (si) si.style.display = 'flex';
+      // Estadisticas bloqueada para todos excepto Gerencia y Administrador
+      var visible = (sec.id === 'estadisticas') ? _puedeStatsT : true;
+      if (nb) nb.style.display = visible ? 'flex' : 'none';
+      if (si) si.style.display = visible ? 'flex' : 'none';
     });
     return;
   }
@@ -12694,9 +12694,12 @@ function loadPermisosAdmin() {
       var checked = val ? 'checked' : '';
       var uid = 'perm-' + usuario.replace(/\s/g,'_').replace(/[^a-zA-Z0-9_]/g,'') + '-' + sec.id;
       rows += '<div style="display:flex;justify-content:center;align-items:center">';
+      var _bloqueado = sec.id === 'estadisticas' && ['Gerencia', 'Administrador'].indexOf(usuario) < 0;
+      if (_bloqueado) checked = ''; // forzar sin tilde aunque este guardado
       rows += '<input type="checkbox" id="' + uid + '" ' + checked + ' ';
-      rows += 'style="width:18px;height:18px;accent-color:var(--accent2);cursor:pointer" ';
-      rows += 'onchange="togglePermiso(\'' + usuario.replace(/'/g,"\\'") + '\',\'' + sec.id + '\',this.checked)">';
+      rows += 'style="width:18px;height:18px;accent-color:var(--accent2);cursor:' + (_bloqueado ? 'not-allowed' : 'pointer') + ';opacity:' + (_bloqueado ? '0.3' : '1') + '" ';
+      if (!_bloqueado) rows += 'onchange="togglePermiso(\'' + usuario.replace(/'/g,"\\'") + '\',\'' + sec.id + '\',this.checked)"';
+      rows += '>';
       rows += '</div>';
     });
     rows += '</div>';
@@ -12714,6 +12717,15 @@ function loadPermisosAdmin() {
     '</div></div>';
 }
 function togglePermiso(usuario, seccion, valor) {
+  // Estadisticas no se puede activar para usuarios no autorizados
+  if (seccion === 'estadisticas' && valor && ['Gerencia', 'Administrador'].indexOf(usuario) < 0) {
+    toast('Estadísticas solo disponible para Gerencia y Administrador', 'err');
+    // Revertir el checkbox
+    var uid = 'perm-' + usuario.replace(/\s/g,'_').replace(/[^a-zA-Z0-9_]/g,'') + '-estadisticas';
+    var cb = document.getElementById(uid);
+    if (cb) cb.checked = false;
+    return;
+  }
   var permisos = getPermisos();
   if (!permisos[usuario]) {
     permisos[usuario] = DEFAULT_PERMISOS[usuario] ? JSON.parse(JSON.stringify(DEFAULT_PERMISOS[usuario])) : {};
