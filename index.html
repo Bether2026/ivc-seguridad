@@ -16,6 +16,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.3"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 /* ═══════════════════════════════════════════════════════
    IVC · SEGURIDAD Y EMERGENCIAS — DESIGN SYSTEM v2
@@ -1984,23 +1985,77 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
         <p>Actividad del sistema por período</p>
       </div>
       <div class="tabs" id="stat-tabs">
-        <button class="tab active" onclick="statPeriod('dia',this)">Hoy</button>
-        <button class="tab" onclick="statPeriod('semana',this)">Semana</button>
-        <button class="tab" onclick="statPeriod('mes',this)">Mes</button>
-        <button class="tab" onclick="statPeriod('anio',this)">Año</button>
+        <button class="tab active" onclick="statMainTab('rapido',this)">Resumen rápido</button>
+        <button class="tab" id="stat-tab-avanzado" onclick="statMainTab('avanzado',this)" style="display:none">📈 Avanzado</button>
       </div>
-      <div class="stat-grid" id="stat-kpis" style="margin-bottom:12px"></div>
-      <div class="card">
-        <div class="card-head"><span class="card-lbl">Novedades por tipo</span></div>
-        <div id="stat-nov-tipo"></div>
+
+      <div id="stat-panel-rapido">
+        <div class="tabs" id="stat-tabs-periodo">
+          <button class="tab active" onclick="statPeriod('dia',this)">Hoy</button>
+          <button class="tab" onclick="statPeriod('semana',this)">Semana</button>
+          <button class="tab" onclick="statPeriod('mes',this)">Mes</button>
+          <button class="tab" onclick="statPeriod('anio',this)">Año</button>
+        </div>
+        <div class="stat-grid" id="stat-kpis" style="margin-bottom:12px"></div>
+        <div class="card">
+          <div class="card-head"><span class="card-lbl">Novedades por tipo</span></div>
+          <div id="stat-nov-tipo"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><span class="card-lbl">📋 Licencias activas en el período</span></div>
+          <div id="stat-licencias"></div>
+        </div>
+        <div class="card" id="stat-actividad-card">
+          <div class="card-head"><span class="card-lbl">Actividad reciente</span></div>
+          <div id="stat-actividad"></div>
+        </div>
       </div>
-      <div class="card">
-        <div class="card-head"><span class="card-lbl">📋 Licencias activas en el período</span></div>
-        <div id="stat-licencias"></div>
-      </div>
-      <div class="card" id="stat-actividad-card">
-        <div class="card-head"><span class="card-lbl">Actividad reciente</span></div>
-        <div id="stat-actividad"></div>
+
+      <div id="stat-panel-avanzado" style="display:none">
+        <div class="card" style="margin-bottom:12px">
+          <div class="card-head"><span class="card-lbl">⚙️ Configurar análisis</span></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+            <div class="form-group" style="margin-bottom:0">
+              <label class="form-label" style="font-size:11px">Desde</label>
+              <input type="date" id="sa-desde" class="form-input" style="font-size:13px">
+            </div>
+            <div class="form-group" style="margin-bottom:0">
+              <label class="form-label" style="font-size:11px">Hasta</label>
+              <input type="date" id="sa-hasta" class="form-input" style="font-size:13px">
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom:10px">
+            <label class="form-label" style="font-size:11px">Fuente de datos</label>
+            <select id="sa-fuente" class="form-select" style="font-size:13px" onchange="_actualizarDimensionesSA()">
+              <option value="novedades">Novedades</option>
+              <option value="fichajes">Fichajes</option>
+              <option value="objetivos">Control de Objetivo</option>
+              <option value="licencias">Licencias</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:10px">
+            <label class="form-label" style="font-size:11px">Agrupar por</label>
+            <select id="sa-dimension" class="form-select" style="font-size:13px"></select>
+          </div>
+          <div class="form-group" style="margin-bottom:12px">
+            <label class="form-label" style="font-size:11px">Tipo de gráfico</label>
+            <div style="display:flex;gap:8px">
+              <button class="tab active" id="sa-chip-bar" onclick="_setTipoGraficoSA('bar',this)" style="flex:1;text-align:center">📊 Barras</button>
+              <button class="tab" id="sa-chip-pie" onclick="_setTipoGraficoSA('pie',this)" style="flex:1;text-align:center">🥧 Torta</button>
+              <button class="tab" id="sa-chip-line" onclick="_setTipoGraficoSA('line',this)" style="flex:1;text-align:center">📈 Línea</button>
+              <button class="tab" id="sa-chip-doughnut" onclick="_setTipoGraficoSA('doughnut',this)" style="flex:1;text-align:center">🍩 Dona</button>
+            </div>
+          </div>
+          <button class="btn-login" onclick="generarEstadisticaAvanzada()" style="width:100%">Generar gráfico</button>
+        </div>
+
+        <div class="card" id="sa-resultado-card" style="display:none">
+          <div class="card-head"><span class="card-lbl" id="sa-resultado-titulo">Resultado</span><span class="badge b-blue" id="sa-resultado-total"></span></div>
+          <div style="position:relative;height:340px;padding:10px">
+            <canvas id="sa-canvas"></canvas>
+          </div>
+          <div id="sa-tabla-detalle" style="margin-top:14px"></div>
+        </div>
       </div>
     </div>
     <!-- LLAVES -->
@@ -6301,6 +6356,8 @@ function initApp() {
   var _puedeStats = ['Gerencia', 'Administrador'].indexOf(USER.puesto) >= 0;
   $('nb-estadisticas').style.display = _puedeStats ? 'flex' : 'none';
   if ($('si-estadisticas')) $('si-estadisticas').style.display = _puedeStats ? 'flex' : 'none';
+  // Tab "Avanzado" dentro de Estadisticas — exclusivo Gerencia y Administrador
+  if ($('stat-tab-avanzado')) $('stat-tab-avanzado').style.display = _puedeStats ? 'inline-block' : 'none';
   var canSeeGPS = ['Gerencia', 'Administrador'].includes(USER.puesto);
   if ($('tab-gps')) $('tab-gps').style.display = canSeeGPS ? 'flex' : 'none';
   if (!canSeeGPS) {
@@ -10399,11 +10456,16 @@ function _loadFichajes() {
                 gruposPuesto[p].push(r);
               });
               var puestosOrdenados = Object.keys(gruposPuesto).sort();
+              var _coloresPuestoFich = ['#3b82f6','#10b981','#f59e0b','#ec4899','#8b5cf6','#06b6d4','#ef4444','#84cc16'];
               puestosOrdenados.forEach(function(p, pIdx) {
                 var grupo = gruposPuesto[p].slice().sort(function(a,b) {
                   return new Date(a.entrada) - new Date(b.entrada);
                 });
-                fhtml += '<div style="font-size:12px;font-weight:700;color:var(--accent3);margin:' + (pIdx === 0 ? '4px' : '16px') + ' 0 4px;padding-bottom:5px;border-bottom:1px solid rgba(59,130,246,.25)">' + p + '</div>';
+                var _colorF = _coloresPuestoFich[pIdx % _coloresPuestoFich.length];
+                fhtml += '<div style="display:flex;align-items:center;gap:8px;margin:' + (pIdx === 0 ? '2px' : '16px') + ' 0 8px">' +
+                  '<span style="display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:800;color:#fff;text-transform:uppercase;letter-spacing:.03em;padding:5px 12px;border-radius:8px;background:' + _colorF + '">' + p + '<span style="background:rgba(255,255,255,.25);border-radius:10px;padding:1px 7px;font-size:10px">' + grupo.length + '</span></span>' +
+                  '<div style="flex:1;height:1px;background:rgba(255,255,255,.08)"></div>' +
+                  '</div>';
                 grupo.forEach(function(fr) {
                   fhtml += _renderFichajeRow(fr, canSeeGeo);
                 });
@@ -12269,11 +12331,22 @@ function setLoading(btnId, loading) {
 var CUR_STAT_PERIOD = 'dia';
 function statPeriod(period, btn) {
   CUR_STAT_PERIOD = period;
-  document.querySelectorAll('#stat-tabs .tab').forEach(function (b) {
+  document.querySelectorAll('#stat-tabs-periodo .tab').forEach(function (b) {
     return b.classList.remove('active');
   });
   btn.classList.add('active');
   loadStats(period);
+}
+
+// ══ Tab principal de Estadisticas: Resumen rapido vs Avanzado ══
+function statMainTab(tab, btn) {
+  document.querySelectorAll('#stat-tabs .tab').forEach(function (b) {
+    return b.classList.remove('active');
+  });
+  btn.classList.add('active');
+  document.getElementById('stat-panel-rapido').style.display = tab === 'rapido' ? 'block' : 'none';
+  document.getElementById('stat-panel-avanzado').style.display = tab === 'avanzado' ? 'block' : 'none';
+  if (tab === 'avanzado') _actualizarDimensionesSA();
 }
 function getDateRange(period) {
   var now = new Date();
@@ -17346,6 +17419,16 @@ function buscarHistorialNovedades(irAPagina) {
 
     var html = '';
     var _ultimaFechaHN = null;
+    var _coloresPuestoHN = {};
+    var _paletaHN = ['#3b82f6','#10b981','#f59e0b','#ec4899','#8b5cf6','#06b6d4','#ef4444','#84cc16'];
+    var _ultimoColorIdxHN = 0;
+    function _colorParaPuestoHN(p) {
+      if (!_coloresPuestoHN[p]) {
+        _coloresPuestoHN[p] = _paletaHN[_ultimoColorIdxHN % _paletaHN.length];
+        _ultimoColorIdxHN++;
+      }
+      return _coloresPuestoHN[p];
+    }
     list.forEach(function(n) {
       var fecha = formatTs(n.created_at);
 
@@ -17377,9 +17460,10 @@ function buscarHistorialNovedades(irAPagina) {
           '</div>';
       }
 
-      html += '<div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:12px;margin-bottom:8px">';
+      var _colorPuestoHN = _colorParaPuestoHN(n.puesto || 'Sin especificar');
+      html += '<div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-left:4px solid ' + _colorPuestoHN + ';border-radius:10px;padding:12px;margin-bottom:8px">';
       html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:4px">';
-      html += '<span style="font-size:11px;font-weight:700;color:var(--accent3)">' + (n.puesto || '—') + '</span>';
+      html += '<span style="display:inline-block;font-size:10px;font-weight:800;color:#fff;padding:2px 9px;border-radius:6px;background:' + _colorPuestoHN + '">' + (n.puesto || '—') + '</span>';
       html += '<span style="font-size:10px;color:var(--text3);white-space:nowrap;font-family:var(--mono)">' + fecha + '</span>';
       html += '</div>';
       html += '<div style="font-size:13px;font-weight:600;color:var(--white);margin-bottom:3px">' + (n.asunto || 'Sin asunto') + '</div>';
@@ -17410,6 +17494,179 @@ function _renderPaginacionHistNov() {
     html += '<button class="btn-sm" onclick="buscarHistorialNovedades(' + (HN_PAGINA + 1) + ')">Siguiente →</button>';
   }
   pagEl.innerHTML = html;
+}
+// ══════════════════════════════════════════════════════════════════
+
+// ══════════════════════════════════════════════════════════════════
+// ESTADISTICAS AVANZADAS — exclusivo Gerencia / Administrador
+// ══════════════════════════════════════════════════════════════════
+var SA_TIPO_GRAFICO = 'bar';
+var SA_CHART_INSTANCE = null;
+
+var SA_DIMENSIONES = {
+  novedades: [
+    { value: 'puesto', label: 'Puesto' },
+    { value: 'asunto', label: 'Asunto' },
+    { value: 'cargado_por', label: 'Agente que carg\u00f3' },
+    { value: 'pendiente', label: 'Pendiente / Resuelta' },
+    { value: 'dia', label: 'D\u00eda (l\u00ednea temporal)' },
+    { value: 'mes', label: 'Mes (l\u00ednea temporal)' }
+  ],
+  fichajes: [
+    { value: 'puesto', label: 'Puesto' },
+    { value: 'agente', label: 'Agente' },
+    { value: 'dia', label: 'D\u00eda (l\u00ednea temporal)' },
+    { value: 'mes', label: 'Mes (l\u00ednea temporal)' }
+  ],
+  objetivos: [
+    { value: 'puesto', label: 'Puesto' },
+    { value: 'estado', label: 'Estado' },
+    { value: 'cargado_por', label: 'Agente que carg\u00f3' },
+    { value: 'dia', label: 'D\u00eda (l\u00ednea temporal)' },
+    { value: 'mes', label: 'Mes (l\u00ednea temporal)' }
+  ],
+  licencias: [
+    { value: 'puesto', label: 'Puesto' },
+    { value: 'tipo', label: 'Tipo de licencia' },
+    { value: 'agente', label: 'Agente' },
+    { value: 'mes', label: 'Mes (l\u00ednea temporal)' }
+  ]
+};
+
+function _actualizarDimensionesSA() {
+  var fuente = document.getElementById('sa-fuente').value;
+  var sel = document.getElementById('sa-dimension');
+  sel.innerHTML = '';
+  (SA_DIMENSIONES[fuente] || []).forEach(function(d) {
+    var opt = document.createElement('option');
+    opt.value = d.value; opt.textContent = d.label;
+    sel.appendChild(opt);
+  });
+}
+
+function _setTipoGraficoSA(tipo, btn) {
+  SA_TIPO_GRAFICO = tipo;
+  ['bar','pie','line','doughnut'].forEach(function(t) {
+    var el = document.getElementById('sa-chip-' + t);
+    if (el) el.classList.remove('active');
+  });
+  btn.classList.add('active');
+}
+
+var SA_PALETA = ['#3b82f6','#10b981','#f59e0b','#ec4899','#8b5cf6','#06b6d4','#ef4444','#84cc16','#f97316','#14b8a6','#a855f7','#eab308'];
+
+function generarEstadisticaAvanzada() {
+  var desde = document.getElementById('sa-desde').value;
+  var hasta = document.getElementById('sa-hasta').value;
+  var fuente = document.getElementById('sa-fuente').value;
+  var dimension = document.getElementById('sa-dimension').value;
+
+  if (!desde || !hasta) { toast('Seleccion\u00e1 el rango de fechas', 'err'); return; }
+
+  var resultCard = document.getElementById('sa-resultado-card');
+  resultCard.style.display = 'block';
+  document.getElementById('sa-resultado-titulo').textContent = 'Generando...';
+
+  var tablaCol = fuente; // novedades, fichajes, objetivos, licencias
+  var campoFecha = (fuente === 'licencias') ? 'fecha_desde' : (fuente === 'fichajes') ? 'entrada' : 'created_at';
+
+  var q = db.from(tablaCol).select('*').gte(campoFecha, desde + 'T00:00:00').lte(campoFecha, hasta + 'T23:59:59');
+
+  q.then(function(r) {
+    if (r.error) {
+      document.getElementById('sa-resultado-titulo').textContent = 'Error: ' + r.error.message;
+      return;
+    }
+    var data = r.data || [];
+    var agrupado = _agruparParaSA(data, dimension, fuente, campoFecha);
+    _renderGraficoSA(agrupado, fuente, dimension, data.length);
+  });
+}
+
+function _agruparParaSA(data, dimension, fuente, campoFecha) {
+  var grupos = {};
+  var campoAgenteMap = { fichajes: 'agente', licencias: 'agente', objetivos: 'cargado_por', novedades: 'cargado_por' };
+
+  data.forEach(function(row) {
+    var key;
+    if (dimension === 'dia') {
+      key = (row[campoFecha] || '').substring(0, 10);
+    } else if (dimension === 'mes') {
+      var f = (row[campoFecha] || '').substring(0, 7); // YYYY-MM
+      key = f;
+    } else if (dimension === 'agente') {
+      key = row[campoAgenteMap[fuente]] || 'Sin especificar';
+    } else if (dimension === 'pendiente') {
+      key = row.pendiente ? 'Pendiente' : 'Resuelta';
+    } else {
+      key = row[dimension] || 'Sin especificar';
+    }
+    grupos[key] = (grupos[key] || 0) + 1;
+  });
+
+  // Ordenar: temporal por fecha asc, categorico por valor desc
+  var entries = Object.entries(grupos);
+  if (dimension === 'dia' || dimension === 'mes') {
+    entries.sort(function(a, b) { return a[0].localeCompare(b[0]); });
+  } else {
+    entries.sort(function(a, b) { return b[1] - a[1]; });
+  }
+  return entries;
+}
+
+function _renderGraficoSA(entries, fuente, dimension, totalRegistros) {
+  var labels = entries.map(function(e) { return e[0]; });
+  var values = entries.map(function(e) { return e[1]; });
+
+  var nombresFuente = { novedades: 'Novedades', fichajes: 'Fichajes', objetivos: 'Control de Objetivo', licencias: 'Licencias' };
+  var nombresDim = {};
+  (SA_DIMENSIONES[fuente] || []).forEach(function(d) { nombresDim[d.value] = d.label; });
+
+  document.getElementById('sa-resultado-titulo').textContent = nombresFuente[fuente] + ' por ' + (nombresDim[dimension] || dimension);
+  document.getElementById('sa-resultado-total').textContent = totalRegistros + ' registros';
+
+  var ctx = document.getElementById('sa-canvas').getContext('2d');
+  if (SA_CHART_INSTANCE) SA_CHART_INSTANCE.destroy();
+
+  var esCircular = (SA_TIPO_GRAFICO === 'pie' || SA_TIPO_GRAFICO === 'doughnut');
+  var colores = labels.map(function(_, i) { return SA_PALETA[i % SA_PALETA.length]; });
+
+  SA_CHART_INSTANCE = new Chart(ctx, {
+    type: SA_TIPO_GRAFICO,
+    data: {
+      labels: labels,
+      datasets: [{
+        label: nombresFuente[fuente],
+        data: values,
+        backgroundColor: esCircular ? colores : 'rgba(59,130,246,0.7)',
+        borderColor: esCircular ? '#0f172a' : '#3b82f6',
+        borderWidth: esCircular ? 2 : 1,
+        tension: 0.3
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: esCircular, position: 'bottom', labels: { color: '#cbd5e1', font: { size: 11 } } },
+        tooltip: { enabled: true }
+      },
+      scales: esCircular ? {} : {
+        x: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,.05)' } },
+        y: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,.05)' }, beginAtZero: true }
+      }
+    }
+  });
+
+  // Tabla de detalle debajo del grafico
+  var tablaHtml = '<table style="width:100%;font-size:12px;border-collapse:collapse">';
+  tablaHtml += '<tr style="border-bottom:1px solid rgba(255,255,255,.1)"><th style="text-align:left;padding:6px;color:var(--text3)">Categor\u00eda</th><th style="text-align:right;padding:6px;color:var(--text3)">Cantidad</th><th style="text-align:right;padding:6px;color:var(--text3)">%</th></tr>';
+  entries.forEach(function(e) {
+    var pct = totalRegistros > 0 ? ((e[1] / totalRegistros) * 100).toFixed(1) : '0.0';
+    tablaHtml += '<tr style="border-bottom:1px solid rgba(255,255,255,.04)"><td style="padding:6px;color:var(--white)">' + e[0] + '</td><td style="text-align:right;padding:6px;color:var(--accent3);font-family:var(--mono)">' + e[1] + '</td><td style="text-align:right;padding:6px;color:var(--text3)">' + pct + '%</td></tr>';
+  });
+  tablaHtml += '</table>';
+  document.getElementById('sa-tabla-detalle').innerHTML = tablaHtml;
 }
 // ══════════════════════════════════════════════════════════════════
 </script>
