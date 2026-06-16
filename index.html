@@ -10370,16 +10370,15 @@ function _loadFichajes() {
                 });
               });
               document.getElementById('f-list').innerHTML = fhtml;
-              if (SEL_AGENT) selAgent(SEL_AGENT);
-              return;
+            } else {
+              // Vista simple (puesto individual) — orden cronologico ascendente
+              list.sort(function(a,b) { return new Date(a.entrada) - new Date(b.entrada); });
+              for (fi = 0; fi < list.length; fi++) {
+                fr = list[fi];
+                fhtml += _renderFichajeRow(fr, canSeeGeo);
+              }
+              document.getElementById('f-list').innerHTML = fhtml;
             }
-            // Vista simple (puesto individual) — orden cronologico ascendente
-            list.sort(function(a,b) { return new Date(a.entrada) - new Date(b.entrada); });
-            for (fi = 0; fi < list.length; fi++) {
-              fr = list[fi];
-              fhtml += _renderFichajeRow(fr, canSeeGeo);
-            }
-            document.getElementById('f-list').innerHTML = fhtml;
           }
           if (SEL_AGENT) selAgent(SEL_AGENT);
         case 3:
