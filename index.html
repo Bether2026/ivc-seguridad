@@ -17345,8 +17345,38 @@ function buscarHistorialNovedades(irAPagina) {
     }
 
     var html = '';
+    var _ultimaFechaHN = null;
     list.forEach(function(n) {
       var fecha = formatTs(n.created_at);
+
+      // Separador de fecha (mismo estilo que Hojas de Ruta / Novedades)
+      var _fechaKey = (n.created_at || '').substring(0, 10);
+      if (_fechaKey && _fechaKey !== _ultimaFechaHN) {
+        _ultimaFechaHN = _fechaKey;
+        var _dHN = new Date(_fechaKey + 'T00:00:00');
+        var _hoyHN = new Date(); _hoyHN.setHours(0,0,0,0);
+        var _ayerHN = new Date(_hoyHN); _ayerHN.setDate(_ayerHN.getDate() - 1);
+        var _labelHN;
+        if (_dHN.getTime() === _hoyHN.getTime()) {
+          _labelHN = 'Hoy — ' + _dHN.toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long' });
+        } else if (_dHN.getTime() === _ayerHN.getTime()) {
+          _labelHN = 'Ayer — ' + _dHN.toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long' });
+        } else {
+          _labelHN = _dHN.toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+        }
+        var _esHoyHN = _labelHN.indexOf('Hoy') === 0;
+        var _esAyerHN = _labelHN.indexOf('Ayer') === 0;
+        var _colBgHN = _esHoyHN ? 'rgba(16,185,129,.15)' : _esAyerHN ? 'rgba(59,130,246,.12)' : 'rgba(255,255,255,.06)';
+        var _colBorderHN = _esHoyHN ? 'rgba(16,185,129,.4)' : _esAyerHN ? 'rgba(59,130,246,.35)' : 'rgba(255,255,255,.12)';
+        var _colTextHN = _esHoyHN ? '#10b981' : _esAyerHN ? 'var(--accent3)' : 'var(--text3)';
+        var _prefijoHN = _esHoyHN ? '\uD83D\uDFE2 ' : _esAyerHN ? '\uD83D\uDD35 ' : '\uD83D\uDDD3\uFE0F ';
+        html += '<div style="display:flex;align-items:center;gap:10px;margin:16px 0 10px">' +
+          '<div style="flex:1;height:1px;background:' + _colBorderHN + '"></div>' +
+          '<span style="font-size:11px;font-weight:800;color:' + _colTextHN + ';white-space:nowrap;text-transform:uppercase;letter-spacing:.08em;padding:5px 14px;border-radius:20px;background:' + _colBgHN + ';border:1px solid ' + _colBorderHN + '">' + _prefijoHN + _labelHN + '</span>' +
+          '<div style="flex:1;height:1px;background:' + _colBorderHN + '"></div>' +
+          '</div>';
+      }
+
       html += '<div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:12px;margin-bottom:8px">';
       html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:4px">';
       html += '<span style="font-size:11px;font-weight:700;color:var(--accent3)">' + (n.puesto || '—') + '</span>';
