@@ -10289,6 +10289,26 @@ function _loadDash() {
   }));
   return _loadDash.apply(this, arguments);
 }
+function _renderFichajeRow(fr, canSeeGeo) {
+  var h = '<div class="agent-row">';
+  h += '<div class="agent-av">' + initials(fr.agente) + '</div>';
+  h += '<div class="agent-info"><div class="agent-name">' + fr.agente + '</div>';
+  h += '<div class="agent-sub">' + fr.puesto + '</div>';
+  if (canSeeGeo && fr.geo_entrada && fr.geo_entrada.direccion) {
+    h += '<div style="font-size:10px;color:var(--text3);margin-top:2px">&#128205; ' + fr.geo_entrada.direccion + '</div>';
+  }
+  h += '</div>';
+  h += '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">';
+  h += '<span class="badge b-green"><span class="pulse"></span> Activo</span>';
+  h += '<span style="font-family:var(--mono);font-size:10px;color:var(--text2)">desde ' + formatTs(fr.entrada) + '</span>';
+  if (USER.rol === 'ADMIN') {
+    h += '<button onclick="abrirEditarFichaje(' + fr.id + ',\'' + (fr.agente||'').replace(/'/g,'') + '\',\'' + (fr.entrada||'') + '\',\'' + (fr.salida||'') + '\')" style="padding:4px 10px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.35);border-radius:6px;color:#fcd34d;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font)">&#x1F552; Editar hora</button>';
+  }
+  h += '<button data-fid="' + fr.id + '" data-fnombre="' + fr.agente.replace(/"/g, '').replace(/'/g, '') + '" onclick="var b=this;marcarSalidaDirecta(b.getAttribute(\'data-fid\'),b.getAttribute(\'data-fnombre\'))" style="padding:5px 10px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.5);border-radius:6px;color:#f87171;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font)">Marcar salida</button>';
+  h += '</div></div>';
+  return h;
+}
+
 function loadFichajes() {
   return _loadFichajes.apply(this, arguments);
 }
@@ -10322,29 +10342,42 @@ function _loadFichajes() {
           list = rows || [];
           document.getElementById('f-count').textContent = list.length + ' activo' + (list.length !== 1 ? 's' : '');
           canSeeGeo = ['Gerencia', 'Administración', 'Administrador', 'Jefe de departamento'].includes(USER.puesto);
+          // Roles de gestión ven todos los puestos agrupados; el resto ve solo el suyo (sin agrupar)
+          var ROLES_VEN_TODO_FICH = ['Administración', 'Gerencia', 'Jefe de departamento', 'Responsable de turno', 'Emergencias'];
+          var agruparPorPuesto = ROLES_VEN_TODO_FICH.indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN';
           if (!list.length) {
             document.getElementById('f-list').innerHTML = '<div class="empty"><p>Sin agentes fichados</p></div>';
           } else {
             fhtml = '';
+            if (agruparPorPuesto) {
+              // Agrupar por puesto, y dentro de cada grupo ordenar cronologicamente (mas antiguo primero)
+              var gruposPuesto = {};
+              list.forEach(function(r) {
+                var p = r.puesto || 'Sin puesto';
+                if (!gruposPuesto[p]) gruposPuesto[p] = [];
+                gruposPuesto[p].push(r);
+              });
+              var puestosOrdenados = Object.keys(gruposPuesto).sort();
+              puestosOrdenados.forEach(function(p) {
+                var grupo = gruposPuesto[p].slice().sort(function(a,b) {
+                  return new Date(a.entrada) - new Date(b.entrada);
+                });
+                fhtml += '<div style="display:flex;align-items:center;gap:10px;margin:14px 0 8px">' +
+                  '<span style="font-size:11px;font-weight:800;color:var(--accent3);white-space:nowrap;text-transform:uppercase;letter-spacing:.06em;padding:4px 12px;border-radius:20px;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.25)">' + p + ' (' + grupo.length + ')</span>' +
+                  '<div style="flex:1;height:1px;background:rgba(255,255,255,.08)"></div></div>';
+                grupo.forEach(function(fr) {
+                  fhtml += _renderFichajeRow(fr, canSeeGeo);
+                });
+              });
+              document.getElementById('f-list').innerHTML = fhtml;
+              if (SEL_AGENT) selAgent(SEL_AGENT);
+              return;
+            }
+            // Vista simple (puesto individual) — orden cronologico ascendente
+            list.sort(function(a,b) { return new Date(a.entrada) - new Date(b.entrada); });
             for (fi = 0; fi < list.length; fi++) {
               fr = list[fi];
-              fhtml += '<div class="agent-row">';
-              fhtml += '<div class="agent-av">' + initials(fr.agente) + '</div>';
-              fhtml += '<div class="agent-info"><div class="agent-name">' + fr.agente + '</div>';
-              fhtml += '<div class="agent-sub">' + fr.puesto + '</div>';
-              if (canSeeGeo && fr.geo_entrada && fr.geo_entrada.direccion) {
-                fhtml += '<div style="font-size:10px;color:var(--text3);margin-top:2px">&#128205; ' + fr.geo_entrada.direccion + '</div>';
-              }
-              fhtml += '</div>';
-              fhtml += '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">';
-              fhtml += '<span class="badge b-green"><span class="pulse"></span> Activo</span>';
-              fhtml += '<span style="font-family:var(--mono);font-size:10px;color:var(--text2)">desde ' + formatTs(fr.entrada) + '</span>';
-              // Botón editar hora — solo ADMIN sistema
-              if (USER.rol === 'ADMIN') {
-                fhtml += '<button onclick="abrirEditarFichaje(' + fr.id + ',\'' + (fr.agente||'').replace(/'/g,'') + '\',\'' + (fr.entrada||'') + '\',\'' + (fr.salida||'') + '\')" style="padding:4px 10px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.35);border-radius:6px;color:#fcd34d;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font)">&#x1F552; Editar hora</button>';
-              }
-              fhtml += '<button data-fid="' + fr.id + '" data-fnombre="' + fr.agente.replace(/"/g, '').replace(/'/g, '') + '" onclick="var b=this;marcarSalidaDirecta(b.getAttribute(\'data-fid\'),b.getAttribute(\'data-fnombre\'))" style="padding:5px 10px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.5);border-radius:6px;color:#f87171;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font)">Marcar salida</button>';
-              fhtml += '</div></div>';
+              fhtml += _renderFichajeRow(fr, canSeeGeo);
             }
             document.getElementById('f-list').innerHTML = fhtml;
           }
