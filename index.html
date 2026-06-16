@@ -1354,6 +1354,13 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
     </div>
 
     <div class="form-group">
+      <label class="form-label">👥 Agentes que participaron del recorrido (opcional)</label>
+      <div id="upd-agentes-extra-lista" style="display:flex;flex-direction:column;gap:6px;max-height:160px;overflow-y:auto;background:var(--bg3);border-radius:10px;padding:8px">
+        <div style="font-size:12px;color:var(--text3);padding:8px;text-align:center">Cargando agentes fichados...</div>
+      </div>
+    </div>
+
+    <div class="form-group">
       <label class="form-label">¿Hubo incidencia en este punto?</label>
       <div style="display:flex;gap:10px;margin-top:6px">
         <button id="btn-sin-inc" onclick="selIncidencia(false)" style="flex:1;padding:12px;border-radius:10px;border:2px solid var(--green);background:rgba(52,211,153,0.15);color:var(--green);font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">✅ Sin incidencia</button>
@@ -5557,24 +5564,27 @@ var db = createClient(SUPA_URL, SUPA_KEY, {
     params: { eventsPerSecond: 10 }
   }
 });
-var CREDS_HASH = {
-  'Papa Francisco': 'b4f15bb4c0d7e8a31c7d2a3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a',
-  'Rodrigo Bueno': 'a3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e',
-  'Fraga': 'c5d6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d',
-  'Base Castañares': 'd6e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e',
-  'Obrador Savio': 'e7f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f',
-  'CAV': 'f8a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a',
-  'Necochea': 'a9b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b',
-  'Complejo Orma': 'b0c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c',
-  'Alvarado': 'c1d2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d',
-  'Padre Mugica': 'd2e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e',
-  'Administración': 'e3f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f',
-  'Gerencia': 'f4a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a',
-  'Responsable de turno': 'a5b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b',
-  'Jefe de departamento': 'b6c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c',
-  'Emergencias': 'c7d8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d',
-  'Administrador': 'd8e9f0a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0c1d2e3f4a5b6c7d8e'
+// Mapeo puesto -> email para Supabase Auth (los emails son identificadores internos)
+var EMAILS_AUTH = {
+  'Papa Francisco': 'papafrancisco@ivc.local',
+  'Rodrigo Bueno': 'rodrigobueno@ivc.local',
+  'Fraga': 'fraga@ivc.local',
+  'Base Casta\u00f1ares': 'basecastanares@ivc.local',
+  'Obrador Savio': 'obradorsavio@ivc.local',
+  'CAV': 'cav@ivc.local',
+  'Necochea': 'necochea@ivc.local',
+  'Complejo Orma': 'complejoorma@ivc.local',
+  'Alvarado': 'alvarado@ivc.local',
+  'Padre Mugica': 'padremugica@ivc.local',
+  'Choferes': 'choferes@ivc.local',
+  'Administraci\u00f3n': 'administracion@ivc.local',
+  'Gerencia': 'gerencia@ivc.local',
+  'Responsable de turno': 'responsabledeturno@ivc.local',
+  'Jefe de departamento': 'jefededepartamento@ivc.local',
+  'Emergencias': 'emergencias@ivc.local',
+  'Administrador': 'administrador@ivc.local'
 };
+var CREDS_HASH = {}; // Obsoleto — migrado a Supabase Auth
 function registrarEvento(_x9, _x0, _x1) {
   return _registrarEvento.apply(this, arguments);
 }
@@ -5959,25 +5969,7 @@ function _hashPassword() {
   }));
   return _hashPassword.apply(this, arguments);
 }
-var CREDS = {
-  'Papa Francisco': 'Papa120',
-  'Rodrigo Bueno': 'RB2024',
-  'Fraga': 'Fraga1234',
-  'Base Castañares': 'Base2230',
-  'Obrador Savio': 'Obrador.s',
-  'CAV': 'CAV2024',
-  'Necochea': 'Neco2024',
-  'Complejo Orma': 'Orma1234',
-  'Alvarado': 'Alvarado123',
-  'Padre Mugica': 'Mugica2025',
-  'Choferes': 'Chofer26',
-  'Administración': '124578',
-  'Gerencia': 'Coco2025',
-  'Responsable de turno': 'RT2024',
-  'Jefe de departamento': 'Dpto2026',
-  'Emergencias': 'castañares2230',
-  'Administrador': 'Admin2026'
-};
+var CREDS = {}; // Migrado a Supabase Auth — credenciales ya no viven en el codigo
 var AGENTES = ['ACOSTA PAMELA', 'ACUÑA EMANUEL FABIAN', 'ACUÑA JUAN FEDERICO', 'ACUÑA LUCAS OCTAVIO', 'AGUIRRE CARLA FLORENCIA', 'ALMEIDA ENRIQUE ROBERTO', 'ALVAREZ OZON NICOLAS MARCELO', 'APAZA ABRAHAM ESTEBAN', 'APUD MIGUEL OSCAR', 'ARMOA SANDRA ELIZABETH', 'ARROYO LAURA', 'BASTIAS EMANUEL DE DIOS', 'BRITOS JUAN ALBERTO', 'CAMARA MARIA CELESTE', 'CAMPOS ROXANA RUT', 'CARDOZO VERONICA MARIEL', 'CASTILLO ANGEL HERNAN', 'CASTILLO LUIS ANGEL', 'CASTRO CLAUDIO DAMIAN', 'CASTRO VICTOR HUGO', 'CONTE LUCAS EZEQUIEL', 'DE MARCO LEANDRO DANIEL', 'DEL COLLE DAMIAN EZEQUIEL', 'DEL COLLE GONZALO MARTIN', 'ELIAS GABRIEL', 'GIMENEZ GREGORIO', 'GODOY MARTIN TOMAS', 'GOMEZ ANTONIO', 'LANDAETA VIELMA CARMENCITA', 'LOBOS RAFAEL ALEJANDRO', 'LUACES JONATHAN RICARDO', 'MARTINEZ NOEMI KARINA', 'MEDINA RODRIGO SEBASTIAN', 'MIRANDA MIGUEL ALBERTO', 'NUÑEZ ALEXIS URIEL', 'ORENDE BRIAN NICOLAS', 'PANDOLLO CAROLINA', 'PEÑA OSCAR RAUL', 'PEÑA SERGIO ADRIAN', 'PEREIRA MIGUEL RAFAEL', 'RESCHIÑA THIAGO', 'RIVEROS VEGA LEANDRO', 'SANTILLAN HUMBERTO', 'SOSA FACUNDO URIEL', 'TOKAYUK CHRISTIAN PABLO', 'VALDEZ JORGE ALBERTO', 'VALDEZ NADIA SABRINA', 'VIEIRA HECTOR AUGUSTO', 'YALEVA CARLOS'];
 var USER = null;
 var CUR_VIEW = 'dashboard';
@@ -6087,7 +6079,13 @@ function _doLogin() {
           showErr('Usuario bloqueado por seguridad. Intentá en ' + minutosRestantes + ' minutos.');
           return _context25.a(2);
         case 2:
-          if (!(!CREDS[puesto] || pass !== CREDS[puesto])) {
+          _context25.n = 30;
+          return db.auth.signInWithPassword({
+            email: EMAILS_AUTH[puesto] || (puesto.toLowerCase().replace(/[^a-z0-9]/g, '') + '@ivc.local'),
+            password: pass
+          });
+        case 30:
+          if (!(_context25.v && _context25.v.error)) {
             _context25.n = 3;
             break;
           }
@@ -6163,6 +6161,7 @@ function showErr(m) {
 function doLogout() {
   showConfirm('[Salir]', 'Cerrar sesión', '¿Querés salir del sistema?', function () {
     registrarLogout();
+    try { db.auth.signOut(); } catch(e) {}
     USER = null;
     clearSession();
     try { localStorage.removeItem('ivc_remember_user'); } catch(e) {}
@@ -6264,8 +6263,8 @@ function initApp() {
   // Roles que pueden ver licencias y elegir puesto manualmente
   var ROLES_GESTION = ['Administración', 'Administrador', 'Gerencia', 'Jefe de departamento', 'Responsable de turno', 'Emergencias'];
   var esGestion = ROLES_GESTION.includes(USER.puesto) || USER.rol === 'ADMIN';
-  if (esGestion && $('tab-licencias')) $('tab-licencias').style.display = 'block';
-  if (esGestion && $('f-puesto-wrap')) $('f-puesto-wrap').style.display = 'block';
+  if ($('tab-licencias')) $('tab-licencias').style.display = esGestion ? 'block' : 'none';
+  if ($('f-puesto-wrap')) $('f-puesto-wrap').style.display = esGestion ? 'block' : 'none';
   if (USER.rol === 'ADMIN') {
     document.getElementById('nb-admin').style.display = 'flex';
     var siAdm = document.getElementById('si-admin');
@@ -11115,6 +11114,7 @@ async function saveObj() {
 function openUpdObj(id, prog) {
   document.getElementById('upd-obj-id').value = id;
   document.getElementById('upd-obj-prog').value = prog || 0;
+  cargarAgentesFichadosParaObj();
 
   // Show agente info from cache
   var info = document.getElementById('upd-obj-agente-info');
@@ -11187,6 +11187,40 @@ function toggleObjCard(cardId, headerEl) {
   if (arr) arr.style.transform = isOpen ? '' : 'rotate(180deg)';
 }
 
+function cargarAgentesFichadosParaObj() {
+  var cont = document.getElementById('upd-agentes-extra-lista');
+  if (!cont) return;
+  cont.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px;text-align:center">Cargando agentes fichados...</div>';
+
+  db.from('fichajes').select('agente').eq('activo', true).eq('puesto', USER.puesto).then(function(r) {
+    if (!r.data || !r.data.length) {
+      cont.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px;text-align:center">No hay otros agentes fichados en este puesto</div>';
+      return;
+    }
+    // Excluir al propio usuario actual de la lista
+    var otros = r.data.filter(function(f) { return f.agente && f.agente !== USER.nombre; });
+    if (!otros.length) {
+      cont.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px;text-align:center">No hay otros agentes fichados en este puesto</div>';
+      return;
+    }
+    cont.innerHTML = '';
+    otros.forEach(function(f) {
+      var row = document.createElement('label');
+      row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 4px;cursor:pointer;font-size:13px;color:var(--text2)';
+      var cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.className = 'upd-agente-extra-cb';
+      cb.value = f.agente;
+      cb.style.cssText = 'width:16px;height:16px;accent-color:var(--accent2);cursor:pointer';
+      var span = document.createElement('span');
+      span.textContent = '👤 ' + f.agente;
+      row.appendChild(cb);
+      row.appendChild(span);
+      cont.appendChild(row);
+    });
+  });
+}
+
 async function saveUpdObj() {
   var id = document.getElementById('upd-obj-id').value;
   var lugar = (document.getElementById('upd-lugar') || {}).value.trim();
@@ -11226,6 +11260,12 @@ async function saveUpdObj() {
   var res = await db.from('objetivos').select('actualizaciones, progreso').eq('id', id).single();
   var acts = (res.data && res.data.actualizaciones) ? res.data.actualizaciones : [];
 
+  // Agentes adicionales tildados (que acompañaron el recorrido)
+  var agentesExtra = [];
+  document.querySelectorAll('.upd-agente-extra-cb:checked').forEach(function(cb) {
+    agentesExtra.push(cb.value);
+  });
+
   var now = new Date();
   acts.push({
     lugar: lugar,
@@ -11236,7 +11276,8 @@ async function saveUpdObj() {
     foto: fotoUrl || null,
     texto_informe: textoInforme,
     nro_pd: nroPD,
-    nro_pu: nroPU
+    nro_pu: nroPU,
+    agentes_extra: agentesExtra
   });
 
   var newProg = Math.min(100, acts.length * 10);
@@ -11439,6 +11480,9 @@ function _loadObjetivos() {
                     ohtml += '<div style="flex:1;min-width:0">';
                     ohtml += '<div style="font-size:13px;font-weight:600;color:' + (u.incidencia ? '#fca5a5' : 'var(--text1)') + '">' + (u.lugar || 'Sin ubicación') + '</div>';
                     if (u.obs) ohtml += '<div style="font-size:11px;color:#f87171;margin-top:2px">' + u.obs + '</div>';
+                    if (u.agentes_extra && u.agentes_extra.length) {
+                      ohtml += '<div style="font-size:11px;color:var(--accent3);margin-top:3px">👥 Tambi\u00e9n: ' + u.agentes_extra.join(', ') + '</div>';
+                    }
                     if (u.foto) ohtml += '<img src="' + u.foto + '" onclick="abrirFotoLightbox(\'' + u.foto + '\')" style="width:90px;height:70px;object-fit:cover;border-radius:8px;margin-top:6px;border:1px solid rgba(255,255,255,0.15);cursor:zoom-in;display:block" loading="lazy" onerror="this.style.display=\'none\'">';
                     ohtml += '</div>';
                     ohtml += '<div style="font-size:10px;color:var(--text3);white-space:nowrap;flex-shrink:0">' + (u.hora || '') + '</div>';
@@ -16011,18 +16055,26 @@ setTimeout(function () {
         var partsR = remembered.split('|');
         var puestoR = partsR[0];
         var rolR = partsR[1] || '';
-        // Intentar auto-login directo
-        USER = { puesto: puestoR, rol: rolR };
-        $('auth-screen').style.display = 'none';
-        $('app').style.display = 'flex';
-        $('tp-puesto').textContent = puestoR;
-        $('sb-puesto') && ($('sb-puesto').textContent = puestoR);
-        saveSession();
-        initApp();
-        // Mostrar toast informativo
-        setTimeout(function() {
-          toast('&#x1F44B; Bienvenido/a, ' + puestoR);
-        }, 800);
+        // Verificar que la sesion de Supabase Auth siga activa
+        db.auth.getSession().then(function(sres) {
+          if (sres && sres.data && sres.data.session) {
+            USER = { puesto: puestoR, rol: rolR };
+            $('auth-screen').style.display = 'none';
+            $('app').style.display = 'flex';
+            $('tp-puesto').textContent = puestoR;
+            $('sb-puesto') && ($('sb-puesto').textContent = puestoR);
+            saveSession();
+            initApp();
+            setTimeout(function() {
+              toast('&#x1F44B; Bienvenido/a, ' + puestoR);
+            }, 800);
+          } else {
+            // Sesion Supabase expirada — pedir login de nuevo
+            $('auth-screen').style.display = 'flex';
+          }
+        }).catch(function() {
+          $('auth-screen').style.display = 'flex';
+        });
       } else {
         $('auth-screen').style.display = 'flex';
       }
@@ -16754,7 +16806,7 @@ if ('serviceWorker' in navigator) {
     "  var cfg = self._gpsConfig; var geo = self._lastGeo;",
     "  try {",
     "    var ts = new Date().toISOString();",
-    "    var h = { 'Content-Type': 'application/json', 'apikey': cfg.supaKey, 'Authorization': 'Bearer ' + cfg.supaKey, 'Prefer': 'return=minimal' };",
+    "    var h = { 'Content-Type': 'application/json', 'apikey': cfg.supaKey, 'Authorization': 'Bearer ' + (cfg.accessToken || cfg.supaKey), 'Prefer': 'return=minimal' };",
     "    await fetch(cfg.supaUrl + '/rest/v1/gps_track', { method: 'POST', headers: h, body: JSON.stringify({ movil: cfg.movil, chofer: cfg.chofer, lat: geo.lat, lng: geo.lng, ts: ts, created_at: ts }) });",
     "    await fetch(cfg.supaUrl + '/rest/v1/gps_moviles?movil=eq.' + encodeURIComponent(cfg.movil), { method: 'DELETE', headers: h });",
     "    await fetch(cfg.supaUrl + '/rest/v1/gps_moviles', { method: 'POST', headers: h, body: JSON.stringify({ movil: cfg.movil, chofer: cfg.chofer, lat: geo.lat, lng: geo.lng, activo: true, updated_at: ts }) });",
@@ -16778,13 +16830,18 @@ if ('serviceWorker' in navigator) {
 
 function notificarGPSalSW(lat, lng, movil, chofer) {
   if (!navigator.serviceWorker || !navigator.serviceWorker.controller) return;
-  navigator.serviceWorker.controller.postMessage({
-    tipo: 'GPS_CONFIG',
-    supaUrl: 'https://cuwvmvmrmxprqozfnlva.supabase.co',
-    supaKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1d3Ztdm1ybXhwcnFvemZubHZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5OTUyODYsImV4cCI6MjA5MjU3MTI4Nn0.l-k8ev4zdQBVCyBaEfe7VeFczshIc',
-    movil: movil, chofer: chofer
+  // Obtener el access token de la sesion actual para que el SW pueda escribir con RLS
+  db.auth.getSession().then(function(sres) {
+    var accessToken = (sres && sres.data && sres.data.session) ? sres.data.session.access_token : null;
+    navigator.serviceWorker.controller.postMessage({
+      tipo: 'GPS_CONFIG',
+      supaUrl: 'https://cuwvmvmrmxprqozfnlva.supabase.co',
+      supaKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1d3Ztdm1ybXhwcnFvemZubHZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5OTUyODYsImV4cCI6MjA5MjU3MTI4Nn0.l-k8ev4zdQBVCyBaEfe7VeFczshIc',
+      accessToken: accessToken,
+      movil: movil, chofer: chofer
+    });
+    navigator.serviceWorker.controller.postMessage({ tipo: 'GPS_COORDS', lat: lat, lng: lng, ts: new Date().toISOString() });
   });
-  navigator.serviceWorker.controller.postMessage({ tipo: 'GPS_COORDS', lat: lat, lng: lng, ts: new Date().toISOString() });
   if (window.SW_REGISTRATION && 'sync' in window.SW_REGISTRATION) {
     window.SW_REGISTRATION.sync.register('ivc-gps-sync').catch(function() {});
   }
