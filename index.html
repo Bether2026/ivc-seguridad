@@ -4733,6 +4733,13 @@ function renderNovCard(n) {
   h += '<button onclick="abrirActualizarNovedad(\'' + n.id + '\')" ';
   h += 'style="flex:1;padding:9px;background:rgba(37,99,235,0.12);border:1px solid rgba(37,99,235,0.3);border-radius:8px;color:var(--accent3);font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font)">';
   h += '+ Agregar actualización al seguimiento</button>';
+  // Botón editar asunto — exclusivo Administración (unificar criterios para agrupar)
+  if (USER && USER.puesto === 'Administración') {
+    h += '<button onclick="event.stopPropagation();abrirEditarAsuntoNovedad(\'' + n.id + '\',\'' + (n.asunto || '').replace(/'/g, "\\'") + '\')" ';
+    h += 'style="padding:9px 12px;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.3);border-radius:8px;color:#c084fc;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font);white-space:nowrap">';
+    h += '✏️ Editar asunto';
+    h += '</button>';
+  }
   // Botón cargar informe — solo para gestión/admin
   var ROLES_ADM_NOV = ['Administración', 'Administrador', 'Gerencia', 'Jefe de departamento', 'Responsable de turno'];
   if (USER && (ROLES_ADM_NOV.indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN')) {
@@ -4907,8 +4914,10 @@ function _generarPINUnico() {
     return _regenerator().w(function (_context18) {
       while (1) switch (_context18.p = _context18.n) {
         case 0:
-          fp = getDeviceFingerprint(); // Redondear timestamp a bloques de 15 minutos (900000 ms)
-          bloque = Math.floor(Date.now() / 900000);
+          fp = getDeviceFingerprint();
+          // Agregar un nonce aleatorio para que cada generacion de PIN sea unica,
+          // incluso si se piden varios tokens en la misma ventana de tiempo
+          bloque = Date.now() + '_' + Math.random().toString(36).substr(2, 8);
           input = IVC_SECRET + fp + bloque;
           encoder = new TextEncoder();
           data = encoder.encode(input);
@@ -17082,6 +17091,46 @@ function editarNombreDispositivo(fingerprint, nombreActual) {
       toast('Nombre guardado');
       document.body.removeChild(ov);
       cargarDispositivos();
+    });
+  };
+  var btnCan = document.createElement('button');
+  btnCan.className = 'btn-login';
+  btnCan.style.cssText = 'width:100%;background:var(--bg3);border:1px solid var(--border)';
+  btnCan.textContent = 'Cancelar';
+  btnCan.onclick = function() { document.body.removeChild(ov); };
+  modal.appendChild(inp);
+  modal.appendChild(btnOk);
+  modal.appendChild(btnCan);
+  ov.appendChild(modal);
+  document.body.appendChild(ov);
+  setTimeout(function() { inp.focus(); inp.select(); }, 100);
+}
+
+function abrirEditarAsuntoNovedad(novId, asuntoActual) {
+  var ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  var modal = document.createElement('div');
+  modal.style.cssText = 'background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:340px;width:100%';
+  modal.innerHTML = '<div style="font-size:15px;font-weight:700;color:var(--white);margin-bottom:6px">✏️ Editar asunto</div>' +
+    '<div style="font-size:12px;color:var(--text3);margin-bottom:14px">Solo se modifica el asunto, el resto de la novedad queda igual.</div>';
+  var inp = document.createElement('input');
+  inp.type = 'text';
+  inp.value = asuntoActual || '';
+  inp.placeholder = 'Asunto de la novedad...';
+  inp.className = 'form-input';
+  inp.style.cssText = 'width:100%;box-sizing:border-box;margin-bottom:14px';
+  var btnOk = document.createElement('button');
+  btnOk.className = 'btn-login';
+  btnOk.style.cssText = 'width:100%;margin-bottom:8px';
+  btnOk.textContent = '✓ Guardar';
+  btnOk.onclick = function() {
+    var nuevoAsunto = inp.value.trim();
+    if (!nuevoAsunto) { toast('El asunto no puede quedar vacío', 'err'); return; }
+    db.from('novedades').update({ asunto: nuevoAsunto }).eq('id', novId).then(function(r) {
+      if (r.error) { toast('Error al guardar: ' + r.error.message, 'err'); return; }
+      toast('Asunto actualizado');
+      document.body.removeChild(ov);
+      if (typeof loadNovedades === 'function') loadNovedades();
     });
   };
   var btnCan = document.createElement('button');
