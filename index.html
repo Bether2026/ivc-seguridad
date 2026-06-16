@@ -1808,8 +1808,47 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
       </div>
       <div class="tabs">
         <button class="tab active" onclick="novTab('todas',this)">Todas</button>
+        <button class="tab" onclick="novTab('historial',this)">📚 Historial completo</button>
       </div>
       <div id="nov-list"></div>
+
+      <div id="nov-historial-panel" style="display:none">
+        <div class="card" style="margin-bottom:12px">
+          <div class="card-head"><span class="card-lbl">🔍 Filtros</span>
+            <button class="btn-sm" onclick="limpiarFiltrosHistNov()" style="background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--text3)">Limpiar</button>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+            <div class="form-group" style="margin-bottom:0">
+              <label class="form-label" style="font-size:11px">Desde</label>
+              <input type="date" id="hn-desde" class="form-input" style="font-size:13px">
+            </div>
+            <div class="form-group" style="margin-bottom:0">
+              <label class="form-label" style="font-size:11px">Hasta</label>
+              <input type="date" id="hn-hasta" class="form-input" style="font-size:13px">
+            </div>
+          </div>
+          <div class="form-group" style="margin-bottom:8px">
+            <label class="form-label" style="font-size:11px">Puesto</label>
+            <select id="hn-puesto" class="form-select" style="font-size:13px">
+              <option value="">Todos los puestos</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:8px">
+            <label class="form-label" style="font-size:11px">Asunto</label>
+            <select id="hn-asunto" class="form-select" style="font-size:13px">
+              <option value="">Todos los asuntos</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin-bottom:10px">
+            <label class="form-label" style="font-size:11px">Agente (texto libre)</label>
+            <input type="text" id="hn-agente" class="form-input" placeholder="Nombre del agente..." style="font-size:13px">
+          </div>
+          <button class="btn-login" onclick="buscarHistorialNovedades()" style="width:100%">🔍 Buscar</button>
+        </div>
+        <div id="hn-resumen" style="font-size:12px;color:var(--text3);margin-bottom:10px;text-align:center"></div>
+        <div id="hn-list"></div>
+        <div id="hn-paginacion" style="display:flex;justify-content:center;gap:8px;margin-top:14px"></div>
+      </div>
     </div>
     <div class="view" id="view-objetivos">
       <div class="page-header"><h2><span style="color:#a78bfa;margin-right:10px;text-shadow:0 0 12px rgba(167,139,250,0.5)">🎯</span>Control de Objetivo</h2><p>Recorridos y tareas operativas</p></div>
@@ -10838,6 +10877,22 @@ function novTab(tab, btn) {
     return b.classList.remove('active');
   });
   btn.classList.add('active');
+
+  var listEl = document.getElementById('nov-list');
+  var histPanel = document.getElementById('nov-historial-panel');
+  var searchBox = document.getElementById('nov-search');
+
+  if (tab === 'historial') {
+    if (listEl) listEl.style.display = 'none';
+    if (searchBox && searchBox.parentElement) searchBox.parentElement.style.display = 'none';
+    if (histPanel) histPanel.style.display = 'block';
+    _initFiltrosHistNov();
+    return;
+  } else {
+    if (listEl) listEl.style.display = 'block';
+    if (searchBox && searchBox.parentElement) searchBox.parentElement.style.display = 'block';
+    if (histPanel) histPanel.style.display = 'none';
+  }
   loadNovedades();
 }
 // ─── NOVEDAD HELPERS ───
@@ -17174,6 +17229,141 @@ function abrirEditarAsuntoNovedad(novId, asuntoActual) {
   document.body.appendChild(ov);
   setTimeout(function() { inp.focus(); inp.select(); }, 100);
 }
+
+// ══ HISTORIAL COMPLETO DE NOVEDADES — busqueda con filtros y paginacion ══
+var HN_PAGINA = 0;
+var HN_POR_PAGINA = 50;
+var HN_TOTAL = 0;
+var HN_FILTROS_INIT = false;
+
+function _initFiltrosHistNov() {
+  if (HN_FILTROS_INIT) return;
+  HN_FILTROS_INIT = true;
+
+  var selPuesto = document.getElementById('hn-puesto');
+  if (selPuesto) {
+    var puestos = ["Papa Francisco", "Rodrigo Bueno", "Fraga", "Base Castañares", "Obrador Savio", "CAV", "Necochea", "Complejo Orma", "Alvarado", "Padre Mugica", "Choferes", "Administración", "Gerencia", "Responsable de turno", "Jefe de departamento", "Emergencias", "Administrador"];
+    puestos.forEach(function(p) {
+      var opt = document.createElement('option');
+      opt.value = p; opt.textContent = p;
+      selPuesto.appendChild(opt);
+    });
+  }
+
+  // Cargar asuntos unicos desde la BD (distinct)
+  db.from('novedades').select('asunto').then(function(r) {
+    if (!r.data) return;
+    var unicos = {};
+    r.data.forEach(function(row) { if (row.asunto) unicos[row.asunto] = true; });
+    var selAsunto = document.getElementById('hn-asunto');
+    if (selAsunto) {
+      Object.keys(unicos).sort().forEach(function(a) {
+        var opt = document.createElement('option');
+        opt.value = a; opt.textContent = a;
+        selAsunto.appendChild(opt);
+      });
+    }
+  });
+
+  // Primera carga sin filtros (mas recientes primero)
+  buscarHistorialNovedades();
+}
+
+function limpiarFiltrosHistNov() {
+  document.getElementById('hn-desde').value = '';
+  document.getElementById('hn-hasta').value = '';
+  document.getElementById('hn-puesto').value = '';
+  document.getElementById('hn-asunto').value = '';
+  document.getElementById('hn-agente').value = '';
+  HN_PAGINA = 0;
+  buscarHistorialNovedades();
+}
+
+function buscarHistorialNovedades(irAPagina) {
+  HN_PAGINA = (typeof irAPagina === 'number') ? irAPagina : 0;
+
+  var listEl = document.getElementById('hn-list');
+  var resumenEl = document.getElementById('hn-resumen');
+  if (listEl) listEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3)"><span class="spinner"></span></div>';
+
+  var desde = document.getElementById('hn-desde').value;
+  var hasta = document.getElementById('hn-hasta').value;
+  var puesto = document.getElementById('hn-puesto').value;
+  var asunto = document.getElementById('hn-asunto').value;
+  var agente = document.getElementById('hn-agente').value.trim();
+
+  var q = db.from('novedades').select('*', { count: 'exact' }).order('created_at', { ascending: false });
+
+  if (desde) q = q.gte('created_at', desde + 'T00:00:00');
+  if (hasta) q = q.lte('created_at', hasta + 'T23:59:59');
+  if (puesto) q = q.eq('puesto', puesto);
+  if (asunto) q = q.eq('asunto', asunto);
+  if (agente) q = q.ilike('cargado_por', '%' + agente + '%');
+
+  var desdeIdx = HN_PAGINA * HN_POR_PAGINA;
+  var hastaIdx = desdeIdx + HN_POR_PAGINA - 1;
+  q = q.range(desdeIdx, hastaIdx);
+
+  q.then(function(r) {
+    if (r.error) {
+      if (listEl) listEl.innerHTML = '<div class="empty"><p>Error: ' + r.error.message + '</p></div>';
+      return;
+    }
+    HN_TOTAL = r.count || 0;
+    var list = r.data || [];
+
+    if (resumenEl) {
+      var desdeM = desdeIdx + 1;
+      var hastaM = Math.min(desdeIdx + list.length, HN_TOTAL);
+      resumenEl.textContent = HN_TOTAL > 0
+        ? ('Mostrando ' + desdeM + '–' + hastaM + ' de ' + HN_TOTAL + ' novedades')
+        : 'Sin resultados';
+    }
+
+    if (!list.length) {
+      if (listEl) listEl.innerHTML = '<div class="empty"><div class="icon">\u{1F4ED}</div><p>Sin novedades para estos filtros</p></div>';
+      _renderPaginacionHistNov();
+      return;
+    }
+
+    var html = '';
+    list.forEach(function(n) {
+      var fecha = formatTs(n.created_at);
+      html += '<div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:12px;margin-bottom:8px">';
+      html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:4px">';
+      html += '<span style="font-size:11px;font-weight:700;color:var(--accent3)">' + (n.puesto || '—') + '</span>';
+      html += '<span style="font-size:10px;color:var(--text3);white-space:nowrap;font-family:var(--mono)">' + fecha + '</span>';
+      html += '</div>';
+      html += '<div style="font-size:13px;font-weight:600;color:var(--white);margin-bottom:3px">' + (n.asunto || 'Sin asunto') + '</div>';
+      if (n.ubicacion) html += '<div style="font-size:11px;color:var(--text2);margin-bottom:3px">\u{1F4CD} ' + n.ubicacion + '</div>';
+      html += '<div style="font-size:12px;color:var(--text2);white-space:pre-wrap">' + (n.detalle || '').substring(0, 280) + ((n.detalle||'').length > 280 ? '...' : '') + '</div>';
+      if (n.cargado_por) html += '<div style="font-size:10px;color:var(--text3);margin-top:5px">\u{1F464} ' + n.cargado_por + '</div>';
+      if (n.pendiente) html += '<span style="display:inline-block;margin-top:5px;font-size:9px;font-weight:700;padding:2px 8px;border-radius:10px;background:rgba(245,158,11,.12);color:#fcd34d">PENDIENTE</span>';
+      html += '</div>';
+    });
+
+    if (listEl) listEl.innerHTML = html;
+    _renderPaginacionHistNov();
+  });
+}
+
+function _renderPaginacionHistNov() {
+  var pagEl = document.getElementById('hn-paginacion');
+  if (!pagEl) return;
+  var totalPaginas = Math.ceil(HN_TOTAL / HN_POR_PAGINA);
+  if (totalPaginas <= 1) { pagEl.innerHTML = ''; return; }
+
+  var html = '';
+  if (HN_PAGINA > 0) {
+    html += '<button class="btn-sm" onclick="buscarHistorialNovedades(' + (HN_PAGINA - 1) + ')">← Anterior</button>';
+  }
+  html += '<span style="font-size:12px;color:var(--text3);padding:6px 10px">Página ' + (HN_PAGINA + 1) + ' de ' + totalPaginas + '</span>';
+  if (HN_PAGINA < totalPaginas - 1) {
+    html += '<button class="btn-sm" onclick="buscarHistorialNovedades(' + (HN_PAGINA + 1) + ')">Siguiente →</button>';
+  }
+  pagEl.innerHTML = html;
+}
+// ══════════════════════════════════════════════════════════════════
 </script>
 
 </body>
