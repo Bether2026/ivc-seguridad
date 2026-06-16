@@ -10358,13 +10358,15 @@ function _loadFichajes() {
                 gruposPuesto[p].push(r);
               });
               var puestosOrdenados = Object.keys(gruposPuesto).sort();
-              puestosOrdenados.forEach(function(p) {
+              var _coloresPuesto = ['#3b82f6','#10b981','#f59e0b','#ec4899','#8b5cf6','#06b6d4','#ef4444','#84cc16'];
+              puestosOrdenados.forEach(function(p, pIdx) {
                 var grupo = gruposPuesto[p].slice().sort(function(a,b) {
                   return new Date(a.entrada) - new Date(b.entrada);
                 });
-                fhtml += '<div style="display:flex;align-items:center;gap:10px;margin:14px 0 8px">' +
-                  '<span style="font-size:11px;font-weight:800;color:var(--accent3);white-space:nowrap;text-transform:uppercase;letter-spacing:.06em;padding:4px 12px;border-radius:20px;background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.25)">' + p + ' (' + grupo.length + ')</span>' +
-                  '<div style="flex:1;height:1px;background:rgba(255,255,255,.08)"></div></div>';
+                var colorP = _coloresPuesto[pIdx % _coloresPuesto.length];
+                fhtml += '<div style="text-align:center;margin:18px 0 10px">' +
+                  '<span style="display:inline-block;font-size:13px;font-weight:800;color:#fff;text-transform:uppercase;letter-spacing:.05em;padding:7px 20px;border-radius:10px;background:' + colorP + ';box-shadow:0 2px 10px ' + colorP + '55">' + p + ' &middot; ' + grupo.length + '</span>' +
+                  '</div>';
                 grupo.forEach(function(fr) {
                   fhtml += _renderFichajeRow(fr, canSeeGeo);
                 });
