@@ -1813,8 +1813,11 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
       <div id="nov-list"></div>
 
       <div id="nov-historial-panel" style="display:none">
+        <div class="form-group" style="margin-bottom:12px">
+          <input type="text" id="hn-busqueda-libre" class="form-input" placeholder="🔍 Buscar en detalle, asunto, ubicación, agente..." style="font-size:14px" oninput="_debounceBuscarHistNov()">
+        </div>
         <div class="card" style="margin-bottom:12px">
-          <div class="card-head"><span class="card-lbl">🔍 Filtros</span>
+          <div class="card-head"><span class="card-lbl">Filtros avanzados</span>
             <button class="btn-sm" onclick="limpiarFiltrosHistNov()" style="background:rgba(255,255,255,.05);border:1px solid var(--border);color:var(--text3)">Limpiar</button>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
@@ -10379,7 +10382,7 @@ function _loadFichajes() {
         case 2:
           list = rows || [];
           document.getElementById('f-count').textContent = list.length + ' activo' + (list.length !== 1 ? 's' : '');
-          canSeeGeo = ['Gerencia', 'Administración', 'Administrador', 'Jefe de departamento'].includes(USER.puesto);
+          canSeeGeo = ['Gerencia', 'Administrador'].includes(USER.puesto);
           // Roles de gestión ven todos los puestos agrupados; el resto ve solo el suyo (sin agrupar)
           var ROLES_VEN_TODO_FICH = ['Administración', 'Gerencia', 'Jefe de departamento', 'Responsable de turno', 'Emergencias'];
           var agruparPorPuesto = ROLES_VEN_TODO_FICH.indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN';
@@ -17275,8 +17278,17 @@ function limpiarFiltrosHistNov() {
   document.getElementById('hn-puesto').value = '';
   document.getElementById('hn-asunto').value = '';
   document.getElementById('hn-agente').value = '';
+  if (document.getElementById('hn-busqueda-libre')) document.getElementById('hn-busqueda-libre').value = '';
   HN_PAGINA = 0;
   buscarHistorialNovedades();
+}
+
+var HN_DEBOUNCE_TIMER = null;
+function _debounceBuscarHistNov() {
+  if (HN_DEBOUNCE_TIMER) clearTimeout(HN_DEBOUNCE_TIMER);
+  HN_DEBOUNCE_TIMER = setTimeout(function() {
+    buscarHistorialNovedades(0);
+  }, 400);
 }
 
 function buscarHistorialNovedades(irAPagina) {
@@ -17291,7 +17303,9 @@ function buscarHistorialNovedades(irAPagina) {
   var puesto = document.getElementById('hn-puesto').value;
   var asunto = document.getElementById('hn-asunto').value;
   var agente = document.getElementById('hn-agente').value.trim();
+  var libre = (document.getElementById('hn-busqueda-libre') ? document.getElementById('hn-busqueda-libre').value.trim() : '');
 
+  // Orden cronologico: mas reciente primero
   var q = db.from('novedades').select('*', { count: 'exact' }).order('created_at', { ascending: false });
 
   if (desde) q = q.gte('created_at', desde + 'T00:00:00');
@@ -17299,6 +17313,10 @@ function buscarHistorialNovedades(irAPagina) {
   if (puesto) q = q.eq('puesto', puesto);
   if (asunto) q = q.eq('asunto', asunto);
   if (agente) q = q.ilike('cargado_por', '%' + agente + '%');
+  if (libre) {
+    var libreEsc = libre.replace(/[%,]/g, '');
+    q = q.or('detalle.ilike.%' + libreEsc + '%,asunto.ilike.%' + libreEsc + '%,ubicacion.ilike.%' + libreEsc + '%,cargado_por.ilike.%' + libreEsc + '%');
+  }
 
   var desdeIdx = HN_PAGINA * HN_POR_PAGINA;
   var hastaIdx = desdeIdx + HN_POR_PAGINA - 1;
