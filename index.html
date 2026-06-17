@@ -4924,7 +4924,7 @@ function _marcarSalidaDirecta() {
                   // Buscar el puesto del agente que fichó (no USER.puesto que puede ser el admin)
                   db.from('fichajes').select('puesto').eq('id', fichajeId).maybeSingle().then(function(rf) {
                     var puestoAgente = (rf.data && rf.data.puesto) ? rf.data.puesto : nombreAgente;
-                    cerrarRecorridoAuto(puestoAgente);
+                    cerrarRecorridoAuto(puestoAgente, nombreAgente);
                   });
                   loadFichajes();
                   loadDash();
@@ -4940,17 +4940,19 @@ function _marcarSalidaDirecta() {
   }));
   return _marcarSalidaDirecta.apply(this, arguments);
 }
-function cerrarRecorridoAuto(puesto) {
+function cerrarRecorridoAuto(puesto, agente) {
   var BARRIOS = ['Rodrigo Bueno', 'Papa Francisco', 'Fraga', 'Responsable de turno'];
   if (BARRIOS.indexOf(puesto) < 0) return;
-  // Filtrar solo los creados automáticamente (auto_fichaje=true)
-  db.from('objetivos').select('id,actualizaciones')
+  // Filtrar solo los creados automáticamente (auto_fichaje=true) Y del agente que ficha salida
+  // (asi no se cierra el recorrido de otros agentes que sigan activos en el mismo puesto)
+  var q = db.from('objetivos').select('id,actualizaciones,cargado_por')
     .eq('puesto', puesto)
     .eq('estado', 'activo')
-    .eq('auto_fichaje', true)
-    .then(function(ro) {
+    .eq('auto_fichaje', true);
+  if (agente) q = q.eq('cargado_por', agente);
+  q.then(function(ro) {
       if (ro.error || !ro.data || !ro.data.length) {
-        console.warn('[Recorrido] No se encontró recorrido auto_fichaje activo para:', puesto);
+        console.warn('[Recorrido] No se encontró recorrido auto_fichaje activo para:', puesto, agente || '(sin filtro de agente)');
         return;
       }
       ro.data.forEach(function(rec) {
@@ -10879,7 +10881,7 @@ function _doSalida() {
                   return db.from('fichajes').update(updates).eq('agente', SEL_AGENT).eq('activo', true);
                 case 4:
                   toast("Salida registrada \u2014 ".concat(SEL_AGENT));
-                  cerrarRecorridoAuto(USER.puesto);
+                  cerrarRecorridoAuto(USER.puesto, SEL_AGENT);
                   loadFichajes();
                   loadDash();
                   loadFichajes();
