@@ -1769,6 +1769,8 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
 <option value="Padre Mugica">Padre Mugica</option>
 <option value="Choferes">Choferes</option>
 <option value="Administración">Administración</option>
+<option value="Responsable de turno">Responsable de turno</option>
+<option value="Emergencias">Emergencias</option>
         </select>
       </div>
       <div class="form-group"><label class="form-label" id="f-agente-label">Agente</label>
@@ -5682,6 +5684,11 @@ var _supabase = supabase,
 var db = createClient(SUPA_URL, SUPA_KEY, {
   realtime: {
     params: { eventsPerSecond: 10 }
+  },
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: false
   }
 });
 // Mapeo puesto -> email para Supabase Auth (los emails son identificadores internos)
@@ -16187,30 +16194,10 @@ function suscribirNotifNovedades() {
     }).subscribe();
   });
 }
-var INACTIVITY_TIMEOUT = 30 * 60 * 1000; // 30 minutos
-var inactivityTimer = null;
-function resetInactivityTimer() {
-  if (!USER) return;
-  if (inactivityTimer) clearTimeout(inactivityTimer);
-  inactivityTimer = setTimeout(function () {
-    if (USER) {
-      registrarEvento('SESION_EXPIRADA', USER.puesto, 'Cierre por inactividad 30min');
-      toast('Sesion cerrada por inactividad', 'info');
-      USER = null;
-      clearSession();
-      clearInterval(TIMER);
-      $('app').style.display = 'none';
-      $('auth-screen').style.display = 'flex';
-      $('inp-pass').value = '';
-    }
-  }, INACTIVITY_TIMEOUT);
-}
-document.addEventListener('click', resetInactivityTimer, {
-  passive: true
-});
-document.addEventListener('touchstart', resetInactivityTimer, {
-  passive: true
-});
+// Timeout de inactividad ELIMINADO por pedido del usuario — la sesion solo se cierra
+// manualmente con el boton "Cerrar sesion". El refresh del token lo maneja Supabase Auth
+// automaticamente via autoRefreshToken configurado en el cliente.
+function resetInactivityTimer() { /* no-op, se mantiene la funcion por compatibilidad */ }
 document.addEventListener('keypress', resetInactivityTimer, {
   passive: true
 });
