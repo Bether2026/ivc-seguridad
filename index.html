@@ -11618,27 +11618,35 @@ function _loadObjetivos() {
               var objListEl = document.getElementById('obj-list');
               if (objListEl && objListEl.parentNode) objListEl.parentNode.insertBefore(bannerEl, objListEl);
             }
-            if (!miRec && _agenteEsteDisp) {
-              // Verificar si el agente fichado en este dispositivo tiene fichaje activo
-              // sin recorrido abierto (huerfano) — solo para los 4 puestos autom\u00e1ticos
-              db.from('fichajes').select('id').eq('puesto', USER.puesto).eq('agente', _agenteEsteDisp).eq('activo', true).maybeSingle().then(function(rfa) {
-                if (rfa.data && !window._creandoRecorridoAuto) {
-                  window._creandoRecorridoAuto = true;
+            if (!window._verificandoHuerfanos) {
+              window._verificandoHuerfanos = true;
+              // Verificar TODOS los agentes con fichaje activo en este puesto (no solo el de localStorage)
+              // y crear recorrido automatico para los que no tengan uno abierto — cubre fichajes
+              // activos creados antes de existir el seguimiento por dispositivo
+              db.from('fichajes').select('id,agente').eq('puesto', USER.puesto).eq('activo', true).then(function(rfa) {
+                var fichados = (rfa.data || []).map(function(f) { return f.agente; });
+                var conRecorrido = list.filter(function(o) { return o.estado === 'activo' && o.auto_fichaje; })
+                                        .map(function(o) { return o.cargado_por; });
+                var huerfanos = fichados.filter(function(ag) { return conRecorrido.indexOf(ag) < 0; });
+                if (!huerfanos.length) { window._verificandoHuerfanos = false; return; }
+                var pendientes = huerfanos.length;
+                huerfanos.forEach(function(agHuerfano) {
                   db.from('objetivos').insert({
                     puesto: USER.puesto,
-                    cargado_por: _agenteEsteDisp,
+                    cargado_por: agHuerfano,
                     estado: 'activo',
                     progreso: 0,
                     auto_fichaje: true,
                     created_at: new Date().toISOString()
                   }).then(function(roa) {
-                    window._creandoRecorridoAuto = false;
-                    if (!roa.error) {
-                      toast('\\uD83C\\uDFAF Recorrido reabierto autom\\u00e1ticamente para ' + _agenteEsteDisp);
+                    pendientes--;
+                    if (!roa.error) toast('\uD83C\uDFAF Recorrido reabierto autom\u00e1ticamente para ' + agHuerfano);
+                    if (pendientes <= 0) {
+                      window._verificandoHuerfanos = false;
                       loadObjetivos();
                     }
                   });
-                }
+                });
               });
             }
             if (miRec) {
