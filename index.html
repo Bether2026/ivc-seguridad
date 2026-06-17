@@ -1310,7 +1310,10 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
         <option value="CAV">CAV</option>
         <option value="Necochea">Necochea</option>
         <option value="Complejo Orma">Complejo Orma</option>
-                <option value="Padre Mugica">Padre Mugica</option>
+        <option value="Alvarado">Alvarado</option>
+        <option value="Padre Mugica">Padre Mugica</option>
+        <option value="Choferes">Choferes</option>
+        <option value="Administración">Administración</option>
       </select>
     </div>
 
@@ -11194,27 +11197,39 @@ async function abrirIniciarRecorrido() {
   var descEl = document.getElementById('o-desc');
   if (descEl) descEl.value = '';
 
-  // Load active fichajes
+  // Cargar TODOS los agentes (no solo los fichados) para que Administracion
+  // pueda registrar el recorrido de cualquier agente, este o no fichado en ese momento
   var sel = document.getElementById('o-agente');
   if (sel) {
-    sel.innerHTML = '<option value="">— Seleccionar agente fichado —</option>';
-    try {
-      var puesto = filtro() || USER.puesto;
-      var res = await db.from('fichajes').select('agente').eq('activo', true).eq('puesto', puesto);
-      var activos = res.data || [];
-      if (activos.length) {
-        activos.forEach(function(f) {
-          var o = document.createElement('option');
-          o.value = f.agente; o.textContent = f.agente;
-          sel.appendChild(o);
-        });
-      } else {
-        var oNone = document.createElement('option');
-        oNone.value = USER.puesto; oNone.textContent = USER.puesto + ' (sin fichaje activo)';
-        sel.appendChild(oNone);
-        sel.value = USER.puesto;
-      }
-    } catch(e) {}
+    sel.innerHTML = '<option value="">— Seleccionar agente —</option>';
+    var ROLES_VEN_TODOS_AGENTES_OBJ = ['Administración', 'Administrador', 'Gerencia', 'Jefe de departamento', 'Responsable de turno'];
+    if (ROLES_VEN_TODOS_AGENTES_OBJ.indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN') {
+      // Roles de gestion ven el listado completo de agentes
+      AGENTES.slice().sort().forEach(function(nombre) {
+        var o = document.createElement('option');
+        o.value = nombre; o.textContent = nombre;
+        sel.appendChild(o);
+      });
+    } else {
+      // Resto de usuarios: comportamiento anterior, solo agentes fichados activos en su puesto
+      try {
+        var puesto = USER.puesto;
+        var res = await db.from('fichajes').select('agente').eq('activo', true).eq('puesto', puesto);
+        var activos = res.data || [];
+        if (activos.length) {
+          activos.forEach(function(f) {
+            var o = document.createElement('option');
+            o.value = f.agente; o.textContent = f.agente;
+            sel.appendChild(o);
+          });
+        } else {
+          var oNone = document.createElement('option');
+          oNone.value = USER.puesto; oNone.textContent = USER.puesto + ' (sin fichaje activo)';
+          sel.appendChild(oNone);
+          sel.value = USER.puesto;
+        }
+      } catch(e) {}
+    }
   }
   openOv('ov-obj');
 }
