@@ -4889,7 +4889,7 @@ function renderNovCard(n) {
     h += '</button>';
   }
   // Botón cargar informe — solo para gestión/admin
-  var ROLES_ADM_NOV = ['Administración', 'Administrador', 'Gerencia', 'Jefe de departamento', 'Responsable de turno'];
+  var ROLES_ADM_NOV = ['Administración', 'Administrador'];
   if (USER && (ROLES_ADM_NOV.indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN')) {
     var tieneInforme = n.texto_informe || n.nro_pd || n.nro_pu;
     h += '<button onclick="abrirCargarInforme(\'' + n.id + '\')" ';
@@ -11777,7 +11777,7 @@ function _loadObjetivos() {
                 }
 
                 // Botón cargar informe — solo para gestión/admin
-                var ROLES_ADM_OBJ = ['Administración', 'Administrador', 'Gerencia', 'Jefe de departamento', 'Responsable de turno'];
+                var ROLES_ADM_OBJ = ['Administración', 'Administrador'];
                 if (USER && (ROLES_ADM_OBJ.indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN')) {
                   var tieneInfObj = puntos.some(function(p) { return p.texto_informe || p.nro_pd || p.nro_pu; });
                   ohtml += '<div style="margin-top:8px;border-top:1px solid rgba(255,255,255,.06);padding-top:8px">';
