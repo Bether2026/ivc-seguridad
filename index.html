@@ -5984,10 +5984,7 @@ function getMensajesAutomaticos() {
         es_fecha_especial: true,
         animacion: fe.animacion || 'none'
       });
-      // Lanzar partículas si tiene animación
-      if (fe.animacion && fe.animacion !== 'none') {
-        setTimeout(function() { lanzarParticulas(fe.animacion); }, 1000);
-      }
+      // Animación de partículas desactivada por pedido del usuario (sin serpentinas/emojis cayendo)
     }
   }
 
