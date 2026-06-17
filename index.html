@@ -6200,16 +6200,18 @@ function closeConfirm() {
 }
 function openOv(id) {
   $(id).classList.add('open');
-  var ROLES_ADM = ['Administración', 'Administrador', 'Gerencia', 'Jefe de departamento', 'Responsable de turno', 'Emergencias'];
+  var ROLES_ADM = ['Administración', 'Administrador']; // Solo estos ven la sección de informe (PD/PU)
+  var ROLES_GESTION_PUESTO = ['Administración', 'Administrador', 'Gerencia', 'Jefe de departamento', 'Responsable de turno', 'Emergencias']; // Estos pueden cargar en nombre de otro puesto
   var esAdm = ROLES_ADM.includes(USER ? USER.puesto : '') || (USER && USER.rol === 'ADMIN');
+  var esGestionPuesto = ROLES_GESTION_PUESTO.includes(USER ? USER.puesto : '') || (USER && USER.rol === 'ADMIN');
   if (id === 'ov-nov') {
-    if ($('n-puesto-wrap'))   $('n-puesto-wrap').style.display  = esAdm ? 'block' : 'none';
+    if ($('n-puesto-wrap'))   $('n-puesto-wrap').style.display  = esGestionPuesto ? 'block' : 'none';
     if ($('n-informe-wrap'))  $('n-informe-wrap').style.display = esAdm ? 'block' : 'none';
   }
   if (id === 'ov-obj-upd') {
     if ($('upd-informe-wrap')) $('upd-informe-wrap').style.display = esAdm ? 'block' : 'none';
   }
-  if (id === 'ov-obj' && esAdm && $('o-puesto-wrap')) $('o-puesto-wrap').style.display = 'block';
+  if (id === 'ov-obj' && esGestionPuesto && $('o-puesto-wrap')) $('o-puesto-wrap').style.display = 'block';
 }
 function closeOv(id) {
   $(id).classList.remove('open');
