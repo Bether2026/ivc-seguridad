@@ -1762,7 +1762,10 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
 <option value="CAV">CAV</option>
 <option value="Necochea">Necochea</option>
 <option value="Complejo Orma">Complejo Orma</option>
+<option value="Alvarado">Alvarado</option>
 <option value="Padre Mugica">Padre Mugica</option>
+<option value="Choferes">Choferes</option>
+<option value="Administración">Administración</option>
         </select>
       </div>
       <div class="form-group"><label class="form-label" id="f-agente-label">Agente</label>
@@ -2055,6 +2058,14 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
             <canvas id="sa-canvas"></canvas>
           </div>
           <div id="sa-tabla-detalle" style="margin-top:14px"></div>
+          <button class="btn-sm" onclick="generarResumenEscritoSA()" style="width:100%;margin-top:14px;background:rgba(212,166,86,.1);border:1px solid rgba(212,166,86,.35);color:#d4a656">📝 Generar resumen escrito</button>
+          <div id="sa-resumen-escrito" style="display:none;margin-top:12px;background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:14px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+              <span style="font-size:12px;font-weight:700;color:var(--accent3)">📝 Resumen del período</span>
+              <button class="btn-sm" onclick="copiarResumenSA()" style="font-size:10px;padding:4px 10px">📋 Copiar</button>
+            </div>
+            <div id="sa-resumen-texto" style="font-size:13px;color:var(--text2);line-height:1.6;white-space:pre-wrap"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -6076,7 +6087,7 @@ function _hashPassword() {
   return _hashPassword.apply(this, arguments);
 }
 var CREDS = {}; // Migrado a Supabase Auth — credenciales ya no viven en el codigo
-var AGENTES = ['ACOSTA PAMELA', 'ACUÑA EMANUEL FABIAN', 'ACUÑA JUAN FEDERICO', 'ACUÑA LUCAS OCTAVIO', 'AGUIRRE CARLA FLORENCIA', 'ALMEIDA ENRIQUE ROBERTO', 'ALVAREZ OZON NICOLAS MARCELO', 'APAZA ABRAHAM ESTEBAN', 'APUD MIGUEL OSCAR', 'ARMOA SANDRA ELIZABETH', 'ARROYO LAURA', 'BASTIAS EMANUEL DE DIOS', 'BRITOS JUAN ALBERTO', 'CAMARA MARIA CELESTE', 'CAMPOS ROXANA RUT', 'CARDOZO VERONICA MARIEL', 'CASTILLO ANGEL HERNAN', 'CASTILLO LUIS ANGEL', 'CASTRO CLAUDIO DAMIAN', 'CASTRO VICTOR HUGO', 'CONTE LUCAS EZEQUIEL', 'DE MARCO LEANDRO DANIEL', 'DEL COLLE DAMIAN EZEQUIEL', 'DEL COLLE GONZALO MARTIN', 'ELIAS GABRIEL', 'GIMENEZ GREGORIO', 'GODOY MARTIN TOMAS', 'GOMEZ ANTONIO', 'LANDAETA VIELMA CARMENCITA', 'LOBOS RAFAEL ALEJANDRO', 'LUACES JONATHAN RICARDO', 'MARTINEZ NOEMI KARINA', 'MEDINA RODRIGO SEBASTIAN', 'MIRANDA MIGUEL ALBERTO', 'NUÑEZ ALEXIS URIEL', 'ORENDE BRIAN NICOLAS', 'PANDOLLO CAROLINA', 'PEÑA OSCAR RAUL', 'PEÑA SERGIO ADRIAN', 'PEREIRA MIGUEL RAFAEL', 'RESCHIÑA THIAGO', 'RIVEROS VEGA LEANDRO', 'SANTILLAN HUMBERTO', 'SOSA FACUNDO URIEL', 'TOKAYUK CHRISTIAN PABLO', 'VALDEZ JORGE ALBERTO', 'VALDEZ NADIA SABRINA', 'VIEIRA HECTOR AUGUSTO', 'YALEVA CARLOS'];
+var AGENTES = ['ACOSTA PAMELA', 'ACUÑA EMANUEL FABIAN', 'ACUÑA JUAN FEDERICO', 'ACUÑA LUCAS OCTAVIO', 'AGUIRRE CARLA FLORENCIA', 'ALBANESE NICOLAS SEBASTIAN', 'ALBORNOZ JORGE ALEJANDRO', 'ALMEIDA ENRIQUE ROBERTO', 'ALVAREZ OZON NICOLAS MARCELO', 'APAZA ABRAHAM ESTEBAN', 'APUD MIGUEL OSCAR', 'ARMOA SANDRA ELIZABETH', 'ARROYO LAURA', 'AYBAR LEONEL MAXIMILIANO', 'BASTIAS EMANUEL DE DIOS', 'BECERRA MILAGROS VALENTINA', 'BRITOS JUAN ALBERTO', 'CAMARA MARIA CELESTE', 'CAMPOS ROXANA RUT', 'CARDOZO VERONICA MARIEL', 'CASTILLO ANGEL HERNAN', 'CASTILLO LUIS ANGEL', 'CASTRO CLAUDIO DAMIAN', 'CASTRO VICTOR HUGO', 'CONTE LUCAS EZEQUIEL', 'CRUCELI CARLOS GABRIEL', 'DE MARCO LEANDRO DANIEL', 'DEL COLLE DAMIAN EZEQUIEL', 'DEL COLLE GONZALO MARTIN', 'ELIAS GABRIEL', 'ELIAS RODRIGO', 'ESCOBAR VICTOR GABRIEL', 'GIMENEZ GREGORIO', 'GODOY MARTIN TOMAS', 'GOMEZ ANTONIO', 'GONZALEZ CLAUDIO MARCELO', 'GONZALEZ MARIANO', 'LAMADRID HORACIO DANIEL', 'LANDAETA VIELMA CARMENCITA', 'LOBOS RAFAEL ALEJANDRO', 'LOPEZ NESTOR GUSTAVO', 'LUACES JONATHAN RICARDO', 'MARTINEZ NOEMI KARINA', 'MEDINA RODRIGO SEBASTIAN', 'MELGAR ESTEBAN GUSTAVO', 'MENDEZ NARCISO MIGUEL', 'MIRANDA MIGUEL ALBERTO', 'MONTE FRANCISCO ALBERTO', 'MUCCI MARCELA', 'MUJICA IGNACIO JAVIER', 'NUÑEZ ALEXIS URIEL', 'NUÑEZ CLAUDIO DANIEL', 'OBELLA DANIEL FRANCO', 'ORENDE BRIAN NICOLAS', 'PALLADINO RICARDO ESTEBAN', 'PANDOLLO CAROLINA', 'PERAZZO WALTER DANIEL', 'PEREIRA MIGUEL RAFAEL', 'PEREZ TOUTOUNDJIAN FEDERICO NICOLAS', 'PEÑA OSCAR RAUL', 'PEÑA SERGIO ADRIAN', 'PEÑALOZA GASTON HERNAN', 'PILUSO MARCELO OSCAR', 'PILUSO URIEL', 'PRESTERA CHRISTIAN EDGAR', 'PRESTERA DIEGO GASTON', 'RESCHIÑA THIAGO', 'RIVEROS VEGA LEANDRO', 'ROCA JOSE LUIS', 'SANTILLAN HUMBERTO', 'SELVA ADRIANA BEATRIZ', 'SOSA FACUNDO URIEL', 'TALLARICO MARIANA LAURA', 'TOKAYUK CHRISTIAN PABLO', 'VALDEZ JORGE ALBERTO', 'VALDEZ NADIA SABRINA', 'VIEIRA HECTOR AUGUSTO', 'YALEVA CARLOS'];
 var USER = null;
 var CUR_VIEW = 'dashboard';
 var CUR_NOV_TAB = 'todas';
@@ -17667,8 +17678,113 @@ function _renderGraficoSA(entries, fuente, dimension, totalRegistros) {
   });
   tablaHtml += '</table>';
   document.getElementById('sa-tabla-detalle').innerHTML = tablaHtml;
+
+  // Guardar contexto para el resumen escrito
+  SA_ULTIMO_CONTEXTO = {
+    entries: entries,
+    fuente: fuente,
+    dimension: dimension,
+    total: totalRegistros,
+    nombreFuente: nombresFuente[fuente],
+    nombreDim: nombresDim[dimension] || dimension,
+    desde: document.getElementById('sa-desde').value,
+    hasta: document.getElementById('sa-hasta').value
+  };
+  document.getElementById('sa-resumen-escrito').style.display = 'none';
 }
 // ══════════════════════════════════════════════════════════════════
+
+var SA_ULTIMO_CONTEXTO = null;
+
+function _formatearFechaSA(iso) {
+  if (!iso) return '';
+  var d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
+function generarResumenEscritoSA() {
+  if (!SA_ULTIMO_CONTEXTO) { toast('Primero generá un gráfico', 'err'); return; }
+  var ctx = SA_ULTIMO_CONTEXTO;
+  var entries = ctx.entries;
+
+  if (!entries.length) {
+    document.getElementById('sa-resumen-texto').textContent = 'No se encontraron registros en el período seleccionado.';
+    document.getElementById('sa-resumen-escrito').style.display = 'block';
+    return;
+  }
+
+  var esTemporal = (ctx.dimension === 'dia' || ctx.dimension === 'mes');
+  var periodoTexto = 'entre el ' + _formatearFechaSA(ctx.desde) + ' y el ' + _formatearFechaSA(ctx.hasta);
+
+  var partes = [];
+  partes.push('Durante el período analizado (' + periodoTexto + '), se registraron ' + ctx.total + ' ' + ctx.nombreFuente.toLowerCase() + ' en total.');
+
+  if (!esTemporal) {
+    // Ordenado descendente ya viene asi desde _agruparParaSA
+    var top = entries[0];
+    var pctTop = ((top[1] / ctx.total) * 100).toFixed(1);
+    partes.push('La categoría con mayor peso dentro de "' + ctx.nombreDim + '" fue "' + top[0] + '", con ' + top[1] + ' registros (' + pctTop + '% del total).');
+
+    if (entries.length > 1) {
+      var segundo = entries[1];
+      var pctSegundo = ((segundo[1] / ctx.total) * 100).toFixed(1);
+      partes.push('Le sigue "' + segundo[0] + '" con ' + segundo[1] + ' registros (' + pctSegundo + '%).');
+    }
+
+    // Concentracion: top 3 vs resto
+    var top3 = entries.slice(0, 3).reduce(function(acc, e) { return acc + e[1]; }, 0);
+    var pctTop3 = ((top3 / ctx.total) * 100).toFixed(1);
+    if (entries.length > 3) {
+      partes.push('Las 3 categorías principales concentran el ' + pctTop3 + '% del total, mientras que las restantes ' + (entries.length - 3) + ' categorías se reparten el ' + (100 - pctTop3).toFixed(1) + '% restante.');
+    } else {
+      partes.push('Estas ' + entries.length + ' categorías agrupan la totalidad de los registros del período.');
+    }
+
+    if (parseFloat(pctTop) > 50) {
+      partes.push('Se observa una fuerte concentración en una sola categoría, lo que podría indicar un foco de atención particular durante este período.');
+    }
+  } else {
+    // Temporal: identificar pico y promedio
+    var valores = entries.map(function(e) { return e[1]; });
+    var promedio = (valores.reduce(function(a,b){return a+b;}, 0) / valores.length).toFixed(1);
+    var maxEntry = entries.reduce(function(a, b) { return b[1] > a[1] ? b : a; });
+    var minEntry = entries.reduce(function(a, b) { return b[1] < a[1] ? b : a; });
+
+    partes.push('El promedio fue de ' + promedio + ' registros por ' + (ctx.dimension === 'dia' ? 'día' : 'mes') + '.');
+    partes.push('El punto de mayor actividad fue el ' + maxEntry[0] + ', con ' + maxEntry[1] + ' registros.');
+    if (minEntry[1] !== maxEntry[1]) {
+      partes.push('El de menor actividad fue el ' + minEntry[0] + ', con ' + minEntry[1] + ' registro' + (minEntry[1] !== 1 ? 's' : '') + '.');
+    }
+
+    // Tendencia simple: comparar primera mitad vs segunda mitad
+    if (entries.length >= 4) {
+      var mitad = Math.floor(entries.length / 2);
+      var primeraMitad = entries.slice(0, mitad).reduce(function(a,e){return a+e[1];}, 0);
+      var segundaMitad = entries.slice(mitad).reduce(function(a,e){return a+e[1];}, 0);
+      if (segundaMitad > primeraMitad * 1.15) {
+        partes.push('La actividad muestra una tendencia creciente hacia el final del período analizado.');
+      } else if (primeraMitad > segundaMitad * 1.15) {
+        partes.push('La actividad muestra una tendencia decreciente hacia el final del período analizado.');
+      } else {
+        partes.push('La actividad se mantuvo relativamente estable a lo largo del período.');
+      }
+    }
+  }
+
+  var textoFinal = partes.join(' ');
+  document.getElementById('sa-resumen-texto').textContent = textoFinal;
+  document.getElementById('sa-resumen-escrito').style.display = 'block';
+}
+
+function copiarResumenSA() {
+  var texto = document.getElementById('sa-resumen-texto').textContent;
+  if (!texto) return;
+  navigator.clipboard.writeText(texto).then(function() {
+    toast('Resumen copiado al portapapeles');
+  }).catch(function() {
+    toast('No se pudo copiar', 'err');
+  });
+}
 </script>
 
 </body>
