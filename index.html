@@ -1344,6 +1344,41 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
 </div>
 
 <!-- MODAL AGREGAR PUNTO DE RECORRIDO -->
+<div class="overlay" id="ov-traslado">
+  <div class="modal">
+    <div class="modal-head"><span class="modal-title">🔁 Trasladar de puesto</span><button class="btn-close" onclick="closeOv('ov-traslado')">×</button></div>
+    <div class="form-group">
+      <label class="form-label">Agente</label>
+      <input class="form-input" id="trasl-agente" disabled style="opacity:0.7">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Puesto actual</label>
+      <input class="form-input" id="trasl-origen" disabled style="opacity:0.7">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Trasladar a</label>
+      <select class="form-select" id="trasl-destino">
+        <option value="">— Seleccioná el puesto destino —</option>
+        <option value="Papa Francisco">Papa Francisco</option>
+        <option value="Rodrigo Bueno">Rodrigo Bueno</option>
+        <option value="Fraga">Fraga</option>
+        <option value="Base Castañares">Base Castañares</option>
+        <option value="Obrador Savio">Obrador Savio</option>
+        <option value="CAV">CAV</option>
+        <option value="Necochea">Necochea</option>
+        <option value="Complejo Orma">Complejo Orma</option>
+        <option value="Alvarado">Alvarado</option>
+        <option value="Padre Mugica">Padre Mugica</option>
+        <option value="Choferes">Choferes</option>
+        <option value="Administración">Administración</option>
+        <option value="Responsable de turno">Responsable de turno</option>
+        <option value="Emergencias">Emergencias</option>
+      </select>
+    </div>
+    <input type="hidden" id="trasl-fichaje-id">
+    <button class="btn-login" id="btn-confirmar-traslado" onclick="confirmarTraslado()">🔁 Confirmar traslado</button>
+  </div>
+</div>
 <div class="overlay" id="ov-obj-upd">
   <div class="modal">
     <div class="modal-head"><span class="modal-title">📍 Registrar Punto</span><button class="btn-close" onclick="closeOv('ov-obj-upd')">×</button></div>
@@ -4925,6 +4960,12 @@ function _marcarSalidaDirecta() {
                   db.from('fichajes').select('puesto').eq('id', fichajeId).maybeSingle().then(function(rf) {
                     var puestoAgente = (rf.data && rf.data.puesto) ? rf.data.puesto : nombreAgente;
                     cerrarRecorridoAuto(puestoAgente, nombreAgente);
+                    // Limpiar referencia de este dispositivo si era el mismo agente
+                    try {
+                      if (localStorage.getItem('ivc_agente_fichado_' + puestoAgente) === nombreAgente) {
+                        localStorage.removeItem('ivc_agente_fichado_' + puestoAgente);
+                      }
+                    } catch(e) {}
                   });
                   loadFichajes();
                   loadDash();
@@ -10422,6 +10463,7 @@ function _renderFichajeRow(fr, canSeeGeo) {
   if (USER.rol === 'ADMIN') {
     h += '<button onclick="abrirEditarFichaje(' + fr.id + ',\'' + (fr.agente||'').replace(/'/g,'') + '\',\'' + (fr.entrada||'') + '\',\'' + (fr.salida||'') + '\')" style="flex-shrink:0;padding:4px 8px;background:transparent;border:1px solid rgba(245,158,11,.3);border-radius:6px;color:#fcd34d;font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font)">&#x1F552;</button>';
   }
+  h += '<button data-fid="' + fr.id + '" data-fagente="' + fr.agente.replace(/"/g, '').replace(/'/g, '') + '" data-fpuesto="' + (fr.puesto||'').replace(/"/g, '').replace(/'/g, '') + '" onclick="var b=this;abrirTrasladoPuesto(b.getAttribute(\'data-fid\'),b.getAttribute(\'data-fagente\'),b.getAttribute(\'data-fpuesto\'))" style="flex-shrink:0;padding:4px 8px;background:transparent;border:1px solid rgba(99,102,241,.35);border-radius:6px;color:#a5b4fc;font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font)" title="Trasladar a otro puesto">🔁</button>';
   h += '<button data-fid="' + fr.id + '" data-fnombre="' + fr.agente.replace(/"/g, '').replace(/'/g, '') + '" onclick="var b=this;marcarSalidaDirecta(b.getAttribute(\'data-fid\'),b.getAttribute(\'data-fnombre\'))" style="flex-shrink:0;padding:4px 10px;background:transparent;border:1px solid rgba(239,68,68,0.4);border-radius:6px;color:#f87171;font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font);white-space:nowrap">Salida</button>';
   h += '</div>';
   return h;
@@ -10807,6 +10849,9 @@ function _doEntrada() {
             }).then(function(ro) {
               if (!ro.error) {
                 toast('&#x1F3AF; Recorrido iniciado autom\xE1ticamente');
+                // Guardar en ESTE dispositivo quien fichó, para identificar "mi recorrido"
+                // (el login es compartido por puesto, no por agente individual)
+                try { localStorage.setItem('ivc_agente_fichado_' + USER.puesto, SEL_AGENT); } catch(e) {}
                 loadObjetivos();
               }
             });
@@ -10882,6 +10927,11 @@ function _doSalida() {
                 case 4:
                   toast("Salida registrada \u2014 ".concat(SEL_AGENT));
                   cerrarRecorridoAuto(USER.puesto, SEL_AGENT);
+                  try {
+                    if (localStorage.getItem('ivc_agente_fichado_' + USER.puesto) === SEL_AGENT) {
+                      localStorage.removeItem('ivc_agente_fichado_' + USER.puesto);
+                    }
+                  } catch(e) {}
                   loadFichajes();
                   loadDash();
                   loadFichajes();
@@ -11555,9 +11605,11 @@ function _loadObjetivos() {
           // Banner recorrido activo propio para los 3 barrios
           var BARRIOS_AUTO = ['Rodrigo Bueno', 'Papa Francisco', 'Fraga', 'Responsable de turno'];
           if (BARRIOS_AUTO.indexOf(USER.puesto) >= 0) {
+            var _agenteEsteDisp = null;
+            try { _agenteEsteDisp = localStorage.getItem('ivc_agente_fichado_' + USER.puesto); } catch(e) {}
             var miRec = list.find(function(o) {
               return o.estado === 'activo' && o.auto_fichaje &&
-                     (o.cargado_por === (USER.nombre || USER.puesto));
+                     (o.cargado_por === (_agenteEsteDisp || USER.nombre || USER.puesto));
             });
             var bannerEl = document.getElementById('obj-mi-recorrido');
             if (!bannerEl) {
@@ -11565,6 +11617,29 @@ function _loadObjetivos() {
               bannerEl.id = 'obj-mi-recorrido';
               var objListEl = document.getElementById('obj-list');
               if (objListEl && objListEl.parentNode) objListEl.parentNode.insertBefore(bannerEl, objListEl);
+            }
+            if (!miRec && _agenteEsteDisp) {
+              // Verificar si el agente fichado en este dispositivo tiene fichaje activo
+              // sin recorrido abierto (huerfano) — solo para los 4 puestos autom\u00e1ticos
+              db.from('fichajes').select('id').eq('puesto', USER.puesto).eq('agente', _agenteEsteDisp).eq('activo', true).maybeSingle().then(function(rfa) {
+                if (rfa.data && !window._creandoRecorridoAuto) {
+                  window._creandoRecorridoAuto = true;
+                  db.from('objetivos').insert({
+                    puesto: USER.puesto,
+                    cargado_por: _agenteEsteDisp,
+                    estado: 'activo',
+                    progreso: 0,
+                    auto_fichaje: true,
+                    created_at: new Date().toISOString()
+                  }).then(function(roa) {
+                    window._creandoRecorridoAuto = false;
+                    if (!roa.error) {
+                      toast('\\uD83C\\uDFAF Recorrido reabierto autom\\u00e1ticamente para ' + _agenteEsteDisp);
+                      loadObjetivos();
+                    }
+                  });
+                }
+              });
             }
             if (miRec) {
               var puntosMios = (miRec.actualizaciones || []).length;
@@ -17786,6 +17861,80 @@ function copiarResumenSA() {
     toast('No se pudo copiar', 'err');
   });
 }
+
+// ══════════════════════════════════════════════════════════════════
+// TRASLADO DE PUESTO — un agente fichado se mueve de un puesto a otro
+// ══════════════════════════════════════════════════════════════════
+function abrirTrasladoPuesto(fichajeId, agente, puestoOrigen) {
+  document.getElementById('trasl-fichaje-id').value = fichajeId;
+  document.getElementById('trasl-agente').value = agente;
+  document.getElementById('trasl-origen').value = puestoOrigen;
+  document.getElementById('trasl-destino').value = '';
+  openOv('ov-traslado');
+}
+
+function confirmarTraslado() {
+  var fichajeId = document.getElementById('trasl-fichaje-id').value;
+  var agente = document.getElementById('trasl-agente').value;
+  var puestoOrigen = document.getElementById('trasl-origen').value;
+  var puestoDestino = document.getElementById('trasl-destino').value;
+
+  if (!puestoDestino) { toast('Seleccion\u00e1 el puesto destino', 'err'); return; }
+  if (puestoDestino === puestoOrigen) { toast('El destino debe ser distinto al puesto actual', 'err'); return; }
+
+  setLoading('btn-confirmar-traslado', true);
+
+  // 1. Actualizar el fichaje activo: cambia el puesto (sigue siendo el mismo fichaje, no se cierra)
+  db.from('fichajes').update({ puesto: puestoDestino }).eq('id', fichajeId).then(function(rf) {
+    if (rf.error) {
+      setLoading('btn-confirmar-traslado', false);
+      toast('Error al trasladar: ' + rf.error.message, 'err');
+      return;
+    }
+
+    // 2. Cerrar/finalizar el recorrido de C.Objetivo en el puesto de origen (si tenia uno auto)
+    cerrarRecorridoAuto(puestoOrigen, agente);
+
+    // 3. Limpiar referencia de "mi recorrido" de este dispositivo para el puesto de origen
+    try {
+      if (localStorage.getItem('ivc_agente_fichado_' + puestoOrigen) === agente) {
+        localStorage.removeItem('ivc_agente_fichado_' + puestoOrigen);
+      }
+      // Si el destino es uno de los barrios con recorrido automatico, lo va a iniciar
+      // la propia logica de fichaje si vuelve a fichar — aqui solo registramos el traslado.
+    } catch(e) {}
+
+    // 4. Crear novedad automatica registrando el traslado, visible para ambos puestos
+    var ahora = new Date().toISOString();
+    db.from('novedades').insert({
+      puesto: puestoOrigen,
+      asunto: 'Traslado de puesto',
+      ubicacion: puestoOrigen + ' \u2192 ' + puestoDestino,
+      detalle: agente + ' fue trasladado de ' + puestoOrigen + ' a ' + puestoDestino + '.',
+      cargado_por: agente,
+      pendiente: false,
+      created_at: ahora
+    }).then(function() {
+      return db.from('novedades').insert({
+        puesto: puestoDestino,
+        asunto: 'Traslado de puesto',
+        ubicacion: puestoOrigen + ' \u2192 ' + puestoDestino,
+        detalle: agente + ' fue trasladado a este puesto desde ' + puestoOrigen + '.',
+        cargado_por: agente,
+        pendiente: false,
+        created_at: ahora
+      });
+    }).then(function() {
+      setLoading('btn-confirmar-traslado', false);
+      toast('\uD83D\uDD01 ' + agente + ' trasladado a ' + puestoDestino);
+      closeOv('ov-traslado');
+      loadFichajes();
+      loadObjetivos();
+      loadDash();
+    });
+  });
+}
+// ══════════════════════════════════════════════════════════════════
 </script>
 
 </body>
