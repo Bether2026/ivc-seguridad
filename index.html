@@ -6479,7 +6479,7 @@ function initApp() {
   // Tab "Avanzado" dentro de Estadisticas — exclusivo Gerencia y Administrador
   if ($('stat-tab-avanzado')) $('stat-tab-avanzado').style.display = _puedeStats ? 'inline-block' : 'none';
   // Precintos — EXCLUSIVO Obrador Savio y Administrador del sistema, nadie más (ni Gerencia)
-  var _puedePrecintos = ['Obrador Savio', 'Administrador'].indexOf(USER.puesto) >= 0;
+  var _puedePrecintos = ['Obrador Savio', 'Administración'].indexOf(USER.puesto) >= 0;
   if ($('si-precintos')) $('si-precintos').style.display = _puedePrecintos ? 'flex' : 'none';
   var canSeeGPS = ['Gerencia', 'Administrador'].includes(USER.puesto);
   if ($('tab-gps')) $('tab-gps').style.display = canSeeGPS ? 'flex' : 'none';
