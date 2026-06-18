@@ -5002,10 +5002,14 @@ function cerrarRecorridoAuto(puesto, agente) {
 
 function formatFechaCompleta(dateStr) {
   if (!dateStr) return '';
-  var d = new Date(dateStr);
+  // dateStr viene como "YYYY-MM-DD" puro — parsear con new Date() lo interpreta como
+  // medianoche UTC, y usar getDate()/getDay()/getMonth() (zona local del dispositivo)
+  // puede restar un día si el dispositivo está en huso horario negativo (ej Argentina).
+  // Por eso usamos los métodos UTC, que siempre coinciden con el string original.
+  var d = new Date(dateStr + 'T00:00:00Z');
   var dias = ['Domingo', 'Lunes', 'Martes', 'Miercoles', 'Jueves', 'Viernes', 'Sabado'];
   var meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-  return dias[d.getDay()] + ', ' + d.getDate() + ' de ' + meses[d.getMonth()] + ' de ' + d.getFullYear();
+  return dias[d.getUTCDay()] + ', ' + d.getUTCDate() + ' de ' + meses[d.getUTCMonth()] + ' de ' + d.getUTCFullYear();
 }
 function fechaCorta(dateStr) {
   if (!dateStr) return '';
@@ -11867,19 +11871,19 @@ function _loadChoferes() {
             isAct = r.estado === 'activo';
             // Separador de fecha (solo historial finalizado)
             if (!isAct) {
-              var _fechaRuta = (r.inicio || r.created_at || '').substring(0, 10);
+              // fechaCorta() da el día real en Argentina, no el string crudo (que puede venir en UTC)
+              var _fechaRuta = fechaCorta(r.inicio || r.created_at);
               var _fechaLabel = '';
               if (_fechaRuta) {
-                var _partes = _fechaRuta.split('-');
-                var _dRuta = new Date(_fechaRuta + 'T00:00:00');
-                var _hoy = new Date(); _hoy.setHours(0,0,0,0);
-                var _ayer = new Date(_hoy); _ayer.setDate(_ayer.getDate() - 1);
+                var _dRuta = new Date(_fechaRuta + 'T00:00:00Z');
+                var _hoy = new Date(fechaHoyAR() + 'T00:00:00Z');
+                var _ayer = new Date(_hoy); _ayer.setUTCDate(_ayer.getUTCDate() - 1);
                 if (_dRuta.getTime() === _hoy.getTime()) {
-                  _fechaLabel = 'Hoy — ' + _dRuta.toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long' });
+                  _fechaLabel = 'Hoy — ' + _dRuta.toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long', timeZone:'UTC' });
                 } else if (_dRuta.getTime() === _ayer.getTime()) {
-                  _fechaLabel = 'Ayer — ' + _dRuta.toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long' });
+                  _fechaLabel = 'Ayer — ' + _dRuta.toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long', timeZone:'UTC' });
                 } else {
-                  _fechaLabel = _dRuta.toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+                  _fechaLabel = _dRuta.toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long', year:'numeric', timeZone:'UTC' });
                 }
               }
               if (_fechaRuta && _fechaRuta !== _ultimaFechaRuta) {
@@ -17552,19 +17556,21 @@ function buscarHistorialNovedades(irAPagina) {
       var fecha = formatTs(n.created_at);
 
       // Separador de fecha (mismo estilo que Hojas de Ruta / Novedades)
-      var _fechaKey = (n.created_at || '').substring(0, 10);
+      // Usamos fechaCorta() para obtener el día real en Argentina, no el string crudo
+      // (que puede venir en UTC y mostrar un día adelantado/atrasado según la hora).
+      var _fechaKey = fechaCorta(n.created_at);
       if (_fechaKey && _fechaKey !== _ultimaFechaHN) {
         _ultimaFechaHN = _fechaKey;
-        var _dHN = new Date(_fechaKey + 'T00:00:00');
-        var _hoyHN = new Date(); _hoyHN.setHours(0,0,0,0);
-        var _ayerHN = new Date(_hoyHN); _ayerHN.setDate(_ayerHN.getDate() - 1);
+        var _dHN = new Date(_fechaKey + 'T00:00:00Z');
+        var _hoyHN = new Date(fechaHoyAR() + 'T00:00:00Z');
+        var _ayerHN = new Date(_hoyHN); _ayerHN.setUTCDate(_ayerHN.getUTCDate() - 1);
         var _labelHN;
         if (_dHN.getTime() === _hoyHN.getTime()) {
-          _labelHN = 'Hoy — ' + _dHN.toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long' });
+          _labelHN = 'Hoy — ' + _dHN.toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long', timeZone:'UTC' });
         } else if (_dHN.getTime() === _ayerHN.getTime()) {
-          _labelHN = 'Ayer — ' + _dHN.toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long' });
+          _labelHN = 'Ayer — ' + _dHN.toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long', timeZone:'UTC' });
         } else {
-          _labelHN = _dHN.toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+          _labelHN = _dHN.toLocaleDateString('es-AR', { weekday:'long', day:'numeric', month:'long', year:'numeric', timeZone:'UTC' });
         }
         var _esHoyHN = _labelHN.indexOf('Hoy') === 0;
         var _esAyerHN = _labelHN.indexOf('Ayer') === 0;
