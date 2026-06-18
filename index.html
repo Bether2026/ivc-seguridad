@@ -5009,12 +5009,10 @@ function formatFechaCompleta(dateStr) {
 }
 function fechaCorta(dateStr) {
   if (!dateStr) return '';
-  // Parse the stored date/timestamp and return in Argentina timezone
+  // Parse the stored date/timestamp and return in Argentina timezone (UTC-3 fijo)
   var d = new Date(dateStr);
-  var argOffset = -3 * 60;
-  var localOffset = d.getTimezoneOffset();
-  var diffMs = (localOffset - argOffset) * 60 * 1000;
-  var argDate = new Date(d.getTime() - diffMs);
+  var utcMs = d.getTime() + (d.getTimezoneOffset() * 60000); // hora UTC real
+  var argDate = new Date(utcMs - 3 * 60 * 60 * 1000); // UTC-3
   var yyyy = argDate.getUTCFullYear();
   var mm = String(argDate.getUTCMonth() + 1).padStart(2, '0');
   var dd = String(argDate.getUTCDate()).padStart(2, '0');
@@ -5927,12 +5925,13 @@ function escapeHTML(str) {
 }
 
 function fechaHoyAR() {
-  // Offset Argentina: UTC-3 siempre (no tiene horario de verano desde 1999)
+  // Argentina es siempre UTC-3 (no tiene horario de verano desde 1999).
+  // Calculamos directo desde UTC en vez de usar getTimezoneOffset() del dispositivo,
+  // que varía según cómo esté configurado el reloj de cada celular/compu y puede
+  // dar resultados incorrectos si el dispositivo no está en huso horario argentino.
   var ahora = new Date();
-  var argOffset = -3 * 60; // minutos
-  var localOffset = ahora.getTimezoneOffset(); // minutos (negativo si adelantado)
-  var diffMs = (localOffset - argOffset) * 60 * 1000;
-  var argDate = new Date(ahora.getTime() - diffMs);
+  var utcMs = ahora.getTime() + (ahora.getTimezoneOffset() * 60000); // hora UTC real
+  var argDate = new Date(utcMs - 3 * 60 * 60 * 1000); // UTC-3
   var yyyy = argDate.getUTCFullYear();
   var mm = String(argDate.getUTCMonth() + 1).padStart(2, '0');
   var dd = String(argDate.getUTCDate()).padStart(2, '0');
@@ -16545,10 +16544,8 @@ var MONITOR_TURNO_MS = 5 * 60 * 1000; // 5 minutos
 // ── Utilidad: hora AR actual como "HH:MM" ──
 function horaActualAR() {
   var ahora = new Date();
-  var argOffset = -3 * 60;
-  var localOffset = ahora.getTimezoneOffset();
-  var diffMs = (localOffset - argOffset) * 60 * 1000;
-  var argDate = new Date(ahora.getTime() - diffMs);
+  var utcMs = ahora.getTime() + (ahora.getTimezoneOffset() * 60000); // hora UTC real
+  var argDate = new Date(utcMs - 3 * 60 * 60 * 1000); // UTC-3
   var hh = String(argDate.getUTCHours()).padStart(2, '0');
   var mm = String(argDate.getUTCMinutes()).padStart(2, '0');
   return hh + ':' + mm;
