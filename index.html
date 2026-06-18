@@ -11864,7 +11864,15 @@ function _loadObjetivos() {
                     if (u.agentes_extra && u.agentes_extra.length) {
                       ohtml += '<div style="font-size:11px;color:var(--accent3);margin-top:3px">👥 Tambi\u00e9n: ' + u.agentes_extra.join(', ') + '</div>';
                     }
-                    if (u.foto) ohtml += '<img src="' + u.foto + '" onclick="abrirFotoLightbox(\'' + u.foto + '\')" style="width:90px;height:70px;object-fit:cover;border-radius:8px;margin-top:6px;border:1px solid rgba(255,255,255,0.15);cursor:zoom-in;display:block" loading="lazy" onerror="this.style.display=\'none\'">';
+                    if (u.fotos && u.fotos.length) {
+                      ohtml += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">';
+                      u.fotos.forEach(function(furl) {
+                        ohtml += '<img src="' + furl + '" onclick="abrirFotoLightbox(\'' + furl + '\')" style="width:90px;height:70px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,0.15);cursor:zoom-in;display:block" loading="lazy" onerror="this.style.display=\'none\'">';
+                      });
+                      ohtml += '</div>';
+                    } else if (u.foto) {
+                      ohtml += '<img src="' + u.foto + '" onclick="abrirFotoLightbox(\'' + u.foto + '\')" style="width:90px;height:70px;object-fit:cover;border-radius:8px;margin-top:6px;border:1px solid rgba(255,255,255,0.15);cursor:zoom-in;display:block" loading="lazy" onerror="this.style.display=\'none\'">';
+                    }
                     ohtml += '</div>';
                     ohtml += '<div style="font-size:10px;color:var(--text3);white-space:nowrap;flex-shrink:0">' + (u.hora || '') + '</div>';
                     ohtml += '</div>';
