@@ -1415,12 +1415,12 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
     </div>
 
     <div class="form-group">
-      <label class="form-label">📷 Foto del punto (opcional)</label>
+      <label class="form-label">📷 Fotos del punto (opcional)</label>
       <div onclick="abrirSelectorFoto('upd-foto-input')" style="border:2px dashed var(--border2);border-radius:var(--radius-sm);padding:14px;text-align:center;cursor:pointer;background:var(--bg3)">
         <div style="font-size:20px;margin-bottom:4px">📷</div>
-        <div style="font-size:12px;color:var(--text2)">Agregar foto del punto</div>
+        <div style="font-size:12px;color:var(--text2)">Agregar foto(s) del punto</div>
       </div>
-      <input type="file" id="upd-foto-input" accept="image/*" style="display:none" onchange="previewUpdFoto(this)">
+      <input type="file" id="upd-foto-input" accept="image/*" multiple style="display:none" onchange="previewUpdFoto(this)">
       <div id="upd-foto-preview" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px"></div>
     </div>
 
@@ -2355,13 +2355,13 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
         </div>
         <!-- Foto obligatoria -->
         <div class="form-group">
-          <label class="form-label">Foto del control <span style="color:var(--red)">*</span></label>
-          <input type="file" accept="image/*" id="ctrl-foto-input" onchange="prevFotoCtrl(this)" style="display:none">
+          <label class="form-label">Fotos del control <span style="color:var(--red)">*</span></label>
+          <input type="file" accept="image/*" multiple id="ctrl-foto-input" onchange="prevFotoCtrl(this)" style="display:none">
           <button type="button" onclick="abrirSelectorFoto('ctrl-foto-input')" style="display:flex;align-items:center;gap:8px;padding:12px 14px;border-radius:8px;border:1px dashed var(--border2);background:var(--bg2);color:var(--text3);font-family:var(--font);font-size:12px;cursor:pointer;width:100%">
             <span style="font-size:22px">&#128247;</span>
-            <span>Sacar foto del punto ahora <span style="color:var(--red)">*</span></span>
+            <span>Sacar foto(s) del punto ahora <span style="color:var(--red)">*</span></span>
           </button>
-          <div id="ctrl-foto-prev" style="margin-top:8px"></div>
+          <div id="ctrl-foto-prev" style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap"></div>
         </div>
         <button class="btn-login" id="btn-save-ctrl" onclick="guardarControl()">&#x2713; Confirmar control</button>
       </div>
@@ -4624,7 +4624,7 @@ function guardarActualizacionNovedad() {
 } // ─── AUTO-REFRESH EN TIEMPO REAL ───
 function _guardarActualizacionNovedad() {
   _guardarActualizacionNovedad = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee14() {
-    var id, texto, autor, res, acts, now, nuevaAct, fotoInput, fileOrig, fileComp, path, upRes, urlRes, saveRes;
+    var id, texto, autor, res, acts, now, nuevaAct, fotoInput, fileOrig, urlSubida, saveRes;
     return _regenerator().w(function (_context14) {
       while (1) switch (_context14.n) {
         case 0:
@@ -4668,21 +4668,10 @@ function _guardarActualizacionNovedad() {
           }
           fileOrig = fotoInput.files[0];
           _context14.n = 3;
-          return comprimirImagen(fileOrig);
+          return uploadToR2Comprimido(fileOrig, 'novedades');
         case 3:
-          fileComp = _context14.v;
-          path = 'novedades/' + id + '/upd_' + Date.now() + '.jpg';
-          _context14.n = 4;
-          return db.storage.from('fotos').upload(path, fileComp, {
-            contentType: 'image/jpeg',
-            upsert: false
-          });
-        case 4:
-          upRes = _context14.v;
-          if (!upRes.error) {
-            urlRes = db.storage.from('fotos').getPublicUrl(path);
-            if (urlRes.data && urlRes.data.publicUrl) nuevaAct.foto = urlRes.data.publicUrl;
-          }
+          urlSubida = _context14.v;
+          if (urlSubida) nuevaAct.foto = urlSubida;
         case 5:
           acts.push(nuevaAct);
 
@@ -5475,7 +5464,8 @@ function uploadToR2Comprimido(file, carpeta) {
       var reader = new FileReader();
       reader.onload = function(e) {
         var arrayBuffer = e.target.result;
-        var ext = (comprimido.type || 'image/jpeg').includes('png') ? 'png' : 'jpg';
+        var tipoComp = comprimido.type || 'image/jpeg';
+        var ext = tipoComp.includes('png') ? 'png' : tipoComp.includes('pdf') ? 'pdf' : 'jpg';
         var filename = (carpeta || 'general') + '/' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) + '.' + ext;
 
         fetch('https://ivc-push.vercel.app/api/r2-upload', {
@@ -5586,7 +5576,7 @@ function limpiarFoto(inputId, previewId) {
     'inc-foto-input':  function() { window.INC_FOTO = null; },
     'tal-foto-input':  function() { window.TAL_FOTO = null; },
     'obj-foto-input':  function() { window.OBJ_FOTO_FILE = null; },
-    'upd-foto-input':  function() { window.OBJ_UPD_FOTO_FILE = null; },
+    'upd-foto-input':  function() { window.OBJ_UPD_FOTOS = []; },
   };
   if (varMap[inputId]) varMap[inputId]();
 }
@@ -5667,7 +5657,7 @@ function uploadFotosToSupabase(_x8) {
 }
 function _uploadFotosToSupabase() {
   _uploadFotosToSupabase = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee22(novedadId) {
-    var urls, _iterator, _step, fileOrig, file, path, _yield$db$storage$fro, data, error, _db$storage$from$getP, urlData, _t6;
+    var urls, _iterator, _step, fileOrig, urlSubida2, _t6;
     return _regenerator().w(function (_context22) {
       while (1) switch (_context22.p = _context22.n) {
         case 0:
@@ -5682,23 +5672,10 @@ function _uploadFotosToSupabase() {
           }
           fileOrig = _step.value;
           _context22.n = 3;
-          return comprimirImagen(fileOrig);
+          return uploadToR2Comprimido(fileOrig, 'novedades');
         case 3:
-          file = _context22.v;
-          path = "novedades/" + novedadId + "/" + Date.now() + "_" + Math.random().toString(36).substr(2, 6) + ".jpg";
-          _context22.n = 4;
-          return db.storage.from('fotos').upload(path, file, {
-            contentType: 'image/jpeg',
-            upsert: false
-          });
-        case 4:
-          _yield$db$storage$fro = _context22.v;
-          data = _yield$db$storage$fro.data;
-          error = _yield$db$storage$fro.error;
-          if (!error) {
-            _db$storage$from$getP = db.storage.from('fotos').getPublicUrl(path), urlData = _db$storage$from$getP.data;
-            urls.push(urlData && urlData.publicUrl ? urlData.publicUrl : path);
-          }
+          urlSubida2 = _context22.v;
+          if (urlSubida2) urls.push(urlSubida2);
         case 5:
           _context22.n = 2;
           break;
@@ -6137,7 +6114,7 @@ function _hashPassword() {
   return _hashPassword.apply(this, arguments);
 }
 var CREDS = {}; // Migrado a Supabase Auth — credenciales ya no viven en el codigo
-var AGENTES = ['ACOSTA PAMELA', 'ACUÑA EMANUEL FABIAN', 'ACUÑA JUAN FEDERICO', 'ACUÑA LUCAS OCTAVIO', 'AGUIRRE CARLA FLORENCIA', 'ALBANESE NICOLAS SEBASTIAN', 'ALBORNOZ JORGE ALEJANDRO', 'ALMEIDA ENRIQUE ROBERTO', 'ALVAREZ OZON NICOLAS MARCELO', 'APAZA ABRAHAM ESTEBAN', 'APUD MIGUEL OSCAR', 'ARMOA SANDRA ELIZABETH', 'ARROYO LAURA', 'AYBAR LEONEL MAXIMILIANO', 'BASTIAS EMANUEL DE DIOS', 'BECERRA MILAGROS VALENTINA', 'BRITOS JUAN ALBERTO', 'CAMARA MARIA CELESTE', 'CAMPOS ROXANA RUT', 'CARDOZO VERONICA MARIEL', 'CASTILLO ANGEL HERNAN', 'CASTILLO LUIS ANGEL', 'CASTRO CLAUDIO DAMIAN', 'CASTRO VICTOR HUGO', 'CONTE LUCAS EZEQUIEL', 'CRUCELI CARLOS GABRIEL', 'DE MARCO LEANDRO DANIEL', 'DEL COLLE DAMIAN EZEQUIEL', 'DEL COLLE GONZALO MARTIN', 'ELIAS GABRIEL', 'ELIAS RODRIGO', 'ESCOBAR VICTOR GABRIEL', 'GIMENEZ GREGORIO', 'GODOY MARTIN TOMAS', 'GOMEZ ANTONIO', 'GONZALEZ CLAUDIO MARCELO', 'GONZALEZ MARIANO', 'LAMADRID HORACIO DANIEL', 'LANDAETA VIELMA CARMENCITA', 'LOBOS RAFAEL ALEJANDRO', 'LOPEZ NESTOR GUSTAVO', 'LUACES JONATHAN RICARDO', 'MARTINEZ NOEMI KARINA', 'MEDINA RODRIGO SEBASTIAN', 'MELGAR ESTEBAN GUSTAVO', 'MENDEZ NARCISO MIGUEL', 'MIRANDA MIGUEL ALBERTO', 'MONTE FRANCISCO ALBERTO', 'MUCCI MARCELA', 'MUJICA IGNACIO JAVIER', 'NUÑEZ ALEXIS URIEL', 'NUÑEZ CLAUDIO DANIEL', 'OBELLA DANIEL FRANCO', 'ORENDE BRIAN NICOLAS', 'PALLADINO RICARDO ESTEBAN', 'PANDOLLO CAROLINA', 'PERAZZO WALTER DANIEL', 'PEREIRA MIGUEL RAFAEL', 'PEREZ TOUTOUNDJIAN FEDERICO NICOLAS', 'PEÑA OSCAR RAUL', 'PEÑA SERGIO ADRIAN', 'PEÑALOZA GASTON HERNAN', 'PILUSO MARCELO OSCAR', 'PILUSO URIEL', 'PRESTERA CHRISTIAN EDGAR', 'PRESTERA DIEGO GASTON', 'RESCHIÑA THIAGO', 'RIVEROS VEGA LEANDRO', 'ROCA JOSE LUIS', 'SANTILLAN HUMBERTO', 'SELVA ADRIANA BEATRIZ', 'SOSA FACUNDO URIEL', 'TALLARICO MARIANA LAURA', 'TOKAYUK CHRISTIAN PABLO', 'VALDEZ JORGE ALBERTO', 'VALDEZ NADIA SABRINA', 'VIEIRA HECTOR AUGUSTO', 'YALEVA CARLOS'];
+var AGENTES = ['ACOSTA PAMELA', 'ACUÑA EMANUEL FABIAN', 'ACUÑA JUAN FEDERICO', 'ACUÑA LUCAS OCTAVIO', 'AGUIRRE CARLA FLORENCIA', 'ALBANESE NICOLAS SEBASTIAN', 'ALBORNOZ JORGE ALEJANDRO', 'ALMEIDA ENRIQUE ROBERTO', 'ALVAREZ OZON NICOLAS MARCELO', 'APAZA ABRAHAM ESTEBAN', 'APUD MIGUEL OSCAR', 'ARMOA SANDRA ELIZABETH', 'ARROYO LAURA', 'AYBAR LEONEL MAXIMILIANO', 'BASTIAS EMANUEL DE DIOS', 'BECERRA MILAGROS VALENTINA', 'BRITOS JUAN ALBERTO', 'CAMARA MARIA CELESTE', 'CAMPOS ROXANA RUT', 'CARDOZO VERONICA MARIEL', 'CASTILLO ANGEL HERNAN', 'CASTILLO LUIS ANGEL', 'CASTRO CLAUDIO DAMIAN', 'CASTRO VICTOR HUGO', 'CONTE LUCAS EZEQUIEL', 'CRUCELI CARLOS GABRIEL', 'DE MARCO LEANDRO DANIEL', 'DEL COLLE DAMIAN EZEQUIEL', 'DEL COLLE GONZALO MARTIN', 'ELIAS GABRIEL', 'ELIAS RODRIGO', 'ESCOBAR VICTOR GABRIEL', 'GIMENEZ GREGORIO', 'GODOY MARTIN TOMAS', 'GOMEZ ANTONIO', 'GONZALEZ CLAUDIO MARCELO', 'GONZALEZ MARIANO', 'LAMADRID HORACIO DANIEL', 'LANDAETA VIELMA CARMENCITA', 'LOBOS RAFAEL ALEJANDRO', 'LOPEZ NESTOR GUSTAVO', 'LUACES JONATHAN RICARDO', 'MARTINEZ NOEMI KARINA', 'MEDINA RODRIGO SEBASTIAN', 'MELGAR ESTEBAN GUSTAVO', 'MENDEZ NARCISO MIGUEL', 'MIRANDA MIGUEL ALBERTO', 'MONTE FRANCISCO ALBERTO', 'MUCCI MARCELA', 'MUJICA IGNACIO JAVIER', 'NUÑEZ ALEXIS URIEL', 'NUÑEZ CLAUDIO DANIEL', 'OBELLA DANIEL FRANCO', 'ORENDE BRIAN NICOLAS', 'PALLADINO RICARDO ESTEBAN', 'PANDOLLO CAROLINA', 'PERAZZO WALTER DANIEL', 'PEREIRA MIGUEL RAFAEL', 'PEREZ TOUTOUNDJIAN FEDERICO NICOLAS', 'PEÑA OSCAR RAUL', 'PEÑA SERGIO ADRIAN', 'PEÑALOZA GASTON HERNAN', 'PILUSO MARCELO OSCAR', 'PILUSO URIEL', 'PRESTERA CHRISTIAN EDGAR', 'PRESTERA DIEGO GASTON', 'RESCHIÑA THIAGO', 'RIVEROS VEGA LEANDRO', 'ROCA JOSE LUIS', 'RODRIGUEZ MONTES DE OCA CRISTIAN EDUARDO', 'SANTILLAN HUMBERTO', 'SELVA ADRIANA BEATRIZ', 'SOSA FACUNDO URIEL', 'TALLARICO MARIANA LAURA', 'TOKAYUK CHRISTIAN PABLO', 'VALDEZ JORGE ALBERTO', 'VALDEZ NADIA SABRINA', 'VIEIRA HECTOR AUGUSTO', 'YALEVA CARLOS'];
 var USER = null;
 var CUR_VIEW = 'dashboard';
 var CUR_NOV_TAB = 'todas';
@@ -7304,7 +7281,7 @@ function verDetalleInv(id) {
 // ══════════════════════════════════════════════════════════
 var NP_PRIORIDAD = 'media';
 var NP_FOTO_FILE = null;
-var CTRL_FOTO_FILE = null;
+var CTRL_FOTOS = [];
 var CTRL_PUNTO_ID = null;
 var CTRL_ESTADO = '';
 var PEND_FILTER = 'todos';
@@ -7389,12 +7366,39 @@ function prevFotoNP(input) {
 }
 
 function prevFotoCtrl(input) {
-  var f = input.files[0]; if (!f) return;
-  CTRL_FOTO_FILE = f;
-  var prev = document.getElementById('ctrl-foto-prev'); if (!prev) return;
-  var reader = new FileReader();
-  reader.onload = function(e) { prev.innerHTML = '<img src="' + e.target.result + '" style="width:100%;max-height:180px;object-fit:cover;border-radius:8px;border:1px solid var(--green)">'; };
-  reader.readAsDataURL(f);
+  var nuevos = Array.prototype.slice.call(input.files || []);
+  if (!nuevos.length) return;
+  CTRL_FOTOS = CTRL_FOTOS.concat(nuevos);
+  input.value = ''; // permite volver a elegir mas fotos despues
+  _renderFotosCtrl();
+}
+
+function quitarFotoCtrl(idx) {
+  CTRL_FOTOS.splice(idx, 1);
+  _renderFotosCtrl();
+}
+
+function _renderFotosCtrl() {
+  var prev = document.getElementById('ctrl-foto-prev');
+  if (!prev) return;
+  prev.innerHTML = '';
+  CTRL_FOTOS.forEach(function(f, idx) {
+    var reader = new FileReader();
+    var wrap = document.createElement('div');
+    wrap.style.cssText = 'position:relative;width:72px;height:72px';
+    var img = document.createElement('img');
+    img.style.cssText = 'width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--green)';
+    var btnX = document.createElement('button');
+    btnX.type = 'button';
+    btnX.textContent = '×';
+    btnX.onclick = function() { quitarFotoCtrl(idx); };
+    btnX.style.cssText = 'position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--red);color:#fff;border:none;font-size:13px;font-weight:700;cursor:pointer;line-height:1';
+    reader.onload = function(e) { img.src = e.target.result; };
+    reader.readAsDataURL(f);
+    wrap.appendChild(img);
+    wrap.appendChild(btnX);
+    prev.appendChild(wrap);
+  });
 }
 
 function abrirNuevoPunto() {
@@ -7570,7 +7574,7 @@ function verPunto(id) {
 }
 
 function abrirRegistrarControl() {
-  CTRL_FOTO_FILE = null; CTRL_ESTADO = '';
+  CTRL_FOTOS = []; CTRL_ESTADO = '';
   var punto = _PEND_DATA.find(function(p) { return p.id === CTRL_PUNTO_ID; });
   var infoEl = document.getElementById('ctrl-punto-info');
   if (infoEl && punto) infoEl.innerHTML = '<strong>' + punto.titulo + '</strong><br><span style="font-size:11px;color:var(--text3)">&#x1F4CD; ' + punto.direccion + '</span>';
@@ -7648,16 +7652,17 @@ function descargarInformeRecorridos() {
 
 function guardarControl() {
   if (!CTRL_ESTADO)    { toast('Seleccioná el estado del punto', 'err'); return; }
-  if (!CTRL_FOTO_FILE) { toast('La foto del control es obligatoria', 'err'); return; }
+  if (!CTRL_FOTOS.length) { toast('Al menos una foto del control es obligatoria', 'err'); return; }
   var obs = ((document.getElementById('ctrl-obs') || {}).value || '').trim();
   if (CTRL_ESTADO === 'novedad' && !obs) { toast('Describí la novedad encontrada', 'err'); return; }
   setLoading('btn-save-ctrl', true);
   var ahora = fechaHoyAR();
 
-  uploadToR2Comprimido(CTRL_FOTO_FILE, 'controles').then(function(fotoUrl) {
+  Promise.all(CTRL_FOTOS.map(function(f) { return uploadToR2Comprimido(f, 'controles'); })).then(function(fotoUrls) {
+    var fotoUrl = fotoUrls[0]; // mantiene foto_url para compatibilidad con lo existente
     db.from('controles_punto').insert({
       punto_id: CTRL_PUNTO_ID, agente: USER.nombre || USER.puesto, puesto: USER.puesto,
-      estado: CTRL_ESTADO, observaciones: obs || null, foto_url: fotoUrl,
+      estado: CTRL_ESTADO, observaciones: obs || null, foto_url: fotoUrl, fotos: fotoUrls,
       fecha: ahora.fecha, hora: ahora.hora, created_at: new Date().toISOString()
     }).then(function(r) {
       setLoading('btn-save-ctrl', false);
@@ -7675,6 +7680,7 @@ function guardarControl() {
             detalle:   obs,
             agente:    USER.nombre || USER.puesto,
             foto_url:  fotoUrl,
+            fotos:     fotoUrls,
             pendiente: true,
             created_at: new Date().toISOString()
           };
@@ -7691,10 +7697,10 @@ function guardarControl() {
       }
 
       closeOv('ov-control');
-      CTRL_FOTO_FILE = null;
+      CTRL_FOTOS = [];
       loadPendientes();
     });
-  }).catch(function() { setLoading('btn-save-ctrl', false); toast('Error subiendo foto', 'err'); });
+  }).catch(function() { setLoading('btn-save-ctrl', false); toast('Error subiendo foto(s)', 'err'); });
 }
 
 function resolverPunto(id) {
@@ -11208,7 +11214,7 @@ function resetUrgenteBtn() {
 
 // ─── CONTROL DE OBJETIVO — COMPLETO ───
 var OBJ_FOTO_FILE = null;
-var OBJ_UPD_FOTO_FILE = null;
+var OBJ_UPD_FOTOS = [];
 var OBJ_CON_INCIDENCIA = false;
 
 function previewObjFoto(input) {
@@ -11219,10 +11225,36 @@ function previewObjFoto(input) {
 }
 
 function previewUpdFoto(input) {
-  OBJ_UPD_FOTO_FILE = input.files[0] || null;
+  var nuevos = Array.prototype.slice.call(input.files || []);
+  if (!nuevos.length) return;
+  OBJ_UPD_FOTOS = OBJ_UPD_FOTOS.concat(nuevos);
+  input.value = '';
+  _renderUpdFotos();
+}
+
+function quitarUpdFoto(idx) {
+  OBJ_UPD_FOTOS.splice(idx, 1);
+  _renderUpdFotos();
+}
+
+function _renderUpdFotos() {
   var wrap = document.getElementById('upd-foto-preview');
-  if (!wrap || !OBJ_UPD_FOTO_FILE) return;
-  wrap.innerHTML = '<div style="position:relative;width:80px;height:80px;border-radius:8px;overflow:hidden;border:1px solid var(--border2)"><img src="' + URL.createObjectURL(OBJ_UPD_FOTO_FILE) + '" style="width:100%;height:100%;object-fit:cover"><button onclick="OBJ_UPD_FOTO_FILE=null;document.getElementById(\'upd-foto-preview\').innerHTML=\'\'" style="position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;border:none;background:rgba(0,0,0,.7);color:white;font-size:11px;cursor:pointer">x</button></div>';
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  OBJ_UPD_FOTOS.forEach(function(f, idx) {
+    var div = document.createElement('div');
+    div.style.cssText = 'position:relative;width:80px;height:80px;border-radius:8px;overflow:hidden;border:1px solid var(--border2)';
+    var img = document.createElement('img');
+    img.src = URL.createObjectURL(f);
+    img.style.cssText = 'width:100%;height:100%;object-fit:cover';
+    var btn = document.createElement('button');
+    btn.textContent = 'x';
+    btn.onclick = function() { quitarUpdFoto(idx); };
+    btn.style.cssText = 'position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;border:none;background:rgba(0,0,0,.7);color:white;font-size:11px;cursor:pointer';
+    div.appendChild(img);
+    div.appendChild(btn);
+    wrap.appendChild(div);
+  });
 }
 
 function selIncidencia(conInc) {
@@ -11299,15 +11331,7 @@ async function saveObj() {
   var fotoUrl = null;
   if (OBJ_FOTO_FILE) {
     try {
-      var comp = await comprimirImagen(OBJ_FOTO_FILE);
-      var path = 'objetivos/ini_' + Date.now() + '_' + Math.random().toString(36).substr(2,5) + '.jpg';
-      var up = await db.storage.from('fotos').upload(path, comp, { contentType: 'image/jpeg', upsert: false });
-      if (up.error) {
-        console.error('Error foto inicio:', up.error);
-      } else {
-        var urlRes = db.storage.from('fotos').getPublicUrl(path);
-        if (urlRes && urlRes.data && urlRes.data.publicUrl) fotoUrl = urlRes.data.publicUrl;
-      }
+      fotoUrl = await uploadToR2Comprimido(OBJ_FOTO_FILE, 'objetivos');
     } catch(e) { console.error('Foto inicio error:', e); }
   }
 
@@ -11362,7 +11386,7 @@ function openUpdObj(id, prog) {
   if (obsEl) obsEl.value = '';
   var prev = document.getElementById('upd-foto-preview');
   if (prev) prev.innerHTML = '';
-  OBJ_UPD_FOTO_FILE = null;
+  OBJ_UPD_FOTOS = [];
   OBJ_CON_INCIDENCIA = false;
   selIncidencia(false); // reset buttons to Sin incidencia
   openOv('ov-obj-upd');
@@ -11464,21 +11488,15 @@ async function saveUpdObj() {
   setLoading('btn-save-upd', true);
 
   var fotoUrl = null;
-  if (OBJ_UPD_FOTO_FILE) {
+  var fotosUrls = [];
+  if (OBJ_UPD_FOTOS.length) {
     try {
-      var comp = await comprimirImagen(OBJ_UPD_FOTO_FILE);
-      var path = 'objetivos/upd_' + Date.now() + '_' + Math.random().toString(36).substr(2,5) + '.jpg';
-      var up = await db.storage.from('fotos').upload(path, comp, { contentType: 'image/jpeg', upsert: false });
-      if (up.error) {
-        console.error('Error subiendo foto objetivo:', up.error);
-        toast('Foto no subida: ' + up.error.message, 'err');
-      } else {
-        var urlRes = db.storage.from('fotos').getPublicUrl(path);
-        if (urlRes && urlRes.data && urlRes.data.publicUrl) {
-          fotoUrl = urlRes.data.publicUrl;
-          console.log('Foto subida OK:', fotoUrl);
-        }
-      }
+      var subidas = await Promise.all(OBJ_UPD_FOTOS.map(function(file) {
+        return uploadToR2Comprimido(file, 'objetivos').catch(function() { return null; });
+      }));
+      fotosUrls = subidas.filter(Boolean);
+      fotoUrl = fotosUrls[0] || null; // mantiene compatibilidad con el campo singular existente
+      if (OBJ_UPD_FOTOS.length && !fotosUrls.length) toast('Las fotos no pudieron subirse', 'err');
     } catch(e) {
       console.error('Error foto:', e);
     }
@@ -11506,6 +11524,7 @@ async function saveUpdObj() {
     incidencia: OBJ_CON_INCIDENCIA,
     obs: obs,
     foto: fotoUrl || null,
+    fotos: fotosUrls,
     texto_informe: textoInforme,
     nro_pd: nroPD,
     nro_pu: nroPU,
@@ -11546,7 +11565,7 @@ async function saveUpdObj() {
   }
 
   closeOv('ov-obj-upd');
-  OBJ_UPD_FOTO_FILE = null;
+  OBJ_UPD_FOTOS = [];
   if ($('upd-texto-informe')) $('upd-texto-informe').value = '';
   if ($('upd-nro-pd')) $('upd-nro-pd').value = '';
   if ($('upd-nro-pu')) $('upd-nro-pu').value = '';
@@ -11914,6 +11933,10 @@ function _loadChoferes() {
             // Fotos de la ruta
             var todasFotosRuta = [];
             if (r.foto_inicio) todasFotosRuta.push({ url: r.foto_inicio, label: 'Inicio' });
+            // fotos_inicio es array de URLs (campo real usado al guardar)
+            if (!r.foto_inicio && r.fotos_inicio && r.fotos_inicio.length) {
+              r.fotos_inicio.forEach(function(u, i) { if (u) todasFotosRuta.push({ url: u, label: 'Inicio ' + (i + 1) }); });
+            }
             if (r.foto_fin) todasFotosRuta.push({ url: r.foto_fin, label: 'Fin' });
             // fotos_fin es array de URLs (campo alternativo)
             if (!r.foto_fin && r.fotos_fin && r.fotos_fin.length) {
@@ -11934,6 +11957,26 @@ function _loadChoferes() {
                 chtml += '</div>';
               });
               chtml += '</div></div>';
+            }
+            // Lista de paradas con estado (en curso / finalizada) — solo ruta activa
+            if (isAct && (r.paradas || []).length) {
+              chtml += '<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--border)">';
+              chtml += '<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">🛑 Paradas del recorrido</div>';
+              r.paradas.forEach(function(p, pIdx) {
+                var enCurso = !p.hora_salida;
+                chtml += '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 9px;background:' + (enCurso ? 'rgba(245,158,11,.08)' : 'rgba(255,255,255,.02)') + ';border:1px solid ' + (enCurso ? 'rgba(245,158,11,.25)' : 'var(--border)') + ';border-radius:8px;margin-bottom:5px">';
+                chtml += '<div style="min-width:0">';
+                chtml += '<div style="font-size:12px;font-weight:700;color:var(--white)">' + (p.puesto || 'Sin nombre') + '</div>';
+                chtml += '<div style="font-size:10px;color:var(--text3);font-family:var(--mono)">Llegada ' + (p.hora || '—') + (p.hora_salida ? ' · Salida ' + p.hora_salida : '') + '</div>';
+                chtml += '</div>';
+                if (enCurso) {
+                  chtml += '<button class="btn-sm" onclick="marcarSalidaParada(\'' + r.id + '\',' + pIdx + ')" style="background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);color:#fcd34d;white-space:nowrap;flex-shrink:0">Marcar salida</button>';
+                } else {
+                  chtml += '<span class="badge b-green" style="flex-shrink:0">Finalizada</span>';
+                }
+                chtml += '</div>';
+              });
+              chtml += '</div>';
             }
             // Actions
             if (isAct) {
@@ -12010,16 +12053,9 @@ function quitarFotoRuta(tipo, idx, el) {
 }
 
 function uploadFotosRuta(fotos, carpeta) {
-  var promises = fotos.map(function(f, i) {
+  var promises = fotos.map(function(f) {
     if (f.url) return Promise.resolve(f.url);
-    return comprimirImagen(f.file).then(function(comp) {
-      var path = carpeta + '/' + Date.now() + '_' + i + '.jpg';
-      return db.storage.from('fotos').upload(path, comp, { contentType: 'image/jpeg', upsert: false })
-        .then(function(up) {
-          if (up.error) return null;
-          return db.storage.from('fotos').getPublicUrl(path).data.publicUrl;
-        });
-    });
+    return uploadToR2Comprimido(f.file, carpeta).catch(function() { return null; });
   });
   return Promise.all(promises).then(function(urls) { return urls.filter(Boolean); });
 }
@@ -12073,6 +12109,21 @@ function abrirParadaRuta(rutaId) {
   openOv('ov-parada-ruta');
 }
 
+function marcarSalidaParada(rutaId, paradaIdx) {
+  db.from('rutas').select('paradas').eq('id', rutaId).single().then(function(res) {
+    if (res.error || !res.data) { toast('Error al cargar la parada', 'err'); return; }
+    var paradas = res.data.paradas || [];
+    if (!paradas[paradaIdx]) { toast('No se encontró la parada', 'err'); return; }
+    if (paradas[paradaIdx].hora_salida) { toast('Esta parada ya tiene salida registrada', 'err'); return; }
+    paradas[paradaIdx].hora_salida = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+    db.from('rutas').update({ paradas: paradas }).eq('id', rutaId).then(function(r) {
+      if (r.error) { toast('Error al guardar: ' + r.error.message, 'err'); return; }
+      toast('🛑 Salida de ' + (paradas[paradaIdx].puesto || 'parada') + ' registrada');
+      loadChoferes();
+    });
+  });
+}
+
 function saveParada(finalizar) {
   var rutaId = document.getElementById('parada-ruta-id').value;
   var puesto = document.getElementById('parada-puesto').value.trim();
@@ -12083,6 +12134,7 @@ function saveParada(finalizar) {
   var parada = {
     puesto: puesto,
     hora: new Date().toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'}),
+    hora_salida: null,
     con_incidencia: PARADA_CON_INCIDENCIA,
     tipo_inc: PARADA_TIPO_INC || null,
     detalle_inc: PARADA_CON_INCIDENCIA ? document.getElementById('parada-detalle-inc').value.trim() : null,
@@ -14503,7 +14555,7 @@ function saveLicencia() {
 }
 function _saveLicencia() {
   _saveLicencia = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee70() {
-    var agente, puesto, tipo, desde, hasta, payload, _yield$db$from$insert7, ins, error, isPDF, ext, path, fileToUpload, contentType, finalPath, _yield$db$storage$fro2, upData, upErr, _db$storage$from$getP2, urlData;
+    var agente, puesto, tipo, desde, hasta, payload, _yield$db$from$insert7, ins, error, urlSubidaLic;
     return _regenerator().w(function (_context70) {
       while (1) switch (_context70.n) {
         case 0:
@@ -14570,44 +14622,17 @@ function _saveLicencia() {
             break;
           }
           toast('Subiendo archivo...', 'info');
-          isPDF = LIC_FILE.type === 'application/pdf';
-          ext = isPDF ? 'pdf' : 'jpg';
-          path = "licencias/".concat(ins.id, "_").concat(Date.now(), ".").concat(ext);
-          fileToUpload = LIC_FILE;
-          contentType = LIC_FILE.type;
-          finalPath = path;
-          if (!(LIC_FILE.type && LIC_FILE.type.indexOf('image/') === 0)) {
-            _context70.n = 8;
-            break;
-          }
-          _context70.n = 7;
-          return comprimirImagen(LIC_FILE);
-        case 7:
-          fileToUpload = _context70.v;
-          contentType = 'image/jpeg';
-          finalPath = path.replace(/\.[^.]+$/, '.jpg');
-        case 8:
           _context70.n = 9;
-          return db.storage.from('fotos').upload(finalPath, fileToUpload, {
-            contentType: contentType,
-            upsert: false
-          });
+          return uploadToR2Comprimido(LIC_FILE, 'licencias');
         case 9:
-          _yield$db$storage$fro2 = _context70.v;
-          upData = _yield$db$storage$fro2.data;
-          upErr = _yield$db$storage$fro2.error;
-          if (upErr) {
-            _context70.n = 10;
-            break;
-          }
-          _db$storage$from$getP2 = db.storage.from('fotos').getPublicUrl(finalPath), urlData = _db$storage$from$getP2.data;
-          if (!(urlData && urlData.publicUrl)) {
+          urlSubidaLic = _context70.v;
+          if (!urlSubidaLic) {
             _context70.n = 10;
             break;
           }
           _context70.n = 10;
           return db.from('licencias').update({
-            archivo: urlData.publicUrl
+            archivo: urlSubidaLic
           }).eq('id', ins.id);
         case 10:
           LIC_FILE = null;
