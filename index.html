@@ -2900,6 +2900,10 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
             </div>
             <button onclick="descargarInformeFinal()" style="padding:9px 18px;border-radius:10px;border:1px solid rgba(16,185,129,.35);background:rgba(16,185,129,.15);color:#6ee7b7;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">&#x2B07; Descargar archivo final</button>
           </div>
+          <div style="display:flex;gap:8px;margin-bottom:10px">
+            <button class="btn-sm" onclick="document.querySelectorAll('.foto-incluir-chk').forEach(function(c){c.checked=false})" style="background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.3);color:#fca5a5">&#x1F6AB; Quitar todas las fotos</button>
+            <button class="btn-sm" onclick="document.querySelectorAll('.foto-incluir-chk').forEach(function(c){c.checked=true})" style="background:rgba(16,185,129,.08);border-color:rgba(16,185,129,.3);color:#6ee7b7">&#x2713; Incluir todas las fotos</button>
+          </div>
           <div id="inf-preview-frame" style="border:1px solid var(--border2);border-radius:10px;overflow:hidden;background:#fff;min-height:300px"></div>
         </div>
 
@@ -6465,11 +6469,9 @@ function initApp() {
     horaWrap.style.display = esAdminSistema ? 'block' : 'none';
     if (esAdminSistema) {
       // Setear la hora actual como valor por defecto
-      var ahAR = fechaHoyAR();
       var horaInput = document.getElementById('f-hora-override');
-      if (horaInput && ahAR.hora) {
-        // ahAR.hora viene como "HH:MM" o "HH:MM:SS"
-        horaInput.value = ahAR.hora.slice(0, 5);
+      if (horaInput) {
+        horaInput.value = horaActualAR();
       }
     }
   }
@@ -8389,8 +8391,7 @@ function generarPreviewEditable() {
     var p = fechaVal.split('-');
     fechaDisplay = p[2] + '/' + p[1] + '/' + p[0];
   } else {
-    var ahAR = fechaHoyAR();
-    fechaDisplay = ahAR ? ahAR.fecha : new Date().toLocaleDateString('es-AR');
+    fechaDisplay = fechaHoyAR().split('-').reverse().join('/');
   }
   var diasNom = ['domingo','lunes','martes','mi\xE9rcoles','jueves','viernes','s\xE1bado'];
   var diaNom  = desdeVal && desdeVal === hastaVal ? diasNom[new Date(desdeVal + 'T12:00:00').getDay()] : '';
@@ -8454,15 +8455,53 @@ function descargarInformeFinal() {
   var frame = document.getElementById('inf-preview-frame');
   if (!frame || !frame.innerHTML.trim()) { toast('Primero generá el preview', 'err'); return; }
 
-  var contenido = frame.innerHTML;
-  // Eliminar botones borrar y edicion — solo en el archivo final
   var tmpDiv = document.createElement('div');
-  tmpDiv.innerHTML = contenido;
+  tmpDiv.innerHTML = frame.innerHTML;
+
+  // Quitar fotos no tildadas (excluidas por el usuario) y sus checkboxes
+  tmpDiv.querySelectorAll('.foto-incluir-chk').forEach(function(chk) {
+    var wrapDiv = chk.closest('div[style*="position:relative"]');
+    if (!chk.checked) {
+      if (wrapDiv) wrapDiv.remove();
+    } else if (wrapDiv) {
+      // Sacar el checkbox visualmente del archivo final, pero conservar la imagen
+      var label = wrapDiv.querySelector('label');
+      if (label) label.remove();
+    }
+  });
+
+  // Si una fila quedó sin ninguna foto incluida, sacar el bloque "Imágenes" vacío
+  tmpDiv.querySelectorAll('.fotos-grid').forEach(function(grid) {
+    if (!grid.children.length) {
+      var wrap = grid.closest('.fotos-wrap');
+      if (wrap) wrap.remove();
+    }
+  });
+
+  // Recolectar todas las fotos que quedaron, en orden, para armar el lightbox
+  var todasFotosFinal = [];
+  tmpDiv.querySelectorAll('.foto-t').forEach(function(img, idx) {
+    todasFotosFinal.push(img.getAttribute('src'));
+    img.setAttribute('onclick', 'lb(' + idx + ')');
+    img.style.cursor = 'pointer';
+  });
+
+  // Eliminar botones de edición — solo quedan en el preview, no en el archivo final
   tmpDiv.querySelectorAll('.btn-del-row').forEach(function(b) { b.remove(); });
   tmpDiv.querySelectorAll('[contenteditable]').forEach(function(el) { el.removeAttribute('contenteditable'); });
-  contenido = tmpDiv.innerHTML;
 
-  var htmlFinal = '<!DOCTYPE html>\n<html lang="es">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n<title>Parte Diario IVC</title>\n</head>\n<body style="margin:0;padding:0;background:#fff">\n' + contenido + '\n</body>\n</html>';
+  var contenido = tmpDiv.innerHTML;
+
+  var lightboxHtml = '<div class="lightbox" id="lb-w" onclick="if(event.target===this)closeLB()"><span class="lb-x" onclick="closeLB()">&#x2715;</span><span class="lb-n p" onclick="navLB(-1)">&#8249;</span><img class="lb-img" id="lb-i" src="" alt=""><span class="lb-n n" onclick="navLB(1)">&#8250;</span><div class="lb-cnt" id="lb-c"></div></div>';
+  var lightboxCss = '<style>.lightbox{display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:9999;align-items:center;justify-content:center;flex-direction:column}.lightbox.open{display:flex}.lb-img{max-width:92vw;max-height:82vh;border-radius:6px;box-shadow:0 8px 48px rgba(0,0,0,.6)}.lb-x{position:fixed;top:14px;right:22px;color:#fff;font-size:28px;cursor:pointer;width:38px;height:38px;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.12);border-radius:50%}.lb-n{position:fixed;top:50%;transform:translateY(-50%);color:#fff;font-size:38px;cursor:pointer;padding:12px;background:rgba(255,255,255,.1);border-radius:4px;user-select:none;line-height:1}.lb-n.p{left:10px}.lb-n.n{right:10px}.lb-cnt{margin-top:10px;font-size:9pt;color:rgba(255,255,255,.5);text-align:center}@media print{.lightbox{display:none!important}}</style>';
+  var lightboxJs = '<script>\nvar F=' + JSON.stringify(todasFotosFinal) + ',I=0;\n' +
+    'function lb(i){I=i;document.getElementById("lb-i").src=F[i];document.getElementById("lb-c").textContent=(i+1)+" / "+F.length;document.getElementById("lb-w").classList.add("open");document.body.style.overflow="hidden";}\n' +
+    'function closeLB(){document.getElementById("lb-w").classList.remove("open");document.body.style.overflow="";}\n' +
+    'function navLB(d){lb((I+d+F.length)%F.length);}\n' +
+    'document.addEventListener("keydown",function(e){if(e.key==="Escape")closeLB();if(e.key==="ArrowRight")navLB(1);if(e.key==="ArrowLeft")navLB(-1);});\n' +
+    '<\/script>';
+
+  var htmlFinal = '<!DOCTYPE html>\n<html lang="es">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n<title>Parte Diario IVC</title>\n' + lightboxCss + '\n</head>\n<body style="margin:0;padding:0;background:#fff">\n' + contenido + '\n' + lightboxHtml + '\n' + lightboxJs + '\n</body>\n</html>';
 
   var blob = new Blob([htmlFinal], { type: 'text/html;charset=utf-8' });
   var url  = URL.createObjectURL(blob);
@@ -8492,12 +8531,9 @@ function abrirNuevoPD() {
   ['pd-edit-objetivo','pd-edit-asunto','pd-edit-responsable','pd-edit-agentes','pd-edit-novedades','pd-edit-obs'].forEach(function(id) {
     var el = document.getElementById(id); if (el) el.value = '';
   });
-  var ahAR = fechaHoyAR();
-  if (ahAR) {
-    var p = ahAR.fecha.split('/');
-    document.getElementById('pd-edit-fecha').value = p[2] + '-' + p[1] + '-' + p[0];
-    document.getElementById('pd-edit-hora').value = ahAR.hora ? ahAR.hora.substring(0,5) : '';
-  }
+  var hoyStr = fechaHoyAR(); // "YYYY-MM-DD"
+  document.getElementById('pd-edit-fecha').value = hoyStr;
+  document.getElementById('pd-edit-hora').value = horaActualAR();
   document.getElementById('btn-del-pd').style.display = 'none';
   openOv('ov-pd-edit');
 }
@@ -8560,10 +8596,8 @@ function iniciarTabInforme() {
   var desdeEl = document.getElementById('inf-fecha-desde');
   var hastaEl = document.getElementById('inf-fecha-hasta');
   var autorEl = document.getElementById('inf-autor');
-  var ahAR = fechaHoyAR();
-  if (ahAR && ahAR.fecha) {
-    var p = ahAR.fecha.split('/');
-    var hoy = p[2] + '-' + p[1] + '-' + p[0];
+  var hoy = fechaHoyAR(); // ya viene como "YYYY-MM-DD"
+  if (hoy) {
     if (desdeEl && !desdeEl.value) desdeEl.value = hoy;
     if (hastaEl && !hastaEl.value) hastaEl.value = hoy;
   }
@@ -8771,7 +8805,7 @@ function construirHTMLEditablePreview(porPuesto, novedades, fotosMap, fechaDispl
       fotos = fotos.filter(Boolean);
       var fotosB64 = fotos.map(function(u){return{u:u,b:fotosMap[u]||null};}).filter(function(f){return f.b;});
 
-      html += '<div class="novedad">\n';
+      html += '<div class="novedad" data-nid="' + escapeHTML(String(n.id)) + '">\n';
       html += '<button class="btn-del-row" onclick="this.closest(\'.novedad\').remove()" title="Eliminar fila">&times;</button>\n';
       html += '<div class="col1"><div class="c1-tipo" contenteditable="true">' + escapeHTML(n.tipo || n.asunto || 'Novedad') + '</div>';
       html += '<div class="c1-meta" contenteditable="true"><strong>' + escapeHTML(fechaDisplay) + '</strong><br>' + escapeHTML(horaStr) + ' hs</div>';
@@ -8782,8 +8816,16 @@ function construirHTMLEditablePreview(porPuesto, novedades, fotosMap, fechaDispl
       html += '<div class="col2"><div class="nov-txt" contenteditable="true">' + escapeHTML(n.texto_informe || n.detalle || '\u2014') + '</div>';
       if (n.agente) html += '<div class="nov-ag"><strong>Agente/s:</strong> ' + escapeHTML(n.agente) + '</div>';
       if (fotosB64.length > 0) {
-        html += '<div class="fotos-wrap"><div class="fotos-lbl">Imágenes</div><div class="fotos-grid">';
-        fotosB64.forEach(function(f){html += '<img class="foto-t" src="' + f.b + '">';});
+        html += '<div class="fotos-wrap"><div class="fotos-lbl">Im\xE1genes <span style="font-weight:400;text-transform:none;letter-spacing:0">(tild\xE1 las que quer\xE9s incluir en el informe final, clic para agrandar)</span></div><div class="fotos-grid">';
+        fotosB64.forEach(function(f, fi){
+          var fid = 'fchk_' + n.id + '_' + fi;
+          html += '<div style="position:relative;display:inline-block">';
+          html += '<img class="foto-t" src="' + f.b + '" onclick="abrirFotoLightbox(\'' + f.u.replace(/'/g, "\\'") + '\')" style="cursor:zoom-in" data-foto-url="' + escapeHTML(f.u) + '">';
+          html += '<label style="position:absolute;top:3px;left:3px;background:rgba(255,255,255,.95);border-radius:4px;padding:2px 4px;display:flex;align-items:center;gap:3px;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.3)">';
+          html += '<input type="checkbox" id="' + fid + '" class="foto-incluir-chk" data-foto-url="' + escapeHTML(f.u) + '" checked style="width:13px;height:13px;cursor:pointer;margin:0">';
+          html += '</label>';
+          html += '</div>';
+        });
         html += '</div></div>';
       }
       html += '</div>\n';
@@ -10740,8 +10782,7 @@ function guardarEditarFichaje() {
 function resetHoraOverride() {
   var input = document.getElementById('f-hora-override');
   if (!input) return;
-  var ahAR = fechaHoyAR();
-  input.value = ahAR.hora ? ahAR.hora.slice(0, 5) : '';
+  input.value = horaActualAR();
   toast('Hora restablecida a la actual');
 }
 
@@ -10753,14 +10794,12 @@ function getHoraFichaje() {
   if (USER && USER.rol === 'ADMIN' && input && input.value) {
     return input.value + ':00'; // HH:MM → HH:MM:SS
   }
-  var ahAR = fechaHoyAR();
-  return ahAR.hora || '';
+  return horaActualAR() || '';
 }
 
 function getFechaFichaje() {
   // Para futuro uso si se necesita editar también la fecha
-  var ahAR = fechaHoyAR();
-  return ahAR.fecha || '';
+  return fechaHoyAR() || '';
 }
 
 function selAgent(nombre) {
