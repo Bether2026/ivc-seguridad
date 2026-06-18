@@ -1700,6 +1700,9 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
       <button class="sidebar-item" onclick="goView('estadisticas')" id="si-estadisticas" style="display:none">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> Estadísticas
       </button>
+      <button class="sidebar-item" onclick="goView('precintos')" id="si-precintos" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg> Precintos
+      </button>
       <button class="sidebar-item" onclick="goView('rrhh')" id="si-rrhh" style="display:none">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg> RRHH
       </button>
@@ -2152,6 +2155,80 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
       <!-- HISTORIAL MOVIMIENTOS -->
       <div id="llaves-tab-movimientos" style="display:none">
         <div id="llaves-historial-list"><div class="empty"><div class="icon">📜</div><p>Cargando historial...</p></div></div>
+      </div>
+    </div>
+
+        <!-- PRECINTOS -->
+    <div class="view" id="view-precintos">
+      <div class="page-header">
+        <h2><span style="color:#fb923c;margin-right:8px;text-shadow:0 0 12px rgba(251,146,60,0.5)">🔒</span>Precintos</h2>
+        <p>Control de precintos — Obrador Savio</p>
+      </div>
+
+      <div class="tabs" id="prec-tabs">
+        <button class="tab active" onclick="precMainTab('hoy',this)">Hoy</button>
+        <button class="tab" onclick="precMainTab('historial',this)">📜 Historial</button>
+      </div>
+
+      <!-- TAB HOY -->
+      <div id="prec-panel-hoy">
+        <div id="prec-resumen-hoy" style="margin-bottom:14px"></div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+          <button class="btn-login" onclick="precSelAccion('colocar')" id="prec-btn-colocar" style="background:linear-gradient(135deg,#d97706,#f59e0b)">🔒 Colocar</button>
+          <button class="btn-login" onclick="precSelAccion('retirar')" id="prec-btn-retirar" style="background:linear-gradient(135deg,#16a34a,#22c55e)">🔓 Retirar</button>
+        </div>
+
+        <!-- COLOCAR -->
+        <div id="prec-zona-colocar" style="display:none">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+            <button class="tab" id="prec-sub-pasto-btn" onclick="precSelZona('colocar','pasto')" style="text-align:center">🌱 Pasto</button>
+            <button class="tab" id="prec-sub-galpones-btn" onclick="precSelZona('colocar','galpones')" style="text-align:center">🏭 Galpones</button>
+          </div>
+          <div id="prec-colocar-pasto" style="display:none"></div>
+          <div id="prec-colocar-galpones" style="display:none"></div>
+        </div>
+
+        <!-- RETIRAR -->
+        <div id="prec-zona-retirar" style="display:none">
+          <div class="card" style="margin-bottom:12px">
+            <div class="card-head"><span class="card-lbl">🔓 Retirar precintos</span></div>
+            <p style="font-size:12px;color:var(--text3);margin:0 0 10px">Pod&#xE9;s subir una foto grupal de todo, o separar por zona si las retir&#xE1;s en momentos distintos.</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+              <button class="tab" onclick="precRetirarModo('pasto')" id="prec-ret-pasto-btn">🌱 Solo Pasto</button>
+              <button class="tab" onclick="precRetirarModo('galpones')" id="prec-ret-galpones-btn">🏭 Solo Galpones</button>
+            </div>
+            <button class="tab active" onclick="precRetirarModo('todo')" id="prec-ret-todo-btn" style="width:100%;text-align:center;margin-bottom:12px">📦 Todo junto</button>
+            <div id="prec-retiro-fotos-wrap">
+              <label class="form-label">Foto(s) de los precintos retirados <span style="color:var(--red)">*</span></label>
+              <div onclick="abrirSelectorFoto('prec-retiro-foto-input')" style="border:2px dashed var(--border2);border-radius:var(--radius-sm);padding:14px;text-align:center;cursor:pointer;background:var(--bg3)">
+                <div style="font-size:22px;margin-bottom:4px">📷</div>
+                <div style="font-size:13px;color:var(--text2)">Agregar foto(s)</div>
+              </div>
+              <input type="file" id="prec-retiro-foto-input" accept="image/*" multiple style="display:none" onchange="precPreviewRetiro(this)">
+              <div id="prec-retiro-foto-prev" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px"></div>
+            </div>
+            <button class="btn-login" id="btn-prec-retirar" onclick="guardarRetiroPrecintos()" style="width:100%;margin-top:12px">✓ Confirmar retiro</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB HISTORIAL -->
+      <div id="prec-panel-historial" style="display:none">
+        <div class="card" style="margin-bottom:12px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+            <div class="form-group" style="margin-bottom:0">
+              <label class="form-label" style="font-size:11px">Desde</label>
+              <input type="date" id="prec-h-desde" class="form-input" style="font-size:13px">
+            </div>
+            <div class="form-group" style="margin-bottom:0">
+              <label class="form-label" style="font-size:11px">Hasta</label>
+              <input type="date" id="prec-h-hasta" class="form-input" style="font-size:13px">
+            </div>
+          </div>
+          <button class="btn-login" onclick="buscarHistorialPrecintos()" style="width:100%">🔍 Buscar</button>
+        </div>
+        <div id="prec-historial-list"></div>
       </div>
     </div>
 
@@ -6401,6 +6478,9 @@ function initApp() {
   if ($('si-estadisticas')) $('si-estadisticas').style.display = _puedeStats ? 'flex' : 'none';
   // Tab "Avanzado" dentro de Estadisticas — exclusivo Gerencia y Administrador
   if ($('stat-tab-avanzado')) $('stat-tab-avanzado').style.display = _puedeStats ? 'inline-block' : 'none';
+  // Precintos — EXCLUSIVO Obrador Savio y Administrador del sistema, nadie más (ni Gerencia)
+  var _puedePrecintos = ['Obrador Savio', 'Administrador'].indexOf(USER.puesto) >= 0;
+  if ($('si-precintos')) $('si-precintos').style.display = _puedePrecintos ? 'flex' : 'none';
   var canSeeGPS = ['Gerencia', 'Administrador'].includes(USER.puesto);
   if ($('tab-gps')) $('tab-gps').style.display = canSeeGPS ? 'flex' : 'none';
   if (!canSeeGPS) {
@@ -12384,6 +12464,7 @@ function goView(name) {
       selAdminTab('general');
     }
     if (name === 'estadisticas' && typeof loadStats === 'function') loadStats('dia');
+    if (name === 'precintos' && typeof loadPrecintos === 'function') loadPrecintos();
     if (name === 'novedades' && typeof loadNovedades === 'function') {
       loadNovedades();
       clearBadge('nb-badge', 'ivc_badge_nov');
@@ -17970,6 +18051,290 @@ function confirmarTraslado() {
       loadObjetivos();
       loadDash();
     });
+  });
+}
+// ══════════════════════════════════════════════════════════════════
+
+// ══════════════════════════════════════════════════════════════════
+// PRECINTOS — exclusivo Obrador Savio y Administrador del sistema
+// Tabla Supabase: precintos (fecha, sector, item, accion, fotos[], agente, created_at)
+// ══════════════════════════════════════════════════════════════════
+var PREC_ITEMS_PASTO = [
+  { id: 'porton1', label: 'Port\u00f3n (Foto 1)' },
+  { id: 'porton2', label: 'Port\u00f3n (Foto 2)' },
+  { id: 'oficina',  label: 'Oficina interior' }
+];
+var PREC_ITEMS_GALPONES = [
+  { id: 'deposito1', label: 'Dep\u00f3sito 1' },
+  { id: 'deposito2', label: 'Dep\u00f3sito 2' },
+  { id: 'deposito3', label: 'Dep\u00f3sito 3' }
+];
+var PREC_FOTOS_PENDIENTES = {}; // { 'pasto_porton1': [File, File], ... }
+var PREC_HOY_CACHE = [];
+var PREC_RETIRO_MODO = 'todo';
+var PREC_RETIRO_FOTOS = [];
+
+function loadPrecintos() {
+  var hoy = fechaHoyAR();
+  db.from('precintos').select('*').eq('fecha', hoy).then(function(r) {
+    PREC_HOY_CACHE = (r.data || []);
+    _renderResumenPrecintosHoy();
+    if (document.getElementById('prec-zona-colocar').style.display !== 'none') {
+      _renderZonaColocar('pasto');
+      _renderZonaColocar('galpones');
+    }
+  });
+}
+
+function precMainTab(tab, btn) {
+  document.querySelectorAll('#prec-tabs .tab').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  document.getElementById('prec-panel-hoy').style.display = tab === 'hoy' ? 'block' : 'none';
+  document.getElementById('prec-panel-historial').style.display = tab === 'historial' ? 'block' : 'none';
+}
+
+function precSelAccion(accion) {
+  document.getElementById('prec-zona-colocar').style.display = accion === 'colocar' ? 'block' : 'none';
+  document.getElementById('prec-zona-retirar').style.display = accion === 'retirar' ? 'block' : 'none';
+  document.getElementById('prec-btn-colocar').style.opacity = accion === 'colocar' ? '1' : '0.6';
+  document.getElementById('prec-btn-retirar').style.opacity = accion === 'retirar' ? '1' : '0.6';
+  if (accion === 'colocar') {
+    _renderZonaColocar('pasto');
+    _renderZonaColocar('galpones');
+  }
+}
+
+function precSelZona(accion, zona) {
+  var otraZona = zona === 'pasto' ? 'galpones' : 'pasto';
+  var elZona = document.getElementById('prec-colocar-' + zona);
+  var elOtra = document.getElementById('prec-colocar-' + otraZona);
+  var abierta = elZona.style.display !== 'none';
+  elZona.style.display = abierta ? 'none' : 'block';
+  elOtra.style.display = 'none';
+  document.getElementById('prec-sub-pasto-btn').classList.toggle('active', zona === 'pasto' && !abierta);
+  document.getElementById('prec-sub-galpones-btn').classList.toggle('active', zona === 'galpones' && !abierta);
+}
+
+function _estadoItemHoy(zona, itemId) {
+  // Busca si ya existe colocacion para este item hoy
+  return PREC_HOY_CACHE.find(function(p) { return p.sector === zona && p.item === itemId && p.accion === 'colocar'; });
+}
+
+function _renderZonaColocar(zona) {
+  var items = zona === 'pasto' ? PREC_ITEMS_PASTO : PREC_ITEMS_GALPONES;
+  var wrap = document.getElementById('prec-colocar-' + zona);
+  if (!wrap) return;
+  var html = '<div class="card">';
+  html += '<div class="card-head"><span class="card-lbl">' + (zona === 'pasto' ? '\uD83C\uDF31 Sector Pasto' : '\uD83C\uDFED Sector Galpones') + '</span></div>';
+  items.forEach(function(it) {
+    var key = zona + '_' + it.id;
+    var yaHecho = _estadoItemHoy(zona, it.id);
+    var fotosPend = PREC_FOTOS_PENDIENTES[key] || [];
+    html += '<div style="background:rgba(255,255,255,.02);border:1px solid ' + (yaHecho ? 'rgba(34,197,94,.35)' : 'var(--border)') + ';border-radius:10px;padding:12px;margin-bottom:8px">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">';
+    html += '<span style="font-size:13px;font-weight:700;color:var(--white)">' + it.label + '</span>';
+    if (yaHecho) html += '<span class="badge b-green">\u2713 Colocado</span>';
+    html += '</div>';
+    if (!yaHecho) {
+      html += '<div id="prec-fotos-' + key + '" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">';
+      fotosPend.forEach(function(f, idx) {
+        html += '<div style="position:relative;width:60px;height:60px"><img src="' + URL.createObjectURL(f) + '" style="width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid var(--border2)"><button onclick="precQuitarFoto(\'' + key + '\',' + idx + ')" style="position:absolute;top:-5px;right:-5px;width:18px;height:18px;border-radius:50%;background:var(--red);color:#fff;border:none;font-size:11px;cursor:pointer">\u00d7</button></div>';
+      });
+      html += '</div>';
+      html += '<div style="display:flex;gap:8px">';
+      html += '<button class="btn-sm" onclick="precAgregarFoto(\'' + key + '\')" style="flex:1">\uD83D\uDCF7 Agregar foto</button>';
+      if (fotosPend.length) html += '<button class="btn-sm" onclick="precGuardarItem(\'' + zona + '\',\'' + it.id + '\',\'' + it.label.replace(/'/g,"\\'") + '\')" style="flex:1;background:rgba(34,197,94,.15);border-color:rgba(34,197,94,.4);color:#4ade80">\u2713 Confirmar</button>';
+      html += '</div>';
+    } else if (yaHecho.fotos && yaHecho.fotos.length) {
+      html += '<div style="display:flex;gap:6px;flex-wrap:wrap">';
+      yaHecho.fotos.forEach(function(url) {
+        html += '<img src="' + url + '" onclick="abrirFotoLightbox(\'' + url + '\')" style="width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid var(--border2);cursor:zoom-in">';
+      });
+      html += '</div>';
+    }
+    html += '</div>';
+  });
+  html += '</div>';
+  wrap.innerHTML = html;
+}
+
+function precAgregarFoto(key) {
+  var inputTemp = document.createElement('input');
+  inputTemp.type = 'file';
+  inputTemp.accept = 'image/*';
+  inputTemp.multiple = true;
+  inputTemp.onchange = function() {
+    var nuevos = Array.prototype.slice.call(inputTemp.files || []);
+    if (!nuevos.length) return;
+    if (!PREC_FOTOS_PENDIENTES[key]) PREC_FOTOS_PENDIENTES[key] = [];
+    PREC_FOTOS_PENDIENTES[key] = PREC_FOTOS_PENDIENTES[key].concat(nuevos);
+    var zona = key.split('_')[0];
+    _renderZonaColocar(zona);
+  };
+  inputTemp.click();
+}
+
+function precQuitarFoto(key, idx) {
+  if (PREC_FOTOS_PENDIENTES[key]) PREC_FOTOS_PENDIENTES[key].splice(idx, 1);
+  _renderZonaColocar(key.split('_')[0]);
+}
+
+function precGuardarItem(zona, itemId, itemLabel) {
+  var key = zona + '_' + itemId;
+  var fotos = PREC_FOTOS_PENDIENTES[key] || [];
+  if (!fotos.length) { toast('Agreg\u00e1 al menos una foto', 'err'); return; }
+  toast('Subiendo foto(s)...', 'info');
+  Promise.all(fotos.map(function(f) { return uploadToR2Comprimido(f, 'precintos').catch(function() { return null; }); }))
+    .then(function(urls) {
+      var urlsOk = urls.filter(Boolean);
+      if (!urlsOk.length) { toast('No se pudieron subir las fotos', 'err'); return; }
+      db.from('precintos').insert({
+        fecha: fechaHoyAR(),
+        sector: zona,
+        item: itemId,
+        item_label: itemLabel,
+        accion: 'colocar',
+        fotos: urlsOk,
+        agente: USER.nombre || USER.puesto,
+        created_at: new Date().toISOString()
+      }).then(function(res) {
+        if (res.error) { toast('Error: ' + res.error.message, 'err'); return; }
+        toast('\u2713 ' + itemLabel + ' registrado');
+        delete PREC_FOTOS_PENDIENTES[key];
+        loadPrecintos();
+      });
+    });
+}
+
+function precRetirarModo(modo) {
+  PREC_RETIRO_MODO = modo;
+  ['todo','pasto','galpones'].forEach(function(m) {
+    var btn = document.getElementById('prec-ret-' + m + '-btn');
+    if (btn) btn.classList.toggle('active', m === modo);
+  });
+}
+
+function precPreviewRetiro(input) {
+  var nuevos = Array.prototype.slice.call(input.files || []);
+  if (!nuevos.length) return;
+  PREC_RETIRO_FOTOS = PREC_RETIRO_FOTOS.concat(nuevos);
+  input.value = '';
+  _renderRetiroFotos();
+}
+
+function precQuitarFotoRetiro(idx) {
+  PREC_RETIRO_FOTOS.splice(idx, 1);
+  _renderRetiroFotos();
+}
+
+function _renderRetiroFotos() {
+  var wrap = document.getElementById('prec-retiro-foto-prev');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  PREC_RETIRO_FOTOS.forEach(function(f, idx) {
+    var div = document.createElement('div');
+    div.style.cssText = 'position:relative;width:72px;height:72px';
+    var img = document.createElement('img');
+    img.src = URL.createObjectURL(f);
+    img.style.cssText = 'width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--border2)';
+    var btn = document.createElement('button');
+    btn.textContent = '\u00d7';
+    btn.onclick = function() { precQuitarFotoRetiro(idx); };
+    btn.style.cssText = 'position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--red);color:#fff;border:none;font-size:13px;cursor:pointer';
+    div.appendChild(img); div.appendChild(btn);
+    wrap.appendChild(div);
+  });
+}
+
+function guardarRetiroPrecintos() {
+  if (!PREC_RETIRO_FOTOS.length) { toast('Agreg\u00e1 al menos una foto', 'err'); return; }
+  setLoading('btn-prec-retirar', true);
+  Promise.all(PREC_RETIRO_FOTOS.map(function(f) { return uploadToR2Comprimido(f, 'precintos').catch(function() { return null; }); }))
+    .then(function(urls) {
+      var urlsOk = urls.filter(Boolean);
+      if (!urlsOk.length) { setLoading('btn-prec-retirar', false); toast('No se pudieron subir las fotos', 'err'); return; }
+      var sectoresAGuardar = PREC_RETIRO_MODO === 'todo' ? ['pasto', 'galpones'] : [PREC_RETIRO_MODO];
+      var inserts = sectoresAGuardar.map(function(s) {
+        return db.from('precintos').insert({
+          fecha: fechaHoyAR(),
+          sector: s,
+          item: null,
+          item_label: PREC_RETIRO_MODO === 'todo' ? 'Retiro general' : 'Retiro ' + s,
+          accion: 'retirar',
+          fotos: urlsOk,
+          agente: USER.nombre || USER.puesto,
+          created_at: new Date().toISOString()
+        });
+      });
+      Promise.all(inserts).then(function() {
+        setLoading('btn-prec-retirar', false);
+        toast('\uD83D\uDD13 Retiro registrado');
+        PREC_RETIRO_FOTOS = [];
+        document.getElementById('prec-retiro-foto-prev').innerHTML = '';
+        loadPrecintos();
+      });
+    });
+}
+
+function _renderResumenPrecintosHoy() {
+  var el = document.getElementById('prec-resumen-hoy');
+  if (!el) return;
+  var colocadosPasto = PREC_HOY_CACHE.filter(function(p) { return p.sector === 'pasto' && p.accion === 'colocar'; }).length;
+  var colocadosGalpones = PREC_HOY_CACHE.filter(function(p) { return p.sector === 'galpones' && p.accion === 'colocar'; }).length;
+  var hayRetiro = PREC_HOY_CACHE.some(function(p) { return p.accion === 'retirar'; });
+  var html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">';
+  html += '<div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center">';
+  html += '<div style="font-size:20px;font-weight:800;color:' + (colocadosPasto >= 3 ? '#4ade80' : 'var(--accent3)') + '">' + colocadosPasto + '/3</div>';
+  html += '<div style="font-size:11px;color:var(--text3)">\uD83C\uDF31 Pasto colocados</div></div>';
+  html += '<div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center">';
+  html += '<div style="font-size:20px;font-weight:800;color:' + (colocadosGalpones >= 3 ? '#4ade80' : 'var(--accent3)') + '">' + colocadosGalpones + '/3</div>';
+  html += '<div style="font-size:11px;color:var(--text3)">\uD83C\uDFED Galpones colocados</div></div>';
+  html += '</div>';
+  if (hayRetiro) html += '<div style="margin-top:8px;text-align:center"><span class="badge b-green">\uD83D\uDD13 Retiro ya registrado hoy</span></div>';
+  el.innerHTML = html;
+}
+
+function buscarHistorialPrecintos() {
+  var desde = document.getElementById('prec-h-desde').value;
+  var hasta = document.getElementById('prec-h-hasta').value;
+  var listEl = document.getElementById('prec-historial-list');
+  listEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3)"><span class="spinner"></span></div>';
+  var q = db.from('precintos').select('*').order('fecha', { ascending: false }).order('created_at', { ascending: false });
+  if (desde) q = q.gte('fecha', desde);
+  if (hasta) q = q.lte('fecha', hasta);
+  q.then(function(r) {
+    if (r.error) { listEl.innerHTML = '<div class="empty"><p>Error: ' + r.error.message + '</p></div>'; return; }
+    var list = r.data || [];
+    if (!list.length) { listEl.innerHTML = '<div class="empty"><div class="icon">\uD83D\uDD12</div><p>Sin registros para este rango</p></div>'; return; }
+    var grupos = {}, orden = [];
+    list.forEach(function(p) {
+      if (!grupos[p.fecha]) { grupos[p.fecha] = []; orden.push(p.fecha); }
+      grupos[p.fecha].push(p);
+    });
+    var html = '';
+    orden.forEach(function(fecha) {
+      html += '<div style="font-size:12px;font-weight:800;color:var(--accent3);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 8px">' + formatFechaCompleta(fecha) + '</div>';
+      grupos[fecha].forEach(function(p) {
+        var hora = p.created_at ? new Date(p.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) : '';
+        var colorAccion = p.accion === 'colocar' ? '#f59e0b' : '#22c55e';
+        var iconoAccion = p.accion === 'colocar' ? '\uD83D\uDD12' : '\uD83D\uDD13';
+        html += '<div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-left:4px solid ' + colorAccion + ';border-radius:10px;padding:12px;margin-bottom:8px">';
+        html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">';
+        html += '<span style="font-size:13px;font-weight:700;color:var(--white)">' + iconoAccion + ' ' + (p.item_label || p.item || '') + '</span>';
+        html += '<span style="font-size:10px;color:var(--text3);font-family:var(--mono)">' + hora + '</span>';
+        html += '</div>';
+        html += '<div style="font-size:11px;color:var(--text3);margin-bottom:6px">' + (p.sector === 'pasto' ? '\uD83C\uDF31 Pasto' : '\uD83C\uDFED Galpones') + ' \u00b7 ' + (p.agente || '') + '</div>';
+        if (p.fotos && p.fotos.length) {
+          html += '<div style="display:flex;gap:6px;flex-wrap:wrap">';
+          p.fotos.forEach(function(url) {
+            html += '<img src="' + url + '" onclick="abrirFotoLightbox(\'' + url + '\')" style="width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid var(--border2);cursor:zoom-in">';
+          });
+          html += '</div>';
+        }
+        html += '</div>';
+      });
+    });
+    listEl.innerHTML = html;
   });
 }
 // ══════════════════════════════════════════════════════════════════
