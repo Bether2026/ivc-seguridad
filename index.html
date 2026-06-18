@@ -10812,15 +10812,10 @@ function _doEntrada() {
           // Hora override: solo admin sistema puede modificarla
           if (USER.rol === 'ADMIN') {
             var horaOvEl = document.getElementById('f-hora-override');
-            var ahAR_fich = fechaHoyAR();
             if (horaOvEl && horaOvEl.value) {
-              payload.hora_entrada_override = horaOvEl.value + ':00';
-              payload.fecha = ahAR_fich.fecha;
-              // Registrar en bitácora que se modificó la hora
-              var horaActual = ahAR_fich.hora;
-              if (horaOvEl.value + ':00' !== horaActual) {
-                registrarEvento('HORA_OVERRIDE', USER.puesto, 'Entrada de ' + SEL_AGENT + ' registrada con hora manual: ' + horaOvEl.value + ' (hora real: ' + horaActual + ')');
-              }
+              var fechaHoyStr = fechaHoyAR(); // "YYYY-MM-DD"
+              // Combinar la fecha de hoy (AR) con la hora elegida y escribir directo en 'entrada'
+              payload.entrada = fechaHoyStr + 'T' + horaOvEl.value + ':00-03:00';
             }
           }
           if (geoData) payload.geo_entrada = geoData;
@@ -10898,15 +10893,10 @@ function _doSalida() {
                   if (USER.rol === 'ADMIN') {
                     var horaOvSal = document.getElementById('f-hora-override');
                     if (horaOvSal && horaOvSal.value) {
-                      var ahAR_sal = fechaHoyAR();
+                      var hoy_sal = fechaHoyAR();
                       var horaManual = horaOvSal.value + ':00';
-                      var horaRealSal = ahAR_sal.hora;
-                      // Construir ISO con la hora manual del día actual
-                      var hoy_sal = new Date().toISOString().slice(0,10);
-                      updates.salida = hoy_sal + 'T' + horaManual + '.000Z';
-                      if (horaManual !== horaRealSal) {
-                        registrarEvento('HORA_OVERRIDE', USER.puesto, 'Salida de ' + SEL_AGENT + ' registrada con hora manual: ' + horaOvSal.value + ' (hora real: ' + horaRealSal + ')');
-                      }
+                      // Construir timestamp AR con la hora manual del día actual
+                      updates.salida = hoy_sal + 'T' + horaManual + '-03:00';
                     }
                   }
                   if (!geo) {
