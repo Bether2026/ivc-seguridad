@@ -6768,8 +6768,9 @@ function _mostrarDetallePuesto() {
         case 0:
           hoyIso = fechaHoyAR();
           hoyInicio = hoyIso + 'T03:00:00.000Z'; // Medianoche en Argentina = 03:00 UTC
-          hoyFin = hoyIso + 'T26:59:59.999Z'; // 23:59 Argentina = 02:59 UTC del dia siguiente
-          tit = document.getElementById('puesto-det-titulo');
+          var _tmp6771 = new Date(hoyIso + 'T03:00:00.000Z');
+          _tmp6771.setUTCDate(_tmp6771.getUTCDate() + 1);
+          hoyFin = new Date(_tmp6771.getTime() - 1).toISOString();
           cont = document.getElementById('puesto-det-contenido');
           if (tit) tit.textContent = '📍 ' + puesto;
           if (cont) cont.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3)">Cargando...</div>';
@@ -7944,22 +7945,26 @@ function mpGetRango() {
     var dow = hoyAR.getDay();
     var lunes = new Date(hoyAR.getTime() - (dow === 0 ? 6 : dow - 1) * 86400000);
     var lunesISO = lunes.toISOString().substring(0, 10);
-    return { desde: lunesISO + 'T03:00:00.000Z', hasta: hoyISO + 'T26:59:59.999Z', label: 'Esta semana' };
+    var _hastaS = new Date(new Date(hoyISO + 'T03:00:00.000Z').getTime() + 86400000).toISOString();
+    return { desde: lunesISO + 'T03:00:00.000Z', hasta: _hastaS, label: 'Esta semana' };
   }
   if (MP_PERIODO === 'mes') {
     var mesISO = hoyISO.substring(0, 7) + '-01';
-    return { desde: mesISO + 'T03:00:00.000Z', hasta: hoyISO + 'T26:59:59.999Z', label: 'Este mes' };
+    var _hastaM = new Date(new Date(hoyISO + 'T03:00:00.000Z').getTime() + 86400000).toISOString();
+    return { desde: mesISO + 'T03:00:00.000Z', hasta: _hastaM, label: 'Este mes' };
   }
   if (MP_PERIODO === 'anual') {
     var anioISO = hoyISO.substring(0, 4) + '-01-01';
-    return { desde: anioISO + 'T03:00:00.000Z', hasta: hoyISO + 'T26:59:59.999Z', label: 'Este año' };
+    var _hastaA = new Date(new Date(hoyISO + 'T03:00:00.000Z').getTime() + 86400000).toISOString();
+    return { desde: anioISO + 'T03:00:00.000Z', hasta: _hastaA, label: 'Este año' };
   }
   if (MP_PERIODO === 'custom') {
     var desdeEl = document.getElementById('mp-desde');
     var hastaEl = document.getElementById('mp-hasta');
     var d = desdeEl ? desdeEl.value : hoyISO;
     var h = hastaEl ? hastaEl.value : hoyISO;
-    return { desde: d + 'T03:00:00.000Z', hasta: h + 'T26:59:59.999Z', label: d + ' al ' + h };
+    var _hastaC = new Date(new Date(h + 'T03:00:00.000Z').getTime() + 86400000).toISOString();
+    return { desde: d + 'T03:00:00.000Z', hasta: _hastaC, label: d + ' al ' + h };
   }
   return { desde: hoyISO + 'T03:00:00.000Z', hasta: new Date(new Date(hoyISO + 'T03:00:00.000Z').getTime() + 86400000).toISOString(), label: 'Hoy' };
 }
@@ -10391,7 +10396,11 @@ function _loadDash() {
           f = filtro();
           hoyIso = fechaHoyAR();
           hoyInicio = hoyIso + 'T03:00:00.000Z'; // Medianoche en Argentina = 03:00 UTC
-          hoyFin = hoyIso + 'T26:59:59.999Z'; // 23:59 Argentina = 02:59 UTC del dia siguiente // Fichados activos
+          // Fin del día Argentina (23:59:59) = 02:59:59 UTC del día siguiente
+          // CORRECCIÓN: T26:59:59 era una hora inválida — ningún parser la acepta
+          var _tmpHoyFin = new Date(hoyIso + 'T03:00:00.000Z');
+          _tmpHoyFin.setUTCDate(_tmpHoyFin.getUTCDate() + 1);
+          hoyFin = new Date(_tmpHoyFin.getTime() - 1).toISOString(); // 02:59:59.999Z del día siguiente
           qFich = db.from('fichajes').select('*').eq('activo', true); // Novedades de HOY solamente para el contador
           qNovHoy = db.from('novedades').select('*').gte('created_at', hoyInicio).lte('created_at', hoyFin); // Novedades pendientes (todas, para alertas) — usamos para badge nav
           qPend = db.from('novedades').select('id,puesto').eq('pendiente', true); // Objetivos activos
