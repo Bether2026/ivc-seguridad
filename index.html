@@ -10840,11 +10840,14 @@ function _doEntrada() {
         case 6:
           toast("OK Entrada registrada \u2014 ".concat(SEL_AGENT));
           // Abrir recorrido automático para Rodrigo Bueno, Papa Francisco y Fraga
+          // IMPORTANTE: usar fichPuesto (el puesto real donde se ficha), no USER.puesto
+          // (USER.puesto es el de la sesión logueada, que puede ser distinto si Responsable
+          // de turno o gestión están fichando en nombre de otro puesto)
           var BARRIOS_RECORRIDO = ['Rodrigo Bueno', 'Papa Francisco', 'Fraga', 'Responsable de turno'];
-          if (BARRIOS_RECORRIDO.indexOf(USER.puesto) >= 0) {
+          if (BARRIOS_RECORRIDO.indexOf(fichPuesto) >= 0) {
             db.from('objetivos').insert({
-              puesto:       USER.puesto,
-              cargado_por:  USER.nombre || SEL_AGENT || USER.puesto,
+              puesto:       fichPuesto,
+              cargado_por:  USER.nombre || SEL_AGENT || fichPuesto,
               estado:       'activo',
               progreso:     0,
               auto_fichaje: true,
@@ -10854,7 +10857,7 @@ function _doEntrada() {
                 toast('&#x1F3AF; Recorrido iniciado autom\xE1ticamente');
                 // Guardar en ESTE dispositivo quien fichó, para identificar "mi recorrido"
                 // (el login es compartido por puesto, no por agente individual)
-                try { localStorage.setItem('ivc_agente_fichado_' + USER.puesto, SEL_AGENT); } catch(e) {}
+                try { localStorage.setItem('ivc_agente_fichado_' + fichPuesto, SEL_AGENT); } catch(e) {}
                 loadObjetivos();
               }
             });
@@ -10883,7 +10886,7 @@ function _doSalida() {
           return _context37.a(2);
         case 1:
           showConfirm('[Salir]', 'Confirmar salida', "\xBFMarcar la salida de ".concat(SEL_AGENT, "?"), /*#__PURE__*/_asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee36() {
-            var geo, updates, direccion;
+            var geo, updates, direccion, fichRes, fichajePuestoReal;
             return _regenerator().w(function (_context36) {
               while (1) switch (_context36.n) {
                 case 0:
@@ -10920,14 +10923,21 @@ function _doSalida() {
                     direccion: direccion
                   };
                 case 3:
+                  // Traer el puesto REAL del fichaje activo (no USER.puesto, que es el de la sesion
+                  // logueada y puede ser distinto si Responsable de turno/gestion fichan por otro puesto)
+                  _context36.n = 6;
+                  return db.from('fichajes').select('puesto').eq('agente', SEL_AGENT).eq('activo', true).maybeSingle();
+                case 6:
+                  fichRes = _context36.v;
+                  fichajePuestoReal = (fichRes.data && fichRes.data.puesto) ? fichRes.data.puesto : USER.puesto;
                   _context36.n = 4;
                   return db.from('fichajes').update(updates).eq('agente', SEL_AGENT).eq('activo', true);
                 case 4:
                   toast("Salida registrada \u2014 ".concat(SEL_AGENT));
-                  cerrarRecorridoAuto(USER.puesto, SEL_AGENT);
+                  cerrarRecorridoAuto(fichajePuestoReal, SEL_AGENT);
                   try {
-                    if (localStorage.getItem('ivc_agente_fichado_' + USER.puesto) === SEL_AGENT) {
-                      localStorage.removeItem('ivc_agente_fichado_' + USER.puesto);
+                    if (localStorage.getItem('ivc_agente_fichado_' + fichajePuestoReal) === SEL_AGENT) {
+                      localStorage.removeItem('ivc_agente_fichado_' + fichajePuestoReal);
                     }
                   } catch(e) {}
                   loadFichajes();
