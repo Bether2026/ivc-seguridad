@@ -11386,13 +11386,18 @@ function _saveNov() {
             var tituloNov = $('n-tipo') ? ($('n-tipo').value === 'Otro' ? ($('n-asunto-otro') ? $('n-asunto-otro').value : 'Novedad') : $('n-tipo').value) : 'Novedad';
             var puestoNov = USER ? USER.puesto : '';
             var msg = '&#x1F6A8; ' + tituloNov + ' en ' + puestoNov;
-            // Push local al dispositivo
+            // Push local al dispositivo que cargó la novedad
             enviarNotificacion('&#x1F6A8; COMUNICACI\xD3N INMEDIATA', msg, '');
-            // Push a todos via servidor
+            // Push al servidor — SOLO a puestos de gestión, no a todos los agentes
             fetch(PUSH_SERVER_URL + '/api/send', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ titulo: '&#x1F6A8; COMUNICACI\xD3N INMEDIATA — ' + puestoNov, cuerpo: tituloNov, url: '/' })
+              body: JSON.stringify({
+                titulo: '&#x1F6A8; COMUNICACI\xD3N INMEDIATA — ' + puestoNov,
+                cuerpo: tituloNov,
+                url: '/',
+                puestos: ['Gerencia', 'Administraci\xF3n', 'Administrador', 'Responsable de turno']
+              })
             }).catch(function() {});
           }
           FOTOS_PENDIENTES = [];
@@ -11796,7 +11801,6 @@ async function saveUpdObj() {
       asunto: 'Incidencia en recorrido — ' + lugar,
       detalle: novDetalle,
       ubicacion: lugar,
-      relevancia: 'Alta',
       cargado_por: objAgente,
       fotos: novFotos,
       ref_novedad_id: null
@@ -17327,14 +17331,15 @@ function dispararAlertaTurno(agente, puesto, tipo, horaEsperada) {
     var cuerpo = agente + ': ' + labelTipo + '. Esperado a las ' + horaEsperada;
     if (typeof enviarNotificacion === 'function') enviarNotificacion(titulo, cuerpo, '');
 
-    // Push al servidor (llega a todos los dispositivos con rol Administración)
+    // Push al servidor — solo a puestos de gestión
     fetch(PUSH_SERVER_URL + '/api/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         titulo: titulo,
         cuerpo: cuerpo,
-        url: '/'
+        url: '/',
+        puestos: ['Gerencia', 'Administraci\xF3n', 'Administrador', 'Responsable de turno']
       })
     }).catch(function() {});
 
