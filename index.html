@@ -4606,24 +4606,42 @@ function getNoLeidas(novId, cantActualizaciones) {
 
 // ─── ACTUALIZACIONES DE NOVEDADES ───
 function abrirCargarInformeObj(objId) {
-  document.getElementById('cio-obj-id').value = objId;
-  document.getElementById('cio-nro-pd').value = '';
-  document.getElementById('cio-nro-pu').value = '';
-  document.getElementById('cio-texto').value  = '';
+  var idEl = document.getElementById('cio-obj-id');
+  if (!idEl) { toast('Error: overlay de informe no encontrado', 'err'); return; }
+  idEl.value = objId;
+  // Resetear el selector PD/PU y el formulario
+  var cioForm = document.getElementById('cio-form');
+  var cioSel = document.getElementById('cio-selector');
+  if (cioForm) cioForm.style.display = 'none';
+  if (cioSel) cioSel.style.display = 'block';
+  var nroEl = document.getElementById('cio-nro');
+  var textoEl = document.getElementById('cio-texto');
+  if (nroEl) nroEl.value = '';
+  if (textoEl) textoEl.value = '';
+  // Pre-cargar si ya tiene informe guardado
   db.from('objetivos').select('texto_informe,nro_pd,nro_pu').eq('id', objId).single().then(function(r) {
     var d = r.data || {};
-    document.getElementById('cio-nro-pd').value = d.nro_pd  || '';
-    document.getElementById('cio-nro-pu').value = d.nro_pu  || '';
-    document.getElementById('cio-texto').value  = d.texto_informe || '';
+    if (d.texto_informe || d.nro_pd || d.nro_pu) {
+      // Ya tiene informe — abrir directo en el formulario con los datos
+      var tipo = d.nro_pd ? 'PD' : 'PU';
+      var nro  = d.nro_pd || d.nro_pu || '';
+      if (typeof selTipoInformeObj === 'function') selTipoInformeObj(tipo);
+      if (nroEl) nroEl.value = nro;
+      if (textoEl) textoEl.value = d.texto_informe || '';
+    }
   });
   openOv('ov-cargar-inf-obj');
 }
 
 function guardarInformeObj() {
   var id    = document.getElementById('cio-obj-id').value;
-  var nroPD = document.getElementById('cio-nro-pd').value ? parseInt(document.getElementById('cio-nro-pd').value) : null;
-  var nroPU = document.getElementById('cio-nro-pu').value ? parseInt(document.getElementById('cio-nro-pu').value) : null;
+  var tipo  = document.getElementById('cio-tipo-sel').value; // 'PD' o 'PU'
+  var nroEl = document.getElementById('cio-nro');
+  var nro   = nroEl && nroEl.value ? parseInt(nroEl.value) : null;
+  var nroPD = tipo === 'PD' ? nro : null;
+  var nroPU = tipo === 'PU' ? nro : null;
   var texto = document.getElementById('cio-texto').value.trim() || null;
+  if (!id) { toast('Error: ID del recorrido no encontrado', 'err'); return; }
   setLoading('cio-btn-save', true);
   db.from('objetivos').update({ texto_informe: texto, nro_pd: nroPD, nro_pu: nroPU }).eq('id', id).then(function(r) {
     setLoading('cio-btn-save', false);
@@ -7031,8 +7049,8 @@ function renderInventario(data) {
   var list = document.getElementById('inv-list');
   if (!list) return;
 
-  var ahora = fechaHoyAR ? fechaHoyAR() : { fecha: '' };
-  var hoy = ahora.fecha || '';
+  var ahora = fechaHoyAR ? fechaHoyAR() : '';
+  var hoy = ahora || '';
 
   // Filtrar por tab
   var filtrado = data.filter(function(m) {
@@ -7653,7 +7671,7 @@ function loadPendientes() {
     if (r.error) { list.innerHTML = '<div class="empty"><p>Error: ' + r.error.message + '</p></div>'; return; }
     var data = r.data || [];
     if (!data.length) { _PEND_DATA = []; renderResumenPend([]); renderPendientes([]); return; }
-    var hoy = fechaHoyAR().fecha;
+    var hoy = fechaHoyAR();
     var ids = data.map(function(p) { return p.id; });
     db.from('controles_punto').select('punto_id').in('punto_id', ids).eq('fecha', hoy).then(function(rc) {
       var ctrl = rc.data || [];
@@ -17056,11 +17074,13 @@ function actualizarKpisTurnos() {
   if (kpiA) kpiA.textContent = alertasHoy;
   if (kpiT) kpiT.textContent = tardanzas;
 
-  // Contar quién fichó hoy
+  // Contar quién fichó hoy — usando T03:00:00Z (medianoche AR) y T27:00:00Z no existe,
+  // así que usamos el día siguiente T03:00:00Z como límite superior
+  var _hoySig1 = new Date(new Date(hoy + 'T03:00:00.000Z').getTime() + 86400000).toISOString();
   db.from('fichajes').select('nombre', { count: 'exact' })
     .eq('activo', false)
-    .gte('entrada', hoy + 'T00:00:00')
-    .lt('entrada', hoy + 'T23:59:59')
+    .gte('entrada', hoy + 'T03:00:00.000Z')
+    .lt('entrada', _hoySig1)
     .then(function(r) {
       var kpiOk = document.getElementById('trn-kpi-ok');
       if (kpiOk) kpiOk.textContent = (r && r.count) ? r.count : 0;
@@ -17197,10 +17217,11 @@ function ejecutarMonitorTurnos() {
       if (!rAg || !rAg.data || !rAg.data.length) return;
       var agentes = rAg.data;
 
-      // Cargar fichajes de hoy
+      // Cargar fichajes de hoy — T03:00:00Z = medianoche Argentina
+      var _hoySig2 = new Date(new Date(hoy + 'T03:00:00.000Z').getTime() + 86400000).toISOString();
       db.from('fichajes').select('nombre, puesto, entrada, salida, activo')
-        .gte('entrada', hoy + 'T00:00:00')
-        .lt('entrada', hoy + 'T23:59:59')
+        .gte('entrada', hoy + 'T03:00:00.000Z')
+        .lt('entrada', _hoySig2)
         .then(function(rFich) {
           var fichajes = (rFich && rFich.data) ? rFich.data : [];
 
@@ -17799,8 +17820,8 @@ function buscarHistorialNovedades(irAPagina) {
   // Orden cronologico: mas reciente primero
   var q = db.from('novedades').select('*', { count: 'exact' }).order('created_at', { ascending: false });
 
-  if (desde) q = q.gte('created_at', desde + 'T00:00:00');
-  if (hasta) q = q.lte('created_at', hasta + 'T23:59:59');
+  if (desde) q = q.gte('created_at', desde + 'T03:00:00.000Z');
+  if (hasta) { var _hUTC = new Date(new Date(hasta + 'T03:00:00.000Z').getTime() + 86400000).toISOString(); q = q.lte('created_at', _hUTC); }
   if (puesto) q = q.eq('puesto', puesto);
   if (asunto) q = q.eq('asunto', asunto);
   if (agente) q = q.ilike('cargado_por', '%' + agente + '%');
@@ -17989,8 +18010,11 @@ function generarEstadisticaAvanzada() {
 
   var tablaCol = fuente; // novedades, fichajes, objetivos, licencias
   var campoFecha = (fuente === 'licencias') ? 'fecha_desde' : (fuente === 'fichajes') ? 'entrada' : 'created_at';
-
-  var q = db.from(tablaCol).select('*').gte(campoFecha, desde + 'T00:00:00').lte(campoFecha, hasta + 'T23:59:59');
+  var esDate = fuente === 'licencias'; // campo date puro, no timestamp
+  var desdeQ = esDate ? desde : desde + 'T03:00:00.000Z';
+  var _hastaD = new Date(new Date(hasta + 'T03:00:00.000Z').getTime() + 86400000).toISOString();
+  var hastaQ  = esDate ? hasta : _hastaD;
+  var q = db.from(tablaCol).select('*').gte(campoFecha, desdeQ).lte(campoFecha, hastaQ);
 
   q.then(function(r) {
     if (r.error) {
