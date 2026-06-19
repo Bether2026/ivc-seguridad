@@ -7059,12 +7059,15 @@ function renderInventario(data) {
   var list = document.getElementById('inv-list');
   if (!list) return;
 
-  var ahora = fechaHoyAR ? fechaHoyAR() : '';
-  var hoy = ahora || '';
+  var hoy = fechaHoyAR();
 
   // Filtrar por tab
   var filtrado = data.filter(function(m) {
-    if (INV_TAB === 'hoy') return m.fecha === hoy;
+    if (INV_TAB === 'hoy') {
+      // campo fecha puede ser null si se guardó antes del fix — usar created_at como fallback
+      var fechaMov = m.fecha || (m.created_at ? fechaCorta(m.created_at) : '');
+      return fechaMov === hoy;
+    }
     return true; // histórico muestra todo
   });
 
@@ -7360,7 +7363,8 @@ function guardarMovimientoInv() {
   }
 
   setLoading('btn-save-inv', true);
-  var ahora = fechaHoyAR();
+  var _invFecha = fechaHoyAR();
+  var _invHora  = horaActualAR();
   var mov = {
     puesto:              USER.puesto,
     agente_registra:     USER.nombre || USER.puesto,
@@ -7369,8 +7373,8 @@ function guardarMovimientoInv() {
     area:                area,
     destino:             destino.trim(),
     observaciones:       obs && obs.trim() ? obs.trim() : null,
-    fecha:               ahora.fecha,
-    hora:                ahora.hora
+    fecha:               _invFecha,
+    hora:                _invHora
   };
 
   db.from('inventario').insert(mov).select().single().then(function(res) {
@@ -7600,7 +7604,7 @@ function guardarNuevoPunto() {
       foto_inicial: fotoUrl || null,
       estado: 'activo',
       creado_por: USER.nombre || USER.puesto,
-      fecha_creacion: ahora.fecha,
+      fecha_creacion: ahora,
       created_at: new Date().toISOString()
     }).then(function(r) {
       setLoading('btn-save-np', false);
@@ -7830,7 +7834,7 @@ function guardarControl() {
     db.from('controles_punto').insert({
       punto_id: CTRL_PUNTO_ID, agente: USER.nombre || USER.puesto, puesto: USER.puesto,
       estado: CTRL_ESTADO, observaciones: obs || null, foto_url: fotoUrl, fotos: fotoUrls,
-      fecha: ahora.fecha, hora: ahora.hora, created_at: new Date().toISOString()
+      fecha: ahora, hora: horaActualAR(), created_at: new Date().toISOString()
     }).then(function(r) {
       setLoading('btn-save-ctrl', false);
       if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
@@ -18340,6 +18344,11 @@ var PREC_RETIRO_FOTOS = [];
 function loadPrecintos() {
   var hoy = fechaHoyAR();
   db.from('precintos').select('*').eq('fecha', hoy).then(function(r) {
+    if (r.error) {
+      var el = document.getElementById('prec-resumen-hoy');
+      if (el) el.innerHTML = '<div style="padding:12px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:8px;font-size:12px;color:#fca5a5">⚠️ Error al cargar precintos: ' + r.error.message + '<br><span style="font-size:11px;color:var(--text3)">Verificá que la tabla "precintos" exista en Supabase (ejecutá el SQL que se generó al crear el módulo).</span></div>';
+      return;
+    }
     PREC_HOY_CACHE = (r.data || []);
     _renderResumenPrecintosHoy();
     if (document.getElementById('prec-zona-colocar').style.display !== 'none') {
