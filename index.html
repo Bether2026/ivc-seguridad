@@ -4449,11 +4449,9 @@ function _guardarAjusteLicencia() {
             fecha: now.toLocaleDateString('es-AR', {
               day: '2-digit',
               month: '2-digit',
-              year: 'numeric'
-            }) + ' ' + now.toLocaleTimeString('es-AR', {
+              year: 'numeric', timeZone: 'America/Argentina/Buenos_Aires'}) + ' ' + now.toLocaleTimeString('es-AR', {
               hour: '2-digit',
-              minute: '2-digit'
-            }),
+              minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires'}),
             tipo: tipo,
             op: op,
             dias: dias,
@@ -4803,11 +4801,9 @@ function _guardarActualizacionNovedad() {
               weekday: 'long',
               day: 'numeric',
               month: 'long',
-              year: 'numeric'
-            }) + ' ' + now.toLocaleTimeString('es-AR', {
+              year: 'numeric', timeZone: 'America/Argentina/Buenos_Aires'}) + ' ' + now.toLocaleTimeString('es-AR', {
               hour: '2-digit',
-              minute: '2-digit'
-            }),
+              minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires'}),
             autor: autor || USER.puesto,
             texto: texto,
             foto: null
@@ -5329,7 +5325,7 @@ function _autorizarDispositivo() {
           db.from('alertas_turno').insert({
             tipo: 'dispositivo_nuevo',
             puesto: 'Administrador',
-            mensaje: '?? Nuevo dispositivo autorizado — Usuario: ' + puesto + ' — Dispositivo: ' + (navigator.userAgent.indexOf('Android') >= 0 ? 'Android' : navigator.userAgent.indexOf('iPhone') >= 0 ? 'iPhone' : 'PC/Desktop') + ' — ' + new Date().toLocaleString('es-AR'),
+            mensaje: '?? Nuevo dispositivo autorizado — Usuario: ' + puesto + ' — Dispositivo: ' + (navigator.userAgent.indexOf('Android') >= 0 ? 'Android' : navigator.userAgent.indexOf('iPhone') >= 0 ? 'iPhone' : 'PC/Desktop') + ' — ' + new Date().toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' }),
             leida: false,
             created_at: new Date().toISOString()
           }).then(function() {});
@@ -5516,7 +5512,7 @@ function dbgLog(msg) {
   try {
     var c = document.getElementById('debug-content');
     if (c) {
-      var t = new Date().toLocaleTimeString();
+      var t = new Date().toLocaleTimeString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' });
       var d = document.createElement('div');
       d.style.cssText = 'margin-bottom:3px;border-bottom:1px dotted rgba(0,255,0,0.2);padding-bottom:2px';
       d.textContent = '[' + t + '] ' + msg;
@@ -6279,19 +6275,27 @@ var $ = function $(id) {
   return document.getElementById(id);
 };
 var ahora = function ahora() {
+  // Forzamos timeZone Argentina — sin esto usa la zona del dispositivo
   return new Date().toLocaleTimeString('es-AR', {
     hour: '2-digit',
-    minute: '2-digit'
+    minute: '2-digit',
+    timeZone: 'America/Argentina/Buenos_Aires'
   });
 };
 var ahoraFull = function ahoraFull() {
-  return new Date().toLocaleTimeString('es-AR');
+  return new Date().toLocaleTimeString('es-AR', {
+    timeZone: 'America/Argentina/Buenos_Aires'
+  });
 };
 var hoy = function hoy() {
+  // Forzamos timeZone Argentina explícitamente — sin esto, toma la zona
+  // horaria del dispositivo, que puede no ser Argentina y mostrar el día
+  // equivocado (ej: a las 21hs AR ya seria "mañana" en UTC)
   return new Date().toLocaleDateString('es-AR', {
     weekday: 'long',
     day: 'numeric',
-    month: 'long'
+    month: 'long',
+    timeZone: 'America/Argentina/Buenos_Aires'
   });
 };
 var initials = function initials(n) {
@@ -6921,8 +6925,7 @@ function renderFechasAgenda() {
     var label = d.toLocaleDateString('es-AR', {
       weekday: 'short',
       day: 'numeric',
-      month: 'short'
-    });
+      month: 'short', timeZone: 'America/Argentina/Buenos_Aires'});
     h += '<div style="display:flex;align-items:center;gap:6px;background:rgba(37,99,235,0.15);border:1px solid rgba(37,99,235,0.3);border-radius:20px;padding:4px 10px 4px 12px">';
     h += '<span style="font-size:12px;font-weight:700;color:var(--accent3)">' + label + '</span>';
     h += '<button onclick="quitarFechaAgenda(' + i + ')" style="border:none;background:none;color:var(--text3);cursor:pointer;font-size:14px;padding:0;line-height:1">×</button>';
@@ -10275,7 +10278,7 @@ function _loadAgenda() {
               var fechaDia = fechasConOps[di];
               var dObj = new Date(fechaDia + 'T12:00:00');
               var esHoyDia = fechaDia === hoyStr;
-              var dLabel = DIAS[dObj.getDay()] + ' ' + dObj.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+              var dLabel = DIAS[dObj.getDay()] + ' ' + dObj.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Argentina/Buenos_Aires'});
 
               // Separador de día
               h += '<div style="display:flex;align-items:center;gap:10px;padding:14px 0 8px">';
@@ -10315,8 +10318,7 @@ function _loadAgenda() {
               return d.toLocaleDateString('es-AR', {
                 weekday: 'short',
                 day: 'numeric',
-                month: 'short'
-              });
+                month: 'short', timeZone: 'America/Argentina/Buenos_Aires'});
             }).join(' · ');
             esHoy = op.fechas && op.fechas.indexOf(hoyStr) !== -1;
             h += '<div style="background:var(--bg2);border:1px solid ' + (esHoy ? 'var(--yellow)' : 'var(--border)') + ';' + (esHoy ? 'border-left:3px solid var(--yellow);' : 'border-left:3px solid var(--border2);') + 'border-radius:10px;margin-bottom:10px;padding:14px">';
@@ -10332,7 +10334,7 @@ function _loadAgenda() {
               fechasArr = op.fechas || [];
               for (fi = 0; fi < fechasArr.length; fi++) {
                 fd = new Date(fechasArr[fi] + 'T12:00:00');
-                fLabel = fd.toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short' });
+                fLabel = fd.toLocaleDateString('es-AR', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'America/Argentina/Buenos_Aires'});
                 esFechaHoy = fechasArr[fi] === hoyStr;
                 h += '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;' + (esFechaHoy ? 'background:rgba(245,158,11,0.2);color:#fbbf24;border:1px solid rgba(245,158,11,0.4)' : 'background:var(--bg3);color:var(--text2);border:1px solid var(--border2)') + '">' + fLabel + '</span>';
               }
@@ -11584,7 +11586,7 @@ async function saveObj() {
   var now = new Date();
   var primerPunto = {
     lugar: desc,
-    hora: now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
+    hora: now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires'}),
     fecha: now.toISOString(),
     incidencia: false,
     obs: '',
@@ -11766,7 +11768,7 @@ async function saveUpdObj() {
   var now = new Date();
   acts.push({
     lugar: lugar,
-    hora: now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
+    hora: now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires'}),
     fecha: now.toISOString(),
     incidencia: OBJ_CON_INCIDENCIA,
     obs: obs,
@@ -12369,7 +12371,7 @@ function marcarSalidaParada(rutaId, paradaIdx) {
     var paradas = res.data.paradas || [];
     if (!paradas[paradaIdx]) { toast('No se encontró la parada', 'err'); return; }
     if (paradas[paradaIdx].hora_salida) { toast('Esta parada ya tiene salida registrada', 'err'); return; }
-    paradas[paradaIdx].hora_salida = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+    paradas[paradaIdx].hora_salida = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires'});
     db.from('rutas').update({ paradas: paradas }).eq('id', rutaId).then(function(r) {
       if (r.error) { toast('Error al guardar: ' + r.error.message, 'err'); return; }
       toast('🛑 Salida de ' + (paradas[paradaIdx].puesto || 'parada') + ' registrada');
@@ -12387,7 +12389,7 @@ function saveParada(finalizar) {
 
   var parada = {
     puesto: puesto,
-    hora: new Date().toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'}),
+    hora: new Date().toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit', timeZone: 'America/Argentina/Buenos_Aires'}),
     hora_salida: null,
     con_incidencia: PARADA_CON_INCIDENCIA,
     tipo_inc: PARADA_TIPO_INC || null,
@@ -12734,8 +12736,7 @@ function formatTs(ts) {
   var d = new Date(ts);
   return d.toLocaleTimeString('es-AR', {
     hour: '2-digit',
-    minute: '2-digit'
-  });
+    minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires'});
 }
 function setLoading(btnId, loading) {
   var b = $(btnId);
@@ -12919,11 +12920,9 @@ function _loadStats() {
             for (ai = 0; ai < novs.length; ai++) {
               ad = new Date(novs[ai].created_at);
               akey = period === 'anio' ? ad.toLocaleDateString('es-AR', {
-                month: 'short'
-              }) : ad.toLocaleDateString('es-AR', {
+                month: 'short', timeZone: 'America/Argentina/Buenos_Aires'}) : ad.toLocaleDateString('es-AR', {
                 day: '2-digit',
-                month: '2-digit'
-              });
+                month: '2-digit', timeZone: 'America/Argentina/Buenos_Aires'});
               actMap[akey] = (actMap[akey] || 0) + 1;
             }
             actEntries = Object.entries(actMap).slice(-10);
@@ -14721,8 +14720,7 @@ function formatDate(dateStr) {
   return d.toLocaleDateString('es-AR', {
     day: '2-digit',
     month: '2-digit',
-    year: 'numeric'
-  });
+    year: 'numeric', timeZone: 'America/Argentina/Buenos_Aires'});
 }
 function calcDias(desde, hasta) {
   if (!desde || !hasta) return 1;
@@ -15911,8 +15909,8 @@ function abrirDetalleInmueble(inmId) {
         var relColor = nov.relevancia === 'Urgente' ? '#f87171' : nov.relevancia === 'Alta' ? '#fbbf24' : 'var(--accent3)';
         // Format date prominently
         var fechaObj = new Date(nov.created_at);
-        var fechaStr = fechaObj.toLocaleDateString('es-AR', {weekday:'short', day:'numeric', month:'short', year:'numeric'});
-        var horaStr = fechaObj.toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit'});
+        var fechaStr = fechaObj.toLocaleDateString('es-AR', {weekday:'short', day:'numeric', month:'short', year:'numeric', timeZone: 'America/Argentina/Buenos_Aires'});
+        var horaStr = fechaObj.toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit', timeZone: 'America/Argentina/Buenos_Aires'});
         tHtml += '<div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05)">';
         tHtml += '<div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0">';
         tHtml += '<div style="width:10px;height:10px;border-radius:50%;background:' + relColor + ';margin-top:3px"></div>';
@@ -16008,7 +16006,7 @@ function detenerProcesamientoIA() {
 function inm_ia_log(msg) {
   var log = document.getElementById('inm-ia-log');
   if (!log) return;
-  var ts = new Date().toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+  var ts = new Date().toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit', second:'2-digit', timeZone: 'America/Argentina/Buenos_Aires'});
   log.innerHTML += '<div>[' + ts + '] ' + msg + '</div>';
   log.scrollTop = log.scrollHeight;
 }
@@ -16248,7 +16246,7 @@ function loadHistorialSesiones() {
         var icon = r.tipo === 'LOGIN_OK' ? '🟢' : r.tipo === 'LOGOUT' ? '🔴' : r.tipo === 'LOGIN_BLOQUEADO' ? '🚫' : '⚠️';
         var color = r.tipo === 'LOGIN_OK' ? 'var(--green)' : r.tipo === 'LOGOUT' ? 'var(--text3)' : r.tipo === 'LOGIN_BLOQUEADO' ? '#f87171' : 'var(--yellow)';
         var fechaObj = new Date(r.created_at);
-        var fechaStr = fechaObj.toLocaleDateString('es-AR', {day:'numeric',month:'short'}) + ' ' + fechaObj.toLocaleTimeString('es-AR', {hour:'2-digit',minute:'2-digit'});
+        var fechaStr = fechaObj.toLocaleDateString('es-AR', {day:'numeric',month:'short', timeZone: 'America/Argentina/Buenos_Aires'}) + ' ' + fechaObj.toLocaleTimeString('es-AR', {hour:'2-digit',minute:'2-digit', timeZone: 'America/Argentina/Buenos_Aires'});
         html += '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05)">';
         html += '<span style="font-size:16px">' + icon + '</span>';
         html += '<div style="flex:1;min-width:0">';
@@ -17549,7 +17547,7 @@ function cargarDispositivos() {
     lista.innerHTML = '';
     r.data.forEach(function(d) {
       var revocado = d.revocado;
-      var fecha = d.fecha_autorizacion ? new Date(d.fecha_autorizacion).toLocaleDateString('es-AR') : 'Desconocida';
+      var fecha = d.fecha_autorizacion ? new Date(d.fecha_autorizacion).toLocaleDateString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' }) : 'Desconocida';
       var tipo = d.nombre_dispositivo || (d.user_agent && d.user_agent.indexOf('Android') >= 0 ? 'Android' : d.user_agent && d.user_agent.indexOf('iPhone') >= 0 ? 'iPhone' : 'PC/Desktop');
       var icono = tipo === 'Android' ? '\u{1F4F1}' : tipo === 'iPhone' ? '\u{1F34E}' : '\u{1F4BB}';
 
@@ -18166,7 +18164,7 @@ var SA_ULTIMO_CONTEXTO = null;
 function _formatearFechaSA(iso) {
   if (!iso) return '';
   var d = new Date(iso + 'T00:00:00');
-  return d.toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' });
+  return d.toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'America/Argentina/Buenos_Aires'});
 }
 
 function generarResumenEscritoSA() {
@@ -18592,7 +18590,7 @@ function buscarHistorialPrecintos() {
     orden.forEach(function(fecha) {
       html += '<div style="font-size:12px;font-weight:800;color:var(--accent3);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 8px">' + formatFechaCompleta(fecha) + '</div>';
       grupos[fecha].forEach(function(p) {
-        var hora = p.created_at ? new Date(p.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }) : '';
+        var hora = p.created_at ? new Date(p.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires'}) : '';
         var colorAccion = p.accion === 'colocar' ? '#f59e0b' : '#22c55e';
         var iconoAccion = p.accion === 'colocar' ? '\uD83D\uDD12' : '\uD83D\uDD13';
         html += '<div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-left:4px solid ' + colorAccion + ';border-radius:10px;padding:12px;margin-bottom:8px">';
