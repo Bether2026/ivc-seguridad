@@ -16333,12 +16333,38 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').then(function(reg) {
     SW_REGISTRATION = reg;
     console.log('[SW] registrado OK');
+    // Forzar verificación de actualización ahora mismo y cada vez que la
+    // app recupera el foco — así no depende solo del chequeo automático
+    // periódico de Android, que puede tardar horas.
+    reg.update().catch(function() {});
+    document.addEventListener('visibilitychange', function() {
+      if (document.visibilityState === 'visible') {
+        reg.update().catch(function() {});
+      }
+    });
     // Subscribe to push server if permission granted
     if (Notification.permission === 'granted') {
       suscribirPushServer(reg);
     }
   }).catch(function(e) {
     console.log('[SW] no disponible:', e.message);
+  });
+
+  // Cuando el Service Worker activa una versión nueva, recarga la página
+  // automáticamente — soluciona dispositivos atascados con HTML viejo en
+  // memoria sin que el usuario tenga que cerrar y reabrir la app a mano.
+  navigator.serviceWorker.addEventListener('message', function(event) {
+    if (event.data && event.data.type === 'SW_UPDATED_RELOAD') {
+      window.location.reload();
+    }
+  });
+
+  // Si el controller cambia (nueva versión tomó control), también recargar
+  var _swReloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', function() {
+    if (_swReloaded) return;
+    _swReloaded = true;
+    window.location.reload();
   });
 }
 
