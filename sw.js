@@ -21,6 +21,18 @@ self.addEventListener('activate', function(event) {
             .map(function(k) { return caches.delete(k); })
       );
     }).then(function() { return self.clients.claim(); })
+     .then(function() {
+       // Auto-reparación: cuando una versión NUEVA del Service Worker toma
+       // control, recarga automáticamente cualquier pestaña/PWA que ya
+       // estuviera abierta con la versión vieja — sin esto, el usuario
+       // puede quedar viendo HTML viejo en memoria aunque el SW ya se
+       // haya actualizado, hasta que cierre y reabra la app manualmente.
+       return self.clients.matchAll({ type: 'window' }).then(function(clientList) {
+         clientList.forEach(function(client) {
+           client.postMessage({ type: 'SW_UPDATED_RELOAD' });
+         });
+       });
+     })
   );
 });
 
