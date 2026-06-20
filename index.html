@@ -17427,56 +17427,27 @@ CREATE TABLE IF NOT EXISTS justificaciones_turno (
 
 
 <script>
-// ── SERVICE WORKER con Background GPS ──────────────────────
+// ── BACKGROUND GPS — usa el ÚNICO Service Worker real (/sw.js) ──────────
+// IMPORTANTE: antes había un SEGUNDO Service Worker generado en memoria
+// (vía Blob) compitiendo con el archivo real /sw.js. Tener dos Service
+// Workers registrados causaba que algunos dispositivos quedaran atascados
+// sirviendo una versión vieja y cacheada de la app indefinidamente, sin
+// recibir nunca las correcciones nuevas. Se unificó todo en /sw.js.
 if ('serviceWorker' in navigator) {
-  var swCode = [
-    "const CACHE = 'ivc-v4';", // versión subida para invalidar caché viejo con bugs ya corregidos
-    "const GPS_TAG = 'ivc-gps-sync';",
-    "self.addEventListener('install', e => { self.skipWaiting(); });",
-    "self.addEventListener('activate', e => {",
-    "  e.waitUntil(",
-    "    caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))",
-    "      .then(() => clients.claim())",
-    "  );",
-    "});",
-    // Network-first: siempre intenta traer la versión más nueva del servidor.
-    // Solo usa la copia en caché si no hay conexión (offline). Esto evita que
-    // el dispositivo quede atascado para siempre con una versión vieja de la app
-    // después de que se publican correcciones.
-    "self.addEventListener('fetch', e => {",
-    "  e.respondWith(",
-    "    fetch(e.request).then(resp => {",
-    "      var respClone = resp.clone();",
-    "      caches.open(CACHE).then(c => c.put(e.request, respClone));",
-    "      return resp;",
-    "    }).catch(() => caches.match(e.request))",
-    "  );",
-    "});",
-    "self.addEventListener('sync', e => { if (e.tag === GPS_TAG) e.waitUntil(transmitirGPSdesdeSW()); });",
-    "self.addEventListener('periodicsync', e => { if (e.tag === GPS_TAG) e.waitUntil(transmitirGPSdesdeSW()); });",
-    "self.addEventListener('message', e => {",
-    "  if (e.data && e.data.tipo === 'GPS_COORDS') self._lastGeo = e.data;",
-    "  if (e.data && e.data.tipo === 'GPS_CONFIG') self._gpsConfig = e.data;",
-    "});",
-    "async function transmitirGPSdesdeSW() {",
-    "  if (!self._lastGeo || !self._gpsConfig) return;",
-    "  var cfg = self._gpsConfig; var geo = self._lastGeo;",
-    "  try {",
-    "    var ts = new Date().toISOString();",
-    "    var h = { 'Content-Type': 'application/json', 'apikey': cfg.supaKey, 'Authorization': 'Bearer ' + (cfg.accessToken || cfg.supaKey), 'Prefer': 'return=minimal' };",
-    "    await fetch(cfg.supaUrl + '/rest/v1/gps_track', { method: 'POST', headers: h, body: JSON.stringify({ movil: cfg.movil, chofer: cfg.chofer, lat: geo.lat, lng: geo.lng, ts: ts, created_at: ts }) });",
-    "    await fetch(cfg.supaUrl + '/rest/v1/gps_moviles?movil=eq.' + encodeURIComponent(cfg.movil), { method: 'DELETE', headers: h });",
-    "    await fetch(cfg.supaUrl + '/rest/v1/gps_moviles', { method: 'POST', headers: h, body: JSON.stringify({ movil: cfg.movil, chofer: cfg.chofer, lat: geo.lat, lng: geo.lng, activo: true, updated_at: ts }) });",
-    "  } catch(err) { console.warn('[SW GPS]', err); }",
-    "}"
-  ].join('\n');
-  var blob = new Blob([swCode], { type: 'application/javascript' });
-  var swUrl = URL.createObjectURL(blob);
-  navigator.serviceWorker.register(swUrl).then(function(reg) {
+  // Kill-switch: en dispositivos que ya tengan registrado el Service Worker
+  // viejo basado en Blob (scope distinto, sin controller real), lo
+  // desregistra automáticamente para que solo quede activo /sw.js.
+  navigator.serviceWorker.getRegistrations().then(function(regs) {
+    regs.forEach(function(reg) {
+      var scriptUrl = (reg.active && reg.active.scriptURL) || (reg.installing && reg.installing.scriptURL) || (reg.waiting && reg.waiting.scriptURL) || '';
+      if (scriptUrl.indexOf('blob:') === 0) {
+        reg.unregister();
+      }
+    });
+  }).catch(function() {});
+
+  navigator.serviceWorker.ready.then(function(reg) {
     window.SW_REGISTRATION = reg;
-    console.log('[SW] Registrado OK');
-    // Forzar verificación de actualización cada vez que se abre la app,
-    // para no quedar nunca atascado con una versión vieja cacheada
     reg.update().catch(function() {});
     if ('periodicSync' in reg) {
       navigator.permissions.query({ name: 'periodic-background-sync' }).then(function(status) {
