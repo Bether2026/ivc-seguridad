@@ -17430,11 +17430,28 @@ CREATE TABLE IF NOT EXISTS justificaciones_turno (
 // ── SERVICE WORKER con Background GPS ──────────────────────
 if ('serviceWorker' in navigator) {
   var swCode = [
-    "const CACHE = 'ivc-v3';",
+    "const CACHE = 'ivc-v4';", // versión subida para invalidar caché viejo con bugs ya corregidos
     "const GPS_TAG = 'ivc-gps-sync';",
-    "self.addEventListener('install', e => { e.waitUntil(caches.open(CACHE).then(c => c.add('/'))); self.skipWaiting(); });",
-    "self.addEventListener('activate', e => { e.waitUntil(clients.claim()); });",
-    "self.addEventListener('fetch', e => { e.respondWith(caches.match(e.request).then(r => r || fetch(e.request))); });",
+    "self.addEventListener('install', e => { self.skipWaiting(); });",
+    "self.addEventListener('activate', e => {",
+    "  e.waitUntil(",
+    "    caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k))))",
+    "      .then(() => clients.claim())",
+    "  );",
+    "});",
+    // Network-first: siempre intenta traer la versión más nueva del servidor.
+    // Solo usa la copia en caché si no hay conexión (offline). Esto evita que
+    // el dispositivo quede atascado para siempre con una versión vieja de la app
+    // después de que se publican correcciones.
+    "self.addEventListener('fetch', e => {",
+    "  e.respondWith(",
+    "    fetch(e.request).then(resp => {",
+    "      var respClone = resp.clone();",
+    "      caches.open(CACHE).then(c => c.put(e.request, respClone));",
+    "      return resp;",
+    "    }).catch(() => caches.match(e.request))",
+    "  );",
+    "});",
     "self.addEventListener('sync', e => { if (e.tag === GPS_TAG) e.waitUntil(transmitirGPSdesdeSW()); });",
     "self.addEventListener('periodicsync', e => { if (e.tag === GPS_TAG) e.waitUntil(transmitirGPSdesdeSW()); });",
     "self.addEventListener('message', e => {",
@@ -17458,6 +17475,9 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register(swUrl).then(function(reg) {
     window.SW_REGISTRATION = reg;
     console.log('[SW] Registrado OK');
+    // Forzar verificación de actualización cada vez que se abre la app,
+    // para no quedar nunca atascado con una versión vieja cacheada
+    reg.update().catch(function() {});
     if ('periodicSync' in reg) {
       navigator.permissions.query({ name: 'periodic-background-sync' }).then(function(status) {
         if (status.state === 'granted') {
