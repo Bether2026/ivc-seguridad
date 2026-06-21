@@ -5160,10 +5160,11 @@ function formatFechaCompleta(dateStr) {
 }
 function fechaCorta(dateStr) {
   if (!dateStr) return '';
-  // Parse the stored date/timestamp and return in Argentina timezone (UTC-3 fijo)
+  // Parse the stored timestamp (UTC absoluto) y devolver la fecha en Argentina (UTC-3).
+  // getTime() ya es UTC absoluto: solo restamos 3 horas, sin sumar el offset
+  // del dispositivo (eso duplicaba el ajuste).
   var d = new Date(dateStr);
-  var utcMs = d.getTime() + (d.getTimezoneOffset() * 60000); // hora UTC real
-  var argDate = new Date(utcMs - 3 * 60 * 60 * 1000); // UTC-3
+  var argDate = new Date(d.getTime() - 3 * 60 * 60 * 1000); // UTC-3 directo
   var yyyy = argDate.getUTCFullYear();
   var mm = String(argDate.getUTCMonth() + 1).padStart(2, '0');
   var dd = String(argDate.getUTCDate()).padStart(2, '0');
@@ -6077,12 +6078,14 @@ function escapeHTML(str) {
 
 function fechaHoyAR() {
   // Argentina es siempre UTC-3 (no tiene horario de verano desde 1999).
-  // Calculamos directo desde UTC en vez de usar getTimezoneOffset() del dispositivo,
-  // que varía según cómo esté configurado el reloj de cada celular/compu y puede
-  // dar resultados incorrectos si el dispositivo no está en huso horario argentino.
+  // getTime() ya devuelve el instante en milisegundos UTC absolutos,
+  // independiente de la zona horaria configurada en el dispositivo.
+  // Por eso solo restamos 3 horas para obtener la hora de Argentina —
+  // NO hay que sumar getTimezoneOffset() (eso duplicaba el ajuste y hacía
+  // que a las 21hs de Argentina la fecha saltara al día siguiente).
   var ahora = new Date();
-  var utcMs = ahora.getTime() + (ahora.getTimezoneOffset() * 60000); // hora UTC real
-  var argDate = new Date(utcMs - 3 * 60 * 60 * 1000); // UTC-3
+  var argMs = ahora.getTime() - 3 * 60 * 60 * 1000; // UTC-3 directo
+  var argDate = new Date(argMs);
   var yyyy = argDate.getUTCFullYear();
   var mm = String(argDate.getUTCMonth() + 1).padStart(2, '0');
   var dd = String(argDate.getUTCDate()).padStart(2, '0');
@@ -16917,9 +16920,10 @@ var MONITOR_TURNO_MS = 5 * 60 * 1000; // 5 minutos
 
 // ── Utilidad: hora AR actual como "HH:MM" ──
 function horaActualAR() {
+  // getTime() ya es UTC absoluto: solo restamos 3 horas para Argentina,
+  // sin sumar el offset del dispositivo (eso duplicaba el ajuste).
   var ahora = new Date();
-  var utcMs = ahora.getTime() + (ahora.getTimezoneOffset() * 60000); // hora UTC real
-  var argDate = new Date(utcMs - 3 * 60 * 60 * 1000); // UTC-3
+  var argDate = new Date(ahora.getTime() - 3 * 60 * 60 * 1000); // UTC-3 directo
   var hh = String(argDate.getUTCHours()).padStart(2, '0');
   var mm = String(argDate.getUTCMinutes()).padStart(2, '0');
   return hh + ':' + mm;
