@@ -1191,12 +1191,14 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
     <!-- Solo gestión: selector de puesto -->
     <div class="form-group" id="n-puesto-wrap" style="display:none">
       <label class="form-label">&#x1F4CD; Cargar en nombre de puesto</label>
-      <select class="form-select" id="n-puesto-sel">
+      <select class="form-select" id="n-puesto-sel" onchange="toggleOtroPuesto()">
         <option value="">— Seleccioná el puesto —</option>
         <option>Papa Francisco</option><option>Rodrigo Bueno</option><option>Fraga</option>
         <option>Base Castañares</option><option>Obrador Savio</option><option>CAV</option>
         <option>Necochea</option><option>Complejo Orma</option><option>Padre Mugica</option>
+        <option id="n-puesto-otro-opt" value="__otro__" style="display:none">Otro (escribir a mano)</option>
       </select>
+      <input type="text" class="form-input" id="n-puesto-otro-txt" placeholder="Escribí el nombre del puesto..." style="display:none;margin-top:6px">
     </div>
 
     <!-- OBLIGATORIOS -->
@@ -6346,6 +6348,13 @@ function openOv(id) {
   if (id === 'ov-nov') {
     if ($('n-puesto-wrap'))   $('n-puesto-wrap').style.display  = esGestionPuesto ? 'block' : 'none';
     if ($('n-informe-wrap'))  $('n-informe-wrap').style.display = esAdm ? 'block' : 'none';
+    // Opción "Otro" solo para Administración y Administrador del sistema
+    var _puedeOtroPuesto = ['Administración', 'Administrador'].indexOf(USER ? USER.puesto : '') >= 0 || (USER && USER.rol === 'ADMIN');
+    var _optOtro = document.getElementById('n-puesto-otro-opt');
+    var _txtOtro = document.getElementById('n-puesto-otro-txt');
+    if (_optOtro) _optOtro.style.display = _puedeOtroPuesto ? '' : 'none';
+    if (_txtOtro) _txtOtro.style.display = 'none';
+    if ($('n-puesto-sel')) { $('n-puesto-sel').value = ''; }
   }
   if (id === 'ov-obj-upd') {
     if ($('upd-informe-wrap')) $('upd-informe-wrap').style.display = esAdm ? 'block' : 'none';
@@ -11431,6 +11440,14 @@ function toggleOtroAsunto() {
   var wrap = document.getElementById('n-otro-wrap');
   if (wrap) wrap.style.display = (sel && sel.value === 'Otro') ? 'block' : 'none';
 }
+function toggleOtroPuesto() {
+  var sel = document.getElementById('n-puesto-sel');
+  var txt = document.getElementById('n-puesto-otro-txt');
+  if (!txt) return;
+  var esOtro = sel && sel.value === '__otro__';
+  txt.style.display = esOtro ? 'block' : 'none';
+  if (!esOtro) txt.value = '';
+}
 
 async function abrirNuevaNovedad() {
   // Reset form
@@ -11481,13 +11498,29 @@ function _saveNov() {
           var agVal   = $('n-agente') ? $('n-agente').value : '';
           if (!tipoVal) { toast('Seleccioná el Asunto', 'err'); return _context39.a(2); }
           if (tipoVal === 'Otro' && !($('n-asunto-otro') && $('n-asunto-otro').value.trim())) { toast('Especificá el asunto', 'err'); return _context39.a(2); }
+          // Validar que si eligió "Otro" puesto, haya escrito el nombre
+          if (document.getElementById('n-puesto-sel') && document.getElementById('n-puesto-sel').value === '__otro__') {
+            var _txtOtroP = document.getElementById('n-puesto-otro-txt');
+            if (!_txtOtroP || !_txtOtroP.value.trim()) { toast('Escribí el nombre del puesto', 'err'); return _context39.a(2); }
+          }
           if (!ubVal)   { toast('Ingres\xE1 la Ubicaci\xF3n / Sector', 'err'); return _context39.a(2); }
           if (!detVal)  { toast('Ingres\xE1 el Detalle', 'err'); return _context39.a(2); }
           if (!agVal)   { toast('Selecci\xF3n el Agente', 'err'); return _context39.a(2); }
           pend = $('n-pend').checked;
           setLoading('btn-save-nov', true);
           payload = {
-            puesto: ['Administración', 'Administrador', 'Gerencia', 'Jefe de departamento'].includes(USER.puesto) && document.getElementById('n-puesto-sel') && document.getElementById('n-puesto-sel').value ? document.getElementById('n-puesto-sel').value : USER.puesto,
+            puesto: (function() {
+              var sel = document.getElementById('n-puesto-sel');
+              var selVal = sel ? sel.value : '';
+              if (['Administración', 'Administrador', 'Gerencia', 'Jefe de departamento'].includes(USER.puesto) && selVal) {
+                if (selVal === '__otro__') {
+                  var txt = document.getElementById('n-puesto-otro-txt');
+                  return (txt && txt.value.trim()) ? txt.value.trim() : USER.puesto;
+                }
+                return selVal;
+              }
+              return USER.puesto;
+            })(),
             tipo: $('n-tipo').value === 'Otro' ? ($('n-asunto-otro') ? ($('n-asunto-otro').value || 'Otro') : 'Otro') : $('n-tipo').value,
             asunto: $('n-tipo').value === 'Otro' ? ($('n-asunto-otro') ? ($('n-asunto-otro').value || 'Sin título') : 'Sin título') : $('n-tipo').value,
             ubicacion: $('n-ubicacion').value,
@@ -11565,6 +11598,8 @@ function _saveNov() {
           if ($('n-urgente')) { $('n-urgente').value = '0'; resetUrgenteBtn(); }
           
           if ($('n-puesto-sel')) $('n-puesto-sel').value = '';
+          var _rOtroTxt = document.getElementById('n-puesto-otro-txt');
+          if (_rOtroTxt) { _rOtroTxt.value = ''; _rOtroTxt.style.display = 'none'; }
           document.getElementById('foto-preview').innerHTML = '';
           loadNovedades();
           loadDash();
