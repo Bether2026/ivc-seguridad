@@ -7851,7 +7851,7 @@ function cargarHojasRutaImpresion() {
       html += '<div style="font-size:14px;font-weight:700;color:var(--text)">🚗 ' + chofer + '</div>';
       html += '<div style="font-size:11px;color:var(--text3);margin-top:2px">' + movil + ' · ' + estado + '</div>';
       html += '</div>';
-      html += '<button onclick="imprimirHojaRuta(\' + r2.id + \')" style="padding:8px 16px;border-radius:10px;border:1px solid rgba(251,146,60,.4);background:rgba(251,146,60,.12);color:#fdba74;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">🖨️ Ver / Imprimir</button>';
+      html += '<button onclick="imprimirHojaRuta(&quot;' + r2.id + '&quot;)" style="padding:8px 16px;border-radius:10px;border:1px solid rgba(251,146,60,.4);background:rgba(251,146,60,.12);color:#fdba74;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">🖨️ Ver / Imprimir</button>';
       html += '</div>';
     }
     lista.innerHTML = html;
