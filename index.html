@@ -8589,6 +8589,14 @@ function descargarInformeFinal() {
     if (!el.textContent.trim()) el.remove();
   });
 
+  // Quitar el texto de ayuda de edición ("tildá las que querés incluir...") — no corresponde en el documento final
+  tmpDiv.querySelectorAll('.fotos-hint').forEach(function(el) { el.remove(); });
+
+  // Recalcular el total real de novedades (por si quedaron filas o puestos borrados) antes de fijarlo en el footer
+  var totalFinalCount = tmpDiv.querySelectorAll('.novedad').length;
+  var totalFinalEl = tmpDiv.querySelector('.fi-count');
+  if (totalFinalEl) totalFinalEl.textContent = totalFinalCount + ' novedad' + (totalFinalCount !== 1 ? 'es' : '');
+
   var contenido = tmpDiv.innerHTML;
 
   var lightboxHtml = '<div class="lightbox" id="lb-w" onclick="if(event.target===this)closeLB()"><span class="lb-x" onclick="closeLB()">&#x2715;</span><span class="lb-n p" onclick="navLB(-1)">&#8249;</span><img class="lb-img" id="lb-i" src="" alt=""><span class="lb-n n" onclick="navLB(1)">&#8250;</span><div class="lb-cnt" id="lb-c"></div></div>';
@@ -8879,22 +8887,36 @@ function generarPreviewInforme() {
   });
 }
 
-// ── Borrar una fila del informe diario; si era la última del puesto, también borra el header del grupo ──
+// ── Recalcula "X novedades" de cada puesto y el total del footer, según lo que queda realmente en el DOM ──
+function actualizarContadoresInforme(frame) {
+  if (!frame) return;
+  frame.querySelectorAll('.barrio-sep').forEach(function(header) {
+    var sib = header.nextElementSibling;
+    var n = 0;
+    while (sib && !sib.classList.contains('barrio-sep')) {
+      if (sib.classList.contains('novedad')) n++;
+      sib = sib.nextElementSibling;
+    }
+    if (n === 0) {
+      header.remove();
+    } else {
+      var countEl = header.querySelector('.barrio-count');
+      if (countEl) countEl.textContent = '\u2014 ' + n + ' novedad' + (n !== 1 ? 'es' : '');
+    }
+  });
+  var totalEl = frame.querySelector('.fi-count');
+  if (totalEl) {
+    var total = frame.querySelectorAll('.novedad').length;
+    totalEl.textContent = total + ' novedad' + (total !== 1 ? 'es' : '');
+  }
+}
+
+// ── Borrar una fila del informe diario; actualiza contadores de puesto y total ──
 function eliminarFilaInforme(btn) {
   var fila = btn.closest('.novedad');
   if (!fila) return;
-  var header = fila.previousElementSibling;
-  while (header && !header.classList.contains('barrio-sep')) header = header.previousElementSibling;
   fila.remove();
-  if (header) {
-    var sib = header.nextElementSibling;
-    var quedanFilas = false;
-    while (sib && !sib.classList.contains('barrio-sep')) {
-      if (sib.classList.contains('novedad')) { quedanFilas = true; break; }
-      sib = sib.nextElementSibling;
-    }
-    if (!quedanFilas) header.remove();
-  }
+  actualizarContadoresInforme(document.getElementById('inf-preview-frame'));
 }
 
 // ── Borrar un puesto completo del informe diario (header + todas sus filas) de un solo clic ──
@@ -8908,6 +8930,7 @@ function eliminarGrupoBarrio(btn) {
     actual.remove();
   }
   header.remove();
+  actualizarContadoresInforme(document.getElementById('inf-preview-frame'));
 }
 
 function construirHTMLEditablePreview(porPuesto, novedades, fotosMap, fechaDisplay, diaNom, autor) {
@@ -8933,7 +8956,7 @@ function construirHTMLEditablePreview(porPuesto, novedades, fotosMap, fechaDispl
 
   puestos.forEach(function(puesto) {
     var novs = porPuesto[puesto];
-    html += '<div class="barrio-sep"><button class="btn-del-row" onclick="eliminarGrupoBarrio(this)" title="Eliminar puesto completo">&times;</button>&#x1F4CD; <span class="barrio-nombre" contenteditable="true">' + escapeHTML(puesto) + '</span> <span style="font-weight:400;color:' + AZUL + '">&mdash; ' + novs.length + ' novedad' + (novs.length !== 1 ? 'es' : '') + '</span></div>\n';
+    html += '<div class="barrio-sep"><button class="btn-del-row" onclick="eliminarGrupoBarrio(this)" title="Eliminar puesto completo">&times;</button>&#x1F4CD; <span class="barrio-nombre" contenteditable="true">' + escapeHTML(puesto) + '</span> <span class="barrio-count" style="font-weight:400;color:' + AZUL + '">&mdash; ' + novs.length + ' novedad' + (novs.length !== 1 ? 'es' : '') + '</span></div>\n';
     novs.forEach(function(n) {
       nInforme++;
       var horaStr = '';
@@ -8962,7 +8985,7 @@ function construirHTMLEditablePreview(porPuesto, novedades, fotosMap, fechaDispl
       html += '<div class="col2"><div class="nov-txt" contenteditable="true">' + escapeHTML(n.texto_informe || n.detalle || '\u2014') + '</div>';
       if (n.agente) html += '<div class="nov-ag"><strong>Agente/s:</strong> ' + escapeHTML(n.agente) + '</div>';
       if (fotosB64.length > 0) {
-        html += '<div class="fotos-wrap"><div class="fotos-lbl">Im\xE1genes <span style="font-weight:400;text-transform:none;letter-spacing:0">(tild\xE1 las que quer\xE9s incluir en el informe final, clic para agrandar)</span></div><div class="fotos-grid">';
+        html += '<div class="fotos-wrap"><div class="fotos-lbl">Im\xE1genes <span class="fotos-hint" style="font-weight:400;text-transform:none;letter-spacing:0">(tild\xE1 las que quer\xE9s incluir en el informe final, clic para agrandar)</span></div><div class="fotos-grid">';
         fotosB64.forEach(function(f, fi){
           var fid = 'fchk_' + n.id + '_' + fi;
           html += '<div style="position:relative;display:inline-block">';
@@ -8984,7 +9007,7 @@ function construirHTMLEditablePreview(porPuesto, novedades, fotosMap, fechaDispl
     });
   });
 
-  html += '<div class="footer"><div class="fi">' + novedades.length + ' novedades</div><div class="fi">IVC &middot; ' + escapeHTML(fechaDisplay) + '</div></div>\n';
+  html += '<div class="footer"><div class="fi fi-count">' + novedades.length + ' novedades</div><div class="fi">IVC &middot; ' + escapeHTML(fechaDisplay) + '</div></div>\n';
   html += '<div class="footer-brand">Instituto de Vivienda de la Ciudad &middot; Gerencia Operativa de Apoyo Territorial</div>\n</div>\n';
   return html;
 }
