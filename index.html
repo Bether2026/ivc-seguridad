@@ -8902,14 +8902,15 @@ function construirHTMLEditablePreview(porPuesto, novedades, fotosMap, fechaDispl
 
   puestos.forEach(function(puesto) {
     var novs = porPuesto[puesto];
-    html += '<div class="barrio-sep">&#x1F4CD; ' + escapeHTML(puesto) + ' <span style="font-weight:400;color:' + AZUL + '">&mdash; ' + novs.length + ' novedad' + (novs.length !== 1 ? 'es' : '') + '</span></div>\n';
+    html += '<div class="barrio-sep">&#x1F4CD; <span class="barrio-nombre" contenteditable="true">' + escapeHTML(puesto) + '</span> <span style="font-weight:400;color:' + AZUL + '">&mdash; ' + novs.length + ' novedad' + (novs.length !== 1 ? 'es' : '') + '</span></div>\n';
     novs.forEach(function(n) {
       nInforme++;
       var horaStr = '';
+      var fechaReal = '';
       if (n.created_at) {
         var d = new Date(n.created_at);
-        var hAR = d.getUTCHours() - 3; if (hAR < 0) hAR += 24;
-        horaStr = String(hAR).padStart(2,'0') + ':' + String(d.getUTCMinutes()).padStart(2,'0');
+        horaStr = d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' });
+        fechaReal = d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Argentina/Buenos_Aires' });
       }
       var fotos = [];
       if (n.foto_url)  fotos.push(n.foto_url);
@@ -8922,7 +8923,7 @@ function construirHTMLEditablePreview(porPuesto, novedades, fotosMap, fechaDispl
       html += '<div class="novedad" data-nid="' + escapeHTML(String(n.id)) + '">\n';
       html += '<button class="btn-del-row" onclick="this.closest(\'.novedad\').remove()" title="Eliminar fila">&times;</button>\n';
       html += '<div class="col1"><div class="c1-tipo" contenteditable="true">' + escapeHTML(n.tipo || n.asunto || 'Novedad') + '</div>';
-      html += '<div class="c1-meta" contenteditable="true"><strong>' + escapeHTML(fechaDisplay) + '</strong><br>' + escapeHTML(horaStr) + ' hs</div>';
+      html += '<div class="c1-meta" contenteditable="true"><strong>' + escapeHTML(fechaReal || fechaDisplay) + '</strong><br>' + escapeHTML(horaStr) + ' hs</div>';
       if (n.nro_pd) html += '<div style="font-size:8pt;font-weight:700;color:#2563eb;margin-top:3px">PD N\xB0 ' + n.nro_pd + '</div>';
       if (n.nro_pu) html += '<div style="font-size:8pt;font-weight:700;color:#7c3aed;margin-top:2px">PU N\xB0 ' + n.nro_pu + '</div>';
       if (n.fuerza_publica) html += '<span class="badge-fp">Fuerza P&uacute;blica</span>';
