@@ -18494,8 +18494,10 @@ var PREC_RETIRO_MODO = 'todo';
 var PREC_RETIRO_FOTOS = [];
 
 function loadPrecintos() {
-  var hoy = fechaHoyAR();
-  db.from('precintos').select('*').eq('fecha', hoy).then(function(r) {
+  // Traemos los últimos registros (no solo los de hoy) para que el estado
+  // refleje el ÚLTIMO movimiento: si el último fue una colocación, queda
+  // colocado aunque haya sido hace días, hasta que se registre un retiro.
+  db.from('precintos').select('*').order('created_at', { ascending: false }).limit(200).then(function(r) {
     if (r.error) {
       var el = document.getElementById('prec-resumen-hoy');
       if (el) el.innerHTML = '<div style="padding:12px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:8px;font-size:12px;color:#fca5a5">⚠️ Error al cargar precintos: ' + r.error.message + '<br><span style="font-size:11px;color:var(--text3)">Verificá que la tabla "precintos" exista en Supabase (ejecutá el SQL que se generó al crear el módulo).</span></div>';
@@ -18543,20 +18545,19 @@ function precSelZona(accion, zona) {
 }
 
 function _estadoItemHoy(zona, itemId) {
-  // Busca la última colocación de este item hoy
-  var colocaciones = PREC_HOY_CACHE.filter(function(p) { return p.sector === zona && p.item === itemId && p.accion === 'colocar'; });
-  if (!colocaciones.length) return null;
-  var ultColocar = colocaciones.reduce(function(max, p) {
+  // Busca la última colocación de este item
+  var ultC = 0, regC = null, ultR = 0, ultRetiroGeneral = 0;
+  PREC_HOY_CACHE.forEach(function(p) {
+    if (p.sector !== zona) return;
     var t = p.created_at ? new Date(p.created_at).getTime() : 0;
-    return t > (max._t || 0) ? Object.assign({}, p, { _t: t }) : max;
-  }, {});
-  // Si hubo un retiro de este sector posterior a la colocación, el item está disponible de nuevo
-  var huboRetiroPosterior = PREC_HOY_CACHE.some(function(p) {
-    if (p.sector !== zona || p.accion !== 'retirar') return false;
-    var tr = p.created_at ? new Date(p.created_at).getTime() : 0;
-    return tr >= (ultColocar._t || 0);
+    if (p.accion === 'retirar' && !p.item && t > ultRetiroGeneral) ultRetiroGeneral = t;
+    if (p.item !== itemId) return;
+    if (p.accion === 'colocar' && t > ultC) { ultC = t; regC = p; }
+    if (p.accion === 'retirar' && t > ultR) ultR = t;
   });
-  return huboRetiroPosterior ? null : ultColocar;
+  if (!regC) return null;
+  // colocado actualmente si el último colocar es posterior a su retiro y al retiro general
+  return (ultC > ultR && ultC > ultRetiroGeneral) ? regC : null;
 }
 
 function _renderZonaColocar(zona) {
@@ -18720,23 +18721,39 @@ var PREC_HOY_FILTRO = 'pasto'; // filtro de la lista de colocados hoy
 function _renderResumenPrecintosHoy() {
   var el = document.getElementById('prec-resumen-hoy');
   if (!el) return;
-  // Si un sector ya fue retirado hoy, sus colocados ya no cuentan como "puestos
-  // actualmente" — el contador vuelve a 0. Se considera retirado si hay un registro
-  // 'retirar' de ese sector posterior al último 'colocar'.
-  function sectorRetirado(sector) {
-    var ultColocar = 0, ultRetirar = 0;
+
+  // Determina, para un sector, qué ítems están ACTUALMENTE colocados.
+  // Un ítem está colocado si su último movimiento (colocar/retirar) es colocar.
+  // Los retiros "generales" (item null) retiran todo el sector.
+  function itemsColocadosDeSector(sector, items) {
+    // Hora del último retiro general del sector (item null)
+    var ultRetiroGeneral = 0;
     PREC_HOY_CACHE.forEach(function(p) {
-      if (p.sector !== sector) return;
-      var t = p.created_at ? new Date(p.created_at).getTime() : 0;
-      if (p.accion === 'colocar' && t > ultColocar) ultColocar = t;
-      if (p.accion === 'retirar' && t > ultRetirar) ultRetirar = t;
+      if (p.sector === sector && p.accion === 'retirar' && !p.item) {
+        var t = p.created_at ? new Date(p.created_at).getTime() : 0;
+        if (t > ultRetiroGeneral) ultRetiroGeneral = t;
+      }
     });
-    return ultRetirar > 0 && ultRetirar >= ultColocar;
+    var colocados = [];
+    items.forEach(function(it) {
+      // último colocar de este ítem
+      var ultC = 0, regC = null;
+      var ultR = 0;
+      PREC_HOY_CACHE.forEach(function(p) {
+        if (p.sector !== sector || p.item !== it.id) return;
+        var t = p.created_at ? new Date(p.created_at).getTime() : 0;
+        if (p.accion === 'colocar' && t > ultC) { ultC = t; regC = p; }
+        if (p.accion === 'retirar' && t > ultR) ultR = t;
+      });
+      if (!regC) return; // nunca se colocó
+      // colocado si el último colocar es posterior a su último retiro Y al retiro general
+      if (ultC > ultR && ultC > ultRetiroGeneral) colocados.push(regC);
+    });
+    return colocados;
   }
-  var pastoRetirado = sectorRetirado('pasto');
-  var galponesRetirado = sectorRetirado('galpones');
-  var colocadosPastoArr = pastoRetirado ? [] : PREC_HOY_CACHE.filter(function(p) { return p.sector === 'pasto' && p.accion === 'colocar'; });
-  var colocadosGalponesArr = galponesRetirado ? [] : PREC_HOY_CACHE.filter(function(p) { return p.sector === 'galpones' && p.accion === 'colocar'; });
+
+  var colocadosPastoArr = itemsColocadosDeSector('pasto', PREC_ITEMS_PASTO);
+  var colocadosGalponesArr = itemsColocadosDeSector('galpones', PREC_ITEMS_GALPONES);
   var colocadosPasto = colocadosPastoArr.length;
   var colocadosGalpones = colocadosGalponesArr.length;
   var hayRetiro = PREC_HOY_CACHE.some(function(p) { return p.accion === 'retirar'; });
@@ -18841,30 +18858,29 @@ function buscarHistorialPrecintos() {
 
 // ══ HISTORIAL DE FICHAJES ══
 function iniciarHistorialFichajes() {
-  var hoy = fechaHoyAR();
+  // Fechas vacías por defecto → muestra TODO el historial. El usuario puede
+  // completar las fechas para filtrar por rango.
   var desdeEl = document.getElementById('fh-desde');
   var hastaEl = document.getElementById('fh-hasta');
   var buscarEl = document.getElementById('fh-buscar');
   if (buscarEl) buscarEl.value = '';
-  if (desdeEl && !desdeEl.value) desdeEl.value = hoy;
-  if (hastaEl && !hastaEl.value) hastaEl.value = hoy;
+  if (desdeEl) desdeEl.value = '';
+  if (hastaEl) hastaEl.value = '';
   buscarHistorialFichajes();
 }
 
 var FH_ROWS = []; // cache de los fichajes traídos
 var FH_SEARCH_TIMER = null;
 
-// Se dispara al escribir en el buscador. Si hay texto y NO se tocaron las fechas,
-// trae TODO el historial del agente/puesto (sin límite de fecha). Si además hay
-// fechas, filtra por fecha también. Usa un pequeño retraso para no consultar en
-// cada tecla.
+// El buscador de texto solo re-filtra lo ya traído (filtrado del lado del
+// cliente), sin re-consultar la base. Como sin fechas ya traemos todo el
+// historial, el filtro por nombre/puesto funciona sobre ese conjunto completo.
 function filtrarHistorialFichajes() {
   if (FH_SEARCH_TIMER) clearTimeout(FH_SEARCH_TIMER);
-  FH_SEARCH_TIMER = setTimeout(buscarHistorialFichajes, 350);
+  FH_SEARCH_TIMER = setTimeout(_renderHistorialFichajes, 200);
 }
 
 function buscarHistorialFichajes() {
-  var q = ((document.getElementById('fh-buscar') || {}).value || '').trim();
   var desdeVal = (document.getElementById('fh-desde') || {}).value || '';
   var hastaVal = (document.getElementById('fh-hasta') || {}).value || '';
   var lista = document.getElementById('fh-lista');
@@ -18873,23 +18889,18 @@ function buscarHistorialFichajes() {
 
   var query = db.from('fichajes').select('*').order('entrada', { ascending: false });
 
-  // Lógica de rango de fechas:
-  // - Con texto en el buscador y SIN fechas → traer todo el historial (sin filtro de fecha)
-  // - Con fechas (haya o no texto) → filtrar por el rango de fechas
-  var hayTexto = q.length > 0;
-  if (!hayTexto || (desdeVal && hastaVal)) {
-    var dDesde = desdeVal || fechaHoyAR();
-    var dHasta = hastaVal || fechaHoyAR();
-    var desdeUTC = dDesde + 'T03:00:00.000Z';
-    var dh = new Date(dHasta + 'T03:00:00.000Z');
+  // Regla simple: las fechas mandan.
+  // - Si hay AMBAS fechas → filtra por ese rango.
+  // - Si falta alguna fecha → trae TODO el historial (limitado a 800 por performance).
+  // El texto del buscador siempre filtra del lado del cliente sobre lo traído.
+  if (desdeVal && hastaVal) {
+    var desdeUTC = desdeVal + 'T03:00:00.000Z';
+    var dh = new Date(hastaVal + 'T03:00:00.000Z');
     dh.setUTCDate(dh.getUTCDate() + 1);
     var hastaUTC = dh.toISOString();
     query = query.gte('entrada', desdeUTC).lte('entrada', hastaUTC);
-  }
-  // Si hay texto pero NO ambas fechas completas → sin filtro de fecha (todo el historial),
-  // pero limitamos a los últimos 500 registros por performance
-  if (hayTexto && !(desdeVal && hastaVal)) {
-    query = query.limit(500);
+  } else {
+    query = query.limit(800);
   }
 
   query.then(function(r) {
