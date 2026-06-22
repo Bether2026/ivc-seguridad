@@ -8879,6 +8879,37 @@ function generarPreviewInforme() {
   });
 }
 
+// ── Borrar una fila del informe diario; si era la última del puesto, también borra el header del grupo ──
+function eliminarFilaInforme(btn) {
+  var fila = btn.closest('.novedad');
+  if (!fila) return;
+  var header = fila.previousElementSibling;
+  while (header && !header.classList.contains('barrio-sep')) header = header.previousElementSibling;
+  fila.remove();
+  if (header) {
+    var sib = header.nextElementSibling;
+    var quedanFilas = false;
+    while (sib && !sib.classList.contains('barrio-sep')) {
+      if (sib.classList.contains('novedad')) { quedanFilas = true; break; }
+      sib = sib.nextElementSibling;
+    }
+    if (!quedanFilas) header.remove();
+  }
+}
+
+// ── Borrar un puesto completo del informe diario (header + todas sus filas) de un solo clic ──
+function eliminarGrupoBarrio(btn) {
+  var header = btn.closest('.barrio-sep');
+  if (!header) return;
+  var sib = header.nextElementSibling;
+  while (sib && !sib.classList.contains('barrio-sep')) {
+    var actual = sib;
+    sib = sib.nextElementSibling;
+    actual.remove();
+  }
+  header.remove();
+}
+
 function construirHTMLEditablePreview(porPuesto, novedades, fotosMap, fechaDisplay, diaNom, autor) {
   var AZUL_OSC = '#061b34'; var AZUL_MID = '#0a2747'; var AZUL = '#2563eb'; var AZUL_CL = '#eff6ff'; var AZUL_BR = '#bfdbfe';
   var partes = (fechaDisplay || '').split('/');
@@ -8887,7 +8918,7 @@ function construirHTMLEditablePreview(porPuesto, novedades, fotosMap, fechaDispl
   var mesNombres = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
   var mesN = mesIdx >= 0 ? (mesNombres[mesIdx] || '') + (partes[2] ? ' ' + partes[2] : '') : '';
 
-  var style = '<style>\n* { box-sizing:border-box; margin:0; padding:0; }\nbody { font-family:Lato,Arial,sans-serif; font-size:10.5pt; color:#1a1a2e; background:#fff; }\n.page { max-width:100%; }\n.header { background:' + AZUL_OSC + '; padding:14px 28px; display:flex; align-items:center; gap:20px; }\n.logo-wrap { flex-shrink:0; width:58px; height:58px; background:rgba(255,255,255,.1); border-radius:13px; padding:4px; display:flex; align-items:center; justify-content:center; }\n.logo-wrap img { width:50px; height:50px; object-fit:contain; border-radius:10px; }\n.hc { flex:1; }\n.h-parte { font-size:13pt; font-weight:900; color:rgba(255,255,255,.5); letter-spacing:.35em; text-transform:uppercase; }\n.h-main { font-size:15pt; font-weight:900; color:#fff; letter-spacing:.04em; text-transform:uppercase; margin-top:2px; }\n.h-org { font-size:7pt; color:rgba(255,255,255,.45); text-transform:uppercase; letter-spacing:.12em; margin-top:3px; }\n.h-fecha { text-align:right; flex-shrink:0; color:#fff; }\n.h-dia { font-size:30pt; font-weight:900; line-height:1; }\n.h-mes { font-size:8.5pt; color:rgba(255,255,255,.8); margin-top:3px; font-weight:700; text-transform:capitalize; }\n.h-dnom { font-size:7.5pt; color:rgba(255,255,255,.45); font-style:italic; text-transform:capitalize; }\n.col-bar { display:grid; grid-template-columns:170px 1fr 210px; background:' + AZUL_MID + '; }\n.col-bar-h { padding:8px 14px; font-size:8pt; font-weight:900; color:#fff; text-transform:uppercase; letter-spacing:.1em; text-align:center; }\n.col-bar-h:not(:last-child) { border-right:1px solid rgba(255,255,255,.15); }\n.novedad { display:grid; grid-template-columns:170px 1fr 210px; border-bottom:1px solid #dde3ef; position:relative; }\n.novedad:nth-child(even) { background:#f8f9fc; }\n.col1 { padding:13px 12px; border-right:1px solid #dde3ef; }\n.c1-tipo { font-size:11pt; font-weight:900; color:' + AZUL + '; line-height:1.2; }\n.c1-meta { font-size:7.5pt; color:#555; margin-top:3px; line-height:1.7; }\n.badge-fp { display:inline-block; font-size:7pt; font-weight:900; padding:2px 7px; border-radius:3px; background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; margin-top:4px; }\n.col2 { padding:13px 14px; border-right:1px solid #dde3ef; }\n.nov-txt { font-size:9.5pt; line-height:1.65; color:#2a2a2a; white-space:pre-wrap; }\n.nov-ag { margin-top:8px; font-size:8pt; color:#555; padding-top:7px; border-top:1px solid #e8ecf5; }\n.fotos-wrap { margin-top:10px; padding-top:10px; border-top:1px solid #e8ecf5; }\n.fotos-lbl { font-size:7.5pt; font-weight:700; color:' + AZUL + '; text-transform:uppercase; letter-spacing:.1em; margin-bottom:7px; }\n.fotos-grid { display:flex; flex-wrap:wrap; gap:6px; }\n.foto-t { width:100px; height:75px; object-fit:cover; border:1.5px solid #dde3ef; border-radius:4px; }\n.col3 { padding:13px 12px; }\n.obs-txt { font-family:serif; font-size:8.5pt; line-height:1.7; color:#555; font-style:italic; }\n.barrio-sep { background:' + AZUL_CL + '; border-top:2px solid ' + AZUL + '; border-bottom:1px solid ' + AZUL_BR + '; padding:7px 16px; font-size:8pt; font-weight:900; color:#1e40af; text-transform:uppercase; letter-spacing:.12em; display:flex; align-items:center; gap:8px; }\n.footer { background:' + AZUL_OSC + '; padding:13px 24px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px; }\n.fi { font-size:8pt; color:rgba(255,255,255,.8); }\n.footer-brand { text-align:center; font-size:7pt; color:#9ca3af; padding:6px 24px; letter-spacing:.08em; text-transform:uppercase; }\n.btn-del-row { position:absolute; top:6px; right:6px; width:22px; height:22px; border-radius:50%; background:rgba(239,68,68,.85); border:none; color:#fff; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; z-index:10; font-weight:bold; }\n[contenteditable]:hover { background:rgba(59,130,246,.05); border-radius:3px; }\n[contenteditable]:focus { background:rgba(59,130,246,.08); outline:1px dashed rgba(59,130,246,.4); border-radius:3px; }\n.obs-txt:empty:before { content:attr(data-placeholder); color:#bbb; font-style:italic; }\n@media print { .btn-del-row { display:none!important; } [contenteditable] { outline:none!important; background:transparent!important; } .obs-txt:empty:before { content:\"\"!important; } }\n</style>\n';
+  var style = '<style>\n* { box-sizing:border-box; margin:0; padding:0; }\nbody { font-family:Lato,Arial,sans-serif; font-size:10.5pt; color:#1a1a2e; background:#fff; }\n.page { max-width:100%; }\n.header { background:' + AZUL_OSC + '; padding:14px 28px; display:flex; align-items:center; gap:20px; }\n.logo-wrap { flex-shrink:0; width:58px; height:58px; background:rgba(255,255,255,.1); border-radius:13px; padding:4px; display:flex; align-items:center; justify-content:center; }\n.logo-wrap img { width:50px; height:50px; object-fit:contain; border-radius:10px; }\n.hc { flex:1; }\n.h-parte { font-size:13pt; font-weight:900; color:rgba(255,255,255,.5); letter-spacing:.35em; text-transform:uppercase; }\n.h-main { font-size:15pt; font-weight:900; color:#fff; letter-spacing:.04em; text-transform:uppercase; margin-top:2px; }\n.h-org { font-size:7pt; color:rgba(255,255,255,.45); text-transform:uppercase; letter-spacing:.12em; margin-top:3px; }\n.h-fecha { text-align:right; flex-shrink:0; color:#fff; }\n.h-dia { font-size:30pt; font-weight:900; line-height:1; }\n.h-mes { font-size:8.5pt; color:rgba(255,255,255,.8); margin-top:3px; font-weight:700; text-transform:capitalize; }\n.h-dnom { font-size:7.5pt; color:rgba(255,255,255,.45); font-style:italic; text-transform:capitalize; }\n.col-bar { display:grid; grid-template-columns:170px 1fr 210px; background:' + AZUL_MID + '; }\n.col-bar-h { padding:8px 14px; font-size:8pt; font-weight:900; color:#fff; text-transform:uppercase; letter-spacing:.1em; text-align:center; }\n.col-bar-h:not(:last-child) { border-right:1px solid rgba(255,255,255,.15); }\n.novedad { display:grid; grid-template-columns:170px 1fr 210px; border-bottom:1px solid #dde3ef; position:relative; }\n.novedad:nth-child(even) { background:#f8f9fc; }\n.col1 { padding:13px 12px; border-right:1px solid #dde3ef; }\n.c1-tipo { font-size:11pt; font-weight:900; color:' + AZUL + '; line-height:1.2; }\n.c1-meta { font-size:7.5pt; color:#555; margin-top:3px; line-height:1.7; }\n.badge-fp { display:inline-block; font-size:7pt; font-weight:900; padding:2px 7px; border-radius:3px; background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; margin-top:4px; }\n.col2 { padding:13px 14px; border-right:1px solid #dde3ef; }\n.nov-txt { font-size:9.5pt; line-height:1.65; color:#2a2a2a; white-space:pre-wrap; }\n.nov-ag { margin-top:8px; font-size:8pt; color:#555; padding-top:7px; border-top:1px solid #e8ecf5; }\n.fotos-wrap { margin-top:10px; padding-top:10px; border-top:1px solid #e8ecf5; }\n.fotos-lbl { font-size:7.5pt; font-weight:700; color:' + AZUL + '; text-transform:uppercase; letter-spacing:.1em; margin-bottom:7px; }\n.fotos-grid { display:flex; flex-wrap:wrap; gap:6px; }\n.foto-t { width:100px; height:75px; object-fit:cover; border:1.5px solid #dde3ef; border-radius:4px; }\n.col3 { padding:13px 12px; }\n.obs-txt { font-family:serif; font-size:8.5pt; line-height:1.7; color:#555; font-style:italic; }\n.barrio-sep { background:' + AZUL_CL + '; border-top:2px solid ' + AZUL + '; border-bottom:1px solid ' + AZUL_BR + '; padding:7px 40px 7px 16px; font-size:8pt; font-weight:900; color:#1e40af; text-transform:uppercase; letter-spacing:.12em; display:flex; align-items:center; gap:8px; position:relative; }\n.footer { background:' + AZUL_OSC + '; padding:13px 24px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px; }\n.fi { font-size:8pt; color:rgba(255,255,255,.8); }\n.footer-brand { text-align:center; font-size:7pt; color:#9ca3af; padding:6px 24px; letter-spacing:.08em; text-transform:uppercase; }\n.btn-del-row { position:absolute; top:6px; right:6px; width:22px; height:22px; border-radius:50%; background:rgba(239,68,68,.85); border:none; color:#fff; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; z-index:10; font-weight:bold; }\n[contenteditable]:hover { background:rgba(59,130,246,.05); border-radius:3px; }\n[contenteditable]:focus { background:rgba(59,130,246,.08); outline:1px dashed rgba(59,130,246,.4); border-radius:3px; }\n.obs-txt:empty:before { content:attr(data-placeholder); color:#bbb; font-style:italic; }\n@media print { .btn-del-row { display:none!important; } [contenteditable] { outline:none!important; background:transparent!important; } .obs-txt:empty:before { content:\"\"!important; } }\n</style>\n';
 
   var html = style + '<div class="page">\n';
   html += '<div class="header">\n';
@@ -8902,7 +8933,7 @@ function construirHTMLEditablePreview(porPuesto, novedades, fotosMap, fechaDispl
 
   puestos.forEach(function(puesto) {
     var novs = porPuesto[puesto];
-    html += '<div class="barrio-sep">&#x1F4CD; <span class="barrio-nombre" contenteditable="true">' + escapeHTML(puesto) + '</span> <span style="font-weight:400;color:' + AZUL + '">&mdash; ' + novs.length + ' novedad' + (novs.length !== 1 ? 'es' : '') + '</span></div>\n';
+    html += '<div class="barrio-sep"><button class="btn-del-row" onclick="eliminarGrupoBarrio(this)" title="Eliminar puesto completo">&times;</button>&#x1F4CD; <span class="barrio-nombre" contenteditable="true">' + escapeHTML(puesto) + '</span> <span style="font-weight:400;color:' + AZUL + '">&mdash; ' + novs.length + ' novedad' + (novs.length !== 1 ? 'es' : '') + '</span></div>\n';
     novs.forEach(function(n) {
       nInforme++;
       var horaStr = '';
@@ -8921,7 +8952,7 @@ function construirHTMLEditablePreview(porPuesto, novedades, fotosMap, fechaDispl
       var fotosB64 = fotos.map(function(u){return{u:u,b:fotosMap[u]||null};}).filter(function(f){return f.b;});
 
       html += '<div class="novedad" data-nid="' + escapeHTML(String(n.id)) + '">\n';
-      html += '<button class="btn-del-row" onclick="this.closest(\'.novedad\').remove()" title="Eliminar fila">&times;</button>\n';
+      html += '<button class="btn-del-row" onclick="eliminarFilaInforme(this)" title="Eliminar fila">&times;</button>\n';
       html += '<div class="col1"><div class="c1-tipo" contenteditable="true">' + escapeHTML(n.tipo || n.asunto || 'Novedad') + '</div>';
       html += '<div class="c1-meta" contenteditable="true"><strong>' + escapeHTML(fechaReal || fechaDisplay) + '</strong><br>' + escapeHTML(horaStr) + ' hs</div>';
       if (n.nro_pd) html += '<div style="font-size:8pt;font-weight:700;color:#2563eb;margin-top:3px">PD N\xB0 ' + n.nro_pd + '</div>';
