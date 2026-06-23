@@ -14984,9 +14984,12 @@ function _startGPSTransmission() {
                 db.from('gps_track').insert({
                   chofer: chofer, movil: movil,
                   lat: geo.lat, lng: geo.lng,
+                  direccion: direccion || null,
                   ts: new Date().toISOString(),
                   created_at: new Date().toISOString()
-                }).then(function() {});
+                }).then(function(gt) {
+                  if (gt && gt.error) { console.warn('[GPS track] Error INSERT:', gt.error.message); }
+                });
               });
             }).catch(function(e) { console.warn('[GPS] Error geoloc:', e); });
           };
