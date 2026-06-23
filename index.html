@@ -4479,7 +4479,7 @@ function _guardarAjusteLicencia() {
               month: '2-digit',
               year: 'numeric', timeZone: 'America/Argentina/Buenos_Aires'}) + ' ' + now.toLocaleTimeString('es-AR', {
               hour: '2-digit',
-              minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires'}),
+              minute: '2-digit', hour12: false, timeZone: 'America/Argentina/Buenos_Aires'}),
             tipo: tipo,
             op: op,
             dias: dias,
@@ -4831,7 +4831,7 @@ function _guardarActualizacionNovedad() {
               month: 'long',
               year: 'numeric', timeZone: 'America/Argentina/Buenos_Aires'}) + ' ' + now.toLocaleTimeString('es-AR', {
               hour: '2-digit',
-              minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires'}),
+              minute: '2-digit', hour12: false, timeZone: 'America/Argentina/Buenos_Aires'}),
             autor: autor || USER.puesto,
             texto: texto,
             foto: null
@@ -5354,7 +5354,7 @@ function _autorizarDispositivo() {
           db.from('alertas_turno').insert({
             tipo: 'dispositivo_nuevo',
             puesto: 'Administrador',
-            mensaje: '?? Nuevo dispositivo autorizado — Usuario: ' + puesto + ' — Dispositivo: ' + (navigator.userAgent.indexOf('Android') >= 0 ? 'Android' : navigator.userAgent.indexOf('iPhone') >= 0 ? 'iPhone' : 'PC/Desktop') + ' — ' + new Date().toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' }),
+            mensaje: '?? Nuevo dispositivo autorizado — Usuario: ' + puesto + ' — Dispositivo: ' + (navigator.userAgent.indexOf('Android') >= 0 ? 'Android' : navigator.userAgent.indexOf('iPhone') >= 0 ? 'iPhone' : 'PC/Desktop') + ' — ' + new Date().toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hour12: false }),
             leida: false,
             created_at: new Date().toISOString()
           }).then(function() {});
@@ -5541,7 +5541,7 @@ function dbgLog(msg) {
   try {
     var c = document.getElementById('debug-content');
     if (c) {
-      var t = new Date().toLocaleTimeString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' });
+      var t = new Date().toLocaleTimeString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hour12: false });
       var d = document.createElement('div');
       d.style.cssText = 'margin-bottom:3px;border-bottom:1px dotted rgba(0,255,0,0.2);padding-bottom:2px';
       d.textContent = '[' + t + '] ' + msg;
@@ -6305,12 +6305,14 @@ var ahora = function ahora() {
   return new Date().toLocaleTimeString('es-AR', {
     hour: '2-digit',
     minute: '2-digit',
+    hour12: false,
     timeZone: 'America/Argentina/Buenos_Aires'
   });
 };
 var ahoraFull = function ahoraFull() {
   return new Date().toLocaleTimeString('es-AR', {
-    timeZone: 'America/Argentina/Buenos_Aires'
+    timeZone: 'America/Argentina/Buenos_Aires',
+    hour12: false
   });
 };
 var hoy = function hoy() {
@@ -6372,7 +6374,7 @@ function openOv(id) {
     if ($('n-puesto-wrap'))   $('n-puesto-wrap').style.display  = esGestionPuesto ? 'block' : 'none';
     if ($('n-informe-wrap'))  $('n-informe-wrap').style.display = esAdm ? 'block' : 'none';
     // Opción "Otro" solo para Administración y Administrador del sistema
-    var _puedeOtroPuesto = ['Administración', 'Administrador'].indexOf(USER ? USER.puesto : '') >= 0 || (USER && USER.rol === 'ADMIN');
+    var _puedeOtroPuesto = ['Administración', 'Administrador', 'Responsable de turno'].indexOf(USER ? USER.puesto : '') >= 0 || (USER && USER.rol === 'ADMIN');
     var _optOtro = document.getElementById('n-puesto-otro-opt');
     var _txtOtro = document.getElementById('n-puesto-otro-txt');
     if (_optOtro) _optOtro.style.display = _puedeOtroPuesto ? '' : 'none';
@@ -9154,7 +9156,7 @@ function construirHTMLEditablePreview(porPuesto, novedades, fotosMap, fechaDispl
       var fechaReal = '';
       if (n.created_at) {
         var d = new Date(n.created_at);
-        horaStr = d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires' });
+        horaStr = d.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Argentina/Buenos_Aires' });
         fechaReal = d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Argentina/Buenos_Aires' });
       }
       var fotos = [];
@@ -11965,7 +11967,7 @@ async function saveObj() {
   var now = new Date();
   var primerPunto = {
     lugar: desc,
-    hora: now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires'}),
+    hora: now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Argentina/Buenos_Aires'}),
     fecha: now.toISOString(),
     incidencia: false,
     obs: '',
@@ -12155,7 +12157,7 @@ async function saveUpdObj() {
   var now = new Date();
   acts.push({
     lugar: lugar,
-    hora: now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires'}),
+    hora: now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Argentina/Buenos_Aires'}),
     fecha: now.toISOString(),
     incidencia: OBJ_CON_INCIDENCIA,
     obs: obs,
@@ -12758,7 +12760,7 @@ function marcarSalidaParada(rutaId, paradaIdx) {
     var paradas = res.data.paradas || [];
     if (!paradas[paradaIdx]) { toast('No se encontró la parada', 'err'); return; }
     if (paradas[paradaIdx].hora_salida) { toast('Esta parada ya tiene salida registrada', 'err'); return; }
-    paradas[paradaIdx].hora_salida = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires'});
+    paradas[paradaIdx].hora_salida = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Argentina/Buenos_Aires'});
     db.from('rutas').update({ paradas: paradas }).eq('id', rutaId).then(function(r) {
       if (r.error) { toast('Error al guardar: ' + r.error.message, 'err'); return; }
       toast('🛑 Salida de ' + (paradas[paradaIdx].puesto || 'parada') + ' registrada');
@@ -12776,7 +12778,7 @@ function saveParada(finalizar) {
 
   var parada = {
     puesto: puesto,
-    hora: new Date().toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit', timeZone: 'America/Argentina/Buenos_Aires'}),
+    hora: new Date().toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit', hour12: false, timeZone: 'America/Argentina/Buenos_Aires'}),
     hora_salida: null,
     con_incidencia: PARADA_CON_INCIDENCIA,
     tipo_inc: PARADA_TIPO_INC || null,
@@ -13141,7 +13143,7 @@ function formatTs(ts) {
   var d = new Date(ts);
   return d.toLocaleTimeString('es-AR', {
     hour: '2-digit',
-    minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires'});
+    minute: '2-digit', hour12: false, timeZone: 'America/Argentina/Buenos_Aires'});
 }
 function setLoading(btnId, loading) {
   var b = $(btnId);
@@ -15855,7 +15857,7 @@ var LLAVES_DATA = {
 };
 // Tablero Base Castañares — vacío para completar desde la app
 var LLAVES_DATA_BC = {};
-for (var _bcN = 1; _bcN <= 92; _bcN++) { LLAVES_DATA_BC[_bcN] = ''; }
+for (var _bcN = 94; _bcN <= 186; _bcN++) { LLAVES_DATA_BC[_bcN] = ''; }
 
 var LLAVES_SEDE_ACTUAL = 'obrador'; // 'obrador' | 'castanares'
 
@@ -15900,7 +15902,7 @@ function loadLlaves() {
   var totalConNombre = 0;
   for (var nn = 1; nn <= 92; nn++) { if (data[nn] && data[nn].trim() !== '') totalConNombre++; }
   // Para Base Castañares mostramos todos los 92 slots aunque estén vacíos
-  if (LLAVES_SEDE_ACTUAL === 'castanares') totalConNombre = 92;
+  if (LLAVES_SEDE_ACTUAL === 'castanares') totalConNombre = 93;
   document.getElementById('llaves-total').textContent = totalConNombre;
   renderTablero({});
   var tableroFiltro = LLAVES_SEDE_ACTUAL === 'castanares' ? 'castanares' : 'obrador';
@@ -15936,7 +15938,10 @@ function renderTablero(byNum) {
   var data = getLlavesDataActual();
   var esBC = LLAVES_SEDE_ACTUAL === 'castanares';
   var html = '';
-  for (var n = 1; n <= 92; n++) {
+  var _dks = Object.keys(data).map(Number).sort(function(a,b){return a-b;});
+  var _nMin = _dks.length ? _dks[0] : 1;
+  var _nMax = _dks.length ? _dks[_dks.length-1] : 92;
+  for (var n = _nMin; n <= _nMax; n++) {
     var llave = byNum[n];
     var objetivo = data[n] || '';
     // Para Obrador Savio: solo mostrar las que tienen nombre. Para BC: mostrar todos los 92 slots
@@ -16007,7 +16012,10 @@ function filtrarLlaves() {
   var data = getLlavesDataActual();
   var esBC = LLAVES_SEDE_ACTUAL === 'castanares';
   var rows = [];
-  for (var n = 1; n <= 92; n++) {
+  var _dks2 = Object.keys(data).map(Number).sort(function(a,b){return a-b;});
+  var _nMin2 = _dks2.length ? _dks2[0] : 1;
+  var _nMax2 = _dks2.length ? _dks2[_dks2.length-1] : 92;
+  for (var n = _nMin2; n <= _nMax2; n++) {
     var llave = byNum[n];
     var obj = data[n] || '';
     if (!esBC && !obj) continue; // Obrador: solo slots con nombre
@@ -16318,7 +16326,7 @@ function abrirDetalleInmueble(inmId) {
         // Format date prominently
         var fechaObj = new Date(nov.created_at);
         var fechaStr = fechaObj.toLocaleDateString('es-AR', {weekday:'short', day:'numeric', month:'short', year:'numeric', timeZone: 'America/Argentina/Buenos_Aires'});
-        var horaStr = fechaObj.toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit', timeZone: 'America/Argentina/Buenos_Aires'});
+        var horaStr = fechaObj.toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit', hour12: false, timeZone: 'America/Argentina/Buenos_Aires'});
         tHtml += '<div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05)">';
         tHtml += '<div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0">';
         tHtml += '<div style="width:10px;height:10px;border-radius:50%;background:' + relColor + ';margin-top:3px"></div>';
@@ -16414,7 +16422,7 @@ function detenerProcesamientoIA() {
 function inm_ia_log(msg) {
   var log = document.getElementById('inm-ia-log');
   if (!log) return;
-  var ts = new Date().toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit', second:'2-digit', timeZone: 'America/Argentina/Buenos_Aires'});
+  var ts = new Date().toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit', second:'2-digit', hour12: false, timeZone: 'America/Argentina/Buenos_Aires'});
   log.innerHTML += '<div>[' + ts + '] ' + msg + '</div>';
   log.scrollTop = log.scrollHeight;
 }
@@ -16654,7 +16662,7 @@ function loadHistorialSesiones() {
         var icon = r.tipo === 'LOGIN_OK' ? '🟢' : r.tipo === 'LOGOUT' ? '🔴' : r.tipo === 'LOGIN_BLOQUEADO' ? '🚫' : '⚠️';
         var color = r.tipo === 'LOGIN_OK' ? 'var(--green)' : r.tipo === 'LOGOUT' ? 'var(--text3)' : r.tipo === 'LOGIN_BLOQUEADO' ? '#f87171' : 'var(--yellow)';
         var fechaObj = new Date(r.created_at);
-        var fechaStr = fechaObj.toLocaleDateString('es-AR', {day:'numeric',month:'short', timeZone: 'America/Argentina/Buenos_Aires'}) + ' ' + fechaObj.toLocaleTimeString('es-AR', {hour:'2-digit',minute:'2-digit', timeZone: 'America/Argentina/Buenos_Aires'});
+        var fechaStr = fechaObj.toLocaleDateString('es-AR', {day:'numeric',month:'short', timeZone: 'America/Argentina/Buenos_Aires'}) + ' ' + fechaObj.toLocaleTimeString('es-AR', {hour:'2-digit',minute:'2-digit', hour12: false, timeZone: 'America/Argentina/Buenos_Aires'});
         html += '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05)">';
         html += '<span style="font-size:16px">' + icon + '</span>';
         html += '<div style="flex:1;min-width:0">';
@@ -19061,7 +19069,7 @@ function _renderResumenPrecintosHoy() {
       // ordenar por hora de creación
       lista = lista.slice().sort(function(a,b){ return new Date(b.created_at) - new Date(a.created_at); });
       lista.forEach(function(p) {
-        var hora = p.created_at ? new Date(p.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires'}) : '';
+        var hora = p.created_at ? new Date(p.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Argentina/Buenos_Aires'}) : '';
         html += '<div style="background:rgba(34,197,94,.05);border:1px solid rgba(34,197,94,.25);border-radius:10px;padding:10px 12px;margin-bottom:8px">';
         html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">';
         html += '<span style="font-size:13px;font-weight:700;color:var(--white)">\u2713 ' + (p.item_label || p.item || '') + '</span>';
@@ -19109,7 +19117,7 @@ function buscarHistorialPrecintos() {
     orden.forEach(function(fecha) {
       html += '<div style="font-size:12px;font-weight:800;color:var(--accent3);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 8px">' + formatFechaCompleta(fecha) + '</div>';
       grupos[fecha].forEach(function(p) {
-        var hora = p.created_at ? new Date(p.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires'}) : '';
+        var hora = p.created_at ? new Date(p.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Argentina/Buenos_Aires'}) : '';
         var colorAccion = p.accion === 'colocar' ? '#f59e0b' : '#22c55e';
         var iconoAccion = p.accion === 'colocar' ? '\uD83D\uDD12' : '\uD83D\uDD13';
         html += '<div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-left:4px solid ' + colorAccion + ';border-radius:10px;padding:12px;margin-bottom:8px">';
@@ -19252,8 +19260,8 @@ function _renderHistorialFichajes() {
       html += '<span style="font-size:10px;color:var(--text3)">' + fichPuesto.length + ' fichaje' + (fichPuesto.length !== 1 ? 's' : '') + '</span>';
       html += '</div>';
       fichPuesto.forEach(function(f) {
-        var entrada = f.entrada ? new Date(f.entrada).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',timeZone:'America/Argentina/Buenos_Aires'}) : '--:--';
-        var salida  = f.salida  ? new Date(f.salida).toLocaleTimeString('es-AR', {hour:'2-digit',minute:'2-digit',timeZone:'America/Argentina/Buenos_Aires'}) : null;
+        var entrada = f.entrada ? new Date(f.entrada).toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'America/Argentina/Buenos_Aires'}) : '--:--';
+        var salida  = f.salida  ? new Date(f.salida).toLocaleTimeString('es-AR', {hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'America/Argentina/Buenos_Aires'}) : null;
         var durMin  = (f.entrada && f.salida) ? Math.round((new Date(f.salida)-new Date(f.entrada))/60000) : null;
         var durStr  = durMin !== null ? (Math.floor(durMin/60) + 'h ' + (durMin%60) + 'min') : null;
         var esCierreAdmin = f.cierre_admin === true;
@@ -19343,7 +19351,7 @@ function cargarBorradorInforme() {
     if (frame && b.html_preview) {
       frame.innerHTML = b.html_preview;
       if (container) container.style.display = 'block';
-      var ts = b.updated_at ? new Date(b.updated_at).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' }) : '';
+      var ts = b.updated_at ? new Date(b.updated_at).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hour12: false }) : '';
       toast('\uD83D\uDCC2 Borrador restaurado' + (ts ? ' (' + ts + ')' : ''));
     }
   });
