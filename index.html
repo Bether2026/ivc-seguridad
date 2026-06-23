@@ -2182,11 +2182,12 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
         <div class="stat-card"><div class="stat-lbl">Sin registrar</div><div class="stat-val c-purple" id="llaves-sa">—</div><div class="stat-sub">sin movimiento</div></div>
       </div>
 
-      <!-- Tabs: Tablero visual / Lista / Movimientos -->
+      <!-- Tabs: Tablero visual / Lista / Movimientos / Entregadas -->
       <div class="tabs" style="margin-bottom:12px">
         <button class="tab active" onclick="llavesTab('tablero',this)">🗂 Tablero</button>
         <button class="tab" onclick="llavesTab('lista',this)">📋 Lista</button>
         <button class="tab" onclick="llavesTab('movimientos',this)">📜 Historial</button>
+        <button class="tab" onclick="llavesTab('entregadas',this)">🏁 Entregadas</button>
       </div>
 
       <!-- TABLERO VISUAL -->
@@ -2211,6 +2212,11 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
       <!-- HISTORIAL MOVIMIENTOS -->
       <div id="llaves-tab-movimientos" style="display:none">
         <div id="llaves-historial-list"><div class="empty"><div class="icon">📜</div><p>Cargando historial...</p></div></div>
+      </div>
+
+      <!-- LLAVES ENTREGADAS -->
+      <div id="llaves-tab-entregadas" style="display:none">
+        <div id="llaves-entregadas-list"><div class="empty"><div class="icon">🏁</div><p>Cargando...</p></div></div>
       </div>
     </div>
 
@@ -3891,6 +3897,7 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
       <select class="form-select" id="mov-tipo" onchange="toggleMovFields()">
         <option value="prestamo">📤 Retirar del tablero</option>
         <option value="devolucion">📥 Devolver al tablero (Obrador Savio)</option>
+        <option value="entregada">🏁 Entregar definitivamente</option>
       </select>
     </div>
 
@@ -3902,6 +3909,23 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
       <div class="form-group">
         <label class="form-label">¿Bajo resguardo de quién / dónde queda?</label>
         <input class="form-input" id="mov-destino" placeholder="Ej: Base Castañares, Ministerio, Jefatura..."/>
+      </div>
+    </div>
+
+    <div id="mov-entrega-fields" style="display:none">
+      <div class="form-group">
+        <label class="form-label">Entregada a *</label>
+        <input class="form-input" id="mov-entrega-quien" placeholder="Nombre del beneficiario / organismo"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Fecha de entrega *</label>
+        <input type="date" class="form-input" id="mov-entrega-fecha"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Foto del acta (opcional)</label>
+        <input type="file" id="mov-entrega-foto-input" accept="image/*" style="display:none" onchange="previewSingleFoto(this,'mov-entrega-foto-preview')">
+        <div onclick="abrirSelectorFoto('mov-entrega-foto-input')" style="border:2px dashed var(--border2);border-radius:8px;padding:12px;text-align:center;cursor:pointer;background:var(--bg3)">📷 Adjuntar foto del acta</div>
+        <div id="mov-entrega-foto-preview" style="margin-top:8px"></div>
       </div>
     </div>
 
@@ -15891,10 +15915,13 @@ function llavesTab(tab, btn) {
   var tT = document.getElementById('llaves-tab-tablero');
   var tL = document.getElementById('llaves-tab-lista');
   var tM = document.getElementById('llaves-tab-movimientos');
+  var tE = document.getElementById('llaves-tab-entregadas');
   if (tT) tT.style.display = tab === 'tablero' ? 'block' : 'none';
   if (tL) tL.style.display = tab === 'lista' ? 'block' : 'none';
   if (tM) tM.style.display = tab === 'movimientos' ? 'block' : 'none';
+  if (tE) tE.style.display = tab === 'entregadas' ? 'block' : 'none';
   if (tab === 'movimientos') loadHistorialLlaves();
+  if (tab === 'entregadas') loadLlavesEntregadas();
 }
 
 function loadLlaves() {
@@ -15906,7 +15933,7 @@ function loadLlaves() {
   document.getElementById('llaves-total').textContent = totalConNombre;
   renderTablero({});
   var tableroFiltro = LLAVES_SEDE_ACTUAL === 'castanares' ? 'castanares' : 'obrador';
-  db.from('llaves').select('*').eq('tablero', tableroFiltro).order('numero_tablero', {ascending: true}).then(function(result) {
+  db.from('llaves').select('*').eq('tablero', tableroFiltro).neq('estado_actual', 'entregada').order('numero_tablero', {ascending: true}).then(function(result) {
     if (result.error) {
       console.error('Error cargando llaves:', result.error.message);
       document.getElementById('llaves-base').textContent = '—';
@@ -15947,6 +15974,8 @@ function renderTablero(byNum) {
     // Para Obrador Savio: solo mostrar las que tienen nombre. Para BC: mostrar todos los 92 slots
     if (!esBC && !objetivo) continue;
     var label = objetivo || ('Nro. ' + n); // BC sin nombre muestra "Nro. X"
+    var entregada = llave && llave.estado_actual === 'entregada';
+    if (entregada) continue; // Las entregadas no aparecen en el tablero
     var retirada = llave && llave.estado_actual === 'prestada';
     var registrada = !!llave;
     var color = retirada ? '#f59e0b' : registrada ? '#34d399' : (esBC && !objetivo ? 'rgba(255,255,255,0.15)' : 'rgba(96,165,250,0.3)');
@@ -16021,6 +16050,7 @@ function filtrarLlaves() {
     if (!esBC && !obj) continue; // Obrador: solo slots con nombre
     var label = obj || ('Nro. ' + n);
     var estado = llave ? (llave.estado_actual || 'base') : 'sinregistrar';
+    if (estado === 'entregada') continue; // Las entregadas van al tab propio
     if (filtro === 'base' && estado !== 'base') continue;
     if (filtro === 'prestada' && estado !== 'prestada') continue;
     if (search) {
@@ -16061,7 +16091,17 @@ function filtrarLlaves() {
 function toggleMovFields() {
   var tipo = document.getElementById('mov-tipo').value;
   var wrap = document.getElementById('mov-retiro-fields');
-  if (wrap) wrap.style.display = tipo === 'devolucion' ? 'none' : 'block';
+  var wrapE = document.getElementById('mov-entrega-fields');
+  if (wrap) wrap.style.display = tipo === 'prestamo' ? 'block' : 'none';
+  if (wrapE) wrapE.style.display = tipo === 'entregada' ? 'block' : 'none';
+  // Setear fecha de hoy por defecto en entrega
+  if (tipo === 'entregada') {
+    var fechaEl = document.getElementById('mov-entrega-fecha');
+    if (fechaEl && !fechaEl.value) {
+      var hoyStr = new Date().toLocaleDateString('en-CA', {timeZone: 'America/Argentina/Buenos_Aires'});
+      fechaEl.value = hoyStr;
+    }
+  }
 }
 
 function toggleDestinoOtro() {}
@@ -16072,32 +16112,74 @@ function saveMovimiento() {
   var quien = (document.getElementById('mov-quien') || {}).value || '';
   var donde = (document.getElementById('mov-destino') || {}).value || '';
   var motivo = document.getElementById('mov-motivo').value || '';
-  if (tipo !== 'devolucion' && !quien) { toast('Indicá quién retira la llave', 'err'); return; }
+  if (tipo === 'prestamo' && !quien) { toast('Indicá quién retira la llave', 'err'); return; }
+  if (tipo === 'entregada') {
+    var entregaQuien = (document.getElementById('mov-entrega-quien') || {}).value || '';
+    var entregaFecha = (document.getElementById('mov-entrega-fecha') || {}).value || '';
+    if (!entregaQuien) { toast('Indicá a quién fue entregada', 'err'); return; }
+    if (!entregaFecha) { toast('Indicá la fecha de entrega', 'err'); return; }
+  }
   setLoading('btn-save-mov', true);
-  db.from('llaves_movimientos').insert({
-    llave_id: id, tipo: tipo,
-    persona: quien || null,
-    ubicacion: tipo === 'devolucion' ? 'Obrador Savio — Tablero' : (donde || null),
-    motivo: motivo || null,
-    registrado_por: USER ? USER.puesto : ''
-  }).then(function() {
-    var updates = {};
-    if (tipo === 'devolucion') {
-      updates.estado_actual = 'base';
-      updates.persona_actual = null;
-      updates.ubicacion_actual = 'Obrador Savio — Tablero';
-      updates.vehiculo = null;
-    } else {
-      updates.estado_actual = 'prestada';
-      updates.persona_actual = quien || null;
-      updates.ubicacion_actual = donde || 'Fuera del obrador';
-      updates.vehiculo = null;
+  // Si hay foto de acta, subirla primero
+  var fotoFile = document.getElementById('mov-entrega-foto-input') ? document.getElementById('mov-entrega-foto-input').files[0] : null;
+  var fotoPromise = Promise.resolve(null);
+  if (tipo === 'entregada' && fotoFile) {
+    var ext = fotoFile.name.split('.').pop();
+    var path = 'llaves/actas/' + Date.now() + '.' + ext;
+    fotoPromise = supabase.storage.from('fotos').upload(path, fotoFile, {upsert: true}).then(function(r) {
+      if (r.error) { console.warn('Error subiendo foto acta:', r.error.message); return null; }
+      return supabase.storage.from('fotos').getPublicUrl(path).data.publicUrl;
+    });
+  }
+  fotoPromise.then(function(fotoUrl) {
+    var movData = {
+      llave_id: id, tipo: tipo,
+      persona: tipo === 'entregada' ? (document.getElementById('mov-entrega-quien') || {}).value : (quien || null),
+      ubicacion: tipo === 'devolucion' ? 'Obrador Savio — Tablero' : (donde || null),
+      motivo: motivo || null,
+      registrado_por: USER ? USER.puesto : ''
+    };
+    if (tipo === 'entregada') {
+      movData.fecha_entrega = (document.getElementById('mov-entrega-fecha') || {}).value || null;
+      movData.foto_acta = fotoUrl || null;
     }
-    db.from('llaves').update(updates).eq('id', id).then(function(result) {
-      setLoading('btn-save-mov', false);
-      if (result.error) { toast('Error: ' + result.error.message, 'err'); return; }
-      closeOv('ov-mov-llave');
-      toast(tipo === 'devolucion' ? 'Llave devuelta al tablero' : 'Llave retirada — registrado');
+    db.from('llaves_movimientos').insert(movData).then(function() {
+      var updates = {};
+      if (tipo === 'devolucion') {
+        updates.estado_actual = 'base';
+        updates.persona_actual = null;
+        updates.ubicacion_actual = 'Obrador Savio — Tablero';
+        updates.vehiculo = null;
+      } else if (tipo === 'entregada') {
+        updates.estado_actual = 'entregada';
+        updates.persona_actual = (document.getElementById('mov-entrega-quien') || {}).value || null;
+        updates.ubicacion_actual = 'Entregada definitivamente';
+        updates.fecha_entrega = (document.getElementById('mov-entrega-fecha') || {}).value || null;
+        updates.foto_acta = fotoUrl || null;
+      } else {
+        updates.estado_actual = 'prestada';
+        updates.persona_actual = quien || null;
+        updates.ubicacion_actual = donde || 'Fuera del obrador';
+        updates.vehiculo = null;
+      }
+      db.from('llaves').update(updates).eq('id', id).then(function(result) {
+        setLoading('btn-save-mov', false);
+        if (result.error) { toast('Error: ' + result.error.message, 'err'); return; }
+        // Limpiar foto
+        var fInput = document.getElementById('mov-entrega-foto-input');
+        if (fInput) fInput.value = '';
+        var fPrev = document.getElementById('mov-entrega-foto-preview');
+        if (fPrev) fPrev.innerHTML = '';
+        var fFecha = document.getElementById('mov-entrega-fecha');
+        if (fFecha) fFecha.value = '';
+        var fQuien = document.getElementById('mov-entrega-quien');
+        if (fQuien) fQuien.value = '';
+        closeOv('ov-mov-llave');
+        if (tipo === 'devolucion') toast('Llave devuelta al tablero');
+        else if (tipo === 'entregada') toast('Llave registrada como entregada definitivamente');
+        else toast('Llave retirada — registrado');
+        loadLlaves();
+      });
     });
   });
 }
@@ -16128,6 +16210,34 @@ function saveLlave() {
   });
 }
 
+
+function loadLlavesEntregadas() {
+  var cont = document.getElementById('llaves-entregadas-list');
+  if (!cont) return;
+  cont.innerHTML = '<div style="padding:16px;text-align:center;color:var(--text3)">Cargando...</div>';
+  var tableroFiltro = LLAVES_SEDE_ACTUAL === 'castanares' ? 'castanares' : 'obrador';
+  db.from('llaves').select('*').eq('tablero', tableroFiltro).eq('estado_actual', 'entregada').order('numero_tablero', {ascending: true}).then(function(res) {
+    if (res.error) { cont.innerHTML = '<div class="empty"><p>Error: ' + res.error.message + '</p></div>'; return; }
+    var llaves = res.data || [];
+    if (!llaves.length) { cont.innerHTML = '<div class="empty"><div class="icon">🏁</div><p>No hay llaves entregadas en esta sede</p></div>'; return; }
+    var html = '<div style="font-size:11px;color:var(--text3);margin-bottom:10px">' + llaves.length + ' llave(s) entregada(s) definitivamente</div>';
+    for (var i = 0; i < llaves.length; i++) {
+      var l = llaves[i];
+      var fechaStr = l.fecha_entrega ? l.fecha_entrega.split('T')[0].split('-').reverse().join('/') : '—';
+      html += '<div class="card" style="border-left:3px solid #a78bfa;margin-bottom:8px">';
+      html += '<div style="display:flex;align-items:flex-start;gap:10px">';
+      html += '<div style="font-size:22px;font-weight:900;font-family:var(--mono);color:#a78bfa;min-width:32px;text-align:center;flex-shrink:0">' + l.numero_tablero + '</div>';
+      html += '<div style="flex:1;min-width:0">';
+      html += '<div style="font-size:13px;font-weight:700;margin-bottom:4px">' + (l.nombre || 'Llave ' + l.numero_tablero) + '</div>';
+      html += '<span class="badge b-purple">🏁 ENTREGADA</span>';
+      if (l.persona_actual) html += '<div style="font-size:12px;color:var(--text2);margin-top:6px">👤 Entregada a: ' + l.persona_actual + '</div>';
+      if (l.fecha_entrega) html += '<div style="font-size:12px;color:var(--text3)">📅 Fecha: ' + fechaStr + '</div>';
+      if (l.foto_acta) html += '<div style="margin-top:8px"><a href="' + l.foto_acta + '" target="_blank"><img src="' + l.foto_acta + '" style="max-width:100%;max-height:140px;border-radius:8px;border:1px solid var(--border2);object-fit:cover" loading="lazy"/></a><div style="font-size:10px;color:var(--text3);margin-top:3px">📎 Foto del acta</div></div>';
+      html += '</div></div></div>';
+    }
+    cont.innerHTML = html;
+  });
+}
 
 function loadHistorialLlaves() {
   var cont = document.getElementById('llaves-historial-list');
