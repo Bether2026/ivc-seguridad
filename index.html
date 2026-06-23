@@ -16124,12 +16124,9 @@ function saveMovimiento() {
   var fotoFile = document.getElementById('mov-entrega-foto-input') ? document.getElementById('mov-entrega-foto-input').files[0] : null;
   var fotoPromise = Promise.resolve(null);
   if (tipo === 'entregada' && fotoFile) {
-    var ext = fotoFile.name.split('.').pop();
-    var path = 'llaves/actas/' + Date.now() + '.' + ext;
-    fotoPromise = supabase.storage.from('fotos').upload(path, fotoFile, {upsert: true}).then(function(r) {
-      if (r.error) { console.warn('Error subiendo foto acta:', r.error.message); return null; }
-      return supabase.storage.from('fotos').getPublicUrl(path).data.publicUrl;
-    });
+    fotoPromise = uploadToR2Comprimido(fotoFile, 'llaves').then(function(url) {
+      return url || null;
+    }).catch(function() { return null; });
   }
   fotoPromise.then(function(fotoUrl) {
     var movData = {
