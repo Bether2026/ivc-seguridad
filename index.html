@@ -1486,7 +1486,9 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
       </div>
     </div>
     <div class="form-group"><label class="form-label">Responsable de turno *</label>
-      <input class="form-input" id="c-resp-turno" placeholder="Nombre del responsable de turno"/>
+      <select class="form-select" id="c-resp-turno">
+        <option value="">— Cargando responsables fichados... —</option>
+      </select>
     </div>
     <div class="form-group"><label class="form-label">Observaciones iniciales</label>
       <textarea class="form-textarea" id="c-obs" style="min-height:65px" placeholder="Estado general del vehículo, novedades previas..."></textarea>
@@ -1533,14 +1535,16 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
         <input type="file" id="parada-foto-input" accept="image/*" style="display:none" onchange="onFotoRutaSelected(this,'parada')">
       </div>
     </div>
+    <div class="form-group" style="margin-top:10px"><label class="form-label">KM llegada (opcional)</label>
+      <input class="form-input" id="parada-km-llegada" type="number" placeholder="Ej: 259245" inputmode="numeric"/>
+    </div>
+    <div class="form-group"><label class="form-label">Observaciones (opcional)</label>
+      <input class="form-input" id="parada-observaciones" placeholder="Cualquier novedad del punto..."/>
+    </div>
     <div style="display:flex;gap:8px;margin-top:4px">
       <button type="button" onclick="saveParada(false)" style="flex:1;padding:12px;border-radius:10px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">➡️ Continuar recorrido</button>
       <button type="button" onclick="saveParada(true)" style="flex:1;padding:12px;border-radius:10px;border:1px solid rgba(52,211,153,0.4);background:rgba(52,211,153,0.1);color:var(--green);font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">🏁 Finalizar recorrido</button>
-    </div>
-  </div>
-</div>
-
-<!-- MODAL FINALIZAR RUTA -->
+    </div><!-- MODAL FINALIZAR RUTA -->
 <div class="overlay" id="ov-fin-ruta">
   <div class="modal">
     <div class="modal-head"><span class="modal-title">🏁 Finalizar Hoja de Ruta</span><button class="btn-close" onclick="closeOv('ov-fin-ruta')">×</button></div>
@@ -6626,7 +6630,7 @@ function initApp() {
   if ($('nb-informediario')) $('nb-informediario').style.display = _puedeInforme ? 'flex' : 'none';
   var canSeeGPS = ['Gerencia', 'Administrador'].includes(USER.puesto);
   if ($('tab-gps')) $('tab-gps').style.display = canSeeGPS ? 'flex' : 'none';
-  var canSeeImpRuta = (USER.rol === 'ADMIN' || ['Administrador', 'Administración', 'Gerencia'].indexOf(USER.puesto) >= 0);
+  var canSeeImpRuta = (USER.rol === 'ADMIN' || ['Administrador', 'Administración', 'Gerencia', 'Responsable de turno'].indexOf(USER.puesto) >= 0);
   if ($('tab-imprimir-ruta')) $('tab-imprimir-ruta').style.display = canSeeImpRuta ? 'flex' : 'none';
   if (!canSeeGPS) {
     var _gpsSub = document.getElementById('chof-sub-gps');
@@ -7898,6 +7902,9 @@ function imprimirHojaRuta(rutaId) {
     var yyyyAR = argD.getUTCFullYear();
     var fechaDisplay = ddAR + '-' + mmAR + '-' + yyyyAR;
 
+    // Hora de inicio de la ruta (UTC-3) para la primer fila
+    var horaInicioRuta = String(argD.getUTCHours()).padStart(2,'0') + ':' + String(argD.getUTCMinutes()).padStart(2,'0');
+
     // Fecha/hora de impresion
     var ahora = new Date();
     var ahoraAR = new Date(ahora.getTime() - 3*60*60*1000);
@@ -7935,17 +7942,19 @@ function imprimirHojaRuta(rutaId) {
 
       // Horas corregidas:
       // Hora Salida fila N = hora_salida de la parada ANTERIOR (cuando sale del punto previo)
-      // Hora Llegada fila N = hora de la parada N (cuando llega a este punto)
+      // Hora Salida fila 1 = hora de creacion de la ruta
+      // KM Inicio fila 1 = km_inicial de la ruta
       var filasParadas = '';
       var MAX_FILAS = 20;
       for (var i = 0; i < MAX_FILAS; i++) {
         var p = paradas[i] || null;
         if (p) {
-          var kmParIn = (p.km_inicio || '');
+          var kmParIn = i === 0 ? kmIni : '';
           var obj = (p.puesto || '');
           var obs = (p.con_incidencia ? (p.tipo_inc || 'Incidencia') + (p.detalle_inc ? ': ' + p.detalle_inc : '') : '');
+          if (p.observaciones) obs = obs ? obs + ' / ' + p.observaciones : p.observaciones;
           var horaLL = (p.hora || '');
-          var horaSal = i > 0 ? (paradas[i-1].hora_salida || '') : '';
+          var horaSal = i === 0 ? horaInicioRuta : (paradas[i-1].hora_salida || '');
           var kmLL = (p.km_llegada || '');
           filasParadas += '<tr>'
             + '<td style="text-align:center">' + (i+1) + '</td>'
@@ -12839,6 +12848,8 @@ function saveParada(finalizar) {
     con_incidencia: PARADA_CON_INCIDENCIA,
     tipo_inc: PARADA_TIPO_INC || null,
     detalle_inc: PARADA_CON_INCIDENCIA ? document.getElementById('parada-detalle-inc').value.trim() : null,
+    km_llegada: document.getElementById('parada-km-llegada') ? (document.getElementById('parada-km-llegada').value.trim() || null) : null,
+    observaciones: document.getElementById('parada-observaciones') ? (document.getElementById('parada-observaciones').value.trim() || null) : null,
     fotos: []
   };
 
@@ -12871,6 +12882,8 @@ function saveParada(finalizar) {
   }).then(function() {
     closeOv('ov-parada-ruta');
     RUTA_FOTOS.parada = [];
+    if (document.getElementById('parada-km-llegada')) document.getElementById('parada-km-llegada').value = '';
+    if (document.getElementById('parada-observaciones')) document.getElementById('parada-observaciones').value = '';
     if (finalizar) {
       // Abrir modal de fin de ruta
       document.getElementById('fin-ruta-id').value = rutaId;
@@ -12921,6 +12934,29 @@ function confirmarFinRuta() {
   }).catch(function(e) {
     setLoading('btn-fin-ruta', false);
     toast('Error: ' + e.message, 'err');
+  });
+}
+
+function cargarRespTurnoSelect() {
+  var sel = document.getElementById('c-resp-turno');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— Cargando... —</option>';
+  // Buscar fichajes activos de puestos que pueden ser responsables de turno
+  db.from('fichajes').select('agente,puesto').eq('activo', true).in('puesto', ['Responsable de turno', 'Administrador', 'Administración', 'Gerencia', 'Jefe de departamento']).order('agente', {ascending: true}).then(function(res) {
+    var fichados = res.data || [];
+    var opciones = '<option value="">— Seleccioná responsable de turno —</option>';
+    if (!fichados.length) {
+      opciones += '<option value="">Sin responsables fichados ahora</option>';
+    } else {
+      for (var i = 0; i < fichados.length; i++) {
+        var f = fichados[i];
+        var nombre = f.agente || f.puesto || '';
+        opciones += '<option value="' + nombre + '">' + nombre + ' (' + (f.puesto || '') + ')</option>';
+      }
+    }
+    sel.innerHTML = opciones;
+  }).catch(function() {
+    sel.innerHTML = '<option value="">Error al cargar — escribí el nombre</option>';
   });
 }
 
@@ -13180,7 +13216,7 @@ function fabClick() {
       openOv('ov-agenda');
     } else toast('Solo administraci\xF3n puede cargar operativos', 'err');
   } else if (CUR_VIEW === 'choferes') {
-    if (CUR_CHOF_SUBTAB === 'rutas') openOv('ov-chof');else if (CUR_CHOF_SUBTAB === 'combustible') openOv('ov-combustible');else if (CUR_CHOF_SUBTAB === 'incidencias') openOv('ov-incidencia');else if (CUR_CHOF_SUBTAB === 'taller') openOv('ov-taller');
+    if (CUR_CHOF_SUBTAB === 'rutas') { cargarRespTurnoSelect(); openOv('ov-chof'); } else if (CUR_CHOF_SUBTAB === 'combustible') openOv('ov-combustible');else if (CUR_CHOF_SUBTAB === 'incidencias') openOv('ov-incidencia');else if (CUR_CHOF_SUBTAB === 'taller') openOv('ov-taller');
   }
 }
 // Ocultar FAB en C.Objetivo para barrios con recorrido automático
