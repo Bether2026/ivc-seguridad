@@ -6626,7 +6626,7 @@ function initApp() {
   if ($('nb-informediario')) $('nb-informediario').style.display = _puedeInforme ? 'flex' : 'none';
   var canSeeGPS = ['Gerencia', 'Administrador'].includes(USER.puesto);
   if ($('tab-gps')) $('tab-gps').style.display = canSeeGPS ? 'flex' : 'none';
-  var canSeeImpRuta = (USER.rol === 'ADMIN' || USER.puesto === 'Administrador');
+  var canSeeImpRuta = (USER.rol === 'ADMIN' || ['Administrador', 'Administración', 'Gerencia'].indexOf(USER.puesto) >= 0);
   if ($('tab-imprimir-ruta')) $('tab-imprimir-ruta').style.display = canSeeImpRuta ? 'flex' : 'none';
   if (!canSeeGPS) {
     var _gpsSub = document.getElementById('chof-sub-gps');
