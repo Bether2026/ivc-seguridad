@@ -7890,10 +7890,7 @@ function imprimirHojaRuta(rutaId) {
     var r = res.data;
     var paradas = r.paradas || [];
     var fechaRaw = r.inicio ? new Date(r.inicio) : new Date();
-    var dd = String(fechaRaw.getUTCDate() - 0).padStart(2,'0');
-    var mm = String(fechaRaw.getUTCMonth() + 1).padStart(2,'0');
-    var yyyy = fechaRaw.getUTCFullYear();
-    // ajuste UTC-3 para mostrar fecha Argentina
+    // Ajuste UTC-3 Argentina
     var argMs = fechaRaw.getTime() - 3*60*60*1000;
     var argD = new Date(argMs);
     var ddAR = String(argD.getUTCDate()).padStart(2,'0');
@@ -7901,10 +7898,20 @@ function imprimirHojaRuta(rutaId) {
     var yyyyAR = argD.getUTCFullYear();
     var fechaDisplay = ddAR + '-' + mmAR + '-' + yyyyAR;
 
+    // Fecha/hora de impresion
+    var ahora = new Date();
+    var ahoraAR = new Date(ahora.getTime() - 3*60*60*1000);
+    var impDD = String(ahoraAR.getUTCDate()).padStart(2,'0');
+    var impMM = String(ahoraAR.getUTCMonth()+1).padStart(2,'0');
+    var impYY = ahoraAR.getUTCFullYear();
+    var impHH = String(ahoraAR.getUTCHours()).padStart(2,'0');
+    var impMin = String(ahoraAR.getUTCMinutes()).padStart(2,'0');
+    var fechaImpresion = impDD + '/' + impMM + '/' + impYY + ' ' + impHH + ':' + impMin;
+
     var movil = r.movil || '';
     var patente = '';
-    var match = movil.match(/([A-Z]{2}-?\d{3}-?[A-Z]{2}|[A-Z]{3}-?\d{3})/i);
-    if (match) patente = match[1];
+    var matchPat = movil.match(/([A-Z]{2}-?\d{3}-?[A-Z]{2}|[A-Z]{3}-?\d{3})/i);
+    if (matchPat) patente = matchPat[1];
 
     var chofer = (r.chofer || '').toUpperCase();
     var respTurno = (r.responsable_turno || '').toUpperCase();
@@ -7913,87 +7920,112 @@ function imprimirHojaRuta(rutaId) {
     var combIni = r.combustible_inicial || '';
     var combFin = r.combustible_final || '';
 
-    // Construir filas de paradas
-    var filasParadas = '';
-    var MAX_FILAS = 20;
-    for (var i = 0; i < MAX_FILAS; i++) {
-      var p = paradas[i] || null;
-      if (p) {
-        var kmParIn = (p.km_inicio || '');
-        var obj = (p.puesto || '');
-        var obs = (p.con_incidencia ? (p.tipo_inc || 'Incidencia') + (p.detalle_inc ? ': ' + p.detalle_inc : '') : '');
-        var horaLL = (p.hora || '');
-        var horaSal = (p.hora_salida || '');
-        var kmLL = (p.km_llegada || '');
-        filasParadas += '<tr>'
-          + '<td>' + (i+1) + '</td>'
-          + '<td>' + horaSal + '</td>'
-          + '<td>' + kmParIn + '</td>'
-          + '<td>' + obj + '</td>'
-          + '<td style="font-size:10px">' + obs + '</td>'
-          + '<td>' + horaLL + '</td>'
-          + '<td>' + kmLL + '</td>'
-          + '</tr>';
-      } else {
-        filasParadas += '<tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>';
+    // Generar numero HR unico: posicion de esta ruta en el anio
+    var anioRuta = yyyyAR;
+    var desdeAnio = anioRuta + '-01-01T03:00:00.000Z';
+    var hastaAnio = (anioRuta + 1) + '-01-01T03:00:00.000Z';
+
+    db.from('rutas').select('id,inicio').gte('inicio', desdeAnio).lt('inicio', hastaAnio).order('inicio', {ascending: true}).then(function(rList) {
+      var lista = rList.data || [];
+      var nroHR = 1;
+      for (var x = 0; x < lista.length; x++) {
+        if (lista[x].id === rutaId) { nroHR = x + 1; break; }
       }
-    }
+      var hrId = 'HR' + String(nroHR).padStart(4,'0') + '/' + anioRuta;
 
-    var winHTML = '<!DOCTYPE html>'
-      + '<html lang="es"><head><meta charset="UTF-8">'
-      + '<title>Hoja de Ruta - ' + (r.chofer||'') + ' - ' + fechaDisplay + '</title>'
-      + '<style>'
-      + 'body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:20px;background:#fff;color:#000;font-size:11px}'
-      + 'h1{text-align:center;font-size:20px;font-weight:bold;margin:8px 0 16px;letter-spacing:1px}'
-      + '.header-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}'
-      + '.logo{width:80px}'
-      + '.linea-color{height:4px;background:linear-gradient(to right,#f5a623,#7bc8e2,#5b8c3a);margin-bottom:14px;border-radius:2px}'
-      + 'table{width:100%;border-collapse:collapse;margin-top:10px}'
-      + 'th{background:#e8e8e8;font-weight:bold;font-size:10px;padding:5px 4px;border:1px solid #999;text-align:center}'
-      + 'td{border:1px solid #bbb;padding:5px 4px;min-height:22px;vertical-align:middle}'
-      + '.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px}'
-      + '.info-box{border:1px solid #999;padding:6px 8px}'
-      + '.info-label{font-size:9px;font-weight:bold;text-transform:uppercase;color:#555;letter-spacing:.05em}'
-      + '.info-val{font-size:13px;font-weight:bold;margin-top:2px}'
-      + '.firmas{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:28px}'
-      + '.firma-box{border-top:1px solid #000;padding-top:6px;font-size:10px;font-weight:bold;text-transform:uppercase}'
-      + '@media print{body{padding:10px}button{display:none!important}}'
-      + '</style></head><body>'
-      + '<div class="header-row">'
-      + '<div style="width:80px"></div>'
-      + '<h1>HOJA DE RUTA</h1>'
-      + '<img src="' + LOGO_IVC_B64 + '" class="logo" alt="IVC"/>'
-      + '</div>'
-      + '<div class="linea-color"></div>'
-      + '<div class="info-grid">'
-      + '<div class="info-box"><div class="info-label">Fecha</div><div class="info-val">' + fechaDisplay + '</div></div>'
-      + '<div class="info-box"><div class="info-label">Móvil / Patente</div><div class="info-val">' + (patente || movil) + '</div></div>'
-      + '<div class="info-box"><div class="info-label">Resp. de turno</div><div class="info-val">' + respTurno + '</div></div>'
-      + '<div class="info-box"><div class="info-label">Chofer</div><div class="info-val">' + chofer + '</div></div>'
-      + '<div class="info-box"><div class="info-label">KM Inicio</div><div class="info-val">' + kmIni + '</div></div>'
-      + '<div class="info-box"><div class="info-label">KM Finales</div><div class="info-val">' + kmFin + '</div></div>'
-      + '<div class="info-box"><div class="info-label">Combustible Inicio</div><div class="info-val">' + combIni + '</div></div>'
-      + '<div class="info-box"><div class="info-label">Combustible Final</div><div class="info-val">' + combFin + '</div></div>'
-      + '</div>'
-      + '<table>'
-      + '<thead><tr>'
-      + '<th>N°</th><th>Hora<br>Salida</th><th>KM<br>Inicio</th><th>Objetivo</th><th>Observaciones</th><th>Hora<br>Llegada</th><th>KM<br>Llegada</th>'
-      + '</tr></thead>'
-      + '<tbody>' + filasParadas + '</tbody>'
-      + '</table>'
-      + '<div class="firmas">'
-      + '<div class="firma-box">Firma Responsable de Turno:</div>'
-      + '<div class="firma-box">Firma Chofer:</div>'
-      + '</div>'
-      + '<div style="text-align:center;margin-top:16px">'
-      + '<button onclick="window.print()" style="padding:10px 28px;font-size:14px;background:#0d3b52;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:bold">🖨️ Imprimir / Guardar PDF</button>'
-      + '</div>'
-      + '</body></html>';
+      // Horas corregidas:
+      // Hora Salida fila N = hora_salida de la parada ANTERIOR (cuando sale del punto previo)
+      // Hora Llegada fila N = hora de la parada N (cuando llega a este punto)
+      var filasParadas = '';
+      var MAX_FILAS = 20;
+      for (var i = 0; i < MAX_FILAS; i++) {
+        var p = paradas[i] || null;
+        if (p) {
+          var kmParIn = (p.km_inicio || '');
+          var obj = (p.puesto || '');
+          var obs = (p.con_incidencia ? (p.tipo_inc || 'Incidencia') + (p.detalle_inc ? ': ' + p.detalle_inc : '') : '');
+          var horaLL = (p.hora || '');
+          var horaSal = i > 0 ? (paradas[i-1].hora_salida || '') : '';
+          var kmLL = (p.km_llegada || '');
+          filasParadas += '<tr>'
+            + '<td style="text-align:center">' + (i+1) + '</td>'
+            + '<td style="text-align:center">' + horaSal + '</td>'
+            + '<td style="text-align:center">' + kmParIn + '</td>'
+            + '<td>' + obj + '</td>'
+            + '<td style="font-size:10px">' + obs + '</td>'
+            + '<td style="text-align:center">' + horaLL + '</td>'
+            + '<td style="text-align:center">' + kmLL + '</td>'
+            + '</tr>';
+        } else {
+          filasParadas += '<tr><td style="text-align:center">&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>';
+        }
+      }
 
-    var win = window.open('', '_blank');
-    if (!win) { toast('Permití las ventanas emergentes para imprimir', 'err'); return; }
-    win.document.write(winHTML);
-    win.document.close();
+      var winHTML = '<!DOCTYPE html>'
+        + '<html lang="es"><head><meta charset="UTF-8">'
+        + '<title>Hoja de Ruta - ' + (r.chofer||'') + ' - ' + fechaDisplay + '</title>'
+        + '<style>'
+        + 'body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:16px 20px 60px;background:#fff;color:#000;font-size:11px}'
+        + 'h1{text-align:center;font-size:20px;font-weight:bold;margin:8px 0 16px;letter-spacing:1px}'
+        + '.header-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}'
+        + '.logo{width:80px}'
+        + '.hr-id{font-size:11px;font-weight:700;color:#444;letter-spacing:.04em}'
+        + '.linea-color{height:4px;background:linear-gradient(to right,#f5a623,#7bc8e2,#5b8c3a);margin-bottom:14px;border-radius:2px}'
+        + 'table{width:100%;border-collapse:collapse;margin-top:10px}'
+        + 'th{background:#e8e8e8;font-weight:bold;font-size:10px;padding:5px 4px;border:1px solid #999;text-align:center}'
+        + 'td{border:1px solid #bbb;padding:5px 4px;min-height:22px;vertical-align:middle}'
+        + '.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px}'
+        + '.info-box{border:1px solid #999;padding:6px 8px}'
+        + '.info-label{font-size:9px;font-weight:bold;text-transform:uppercase;color:#555;letter-spacing:.05em}'
+        + '.info-val{font-size:13px;font-weight:bold;margin-top:2px}'
+        + '.firmas{display:grid;grid-template-columns:1fr 1fr;gap:30px;margin-top:28px}'
+        + '.firma-box{border-top:1px solid #000;padding-top:6px;font-size:10px;font-weight:bold;text-transform:uppercase}'
+        + '.footer{border-top:1px solid #ccc;margin-top:14px;padding-top:5px;display:flex;justify-content:space-between;font-size:9px;color:#888}'
+        + '@media print{'
+        + 'body{padding:10px 16px 70px}'
+        + 'button{display:none!important}'
+        + '.footer{position:fixed;bottom:0;left:16px;right:16px;background:#fff;padding-top:4px}}'
+        + '</style></head><body>'
+        + '<div class="header-row">'
+        + '<div class="hr-id">' + hrId + '</div>'
+        + '<h1>HOJA DE RUTA</h1>'
+        + '<img src="' + LOGO_IVC_B64 + '" class="logo" alt="IVC"/>'
+        + '</div>'
+        + '<div class="linea-color"></div>'
+        + '<div class="info-grid">'
+        + '<div class="info-box"><div class="info-label">Fecha</div><div class="info-val">' + fechaDisplay + '</div></div>'
+        + '<div class="info-box"><div class="info-label">Movil / Patente</div><div class="info-val">' + (patente || movil) + '</div></div>'
+        + '<div class="info-box"><div class="info-label">Resp. de turno</div><div class="info-val">' + respTurno + '</div></div>'
+        + '<div class="info-box"><div class="info-label">Chofer</div><div class="info-val">' + chofer + '</div></div>'
+        + '<div class="info-box"><div class="info-label">KM Inicio</div><div class="info-val">' + kmIni + '</div></div>'
+        + '<div class="info-box"><div class="info-label">KM Finales</div><div class="info-val">' + kmFin + '</div></div>'
+        + '<div class="info-box"><div class="info-label">Combustible Inicio</div><div class="info-val">' + combIni + '</div></div>'
+        + '<div class="info-box"><div class="info-label">Combustible Final</div><div class="info-val">' + combFin + '</div></div>'
+        + '</div>'
+        + '<table>'
+        + '<thead><tr>'
+        + '<th>N\u00b0</th><th>Hora<br>Salida</th><th>KM<br>Inicio</th><th>Objetivo</th><th>Observaciones</th><th>Hora<br>Llegada</th><th>KM<br>Llegada</th>'
+        + '</tr></thead>'
+        + '<tbody>' + filasParadas + '</tbody>'
+        + '</table>'
+        + '<div class="firmas">'
+        + '<div class="firma-box">Firma Responsable de Turno:</div>'
+        + '<div class="firma-box">Firma Chofer:</div>'
+        + '</div>'
+        + '<div class="footer">'
+        + '<span>IVC Seguridad y Emergencias \u2014 ' + hrId + '</span>'
+        + '<span>Impreso: ' + fechaImpresion + '</span>'
+        + '</div>'
+        + '<div style="text-align:center;margin-top:16px;padding-bottom:10px">'
+        + '<button onclick="window.print()" style="padding:10px 28px;font-size:14px;background:#0d3b52;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:bold">\ud83d\udda8\ufe0f Imprimir / Guardar PDF</button>'
+        + '</div>'
+        + '</body></html>';
+
+      var win = window.open('', '_blank');
+      if (!win) { toast('Permit\u00ed las ventanas emergentes para imprimir', 'err'); return; }
+      win.document.write(winHTML);
+      win.document.close();
+    });
   });
 }
 
