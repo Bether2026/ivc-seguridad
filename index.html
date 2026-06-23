@@ -5642,7 +5642,7 @@ window.addEventListener('unhandledrejection', function (e) {
   });
   var devtoolsOpen = false;
   setInterval(function () {
-    var threshold = 160;
+    var threshold = 300;
     var widthDiff = window.outerWidth - window.innerWidth;
     var heightDiff = window.outerHeight - window.innerHeight;
     if (widthDiff > threshold || heightDiff > threshold) {
