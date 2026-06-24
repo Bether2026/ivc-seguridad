@@ -1503,6 +1503,57 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
   </div>
 </div>
 
+<!-- MODAL EDITAR PARADA -->
+<div class="overlay" id="ov-editar-parada">
+  <div class="modal">
+    <div class="modal-head"><span class="modal-title">✏️ Corregir Parada</span><button class="btn-close" onclick="closeOv('ov-editar-parada')">×</button></div>
+    <div style="background:rgba(251,146,60,.08);border:1px solid rgba(251,146,60,.25);border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:#fdba74;line-height:1.5">
+      ⚠️ Esta corrección queda registrada. Solo para errores de tipeo o selección incorrecta.
+    </div>
+    <input type="hidden" id="ep-ruta-id">
+    <input type="hidden" id="ep-parada-idx">
+    <div class="form-group"><label class="form-label">Puesto / Lugar</label>
+      <input class="form-input" id="ep-puesto" placeholder="Nombre del punto"/>
+    </div>
+    <div class="form-group"><label class="form-label">KM llegada</label>
+      <input class="form-input" id="ep-km" type="number" inputmode="numeric"/>
+    </div>
+    <div class="form-group"><label class="form-label">Observaciones</label>
+      <input class="form-input" id="ep-obs" placeholder="Novedad del punto..."/>
+    </div>
+    <div class="form-group"><label class="form-label">Motivo de la corrección *</label>
+      <input class="form-input" id="ep-motivo" placeholder="Ej: Error de tipeo en el nombre del puesto"/>
+    </div>
+    <button class="btn-login" id="btn-save-ep" onclick="guardarEdicionParada()">✓ Guardar corrección</button>
+  </div>
+</div>
+
+<!-- MODAL CORREGIR VEHÍCULO DE RUTA -->
+<div class="overlay" id="ov-editar-movil">
+  <div class="modal">
+    <div class="modal-head"><span class="modal-title">🚗 Corregir Vehículo</span><button class="btn-close" onclick="closeOv('ov-editar-movil')">×</button></div>
+    <div style="background:rgba(251,146,60,.08);border:1px solid rgba(251,146,60,.25);border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:#fdba74;line-height:1.5">
+      ⚠️ Corrección de vehículo. Quedará registrado el cambio con el motivo indicado.
+    </div>
+    <input type="hidden" id="em-ruta-id">
+    <div class="form-group"><label class="form-label">Vehículo correcto *</label>
+      <select class="form-select" id="em-movil">
+        <option value="">— Seleccioná el vehículo correcto —</option>
+        <option>S-10 · AA-909-LF</option>
+        <option>S-10 · AA-909-LD</option>
+        <option>S-10 Gris · AA-909-LE</option>
+        <option>Berlingo · MYH-863</option>
+        <option>S-10 vieja · EKT-637</option>
+        <option>Jumper · KWI-159</option>
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Motivo de la corrección *</label>
+      <input class="form-input" id="em-motivo" placeholder="Ej: Seleccioné el vehículo equivocado al iniciar"/>
+    </div>
+    <button class="btn-login" id="btn-save-em" onclick="guardarEdicionMovil()">✓ Guardar corrección</button>
+  </div>
+</div>
+
 <!-- MODAL AGREGAR PARADA EN RUTA -->
 <div class="overlay" id="ov-parada-ruta">
   <div class="modal">
@@ -12306,6 +12357,135 @@ function _loadObjetivos() {
   }));
   return _loadObjetivos.apply(this, arguments);
 }
+function abrirEditarParada(rutaId, paradaIdx) {
+  db.from('rutas').select('paradas').eq('id', rutaId).single().then(function(res) {
+    if (res.error || !res.data) { toast('Error al cargar parada', 'err'); return; }
+    var p = (res.data.paradas || [])[paradaIdx];
+    if (!p) { toast('Parada no encontrada', 'err'); return; }
+    document.getElementById('ep-ruta-id').value = rutaId;
+    document.getElementById('ep-parada-idx').value = paradaIdx;
+    document.getElementById('ep-puesto').value = p.puesto || '';
+    document.getElementById('ep-km').value = p.km_llegada || '';
+    document.getElementById('ep-obs').value = p.observaciones || '';
+    document.getElementById('ep-motivo').value = '';
+    openOv('ov-editar-parada');
+  });
+}
+
+function guardarEdicionParada() {
+  var rutaId = document.getElementById('ep-ruta-id').value;
+  var idx = parseInt(document.getElementById('ep-parada-idx').value);
+  var motivo = document.getElementById('ep-motivo').value.trim();
+  if (!motivo) { toast('Indicá el motivo de la corrección', 'err'); return; }
+  setLoading('btn-save-ep', true);
+  db.from('rutas').select('paradas').eq('id', rutaId).single().then(function(res) {
+    if (res.error || !res.data) { setLoading('btn-save-ep', false); toast('Error al cargar ruta', 'err'); return; }
+    var paradas = res.data.paradas || [];
+    if (!paradas[idx]) { setLoading('btn-save-ep', false); toast('Parada no encontrada', 'err'); return; }
+    var anterior = JSON.parse(JSON.stringify(paradas[idx]));
+    // Solo se permite corregir puesto, km_llegada y observaciones — NO la hora
+    var nuevoPuesto = document.getElementById('ep-puesto').value.trim();
+    var nuevoKm = document.getElementById('ep-km').value.trim();
+    var nuevaObs = document.getElementById('ep-obs').value.trim();
+    if (nuevoPuesto) paradas[idx].puesto = nuevoPuesto;
+    if (nuevoKm) paradas[idx].km_llegada = nuevoKm;
+    paradas[idx].observaciones = nuevaObs || null;
+    paradas[idx]._correcciones = paradas[idx]._correcciones || [];
+    paradas[idx]._correcciones.push({
+      fecha: new Date().toISOString(),
+      usuario: USER ? (USER.nombre || USER.puesto) : '?',
+      motivo: motivo,
+      anterior: { puesto: anterior.puesto, km_llegada: anterior.km_llegada, observaciones: anterior.observaciones }
+    });
+    db.from('rutas').update({ paradas: paradas }).eq('id', rutaId).then(function(r) {
+      setLoading('btn-save-ep', false);
+      if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+      closeOv('ov-editar-parada');
+      toast('✅ Corrección guardada y registrada');
+      loadChoferes();
+    });
+  });
+}
+
+function abrirEditarMovil(rutaId, movilActual) {
+  document.getElementById('em-ruta-id').value = rutaId;
+  document.getElementById('em-movil').value = movilActual || '';
+  document.getElementById('em-motivo').value = '';
+  openOv('ov-editar-movil');
+}
+
+function guardarEdicionMovil() {
+  var rutaId = document.getElementById('em-ruta-id').value;
+  var nuevoMovil = document.getElementById('em-movil').value;
+  var motivo = document.getElementById('em-motivo').value.trim();
+  if (!nuevoMovil) { toast('Seleccioná el vehículo correcto', 'err'); return; }
+  if (!motivo) { toast('Indicá el motivo de la corrección', 'err'); return; }
+  setLoading('btn-save-em', true);
+  db.from('rutas').select('movil,_correcciones_movil').eq('id', rutaId).single().then(function(res) {
+    if (res.error || !res.data) { setLoading('btn-save-em', false); toast('Error', 'err'); return; }
+    var movilAnterior = res.data.movil || '';
+    var historial = res.data._correcciones_movil || [];
+    historial.push({
+      fecha: new Date().toISOString(),
+      usuario: USER ? (USER.nombre || USER.puesto) : '?',
+      motivo: motivo,
+      movil_anterior: movilAnterior,
+      movil_nuevo: nuevoMovil
+    });
+    db.from('rutas').update({ movil: nuevoMovil, _correcciones_movil: historial }).eq('id', rutaId).then(function(r) {
+      setLoading('btn-save-em', false);
+      if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+      closeOv('ov-editar-movil');
+      toast('✅ Vehículo corregido y registrado');
+      loadChoferes();
+    });
+  });
+}
+
+function eliminarRuta(rutaId) {
+  if (!USER || USER.rol !== 'ADMIN') { toast('Sin permiso', 'err'); return; }
+  if (!confirm('¿Seguro que querés eliminar esta hoja de ruta? Esta acción no se puede deshacer.')) return;
+  db.from('rutas').delete().eq('id', rutaId).then(function(r) {
+    if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+    toast('🗑️ Hoja de ruta eliminada');
+    loadChoferes();
+    loadDash();
+  });
+}
+
+function recuperarBackupParadas(rutaId, paradasActuales) {
+  // Intenta recuperar paradas perdidas por recarga accidental
+  try {
+    var backupKey = 'ivc_parada_backup_' + rutaId;
+    var backupStr = localStorage.getItem(backupKey);
+    if (!backupStr) return null;
+    var backupParadas = JSON.parse(backupStr);
+    if (!backupParadas || !backupParadas.length) return null;
+    // Ver si hay paradas en el backup que no están en Supabase
+    var nActuales = paradasActuales ? paradasActuales.length : 0;
+    var paradasNuevas = backupParadas.slice(nActuales);
+    if (!paradasNuevas.length) {
+      localStorage.removeItem(backupKey);
+      return null;
+    }
+    return paradasNuevas;
+  } catch(e) { return null; }
+}
+
+function verificarYRecuperarBackup(rutaId, paradasActuales) {
+  var paradasRecup = recuperarBackupParadas(rutaId, paradasActuales);
+  if (!paradasRecup || !paradasRecup.length) return;
+  // Hay paradas que se perdieron — recuperarlas automáticamente
+  var nuevasParadas = (paradasActuales || []).concat(paradasRecup);
+  db.from('rutas').update({ paradas: nuevasParadas }).eq('id', rutaId).then(function(r) {
+    if (!r.error) {
+      try { localStorage.removeItem('ivc_parada_backup_' + rutaId); } catch(e) {}
+      toast('⚠️ Se recuperaron ' + paradasRecup.length + ' parada(s) que se habían perdido al recargar', 'ok');
+      loadChoferes();
+    }
+  });
+}
+
 function loadChoferes() {
   return _loadChoferes.apply(this, arguments);
 }
@@ -12341,11 +12521,14 @@ function _loadChoferes() {
           }
           chtml = '';
           var _ultimaFechaRuta = null; // para agrupar por fecha
-          // Si el usuario es chofer y tiene ruta activa → reactivar GPS
+          // Si el usuario es chofer y tiene ruta activa → reactivar GPS y verificar backup
           if (!GPS_TRACKING) {
             var rutaActiva = list.find(function(r) { return r.estado === 'activo' && r.chofer === (USER.nombre || USER.puesto); });
             if (rutaActiva && rutaActiva.movil) {
               startGPSTransmission(rutaActiva.chofer, rutaActiva.movil);
+            }
+            if (rutaActiva) {
+              verificarYRecuperarBackup(rutaActiva.id, rutaActiva.paradas || []);
             }
           }
           for (ci = 0; ci < list.length; ci++) {
@@ -12469,6 +12652,7 @@ function _loadChoferes() {
                 } else {
                   chtml += '<span class="badge b-green" style="flex-shrink:0">Finalizada</span>';
                 }
+                chtml += '<button class="btn-sm" onclick="abrirEditarParada(\'' + r.id + '\',' + pIdx + ')" style="background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.3);color:#93c5fd;white-space:nowrap;flex-shrink:0">✏️</button>';
                 chtml += '</div>';
               });
               chtml += '</div>';
@@ -12477,6 +12661,14 @@ function _loadChoferes() {
             if (isAct) {
               chtml += '<div class="obj-actions" style="margin-top:10px">';
               chtml += '<button class="btn-sm" onclick="abrirParadaRuta(\'' + r.id + '\')">📍 Registrar parada</button>';
+              chtml += '<button class="btn-sm" onclick="abrirEditarMovil(\'' + r.id + '\',\'' + (r.movil || '').replace(/'/g,'') + '\')" style="background:rgba(167,139,250,.08);border:1px solid rgba(167,139,250,.3);color:#c4b5fd">🚗 Corregir vehículo</button>';
+              if (USER && USER.rol === 'ADMIN') {
+                chtml += '<button class="btn-sm" onclick="eliminarRuta(\'' + r.id + '\')" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.35);color:#f87171">🗑️ Eliminar</button>';
+              }
+              chtml += '</div>';
+            } else if (USER && USER.rol === 'ADMIN') {
+              chtml += '<div class="obj-actions" style="margin-top:10px">';
+              chtml += '<button class="btn-sm" onclick="eliminarRuta(\'' + r.id + '\')" style="background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.35);color:#f87171">🗑️ Eliminar</button>';
               chtml += '</div>';
             }
             // Boton GPS historial — solo Gerencia y Administrador
@@ -12642,6 +12834,14 @@ function saveParada(finalizar) {
     fotos: []
   };
 
+  // BACKUP INMEDIATO en localStorage — protege contra recarga accidental
+  try {
+    var backupKey = 'ivc_parada_backup_' + rutaId;
+    var backupActual = JSON.parse(localStorage.getItem(backupKey) || '[]');
+    backupActual.push(parada);
+    localStorage.setItem(backupKey, JSON.stringify(backupActual));
+  } catch(e) {}
+
   uploadFotosRuta(RUTA_FOTOS.parada, 'rutas/paradas').then(function(urls) {
     parada.fotos = urls;
     return db.from('rutas').select('paradas,movil,chofer').eq('id', rutaId).single();
@@ -12649,6 +12849,8 @@ function saveParada(finalizar) {
     var paradas = (res.data && res.data.paradas) ? res.data.paradas : [];
     var rutaInfo = res.data || {};
     paradas.push(parada);
+    // Limpiar backup ya que Supabase tiene los datos
+    try { localStorage.removeItem('ivc_parada_backup_' + rutaId); } catch(e) {}
     return db.from('rutas').update({ paradas: paradas }).eq('id', rutaId).then(function() {
       // Si hay incidencia → crear novedad automática
       if (PARADA_CON_INCIDENCIA && parada.detalle_inc) {
