@@ -1512,7 +1512,7 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
       <input class="form-input" id="parada-puesto" placeholder="Ej: Papa Francisco, Base Castañares..."/>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-      <div class="form-group" style="margin-bottom:0"><label class="form-label">KM llegada (opcional)</label>
+      <div class="form-group" style="margin-bottom:0"><label class="form-label">KM llegada *</label>
         <input class="form-input" id="parada-km-llegada" type="number" placeholder="Ej: 259245" inputmode="numeric"/>
       </div>
       <div class="form-group" style="margin-bottom:0"><label class="form-label">Observaciones (opcional)</label>
@@ -11817,7 +11817,7 @@ async function saveObj() {
   var now = new Date();
   var primerPunto = {
     lugar: desc,
-    hora: now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires'}),
+    hora: now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Argentina/Buenos_Aires'}),
     fecha: now.toISOString(),
     incidencia: false,
     obs: '',
@@ -12007,7 +12007,7 @@ async function saveUpdObj() {
   var now = new Date();
   acts.push({
     lugar: lugar,
-    hora: now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires'}),
+    hora: now.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Argentina/Buenos_Aires'}),
     fecha: now.toISOString(),
     incidencia: OBJ_CON_INCIDENCIA,
     obs: obs,
@@ -12612,7 +12612,7 @@ function marcarSalidaParada(rutaId, paradaIdx) {
     var paradas = res.data.paradas || [];
     if (!paradas[paradaIdx]) { toast('No se encontró la parada', 'err'); return; }
     if (paradas[paradaIdx].hora_salida) { toast('Esta parada ya tiene salida registrada', 'err'); return; }
-    paradas[paradaIdx].hora_salida = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires'});
+    paradas[paradaIdx].hora_salida = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Argentina/Buenos_Aires'});
     db.from('rutas').update({ paradas: paradas }).eq('id', rutaId).then(function(r) {
       if (r.error) { toast('Error al guardar: ' + r.error.message, 'err'); return; }
       toast('🛑 Salida de ' + (paradas[paradaIdx].puesto || 'parada') + ' registrada');
@@ -12625,12 +12625,14 @@ function saveParada(finalizar) {
   var rutaId = document.getElementById('parada-ruta-id').value;
   var puesto = document.getElementById('parada-puesto').value.trim();
   if (!puesto) { toast('Ingresá el nombre del puesto', 'err'); return; }
+  var kmLlegada = document.getElementById('parada-km-llegada') ? document.getElementById('parada-km-llegada').value.trim() : '';
+  if (!kmLlegada) { toast('Ingresá los KM de llegada', 'err'); return; }
   if (PARADA_CON_INCIDENCIA && !PARADA_TIPO_INC) { toast('Seleccioná el tipo de incidencia', 'err'); return; }
   if (PARADA_CON_INCIDENCIA && !document.getElementById('parada-detalle-inc').value.trim()) { toast('Detallá la incidencia', 'err'); return; }
 
   var parada = {
     puesto: puesto,
-    hora: new Date().toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit', timeZone: 'America/Argentina/Buenos_Aires'}),
+    hora: new Date().toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit', hour12: false, timeZone: 'America/Argentina/Buenos_Aires'}),
     hora_salida: null,
     con_incidencia: PARADA_CON_INCIDENCIA,
     tipo_inc: PARADA_TIPO_INC || null,
@@ -16362,7 +16364,7 @@ function abrirDetalleInmueble(inmId) {
         // Format date prominently
         var fechaObj = new Date(nov.created_at);
         var fechaStr = fechaObj.toLocaleDateString('es-AR', {weekday:'short', day:'numeric', month:'short', year:'numeric', timeZone: 'America/Argentina/Buenos_Aires'});
-        var horaStr = fechaObj.toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit', timeZone: 'America/Argentina/Buenos_Aires'});
+        var horaStr = fechaObj.toLocaleTimeString('es-AR', {hour:'2-digit', minute:'2-digit', hour12: false, timeZone: 'America/Argentina/Buenos_Aires'});
         tHtml += '<div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05)">';
         tHtml += '<div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0">';
         tHtml += '<div style="width:10px;height:10px;border-radius:50%;background:' + relColor + ';margin-top:3px"></div>';
@@ -19105,7 +19107,7 @@ function _renderResumenPrecintosHoy() {
       // ordenar por hora de creación
       lista = lista.slice().sort(function(a,b){ return new Date(b.created_at) - new Date(a.created_at); });
       lista.forEach(function(p) {
-        var hora = p.created_at ? new Date(p.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires'}) : '';
+        var hora = p.created_at ? new Date(p.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Argentina/Buenos_Aires'}) : '';
         html += '<div style="background:rgba(34,197,94,.05);border:1px solid rgba(34,197,94,.25);border-radius:10px;padding:10px 12px;margin-bottom:8px">';
         html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">';
         html += '<span style="font-size:13px;font-weight:700;color:var(--white)">\u2713 ' + (p.item_label || p.item || '') + '</span>';
@@ -19153,7 +19155,7 @@ function buscarHistorialPrecintos() {
     orden.forEach(function(fecha) {
       html += '<div style="font-size:12px;font-weight:800;color:var(--accent3);text-transform:uppercase;letter-spacing:.05em;margin:14px 0 8px">' + formatFechaCompleta(fecha) + '</div>';
       grupos[fecha].forEach(function(p) {
-        var hora = p.created_at ? new Date(p.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', timeZone: 'America/Argentina/Buenos_Aires'}) : '';
+        var hora = p.created_at ? new Date(p.created_at).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Argentina/Buenos_Aires'}) : '';
         var colorAccion = p.accion === 'colocar' ? '#f59e0b' : '#22c55e';
         var iconoAccion = p.accion === 'colocar' ? '\uD83D\uDD12' : '\uD83D\uDD13';
         html += '<div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-left:4px solid ' + colorAccion + ';border-radius:10px;padding:12px;margin-bottom:8px">';
