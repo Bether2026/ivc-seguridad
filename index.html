@@ -1511,6 +1511,14 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
     <div class="form-group"><label class="form-label">Nombre del puesto / lugar *</label>
       <input class="form-input" id="parada-puesto" placeholder="Ej: Papa Francisco, Base Castañares..."/>
     </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="form-group" style="margin-bottom:0"><label class="form-label">KM llegada (opcional)</label>
+        <input class="form-input" id="parada-km-llegada" type="number" placeholder="Ej: 259245" inputmode="numeric"/>
+      </div>
+      <div class="form-group" style="margin-bottom:0"><label class="form-label">Observaciones (opcional)</label>
+        <input class="form-input" id="parada-observaciones" placeholder="Novedad del punto..."/>
+      </div>
+    </div>
     <div class="form-group"><label class="form-label">Estado del móvil *</label>
       <div style="display:flex;gap:10px">
         <button type="button" id="btn-sin-inc" onclick="selIncidenciaRuta(false)" style="flex:1;padding:12px;border-radius:10px;border:2px solid var(--green);background:rgba(52,211,153,0.1);color:var(--green);font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">✅ Sin incidencia</button>
@@ -1533,12 +1541,6 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
         <button type="button" onclick="agregarFotoRuta('parada')" id="btn-add-foto-parada" style="font-size:12px;padding:7px 14px;border-radius:8px;border:1px dashed rgba(239,68,68,0.4);background:rgba(239,68,68,0.05);color:#f87171;font-family:var(--font);cursor:pointer">📷 Agregar foto</button>
         <input type="file" id="parada-foto-input" accept="image/*" style="display:none" onchange="onFotoRutaSelected(this,'parada')">
       </div>
-    </div>
-    <div class="form-group" style="margin-top:10px"><label class="form-label">KM llegada (opcional)</label>
-      <input class="form-input" id="parada-km-llegada" type="number" placeholder="Ej: 259245" inputmode="numeric"/>
-    </div>
-    <div class="form-group"><label class="form-label">Observaciones (opcional)</label>
-      <input class="form-input" id="parada-observaciones" placeholder="Cualquier novedad del punto..."/>
     </div>
     <div style="display:flex;gap:8px;margin-top:4px">
       <button type="button" onclick="saveParada(false)" style="flex:1;padding:12px;border-radius:10px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">➡️ Continuar recorrido</button>
