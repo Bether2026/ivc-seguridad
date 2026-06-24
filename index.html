@@ -11833,8 +11833,14 @@ function _loadNovedades() {
         case 2:
           list = res.data || [];
           // Ocultar novedades solo_admin para usuarios que no son Administrador del sistema
+          // Cubre tanto las nuevas (campo solo_admin) como las existentes (por asunto)
           if (!USER || USER.rol !== 'ADMIN') {
-            list = list.filter(function(n) { return !n.solo_admin; });
+            var asuntosAdmin = ['Corrección de vehículo en hoja de ruta', 'Traslado de puesto'];
+            list = list.filter(function(n) {
+              if (n.solo_admin) return false;
+              if (asuntosAdmin.indexOf(n.asunto) >= 0) return false;
+              return true;
+            });
           }
           NOV_CACHE = list;
           searchEl = document.getElementById('nov-search');
