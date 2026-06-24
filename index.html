@@ -11832,6 +11832,10 @@ function _loadNovedades() {
           return _context38.a(2);
         case 2:
           list = res.data || [];
+          // Ocultar novedades solo_admin para usuarios que no son Administrador del sistema
+          if (!USER || USER.rol !== 'ADMIN') {
+            list = list.filter(function(n) { return !n.solo_admin; });
+          }
           NOV_CACHE = list;
           searchEl = document.getElementById('nov-search');
           if (!(searchEl && searchEl.value.trim())) {
@@ -12781,13 +12785,14 @@ function guardarEdicionMovil() {
     var chofer = res.data.chofer || '';
     db.from('rutas').update({ movil: nuevoMovil }).eq('id', rutaId).then(function(r) {
       if (r.error) { setLoading('btn-save-em', false); toast('Error: ' + r.error.message, 'err'); return; }
-      // Registrar la corrección como novedad para auditoría
+      // Registrar la corrección como novedad para auditoría — solo visible para Admin
       db.from('novedades').insert({
         puesto: USER ? (USER.nombre || USER.puesto) : '?',
         tipo: 'Corrección de vehículo',
         asunto: 'Corrección de vehículo en hoja de ruta',
         detalle: 'Chofer: ' + chofer + ' | Vehículo anterior: ' + movilAnterior + ' → Nuevo: ' + nuevoMovil + ' | Motivo: ' + motivo,
         pendiente: false,
+        solo_admin: true,
         created_at: new Date().toISOString()
       }).then(function() {});
       setLoading('btn-save-em', false);
@@ -19344,7 +19349,7 @@ function confirmarTraslado() {
       // la propia logica de fichaje si vuelve a fichar — aqui solo registramos el traslado.
     } catch(e) {}
 
-    // 4. Crear novedad automatica registrando el traslado, visible para ambos puestos
+    // 4. Crear novedad automatica registrando el traslado, visible solo para Admin
     var ahora = new Date().toISOString();
     db.from('novedades').insert({
       puesto: puestoOrigen,
@@ -19353,6 +19358,7 @@ function confirmarTraslado() {
       detalle: agente + ' fue trasladado de ' + puestoOrigen + ' a ' + puestoDestino + '.',
       cargado_por: agente,
       pendiente: false,
+      solo_admin: true,
       created_at: ahora
     }).then(function() {
       return db.from('novedades').insert({
@@ -19362,6 +19368,7 @@ function confirmarTraslado() {
         detalle: agente + ' fue trasladado a este puesto desde ' + puestoOrigen + '.',
         cargado_por: agente,
         pendiente: false,
+        solo_admin: true,
         created_at: ahora
       });
     }).then(function() {
