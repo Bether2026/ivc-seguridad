@@ -12421,20 +12421,22 @@ function guardarEdicionMovil() {
   if (!nuevoMovil) { toast('Seleccioná el vehículo correcto', 'err'); return; }
   if (!motivo) { toast('Indicá el motivo de la corrección', 'err'); return; }
   setLoading('btn-save-em', true);
-  db.from('rutas').select('movil,_correcciones_movil').eq('id', rutaId).single().then(function(res) {
-    if (res.error || !res.data) { setLoading('btn-save-em', false); toast('Error', 'err'); return; }
+  db.from('rutas').select('movil,chofer').eq('id', rutaId).single().then(function(res) {
+    if (res.error || !res.data) { setLoading('btn-save-em', false); toast('Error al cargar ruta', 'err'); return; }
     var movilAnterior = res.data.movil || '';
-    var historial = res.data._correcciones_movil || [];
-    historial.push({
-      fecha: new Date().toISOString(),
-      usuario: USER ? (USER.nombre || USER.puesto) : '?',
-      motivo: motivo,
-      movil_anterior: movilAnterior,
-      movil_nuevo: nuevoMovil
-    });
-    db.from('rutas').update({ movil: nuevoMovil, _correcciones_movil: historial }).eq('id', rutaId).then(function(r) {
+    var chofer = res.data.chofer || '';
+    db.from('rutas').update({ movil: nuevoMovil }).eq('id', rutaId).then(function(r) {
+      if (r.error) { setLoading('btn-save-em', false); toast('Error: ' + r.error.message, 'err'); return; }
+      // Registrar la corrección como novedad para auditoría
+      db.from('novedades').insert({
+        puesto: USER ? (USER.nombre || USER.puesto) : '?',
+        tipo: 'Corrección de vehículo',
+        asunto: 'Corrección de vehículo en hoja de ruta',
+        detalle: 'Chofer: ' + chofer + ' | Vehículo anterior: ' + movilAnterior + ' → Nuevo: ' + nuevoMovil + ' | Motivo: ' + motivo,
+        pendiente: false,
+        created_at: new Date().toISOString()
+      }).then(function() {});
       setLoading('btn-save-em', false);
-      if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
       closeOv('ov-editar-movil');
       toast('✅ Vehículo corregido y registrado');
       loadChoferes();
