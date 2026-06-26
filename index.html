@@ -5353,6 +5353,133 @@ function toggleNovedad(id, clickedEl) {
   // Marcar actualizaciones como leidas al abrir
   if (!open) marcarNovedadLeida(id);
 }
+var ENA_FOTOS_NUEVAS = [];
+var ENA_FOTOS_ACTUALES = [];
+
+function abrirEdicionCompletaNovedad(id) {
+  if (!USER || USER.rol !== 'ADMIN') { toast('Sin permiso', 'err'); return; }
+  ENA_FOTOS_NUEVAS = [];
+  ENA_FOTOS_ACTUALES = [];
+  db.from('novedades').select('*').eq('id', id).single().then(function(res) {
+    if (res.error || !res.data) { toast('Error al cargar novedad', 'err'); return; }
+    var n = res.data;
+    document.getElementById('ena-id').value = id;
+    document.getElementById('ena-asunto').value = n.asunto || '';
+    document.getElementById('ena-tipo').value = n.tipo || 'Otro';
+    document.getElementById('ena-relev').value = n.relevancia || 'Normal';
+    document.getElementById('ena-ubicacion').value = n.ubicacion || n.puesto || '';
+    document.getElementById('ena-detalle').value = n.detalle || '';
+    document.getElementById('ena-texto-informe').value = n.texto_informe || '';
+    document.getElementById('ena-observaciones').value = n.observaciones || '';
+    document.getElementById('ena-pendiente').checked = !!n.pendiente;
+    document.getElementById('ena-fotos-nuevas-preview').innerHTML = '';
+    document.getElementById('ena-foto-input').value = '';
+
+    // Mostrar fotos actuales
+    ENA_FOTOS_ACTUALES = (n.fotos && Array.isArray(n.fotos)) ? n.fotos.slice() : [];
+    var fotosDiv = document.getElementById('ena-fotos-actuales');
+    var sinFotos = document.getElementById('ena-sin-fotos');
+    fotosDiv.innerHTML = '';
+    if (ENA_FOTOS_ACTUALES.length) {
+      sinFotos.style.display = 'none';
+      ENA_FOTOS_ACTUALES.forEach(function(url, idx) {
+        var wrap = document.createElement('div');
+        wrap.style.cssText = 'position:relative;display:inline-block';
+        wrap.innerHTML = '<img src="' + url + '" style="width:72px;height:56px;object-fit:cover;border-radius:8px;border:1px solid var(--border2);cursor:zoom-in" onclick="abrirFotoLightbox(\'' + url + '\')">'
+          + '<button onclick="eliminarFotoEnEdicion(' + idx + ')" style="position:absolute;top:-5px;right:-5px;width:18px;height:18px;border-radius:50%;background:#ef4444;border:none;color:#fff;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700" title="Quitar">×</button>';
+        fotosDiv.appendChild(wrap);
+      });
+    } else {
+      sinFotos.style.display = 'block';
+    }
+    openOv('ov-edit-nov-admin');
+  });
+}
+
+function eliminarFotoEnEdicion(idx) {
+  ENA_FOTOS_ACTUALES.splice(idx, 1);
+  // Re-renderizar las fotos actuales
+  var fotosDiv = document.getElementById('ena-fotos-actuales');
+  var sinFotos = document.getElementById('ena-sin-fotos');
+  fotosDiv.innerHTML = '';
+  if (ENA_FOTOS_ACTUALES.length) {
+    sinFotos.style.display = 'none';
+    ENA_FOTOS_ACTUALES.forEach(function(url, i) {
+      var wrap = document.createElement('div');
+      wrap.style.cssText = 'position:relative;display:inline-block';
+      wrap.innerHTML = '<img src="' + url + '" style="width:72px;height:56px;object-fit:cover;border-radius:8px;border:1px solid var(--border2);cursor:zoom-in" onclick="abrirFotoLightbox(\'' + url + '\')">'
+        + '<button onclick="eliminarFotoEnEdicion(' + i + ')" style="position:absolute;top:-5px;right:-5px;width:18px;height:18px;border-radius:50%;background:#ef4444;border:none;color:#fff;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-weight:700">×</button>';
+      fotosDiv.appendChild(wrap);
+    });
+  } else {
+    sinFotos.style.display = 'block';
+  }
+}
+
+function onFotoEditNovSelected(input) {
+  var files = Array.prototype.slice.call(input.files);
+  var disponible = 4 - ENA_FOTOS_NUEVAS.length;
+  files = files.slice(0, disponible);
+  files.forEach(function(file) {
+    ENA_FOTOS_NUEVAS.push(file);
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var prev = document.getElementById('ena-fotos-nuevas-preview');
+      var wrap = document.createElement('div');
+      wrap.style.cssText = 'position:relative;display:inline-block';
+      var img = document.createElement('img');
+      img.src = e.target.result;
+      img.style.cssText = 'width:72px;height:56px;object-fit:cover;border-radius:8px;border:1px solid var(--border2)';
+      wrap.appendChild(img);
+      prev.appendChild(wrap);
+    };
+    reader.readAsDataURL(file);
+  });
+  input.value = '';
+}
+
+function guardarEdicionCompletaNovedad() {
+  var id = document.getElementById('ena-id').value;
+  if (!id) return;
+  var asunto = document.getElementById('ena-asunto').value.trim();
+  var detalle = document.getElementById('ena-detalle').value.trim();
+  if (!asunto) { toast('El asunto es obligatorio', 'err'); return; }
+  if (!detalle) { toast('El detalle es obligatorio', 'err'); return; }
+  setLoading('btn-save-ena', true);
+
+  // Subir fotos nuevas primero
+  var fotoPromise = ENA_FOTOS_NUEVAS.length
+    ? Promise.all(ENA_FOTOS_NUEVAS.map(function(f) {
+        return uploadToR2Comprimido(f, 'novedades').catch(function() { return null; });
+      })).then(function(urls) { return urls.filter(Boolean); })
+    : Promise.resolve([]);
+
+  fotoPromise.then(function(nuevasUrls) {
+    var fotosFinales = ENA_FOTOS_ACTUALES.concat(nuevasUrls);
+    var payload = {
+      asunto: asunto,
+      tipo: document.getElementById('ena-tipo').value || 'Otro',
+      relevancia: document.getElementById('ena-relev').value || 'Normal',
+      ubicacion: document.getElementById('ena-ubicacion').value.trim() || null,
+      detalle: detalle,
+      texto_informe: document.getElementById('ena-texto-informe').value.trim() || null,
+      observaciones: document.getElementById('ena-observaciones').value.trim() || null,
+      pendiente: document.getElementById('ena-pendiente').checked,
+      fotos: fotosFinales,
+      updated_at: new Date().toISOString()
+    };
+    db.from('novedades').update(payload).eq('id', id).then(function(r) {
+      setLoading('btn-save-ena', false);
+      if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+      ENA_FOTOS_NUEVAS = [];
+      closeOv('ov-edit-nov-admin');
+      toast('✅ Novedad actualizada correctamente');
+      loadNovedades();
+      loadDash();
+    });
+  });
+}
+
 function renderNovedadesAgrupadas(list) {
   if (!list.length) {
     document.getElementById('nov-list').innerHTML = '<div class="empty"><p>Sin novedades registradas</p></div>';
@@ -5466,7 +5593,13 @@ function renderNovCard(n) {
   }
 
   // Boton actualizar novedad
-  h += '<div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px;display:flex;gap:8px">';
+  h += '<div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px;display:flex;gap:8px;flex-wrap:wrap">';
+  // Botón editar completa — SOLO Administrador del sistema
+  if (USER && USER.rol === 'ADMIN') {
+    h += '<button onclick="event.stopPropagation();abrirEdicionCompletaNovedad(\'' + n.id + '\')" '
+      + 'style="padding:9px 14px;background:rgba(251,146,60,.1);border:1px solid rgba(251,146,60,.35);border-radius:8px;color:#fdba74;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);white-space:nowrap">'
+      + '✏️ Editar completa</button>';
+  }
   h += '<button onclick="abrirActualizarNovedad(\'' + n.id + '\')" ';
   h += 'style="flex:1;padding:9px;background:rgba(37,99,235,0.12);border:1px solid rgba(37,99,235,0.3);border-radius:8px;color:var(--accent3);font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font)">';
   h += '+ Agregar actualización al seguimiento</button>';
@@ -20410,6 +20543,65 @@ function guardarRelevamiento() {
 
 </script>
 >
+
+<!-- MODAL EDICIÓN COMPLETA NOVEDAD (solo Administrador del sistema) -->
+<div class="overlay" id="ov-edit-nov-admin">
+  <div class="modal">
+    <div class="modal-head"><span class="modal-title">✏️ Editar Novedad</span><button class="btn-close" onclick="closeOv('ov-edit-nov-admin')">×</button></div>
+    <input type="hidden" id="ena-id">
+
+    <div class="form-group"><label class="form-label">Tipo / Asunto *</label>
+      <input class="form-input" id="ena-asunto" placeholder="Asunto de la novedad"/>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="form-group" style="margin-bottom:0"><label class="form-label">Tipo</label>
+        <select class="form-select" id="ena-tipo">
+          <option>Construcción indebida</option><option>Intrusión / Intento de intrusión</option>
+          <option>Control</option><option>Daños</option><option>Demolición</option>
+          <option>Poda / Corte de pasto</option><option>Acompañamiento</option>
+          <option>Atención al público</option><option>Otro</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin-bottom:0"><label class="form-label">Relevancia</label>
+        <select class="form-select" id="ena-relev">
+          <option>Normal</option><option>Alta</option><option>Urgente</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">Puesto / Ubicación</label>
+      <input class="form-input" id="ena-ubicacion" placeholder="Ej: Base Castañares, Manzana 4..."/>
+    </div>
+    <div class="form-group"><label class="form-label">Detalle *</label>
+      <textarea class="form-textarea" id="ena-detalle" style="min-height:90px" placeholder="Descripción completa de la novedad..."></textarea>
+    </div>
+    <div class="form-group"><label class="form-label">Texto para informe (opcional)</label>
+      <textarea class="form-textarea" id="ena-texto-informe" style="min-height:70px" placeholder="Texto que aparece en el informe diario..."></textarea>
+    </div>
+    <div class="form-group"><label class="form-label">Observaciones (opcional)</label>
+      <input class="form-input" id="ena-observaciones" placeholder="Observaciones adicionales..."/>
+    </div>
+    <div class="form-group">
+      <label class="form-check"><input type="checkbox" id="ena-pendiente"> Marcar caso como abierto/pendiente</label>
+    </div>
+
+    <!-- Fotos existentes -->
+    <div class="form-group">
+      <label class="form-label">Fotos actuales</label>
+      <div id="ena-fotos-actuales" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px"></div>
+      <div id="ena-sin-fotos" style="font-size:12px;color:var(--text3);display:none">Sin fotos cargadas</div>
+    </div>
+
+    <!-- Agregar fotos nuevas -->
+    <div class="form-group">
+      <label class="form-label">Agregar fotos nuevas (hasta 4)</label>
+      <div id="ena-fotos-nuevas-preview" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px"></div>
+      <input type="file" id="ena-foto-input" accept="image/*" multiple style="display:none" onchange="onFotoEditNovSelected(this)">
+      <button type="button" onclick="document.getElementById('ena-foto-input').click()" style="font-size:12px;padding:8px 14px;border-radius:8px;border:1px dashed rgba(167,139,250,.4);background:rgba(167,139,250,.05);color:#a78bfa;font-family:var(--font);cursor:pointer">📷 Seleccionar fotos</button>
+    </div>
+
+    <button class="btn-login" id="btn-save-ena" onclick="guardarEdicionCompletaNovedad()">✓ Guardar cambios</button>
+  </div>
+</div>
 
 <!-- MODAL RELEVAMIENTO DE PUESTO -->
 <div class="overlay" id="ov-relevamiento">
