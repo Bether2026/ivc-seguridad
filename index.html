@@ -16531,7 +16531,7 @@ var LLAVES_DATA = {
 };
 // Tablero Base Castañares — vacío para completar desde la app
 var LLAVES_DATA_BC = {};
-for (var _bcN = 1; _bcN <= 92; _bcN++) { LLAVES_DATA_BC[_bcN] = ''; }
+for (var _bcN = 94; _bcN <= 186; _bcN++) { LLAVES_DATA_BC[_bcN] = ''; }
 
 var LLAVES_SEDE_ACTUAL = 'obrador'; // 'obrador' | 'castanares'
 
@@ -16576,7 +16576,7 @@ function loadLlaves() {
   var totalConNombre = 0;
   for (var nn = 1; nn <= 92; nn++) { if (data[nn] && data[nn].trim() !== '') totalConNombre++; }
   // Para Base Castañares mostramos todos los 92 slots aunque estén vacíos
-  if (LLAVES_SEDE_ACTUAL === 'castanares') totalConNombre = 92;
+  if (LLAVES_SEDE_ACTUAL === 'castanares') totalConNombre = 93;
   document.getElementById('llaves-total').textContent = totalConNombre;
   renderTablero({});
   var tableroFiltro = LLAVES_SEDE_ACTUAL === 'castanares' ? 'castanares' : 'obrador';
@@ -16612,7 +16612,10 @@ function renderTablero(byNum) {
   var data = getLlavesDataActual();
   var esBC = LLAVES_SEDE_ACTUAL === 'castanares';
   var html = '';
-  for (var n = 1; n <= 92; n++) {
+  var _dks = Object.keys(data).map(Number).sort(function(a,b){return a-b;});
+  var _nMin = _dks.length ? _dks[0] : 1;
+  var _nMax = _dks.length ? _dks[_dks.length-1] : 92;
+  for (var n = _nMin; n <= _nMax; n++) {
     var llave = byNum[n];
     var objetivo = data[n] || '';
     // Para Obrador Savio: solo mostrar las que tienen nombre. Para BC: mostrar todos los 92 slots
@@ -16683,7 +16686,10 @@ function filtrarLlaves() {
   var data = getLlavesDataActual();
   var esBC = LLAVES_SEDE_ACTUAL === 'castanares';
   var rows = [];
-  for (var n = 1; n <= 92; n++) {
+  var _dks2 = Object.keys(data).map(Number).sort(function(a,b){return a-b;});
+  var _nMin2 = _dks2.length ? _dks2[0] : 1;
+  var _nMax2 = _dks2.length ? _dks2[_dks2.length-1] : 92;
+  for (var n = _nMin2; n <= _nMax2; n++) {
     var llave = byNum[n];
     var obj = data[n] || '';
     if (!esBC && !obj) continue; // Obrador: solo slots con nombre
