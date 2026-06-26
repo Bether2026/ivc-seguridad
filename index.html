@@ -5463,10 +5463,8 @@ function guardarEdicionCompletaNovedad() {
       ubicacion: document.getElementById('ena-ubicacion').value.trim() || null,
       detalle: detalle,
       texto_informe: document.getElementById('ena-texto-informe').value.trim() || null,
-      observaciones: document.getElementById('ena-observaciones').value.trim() || null,
       pendiente: document.getElementById('ena-pendiente').checked,
-      fotos: fotosFinales,
-      updated_at: new Date().toISOString()
+      fotos: fotosFinales
     };
     db.from('novedades').update(payload).eq('id', id).then(function(r) {
       setLoading('btn-save-ena', false);
@@ -20577,9 +20575,6 @@ function guardarRelevamiento() {
     <div class="form-group"><label class="form-label">Texto para informe (opcional)</label>
       <textarea class="form-textarea" id="ena-texto-informe" style="min-height:70px" placeholder="Texto que aparece en el informe diario..."></textarea>
     </div>
-    <div class="form-group"><label class="form-label">Observaciones (opcional)</label>
-      <input class="form-input" id="ena-observaciones" placeholder="Observaciones adicionales..."/>
-    </div>
     <div class="form-group">
       <label class="form-check"><input type="checkbox" id="ena-pendiente"> Marcar caso como abierto/pendiente</label>
     </div>
@@ -20681,3 +20676,4 @@ function guardarRelevamiento() {
 
 </body>
 </html>
+         
