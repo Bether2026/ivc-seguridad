@@ -2490,19 +2490,26 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
 
       <!-- Preview editable -->
       <div id="inf-preview-container" style="display:none">
-        <div style="background:var(--bg2);border:1px solid rgba(16,185,129,.3);border-radius:12px;padding:14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
-          <div>
-            <div style="font-size:13px;font-weight:700;color:var(--green)">✓ Preview listo — editálo directamente</div>
-            <div style="font-size:11px;color:var(--text3);margin-top:3px">Hacé clic en cualquier texto para editarlo. Botón × para eliminar una fila. Cuando esté listo, descargá.</div>
+        <div style="background:var(--bg2);border:1px solid rgba(16,185,129,.3);border-radius:12px;padding:14px;margin-bottom:12px">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:10px">
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--green)">✓ Preview listo — editálo directamente</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:3px">Hacé clic en cualquier texto para editarlo. Botón × para eliminar una fila.</div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button onclick="guardarBorradorInforme()" id="btn-guardar-borrador" style="padding:8px 14px;border-radius:10px;border:1px solid rgba(96,165,250,.35);background:rgba(96,165,250,.1);color:#93c5fd;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">💾 Guardar</button>
+              <button onclick="descargarInformeFinal()" style="padding:8px 18px;border-radius:10px;border:1px solid rgba(16,185,129,.35);background:rgba(16,185,129,.15);color:#6ee7b7;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">⬇ Descargar</button>
+            </div>
           </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button onclick="guardarBorradorInforme()" style="padding:8px 14px;border-radius:10px;border:1px solid rgba(96,165,250,.35);background:rgba(96,165,250,.1);color:#93c5fd;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">💾 Guardar borrador</button>
-            <button onclick="descargarInformeFinal()" style="padding:8px 18px;border-radius:10px;border:1px solid rgba(16,185,129,.35);background:rgba(16,185,129,.15);color:#6ee7b7;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">⬇ Descargar final</button>
+          <!-- Herramientas de edición -->
+          <div style="display:flex;gap:8px;flex-wrap:wrap;padding-top:10px;border-top:1px solid var(--border2)">
+            <button class="btn-sm" onclick="agregarFilaVaciaInforme()" style="background:rgba(167,139,250,.08);border-color:rgba(167,139,250,.3);color:#c4b5fd">➕ Agregar novedad</button>
+            <button class="btn-sm" onclick="agregarFotoExtraInforme()" style="background:rgba(251,146,60,.08);border-color:rgba(251,146,60,.3);color:#fdba74">📷 Agregar foto</button>
+            <button class="btn-sm" onclick="document.querySelectorAll('.foto-incluir-chk').forEach(function(c){c.checked=false})" style="background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.3);color:#fca5a5">🚫 Quitar fotos</button>
+            <button class="btn-sm" onclick="document.querySelectorAll('.foto-incluir-chk').forEach(function(c){c.checked=true})" style="background:rgba(16,185,129,.08);border-color:rgba(16,185,129,.3);color:#6ee7b7">✓ Incluir fotos</button>
+            <span id="inf-autosave-label" style="font-size:10px;color:var(--text3);align-self:center;margin-left:auto"></span>
           </div>
-        </div>
-        <div style="display:flex;gap:8px;margin-bottom:10px">
-          <button class="btn-sm" onclick="document.querySelectorAll('.foto-incluir-chk').forEach(function(c){c.checked=false})" style="background:rgba(239,68,68,.08);border-color:rgba(239,68,68,.3);color:#fca5a5">🚫 Quitar todas las fotos</button>
-          <button class="btn-sm" onclick="document.querySelectorAll('.foto-incluir-chk').forEach(function(c){c.checked=true})" style="background:rgba(16,185,129,.08);border-color:rgba(16,185,129,.3);color:#6ee7b7">✓ Incluir todas las fotos</button>
+          <input type="file" id="inf-foto-extra-input" accept="image/*" style="display:none" onchange="onFotoExtraInformeSelected(this)">
         </div>
         <div id="inf-preview-frame" style="border:1px solid var(--border2);border-radius:10px;overflow:hidden;background:#fff;min-height:300px"></div>
       </div>
@@ -9340,6 +9347,7 @@ function generarPreviewInforme() {
       var html = construirHTMLEditablePreview(porPuesto, todos, fotosMap, fechaDisplay, diaNom, autor);
       if (frame) frame.innerHTML = html;
       if (container) container.style.display = 'block';
+      iniciarAutoSaveInforme();
       toast('\u2713 ' + todos.length + ' informes encontrados — edit\xE1 y descarg\xE1');
     });
   }).catch(function(e) {
@@ -19976,24 +19984,124 @@ function _renderHistorialFichajes() {
 // Tabla Supabase: informes_borrador (id, autor, desde, hasta, hora_desde, hora_hasta, html_preview, updated_at)
 // Un solo borrador por autor — se sobreescribe cada vez que guardas
 
-function guardarBorradorInforme() {
+var INF_AUTOSAVE_TIMER = null;
+var INF_AUTOSAVE_OBSERVER = null;
+
+function iniciarAutoSaveInforme() {
+  // Parar observer anterior si existía
+  if (INF_AUTOSAVE_OBSERVER) { INF_AUTOSAVE_OBSERVER.disconnect(); INF_AUTOSAVE_OBSERVER = null; }
   var frame = document.getElementById('inf-preview-frame');
-  if (!frame || !frame.innerHTML.trim()) { toast('No hay preview para guardar', 'err'); return; }
+  if (!frame) return;
+  INF_AUTOSAVE_OBSERVER = new MutationObserver(function() {
+    clearTimeout(INF_AUTOSAVE_TIMER);
+    var lbl = document.getElementById('inf-autosave-label');
+    if (lbl) lbl.textContent = '...guardando';
+    INF_AUTOSAVE_TIMER = setTimeout(function() {
+      guardarBorradorInforme(true); // true = silencioso
+    }, 2500);
+  });
+  INF_AUTOSAVE_OBSERVER.observe(frame, { childList: true, subtree: true, characterData: true });
+}
+
+function agregarFilaVaciaInforme() {
+  var frame = document.getElementById('inf-preview-frame');
+  if (!frame) return;
+  // Buscar el último .novedad o el footer para insertar antes
+  var footer = frame.querySelector('.footer');
+  var AZUL = '#1e3a5f';
+  var filaHTML = '<div class="novedad" style="position:relative">'
+    + '<button class="btn-del-row" onclick="eliminarFilaInforme(this)" title="Eliminar fila">&times;</button>'
+    + '<div class="col1"><div class="c1-tipo" contenteditable="true" style="color:' + AZUL + ';font-weight:900">Nueva novedad</div>'
+    + '<div class="c1-meta" contenteditable="true"><strong>—</strong></div></div>'
+    + '<div class="col2"><div class="nov-txt" contenteditable="true" style="white-space:pre-wrap">Escribí el detalle acá...</div>'
+    + '<div class="fotos-wrap" id="inf-extra-fotos-' + Date.now() + '"></div></div>'
+    + '<div class="col3"><p class="obs-txt" contenteditable="true" data-placeholder="Observación..."></p></div>'
+    + '</div>';
+  var tmp = document.createElement('div');
+  tmp.innerHTML = filaHTML;
+  var fila = tmp.firstChild;
+  if (footer && footer.parentNode) {
+    footer.parentNode.insertBefore(fila, footer);
+  } else {
+    frame.appendChild(fila);
+  }
+  // Enfocar el campo de texto
+  var campo = fila.querySelector('.nov-txt');
+  if (campo) { campo.focus(); campo.select ? campo.select() : document.execCommand('selectAll'); }
+  actualizarContadoresInforme(frame);
+  toast('Fila agregada — editá el contenido directamente');
+}
+
+function agregarFotoExtraInforme() {
+  var input = document.getElementById('inf-foto-extra-input');
+  if (input) input.click();
+}
+
+function onFotoExtraInformeSelected(input) {
+  var files = Array.prototype.slice.call(input.files);
+  if (!files.length) return;
+  var frame = document.getElementById('inf-preview-frame');
+  if (!frame) return;
+  // Buscar la última novedad para insertar la foto ahí
+  var novedades = frame.querySelectorAll('.novedad');
+  var targetNov = novedades.length ? novedades[novedades.length - 1] : null;
+  // Buscar o crear el contenedor de fotos extra
+  var fotosWrap = targetNov ? targetNov.querySelector('.fotos-wrap') : null;
+  if (!fotosWrap) {
+    // Crear en la última novedad
+    var col2 = targetNov ? targetNov.querySelector('.col2') : null;
+    if (col2) {
+      fotosWrap = document.createElement('div');
+      fotosWrap.className = 'fotos-wrap';
+      fotosWrap.innerHTML = '<div class="fotos-lbl">Fotos</div><div class="fotos-grid"></div>';
+      col2.appendChild(fotosWrap);
+    }
+  }
+  var fotosGrid = fotosWrap ? fotosWrap.querySelector('.fotos-grid') : null;
+  if (!fotosGrid && fotosWrap) { fotosGrid = fotosWrap; }
+
+  toast('Subiendo foto(s)...');
+  var promesas = files.map(function(f) { return uploadToR2Comprimido(f, 'informes'); });
+  Promise.all(promesas).then(function(urls) {
+    urls.forEach(function(url) {
+      if (!url) return;
+      if (fotosGrid) {
+        var img = document.createElement('img');
+        img.src = url;
+        img.className = 'foto-t';
+        img.style.cursor = 'pointer';
+        img.onclick = function() { window.open(url, '_blank'); };
+        fotosGrid.appendChild(img);
+      } else {
+        // Si no hay novedad, agregar al final del frame como bloque de fotos
+        var div = document.createElement('div');
+        div.style.cssText = 'padding:10px 14px;border-top:1px solid #dde3ef';
+        div.innerHTML = '<div class="fotos-lbl" style="font-size:7.5pt;font-weight:700;color:#1e3a5f;text-transform:uppercase;letter-spacing:.1em;margin-bottom:7px">Fotos adicionales</div>';
+        var imgEl = document.createElement('img');
+        imgEl.src = url; imgEl.className = 'foto-t';
+        div.appendChild(imgEl);
+        frame.appendChild(div);
+      }
+    });
+    toast('✅ Foto(s) agregada(s) al informe');
+    input.value = '';
+  }).catch(function() { toast('Error al subir foto', 'err'); input.value = ''; });
+}
+
+function guardarBorradorInforme(silencioso) {
+  var frame = document.getElementById('inf-preview-frame');
+  if (!frame || !frame.innerHTML.trim()) { if (!silencioso) toast('No hay preview para guardar', 'err'); return; }
   var autor = (document.getElementById('inf-autor') || {}).value || USER.puesto || 'admin';
   var desde = (document.getElementById('inf-fecha-desde') || {}).value || '';
   var hasta  = (document.getElementById('inf-fecha-hasta') || {}).value || '';
   var horaDesde = (document.getElementById('inf-hora-desde') || {}).value || '06:00';
   var horaHasta  = (document.getElementById('inf-hora-hasta') || {}).value || '06:00';
   var html = frame.innerHTML;
-  toast('Guardando borrador...', 'info');
-  // Buscar si ya existe un borrador de este autor para sobreescribir
+  if (!silencioso) toast('Guardando borrador...', 'info');
   db.from('informes_borrador').select('id').eq('autor', autor).maybeSingle().then(function(r) {
     var payload = {
-      autor: autor,
-      desde: desde,
-      hasta: hasta,
-      hora_desde: horaDesde,
-      hora_hasta: horaHasta,
+      autor: autor, desde: desde, hasta: hasta,
+      hora_desde: horaDesde, hora_hasta: horaHasta,
       html_preview: html,
       updated_at: new Date().toISOString()
     };
@@ -20004,8 +20112,11 @@ function guardarBorradorInforme() {
       op = db.from('informes_borrador').insert(payload);
     }
     op.then(function(res) {
-      if (res.error) { toast('Error al guardar: ' + res.error.message, 'err'); return; }
-      toast('\uD83D\uDCBE Borrador guardado correctamente');
+      if (res.error) { if (!silencioso) toast('Error al guardar: ' + res.error.message, 'err'); return; }
+      var lbl = document.getElementById('inf-autosave-label');
+      var ahora = new Date().toLocaleTimeString('es-AR', {hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'America/Argentina/Buenos_Aires'});
+      if (lbl) lbl.textContent = 'Guardado ' + ahora;
+      if (!silencioso) toast('\uD83D\uDCBE Borrador guardado correctamente');
     });
   });
 }
@@ -20027,7 +20138,8 @@ function cargarBorradorInforme() {
     if (frame && b.html_preview) {
       frame.innerHTML = b.html_preview;
       if (container) container.style.display = 'block';
-      var ts = b.updated_at ? new Date(b.updated_at).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires' }) : '';
+      iniciarAutoSaveInforme();
+      var ts = b.updated_at ? new Date(b.updated_at).toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', hour12: false }) : '';
       toast('\uD83D\uDCC2 Borrador restaurado' + (ts ? ' (' + ts + ')' : ''));
     }
   });
