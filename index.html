@@ -1904,6 +1904,15 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
         <h2><span style="background:linear-gradient(135deg,#3b82f6,#6366f1);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-right:10px">⊞</span>Panel General</h2>
         <p id="dash-fecha">—</p>
       </div>
+      <!-- BANNER RESPONSABLES DE TURNO ACTIVOS -->
+      <div id="banner-resp-turno" style="display:none;margin-bottom:10px;background:linear-gradient(135deg,rgba(52,211,153,.08) 0%,rgba(16,185,129,.05) 100%);border:1px solid rgba(52,211,153,.3);border-left:3px solid #34d399;border-radius:14px;padding:12px 14px;box-shadow:0 2px 12px rgba(52,211,153,.1)">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+          <div style="width:26px;height:26px;border-radius:8px;background:linear-gradient(135deg,#34d399,#10b981);display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 2px 8px rgba(52,211,153,.35)">👤</div>
+          <span style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;color:#34d399">Responsable de turno activo</span>
+        </div>
+        <div id="banner-resp-turno-lista" style="display:flex;flex-wrap:wrap;gap:8px"></div>
+      </div>
+
       <div style="margin-bottom:10px;background:linear-gradient(145deg,rgba(251,113,133,0.08) 0%,rgba(99,102,241,0.08) 50%,rgba(59,130,246,0.06) 100%);border:1px solid rgba(251,113,133,0.25);border-left:3px solid #f472b6;border-radius:16px;padding:14px 16px;box-shadow:0 4px 24px rgba(244,114,182,0.1),0 1px 0 rgba(255,255,255,0.05) inset">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
           <div style="display:flex;align-items:center;gap:8px">
@@ -11033,6 +11042,32 @@ function _loadAll() {
   }));
   return _loadAll.apply(this, arguments);
 }
+function loadBannerRespTurno() {
+  db.from('fichajes').select('agente,puesto').eq('activo', true).eq('puesto', 'Responsable de turno').then(function(res) {
+    var banner = document.getElementById('banner-resp-turno');
+    var lista = document.getElementById('banner-resp-turno-lista');
+    if (!banner || !lista) return;
+    var responsables = (res.data || []);
+    if (!responsables.length) {
+      banner.style.display = 'none';
+      return;
+    }
+    banner.style.display = 'block';
+    // Cambiar icono y título si hay más de uno
+    var tituloEl = banner.querySelector('span');
+    if (tituloEl) tituloEl.textContent = responsables.length > 1 ? 'Responsables de turno activos' : 'Responsable de turno activo';
+    lista.innerHTML = '';
+    for (var i = 0; i < responsables.length; i++) {
+      var nombre = responsables[i].agente || 'Responsable de turno';
+      var chip = document.createElement('div');
+      chip.style.cssText = 'display:inline-flex;align-items:center;gap:6px;background:rgba(52,211,153,.12);border:1px solid rgba(52,211,153,.3);border-radius:20px;padding:5px 12px';
+      chip.innerHTML = '<div style="width:7px;height:7px;border-radius:50%;background:#34d399;box-shadow:0 0 6px rgba(52,211,153,.8);flex-shrink:0"></div>'
+        + '<span style="font-size:13px;font-weight:700;color:#e2e8f0">' + nombre + '</span>';
+      lista.appendChild(chip);
+    }
+  });
+}
+
 function loadDash() {
   return _loadDash.apply(this, arguments);
 }
@@ -11044,6 +11079,7 @@ function _loadDash() {
         case 0:
           f = filtro();
           hoyIso = fechaHoyAR();
+          loadBannerRespTurno();
           hoyInicio = hoyIso + 'T03:00:00.000Z'; // Medianoche en Argentina = 03:00 UTC
           // Fin del día Argentina (23:59:59) = 02:59:59 UTC del día siguiente
           // CORRECCIÓN: T26:59:59 era una hora inválida — ningún parser la acepta
