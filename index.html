@@ -5225,6 +5225,7 @@ function guardarActualizacionNovedad() {
   return _guardarActualizacionNovedad.apply(this, arguments);
 } // ─── AUTO-REFRESH EN TIEMPO REAL ───
 function _guardarActualizacionNovedad() {
+  if (typeof IVC_OFFLINE !== 'undefined' && IVC_OFFLINE) { ivcCheckOnlineParaEscritura('Guardar actualizacion'); return; }
   _guardarActualizacionNovedad = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee14() {
     var id, texto, autor, res, acts, now, nuevaAct, fotoInput, fileOrig, urlSubida, saveRes;
     return _regenerator().w(function (_context14) {
@@ -11420,6 +11421,7 @@ function _loadDash() {
             phtml += '</div>';
           }
           document.getElementById('d-puestos').innerHTML = phtml;
+          ivcCacheGuardar('dash', phtml);
 
           // ── Últimas novedades del día — expandibles inline ──
           dUlt = document.getElementById('d-ultimas');
@@ -11536,6 +11538,7 @@ function _loadFichajes() {
             break;
           }
           console.error('loadFichajes error:', fichErr);
+          if (typeof ivcEsErrorDeRed === 'function' && ivcEsErrorDeRed(fichErr)) { ivcEntrarOffline(); ivcCacheRestaurar('fichajes', 'f-list'); } else { var _elF = document.getElementById('f-list'); if (_elF) _elF.innerHTML = '<div class="empty"><p>Error al cargar</p></div>'; }
           return _context32.a(2);
         case 2:
           list = rows || [];
@@ -11572,6 +11575,7 @@ function _loadFichajes() {
                 });
               });
               document.getElementById('f-list').innerHTML = fhtml;
+              ivcCacheGuardar('fichajes', fhtml);
             } else {
               // Vista simple (puesto individual) — orden cronologico ascendente
               list.sort(function(a,b) { return new Date(a.entrada) - new Date(b.entrada); });
@@ -11580,6 +11584,7 @@ function _loadFichajes() {
                 fhtml += _renderFichajeRow(fr, canSeeGeo);
               }
               document.getElementById('f-list').innerHTML = fhtml;
+              ivcCacheGuardar('fichajes', fhtml);
             }
           }
           if (SEL_AGENT) selAgent(SEL_AGENT);
@@ -11808,6 +11813,7 @@ function _doEntrada() {
     return _regenerator().w(function (_context35) {
       while (1) switch (_context35.n) {
         case 0:
+          if (typeof IVC_OFFLINE !== 'undefined' && IVC_OFFLINE) { ivcCheckOnlineParaEscritura('Fichar entrada'); return _context35.a(2); }
           if (SEL_AGENT) {
             _context35.n = 1;
             break;
@@ -12021,7 +12027,7 @@ function _loadNovedades() {
             _context38.n = 2;
             break;
           }
-          document.getElementById('nov-list').innerHTML = '<div class="empty"><p>Error: ' + res.error.message + '</p></div>';
+          if (typeof ivcEsErrorDeRed === 'function' && ivcEsErrorDeRed(res.error)) { ivcEntrarOffline(); ivcCacheRestaurar('novedades', 'nov-list'); } else { document.getElementById('nov-list').innerHTML = '<div class="empty"><p>Error: ' + res.error.message + '</p></div>'; }
           return _context38.a(2);
         case 2:
           list = res.data || [];
@@ -12133,6 +12139,8 @@ function _saveNov() {
     return _regenerator().w(function (_context39) {
       while (1) switch (_context39.n) {
         case 0:
+          // Check conexion antes de guardar
+          if (typeof IVC_OFFLINE !== 'undefined' && IVC_OFFLINE) { ivcCheckOnlineParaEscritura('Guardar novedad'); return _context39.a(2); }
           // Validar campos obligatorios
           var tipoVal = $('n-tipo') ? $('n-tipo').value : '';
           var ubVal   = $('n-ubicacion') ? $('n-ubicacion').value.trim() : '';
@@ -12705,6 +12713,7 @@ function _loadObjetivos() {
             break;
           }
           console.error('loadObjetivos error:', objErr);
+          if (typeof ivcEsErrorDeRed === 'function' && ivcEsErrorDeRed(objErr)) { ivcEntrarOffline(); ivcCacheRestaurar('objetivos', 'obj-list'); } else { var _elO = document.getElementById('obj-list'); if (_elO) _elO.innerHTML = '<div class="empty"><p>Error al cargar</p></div>'; }
           return _context40.a(2);
         case 2:
           list = rows || [];
@@ -12907,6 +12916,7 @@ function _loadObjetivos() {
             }
           }
           document.getElementById('obj-list').innerHTML = ohtml;
+          ivcCacheGuardar('objetivos', ohtml);
         case 4:
           return _context40.a(2);
       }
@@ -18100,6 +18110,7 @@ function renderNovedadesList(list) {
     return '<div class="nov-item ' + '' + '">' + '<div class="nov-badges"><span class="badge ' + bc + '">' + (n.tipo || 'Otro') + '</span>' + pendBadge + urgBadge + altaBadge + '</div>' + '<div class="nov-title">' + (n.asunto || 'Sin titulo') + '</div>' + '<div class="nov-text">' + (n.detalle || '') + '</div>' + '<div class="nov-meta">' + '<span>📍 ' + (n.ubicacion || n.puesto) + '</span>' + '<span>' + formatTs(n.created_at) + ' · ' + n.puesto + '</span>' + cargBadge + casoBadge + '</div>' + fotosHtml + '</div>';
   }).join('');
   document.getElementById('nov-list').innerHTML = html;
+  ivcCacheGuardar('novedades', html);
 }
 
 // ── Overlay lectura comunicación urgente ──
@@ -20700,6 +20711,182 @@ function guardarRelevamiento() {
     <button class="btn-login" id="btn-save-relev" onclick="guardarRelevamiento()">✓ Guardar Relevamiento</button>
   </div>
 </div>
+
+<script>
+// ══ SISTEMA OFFLINE — cache + banner + reintentos ══════════════════════════
+// Estrategia: guardar en localStorage el ultimo HTML renderizado de cada
+// seccion. Si la red falla, mostrar ese cache en vez de guiones/errores.
+// Cuando vuelve la conexion, recarga automaticamente.
+
+var IVC_OFFLINE = false;
+var IVC_RECONECT_TIMER = null;
+var IVC_CACHE_KEYS = {
+  dash:      'ivc_cache_dash',
+  fichajes:  'ivc_cache_fichajes',
+  novedades: 'ivc_cache_novedades',
+  objetivos: 'ivc_cache_objetivos'
+};
+
+// ── Banner de sin conexion ─────────────────────────────────────────────────
+function mostrarBannerOffline() {
+  if (document.getElementById('ivc-offline-banner')) return;
+  var banner = document.createElement('div');
+  banner.id = 'ivc-offline-banner';
+  banner.style.cssText = [
+    'position:fixed',
+    'top:0',
+    'left:0',
+    'right:0',
+    'z-index:99999',
+    'background:#b45309',
+    'color:#fff',
+    'font-family:var(--font,sans-serif)',
+    'font-size:13px',
+    'font-weight:700',
+    'text-align:center',
+    'padding:10px 16px',
+    'display:flex',
+    'align-items:center',
+    'justify-content:center',
+    'gap:10px',
+    'box-shadow:0 2px 12px rgba(0,0,0,0.4)'
+  ].join(';');
+  banner.innerHTML = '<span style="font-size:16px">📵</span>'
+    + '<span>Sin conexion — mostrando datos guardados</span>'
+    + '<span id="ivc-offline-dot" style="width:8px;height:8px;border-radius:50%;background:#fbbf24;display:inline-block;animation:ivc-pulse 1.4s ease-in-out infinite"></span>';
+  document.body.appendChild(banner);
+  // Empujar contenido para que no tape el navbar
+  var app = document.getElementById('app');
+  if (app) app.style.paddingTop = '40px';
+}
+
+function ocultarBannerOffline() {
+  var banner = document.getElementById('ivc-offline-banner');
+  if (banner) banner.remove();
+  var app = document.getElementById('app');
+  if (app) app.style.paddingTop = '';
+}
+
+// ── Guardar cache de una seccion ───────────────────────────────────────────
+function ivcCacheGuardar(seccion, html) {
+  if (!html || html.indexOf('Cargando') >= 0) return; // no cachear estado de loading
+  try {
+    localStorage.setItem(IVC_CACHE_KEYS[seccion], html);
+    localStorage.setItem(IVC_CACHE_KEYS[seccion] + '_ts', Date.now().toString());
+  } catch(e) {}
+}
+
+// ── Restaurar cache de una seccion ─────────────────────────────────────────
+function ivcCacheRestaurar(seccion, elementId) {
+  try {
+    var html = localStorage.getItem(IVC_CACHE_KEYS[seccion]);
+    var ts   = localStorage.getItem(IVC_CACHE_KEYS[seccion] + '_ts');
+    if (!html) return false;
+    var el = document.getElementById(elementId);
+    if (!el) return false;
+    // Calcular hace cuanto fue el cache
+    var hace = ts ? Math.round((Date.now() - parseInt(ts)) / 60000) : null;
+    var nota = '<div style="background:rgba(180,83,9,0.15);border:1px solid rgba(180,83,9,0.3);border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:11px;color:#fbbf24;text-align:center">'
+      + '📋 Datos sin conexion' + (hace !== null ? ' · hace ' + hace + ' min' : '') + '</div>';
+    el.innerHTML = nota + html;
+    return true;
+  } catch(e) { return false; }
+}
+
+// ── Entrar en modo offline ─────────────────────────────────────────────────
+function ivcEntrarOffline() {
+  if (IVC_OFFLINE) return;
+  IVC_OFFLINE = true;
+  mostrarBannerOffline();
+  // Pausar polling y auto-refresh para no acumular errores
+  if (typeof stopAutoRefresh === 'function') stopAutoRefresh();
+  if (window.POLLING_TIMER) { clearInterval(window.POLLING_TIMER); window.POLLING_TIMER = null; }
+  // Arrancar chequeo de reconexion cada 10 segundos
+  if (IVC_RECONECT_TIMER) clearInterval(IVC_RECONECT_TIMER);
+  IVC_RECONECT_TIMER = setInterval(function() {
+    // Ping liviano a Supabase para detectar reconexion
+    fetch('https://cuwvmvmrmxprqozfnlva.supabase.co/rest/v1/', {
+      method: 'HEAD',
+      headers: { 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1d3Ztdm1ybXhwcnFvemZubHZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5OTUyODYsImV4cCI6MjA5MjU3MTI4Nn0.l-k8ev4zdQBVCyBaEfe7KHCkl5DtUJMsyWHIqBZiNtw' }
+    }).then(function() {
+      ivcVolverOnline();
+    }).catch(function() {});
+  }, 10000);
+}
+
+// ── Volver a modo online ───────────────────────────────────────────────────
+function ivcVolverOnline() {
+  if (!IVC_OFFLINE) return;
+  IVC_OFFLINE = false;
+  if (IVC_RECONECT_TIMER) { clearInterval(IVC_RECONECT_TIMER); IVC_RECONECT_TIMER = null; }
+  ocultarBannerOffline();
+  if (!USER) return;
+  // Reanudar sistemas
+  if (typeof startAutoRefresh === 'function') startAutoRefresh();
+  if (typeof iniciarPolling === 'function') iniciarPolling();
+  // Recargar seccion activa
+  toast('✅ Conexion restaurada — actualizando datos', 'ok');
+  if (typeof LAST_ACTIVE_SECTION !== 'undefined') {
+    var s = LAST_ACTIVE_SECTION;
+    if (s === 'dashboard'  && typeof loadDash       === 'function') { loadDash(); loadNoticias(); }
+    if (s === 'fichaje'    && typeof loadFichajes    === 'function') loadFichajes();
+    if (s === 'novedades'  && typeof loadNovedades   === 'function') loadNovedades();
+    if (s === 'objetivos'  && typeof loadObjetivos   === 'function') loadObjetivos();
+    if (s === 'choferes'   && typeof loadChoferes    === 'function') loadChoferes();
+  }
+}
+
+// ── Wrapper que intercepta errores de red en las funciones de carga ─────────
+// Se parchea sobre cada funcion de carga: si falla por red, muestra cache.
+function ivcWrapLoad(fn, seccion, elementId) {
+  return function() {
+    if (IVC_OFFLINE) {
+      ivcCacheRestaurar(seccion, elementId);
+      return;
+    }
+    var resultado = fn.apply(this, arguments);
+    if (resultado && typeof resultado.then === 'function') {
+      resultado.catch(function(err) {
+        console.warn('[IVC Offline] Error en ' + seccion + ':', err);
+        ivcEntrarOffline();
+        ivcCacheRestaurar(seccion, elementId);
+      });
+    }
+    return resultado;
+  };
+}
+
+// ── Bloquear acciones de escritura sin conexion ─────────────────────────────
+function ivcEsErrorDeRed(err) {
+  if (!err) return false;
+  var msg = (err.message || err.toString() || '').toLowerCase();
+  return msg.indexOf('fetch') >= 0
+    || msg.indexOf('network') >= 0
+    || msg.indexOf('failed') >= 0
+    || msg.indexOf('networkerror') >= 0
+    || msg.indexOf('load failed') >= 0
+    || msg.indexOf('err_internet') >= 0
+    || msg.indexOf('timeout') >= 0
+    || !navigator.onLine;
+}
+
+function ivcCheckOnlineParaEscritura(accion) {
+  if (!IVC_OFFLINE) return true;
+  toast('📵 Sin conexion — ' + (accion || 'Esta accion') + ' no esta disponible ahora', 'err');
+  return false;
+}
+
+// ── Eventos del navegador ──────────────────────────────────────────────────
+window.addEventListener('online',  function() { ivcVolverOnline(); });
+window.addEventListener('offline', function() { ivcEntrarOffline(); });
+
+// ── Animacion del punto del banner ────────────────────────────────────────
+(function() {
+  var style = document.createElement('style');
+  style.textContent = '@keyframes ivc-pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }';
+  document.head.appendChild(style);
+})();
+</script>
 
 </body>
 </html>
