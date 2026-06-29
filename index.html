@@ -6933,8 +6933,8 @@ function openOv(id) {
   if (id === 'ov-nov') {
     if ($('n-puesto-wrap'))   $('n-puesto-wrap').style.display  = esGestionPuesto ? 'block' : 'none';
     if ($('n-informe-wrap'))  $('n-informe-wrap').style.display = esAdm ? 'block' : 'none';
-    // Opción "Otro" solo para Administración y Administrador del sistema
-    var _puedeOtroPuesto = ['Administración', 'Administrador'].indexOf(USER ? USER.puesto : '') >= 0 || (USER && USER.rol === 'ADMIN');
+    // Opción "Otro" para Administración, Administrador y Responsable de turno
+    var _puedeOtroPuesto = ['Administración', 'Administrador', 'Responsable de turno'].indexOf(USER ? USER.puesto : '') >= 0 || (USER && USER.rol === 'ADMIN');
     var _optOtro = document.getElementById('n-puesto-otro-opt');
     var _txtOtro = document.getElementById('n-puesto-otro-txt');
     if (_optOtro) _optOtro.style.display = _puedeOtroPuesto ? '' : 'none';
