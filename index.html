@@ -5354,10 +5354,12 @@ function toggleNovedad(id, clickedEl) {
   if (!open) marcarNovedadLeida(id);
 }
 var ENA_FOTOS_NUEVAS = [];
+var ENA_OBJURLS = [];
 var ENA_FOTOS_ACTUALES = [];
 
 function abrirEdicionCompletaNovedad(id) {
   if (!USER || USER.rol !== 'ADMIN') { toast('Sin permiso', 'err'); return; }
+  for (var _ei = 0; _ei < ENA_OBJURLS.length; _ei++) { URL.revokeObjectURL(ENA_OBJURLS[_ei]); } ENA_OBJURLS = [];
   ENA_FOTOS_NUEVAS = [];
   ENA_FOTOS_ACTUALES = [];
   db.from('novedades').select('*').eq('id', id).single().then(function(res) {
@@ -5421,18 +5423,16 @@ function onFotoEditNovSelected(input) {
   files = files.slice(0, disponible);
   files.forEach(function(file) {
     ENA_FOTOS_NUEVAS.push(file);
-    var reader = new FileReader();
-    reader.onload = function(e) {
-      var prev = document.getElementById('ena-fotos-nuevas-preview');
-      var wrap = document.createElement('div');
-      wrap.style.cssText = 'position:relative;display:inline-block';
-      var img = document.createElement('img');
-      img.src = e.target.result;
-      img.style.cssText = 'width:72px;height:56px;object-fit:cover;border-radius:8px;border:1px solid var(--border2)';
-      wrap.appendChild(img);
-      prev.appendChild(wrap);
-    };
-    reader.readAsDataURL(file);
+    var objUrl = URL.createObjectURL(file);
+    ENA_OBJURLS.push(objUrl);
+    var prev = document.getElementById('ena-fotos-nuevas-preview');
+    var wrap = document.createElement('div');
+    wrap.style.cssText = 'position:relative;display:inline-block';
+    var img = document.createElement('img');
+    img.src = objUrl;
+    img.style.cssText = 'width:72px;height:56px;object-fit:cover;border-radius:8px;border:1px solid var(--border2)';
+    wrap.appendChild(img);
+    if (prev) prev.appendChild(wrap);
   });
   input.value = '';
 }
@@ -5468,6 +5468,7 @@ function guardarEdicionCompletaNovedad() {
     db.from('novedades').update(payload).eq('id', id).then(function(r) {
       setLoading('btn-save-ena', false);
       if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+      for (var _ei2 = 0; _ei2 < ENA_OBJURLS.length; _ei2++) { URL.revokeObjectURL(ENA_OBJURLS[_ei2]); } ENA_OBJURLS = [];
       ENA_FOTOS_NUEVAS = [];
       closeOv('ov-edit-nov-admin');
       toast('✅ Novedad actualizada correctamente');
@@ -7901,17 +7902,20 @@ function usarGaleriaInv(inputId) {
 function prevFotoItemInv(idx, input) {
   var prev = document.getElementById('inv-item-fprev-' + idx);
   if (!prev) return;
-  INV_FOTO_ITEMS[idx] = Array.from(input.files).slice(0, 3);
+  // Revocar ObjectURLs anteriores de este item antes de reemplazar
+  var viejas = prev.querySelectorAll('img');
+  for (var _vi = 0; _vi < viejas.length; _vi++) {
+    if (viejas[_vi].src && viejas[_vi].src.indexOf('blob:') === 0) {
+      URL.revokeObjectURL(viejas[_vi].src);
+    }
+  }
+  INV_FOTO_ITEMS[idx] = Array.prototype.slice.call(input.files).slice(0, 3);
   prev.innerHTML = '';
   INV_FOTO_ITEMS[idx].forEach(function(f) {
-    var reader = new FileReader();
-    reader.onload = function(e) {
-      var img = document.createElement('img');
-      img.src = e.target.result;
-      img.style.cssText = 'width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid var(--border2)';
-      prev.appendChild(img);
-    };
-    reader.readAsDataURL(f);
+    var img = document.createElement('img');
+    img.src = URL.createObjectURL(f);
+    img.style.cssText = 'width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid var(--border2)';
+    prev.appendChild(img);
   });
 }
 
@@ -8059,6 +8063,7 @@ function verDetalleInv(id) {
 var NP_PRIORIDAD = 'media';
 var NP_FOTO_FILE = null;
 var CTRL_FOTOS = [];
+var CTRL_OBJURLS = [];
 var CTRL_PUNTO_ID = null;
 var CTRL_ESTADO = '';
 var PEND_FILTER = 'todos';
@@ -8137,9 +8142,12 @@ function prevFotoNP(input) {
   var f = input.files[0]; if (!f) return;
   NP_FOTO_FILE = f;
   var prev = document.getElementById('np-foto-prev'); if (!prev) return;
-  var reader = new FileReader();
-  reader.onload = function(e) { prev.innerHTML = '<img src="' + e.target.result + '" style="width:100%;max-height:160px;object-fit:cover;border-radius:8px;border:1px solid var(--border2)">'; };
-  reader.readAsDataURL(f);
+  // Revocar URL anterior si existia
+  var oldImg = prev.querySelector('img');
+  if (oldImg && oldImg.src && oldImg.src.indexOf('blob:') === 0) {
+    URL.revokeObjectURL(oldImg.src);
+  }
+  prev.innerHTML = '<img src="' + URL.createObjectURL(f) + '" style="width:100%;max-height:160px;object-fit:cover;border-radius:8px;border:1px solid var(--border2)">';
 }
 
 function prevFotoCtrl(input) {
@@ -8158,20 +8166,25 @@ function quitarFotoCtrl(idx) {
 function _renderFotosCtrl() {
   var prev = document.getElementById('ctrl-foto-prev');
   if (!prev) return;
+  // Revocar ObjectURLs anteriores antes de re-renderizar
+  for (var _ri = 0; _ri < CTRL_OBJURLS.length; _ri++) {
+    URL.revokeObjectURL(CTRL_OBJURLS[_ri]);
+  }
+  CTRL_OBJURLS = [];
   prev.innerHTML = '';
   CTRL_FOTOS.forEach(function(f, idx) {
-    var reader = new FileReader();
+    var objUrl = URL.createObjectURL(f);
+    CTRL_OBJURLS.push(objUrl);
     var wrap = document.createElement('div');
     wrap.style.cssText = 'position:relative;width:72px;height:72px';
     var img = document.createElement('img');
+    img.src = objUrl;
     img.style.cssText = 'width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--green)';
     var btnX = document.createElement('button');
     btnX.type = 'button';
     btnX.textContent = '×';
     btnX.onclick = function() { quitarFotoCtrl(idx); };
     btnX.style.cssText = 'position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--red);color:#fff;border:none;font-size:13px;font-weight:700;cursor:pointer;line-height:1';
-    reader.onload = function(e) { img.src = e.target.result; };
-    reader.readAsDataURL(f);
     wrap.appendChild(img);
     wrap.appendChild(btnX);
     prev.appendChild(wrap);
@@ -8351,6 +8364,7 @@ function verPunto(id) {
 }
 
 function abrirRegistrarControl() {
+  for (var _ci = 0; _ci < CTRL_OBJURLS.length; _ci++) { URL.revokeObjectURL(CTRL_OBJURLS[_ci]); } CTRL_OBJURLS = [];
   CTRL_FOTOS = []; CTRL_ESTADO = '';
   var punto = _PEND_DATA.find(function(p) { return p.id === CTRL_PUNTO_ID; });
   var infoEl = document.getElementById('ctrl-punto-info');
@@ -8474,6 +8488,7 @@ function guardarControl() {
       }
 
       closeOv('ov-control');
+      for (var _ci2 = 0; _ci2 < CTRL_OBJURLS.length; _ci2++) { URL.revokeObjectURL(CTRL_OBJURLS[_ci2]); } CTRL_OBJURLS = [];
       CTRL_FOTOS = [];
       loadPendientes();
     });
@@ -13242,6 +13257,7 @@ function chofTab(tab, btn) {
 }
 // ── FOTOS DE RUTA ──
 var RUTA_FOTOS = { inicio: [], parada: [], fin: [] };
+var RUTA_OBJURLS = { inicio: [], parada: [], fin: [] };
 
 function agregarFotoRuta(tipo) {
   var max = 4;
@@ -13256,32 +13272,43 @@ function onFotoRutaSelected(input, tipo) {
   if (RUTA_FOTOS[tipo].length >= 4) { toast('Máximo 4 fotos'); return; }
   RUTA_FOTOS[tipo].push({ file: file, url: null });
   var idx = RUTA_FOTOS[tipo].length - 1;
-  var reader = new FileReader();
-  reader.onload = function(e) {
-    var previewId = tipo === 'inicio' ? 'c-fotos-preview' : tipo === 'parada' ? 'parada-fotos-preview' : 'fin-fotos-preview';
-    var prev = document.getElementById(previewId);
-    if (prev) {
-      var img = document.createElement('div');
-      img.style.cssText = 'position:relative;width:70px;height:60px;border-radius:8px;overflow:hidden;flex-shrink:0';
-      img.innerHTML = '<img src="' + e.target.result + '" style="width:100%;height:100%;object-fit:cover">' +
-        '<button onclick="quitarFotoRuta(\'' + tipo + '\',' + idx + ',this.parentElement)" style="position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;background:rgba(0,0,0,0.7);color:white;border:none;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center">×</button>';
-      prev.appendChild(img);
-    }
-    // Show next foto button if under 4
-    var btnId = tipo === 'inicio' ? 'btn-add-foto-ini' : tipo === 'parada' ? 'btn-add-foto-parada' : 'btn-add-foto-fin';
-    var btn = document.getElementById(btnId);
-    if (btn) btn.style.display = RUTA_FOTOS[tipo].length >= 4 ? 'none' : 'inline-flex';
-  };
-  reader.readAsDataURL(file);
+  // createObjectURL: referencia liviana al archivo, NO carga base64 en RAM.
+  // readAsDataURL cargaba el archivo entero como string base64 causando OOM en dispositivos con poca RAM.
+  var objUrl = URL.createObjectURL(file);
+  RUTA_OBJURLS[tipo].push(objUrl);
+  var previewId = tipo === 'inicio' ? 'c-fotos-preview' : tipo === 'parada' ? 'parada-fotos-preview' : 'fin-fotos-preview';
+  var prev = document.getElementById(previewId);
+  if (prev) {
+    var imgDiv = document.createElement('div');
+    imgDiv.style.cssText = 'position:relative;width:70px;height:60px;border-radius:8px;overflow:hidden;flex-shrink:0';
+    imgDiv.innerHTML = '<img src="' + objUrl + '" style="width:100%;height:100%;object-fit:cover">' +
+      '<button onclick="quitarFotoRuta(\'' + tipo + '\',' + idx + ',this.parentElement)" style="position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;background:rgba(0,0,0,0.7);color:white;border:none;font-size:10px;cursor:pointer;display:flex;align-items:center;justify-content:center">x</button>';
+    prev.appendChild(imgDiv);
+  }
+  var btnId = tipo === 'inicio' ? 'btn-add-foto-ini' : tipo === 'parada' ? 'btn-add-foto-parada' : 'btn-add-foto-fin';
+  var btn = document.getElementById(btnId);
+  if (btn) btn.style.display = RUTA_FOTOS[tipo].length >= 4 ? 'none' : 'inline-flex';
   input.value = '';
 }
 
 function quitarFotoRuta(tipo, idx, el) {
+  if (RUTA_OBJURLS[tipo] && RUTA_OBJURLS[tipo][idx]) {
+    URL.revokeObjectURL(RUTA_OBJURLS[tipo][idx]);
+    RUTA_OBJURLS[tipo].splice(idx, 1);
+  }
   RUTA_FOTOS[tipo].splice(idx, 1);
   if (el && el.parentNode) el.parentNode.removeChild(el);
   var btnId = tipo === 'inicio' ? 'btn-add-foto-ini' : tipo === 'parada' ? 'btn-add-foto-parada' : 'btn-add-foto-fin';
   var btn = document.getElementById(btnId);
   if (btn) btn.style.display = 'inline-flex';
+}
+
+function liberarObjUrlsRuta(tipo) {
+  if (!RUTA_OBJURLS[tipo]) return;
+  for (var _li = 0; _li < RUTA_OBJURLS[tipo].length; _li++) {
+    URL.revokeObjectURL(RUTA_OBJURLS[tipo][_li]);
+  }
+  RUTA_OBJURLS[tipo] = [];
 }
 
 function uploadFotosRuta(fotos, carpeta) {
@@ -13328,7 +13355,7 @@ function selTipoInc(tipo) {
 function abrirParadaRuta(rutaId) {
   PARADA_CON_INCIDENCIA = false;
   PARADA_TIPO_INC = '';
-  RUTA_FOTOS.parada = [];
+  liberarObjUrlsRuta('parada'); RUTA_FOTOS.parada = [];
   document.getElementById('parada-ruta-id').value = rutaId;
   document.getElementById('parada-puesto').value = '';
   document.getElementById('parada-detalle-inc').value = '';
@@ -13417,14 +13444,14 @@ function saveParada(finalizar) {
     });
   }).then(function() {
     closeOv('ov-parada-ruta');
-    RUTA_FOTOS.parada = [];
+    liberarObjUrlsRuta('parada'); RUTA_FOTOS.parada = [];
     if (finalizar) {
       // Abrir modal de fin de ruta
       document.getElementById('fin-ruta-id').value = rutaId;
       document.getElementById('fin-km').value = '';
       document.getElementById('fin-comb').value = '';
       document.getElementById('fin-fotos-preview').innerHTML = '';
-      RUTA_FOTOS.fin = [];
+      liberarObjUrlsRuta('fin'); RUTA_FOTOS.fin = [];
       closeOv('ov-parada-ruta');
       openOv('ov-fin-ruta');
     } else {
@@ -13454,7 +13481,7 @@ function confirmarFinRuta() {
   }).then(function() {
     setLoading('btn-fin-ruta', false);
     closeOv('ov-fin-ruta');
-    RUTA_FOTOS.fin = [];
+    liberarObjUrlsRuta('fin'); RUTA_FOTOS.fin = [];
     toast('🏁 Hoja de ruta finalizada');
     // Detener GPS al finalizar — usar movil capturado del campo del formulario
     var _ridFin = rutaId; // capturar antes de que el overlay se limpie
@@ -13522,7 +13549,7 @@ function _saveChof() {
           if (!insertRes.error) { _ctx42.n = 7; break; }
           toast('Error: ' + insertRes.error.message, 'err'); return _ctx42.a(2);
         case 7:
-          RUTA_FOTOS.inicio = [];
+          liberarObjUrlsRuta('inicio'); RUTA_FOTOS.inicio = [];
           document.getElementById('c-fotos-preview').innerHTML = '';
           closeOv('ov-chof');
           toast('🚗 Hoja de ruta iniciada — GPS activado');
@@ -20308,6 +20335,7 @@ function marcarNoFichoSalida(fichajeId, nombreAgente) {
 // ══ MÓDULO: RELEVAMIENTO DE PUESTOS ══════════════════════════════════════
 
 var RELEV_FOTOS = [];
+var RELEV_OBJURLS = [];
 var RELEV_TIENE_SEG = null;
 var RELEV_DATOS_CACHE = {};
 
@@ -20393,6 +20421,7 @@ function abrirRelevamiento(zona, puesto) {
   document.getElementById('relev-observaciones').value = '';
   document.getElementById('relev-fotos-preview').innerHTML = '';
   document.getElementById('relev-seg-detalle').style.display = 'none';
+  for (var _reli = 0; _reli < RELEV_OBJURLS.length; _reli++) { URL.revokeObjectURL(RELEV_OBJURLS[_reli]); } RELEV_OBJURLS = [];
   RELEV_FOTOS = [];
   RELEV_TIENE_SEG = null;
   // Resetear botones de seguridad
@@ -20464,18 +20493,16 @@ function onFotoRelevamientoSelected(input) {
   files = files.slice(0, disponible);
   files.forEach(function(file) {
     RELEV_FOTOS.push(file);
-    var reader = new FileReader();
-    reader.onload = function(e) {
-      var prev = document.getElementById('relev-fotos-preview');
-      var wrap = document.createElement('div');
-      wrap.style.cssText = 'position:relative;display:inline-block';
-      var img = document.createElement('img');
-      img.src = e.target.result;
-      img.style.cssText = 'width:72px;height:56px;object-fit:cover;border-radius:8px;border:1px solid var(--border2)';
-      wrap.appendChild(img);
-      prev.appendChild(wrap);
-    };
-    reader.readAsDataURL(file);
+    var objUrl = URL.createObjectURL(file);
+    RELEV_OBJURLS.push(objUrl);
+    var prev = document.getElementById('relev-fotos-preview');
+    var wrap = document.createElement('div');
+    wrap.style.cssText = 'position:relative;display:inline-block';
+    var img = document.createElement('img');
+    img.src = objUrl;
+    img.style.cssText = 'width:72px;height:56px;object-fit:cover;border-radius:8px;border:1px solid var(--border2)';
+    wrap.appendChild(img);
+    if (prev) prev.appendChild(wrap);
   });
   input.value = '';
 }
@@ -20529,6 +20556,7 @@ function guardarRelevamiento() {
     setLoading('btn-save-relev', false);
     if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
     closeOv('ov-relevamiento');
+    for (var _reli2 = 0; _reli2 < RELEV_OBJURLS.length; _reli2++) { URL.revokeObjectURL(RELEV_OBJURLS[_reli2]); } RELEV_OBJURLS = [];
     RELEV_FOTOS = [];
     toast('✅ Relevamiento guardado correctamente');
     loadRelevamientos();
