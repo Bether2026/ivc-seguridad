@@ -1902,6 +1902,10 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
         <span>Relevamiento</span>
       </button>
+      <button class="sidebar-item" onclick="goView('panol')" id="si-panol" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
+        <span>Pañol</span>
+      </button>
       <button class="sidebar-item" onclick="goView('admin')" id="si-admin" style="display:none">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6"/></svg> Admin
       </button>
@@ -3143,6 +3147,205 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
             </div>
           </div>
         </div>
+        <div class="view" id="view-panol">
+      <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap">
+        <div>
+          <h2>&#x1F527; Pañol</h2>
+          <p>Pañol principal &mdash; Base Castañares</p>
+        </div>
+        <button onclick="abrirNuevoItemPanol()" style="flex-shrink:0;display:flex;align-items:center;gap:6px;padding:9px 16px;border-radius:10px;border:1px solid rgba(59,130,246,.35);background:rgba(59,130,246,.1);color:#93c5fd;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap">
+          + Nuevo ítem
+        </button>
+      </div>
+
+      <!-- Stats rápidos -->
+      <div id="panol-stats" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px"></div>
+
+      <!-- Tabs -->
+      <div style="display:flex;gap:8px;margin-bottom:14px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px">
+        <button id="panol-tab-stock" onclick="panolTab('stock')" style="flex-shrink:0;padding:8px 16px;border-radius:8px;border:1px solid rgba(59,130,246,.35);background:rgba(59,130,246,.15);color:#93c5fd;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">🗂 En Pañol</button>
+        <button id="panol-tab-afuera" onclick="panolTab('afuera')" style="flex-shrink:0;padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">📤 Afuera</button>
+        <button id="panol-tab-bajas" onclick="panolTab('bajas')" style="flex-shrink:0;padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">🗑 Bajas</button>
+        <button id="panol-tab-historial" onclick="panolTab('historial')" style="flex-shrink:0;padding:8px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">📜 Historial</button>
+      </div>
+
+      <!-- Buscador + filtro categoría -->
+      <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+        <input id="panol-search" oninput="filtrarPanol()" placeholder="🔍 Buscar herramienta, N° inventario..." style="flex:1;min-width:160px;padding:9px 14px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--font);font-size:13px;outline:none"/>
+        <select id="panol-filtro-cat" onchange="filtrarPanol()" style="padding:9px 12px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--font);font-size:13px;outline:none">
+          <option value="">Todas las categorías</option>
+        </select>
+      </div>
+
+      <!-- Contenido por tab -->
+      <div id="panol-tab-content-stock">
+        <div id="panol-list-stock"><div class="empty"><div class="icon">🔧</div><p>Cargando pañol...</p></div></div>
+      </div>
+      <div id="panol-tab-content-afuera" style="display:none">
+        <div id="panol-list-afuera"><div class="empty"><div class="icon">📤</div><p>Cargando...</p></div></div>
+      </div>
+      <div id="panol-tab-content-bajas" style="display:none">
+        <div id="panol-list-bajas"><div class="empty"><div class="icon">🗑</div><p>Cargando...</p></div></div>
+      </div>
+      <div id="panol-tab-content-historial" style="display:none">
+        <div id="panol-list-historial"><div class="empty"><div class="icon">📜</div><p>Cargando...</p></div></div>
+      </div>
+        </div>
+
+        <!-- MODAL NUEVO/EDITAR ITEM PAÑOL -->
+        <div class="overlay" id="ov-panol-item">
+          <div class="modal">
+            <div class="modal-head"><span class="modal-title" id="panol-item-modal-title">🔧 Nuevo ítem de pañol</span><button class="btn-close" onclick="closeOv('ov-panol-item')">×</button></div>
+            <input type="hidden" id="pi-edit-id">
+
+            <div class="form-group">
+              <label class="form-label">Nombre <span style="color:var(--red)">*</span></label>
+              <input class="form-input" id="pi-nombre" placeholder="Ej: Martillo, Amoladora, Matafuego ABC..."/>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Categoría <span style="color:var(--red)">*</span></label>
+              <select class="form-select" id="pi-categoria-sel" onchange="togglePanolCatOtra()">
+                <option value="">— Seleccioná o agregá categoría —</option>
+                <option value="Manual">Manual</option>
+                <option value="Eléctrica">Eléctrica</option>
+                <option value="Matafuegos">Matafuegos</option>
+                <option value="__otra__">+ Otra (escribir)</option>
+              </select>
+              <input type="text" class="form-input" id="pi-categoria-otra" placeholder="Escribí el nombre de la categoría..." style="display:none;margin-top:6px"/>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Seguimiento <span style="color:var(--red)">*</span></label>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                <button type="button" id="pi-btn-unidad" onclick="selPanolModo('unidad')" style="padding:12px 8px;border-radius:10px;border:2px solid var(--border2);background:var(--bg3);color:var(--text2);font-family:var(--font);font-size:12px;font-weight:800;cursor:pointer;line-height:1.4">
+                  🔢 Por unidad<br><span style="font-size:10px;font-weight:400;opacity:.7">Cada una individual (eléctricas, llaves, martillos)</span>
+                </button>
+                <button type="button" id="pi-btn-cantidad" onclick="selPanolModo('cantidad')" style="padding:12px 8px;border-radius:10px;border:2px solid var(--border2);background:var(--bg3);color:var(--text2);font-family:var(--font);font-size:12px;font-weight:800;cursor:pointer;line-height:1.4">
+                  📦 Por cantidad<br><span style="font-size:10px;font-weight:400;opacity:.7">Solo importa el total (tornillos, candados)</span>
+                </button>
+              </div>
+              <input type="hidden" id="pi-modo" value="unidad">
+            </div>
+
+            <div class="form-group" id="pi-cantidad-wrap" style="display:none">
+              <label class="form-label">Cantidad total</label>
+              <input type="number" min="1" class="form-input" id="pi-cantidad" placeholder="Ej: 50"/>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">N° de inventario <span style="font-weight:400;color:var(--text3);font-size:11px">(opcional)</span></label>
+              <input class="form-input" id="pi-nro-inventario" placeholder="No todo lo tiene, dejalo vacío si no aplica"/>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Observaciones <span style="font-weight:400;color:var(--text3);font-size:11px">(opcional)</span></label>
+              <textarea class="form-textarea" id="pi-obs" style="min-height:56px" placeholder="Estado, marca, detalle adicional..."></textarea>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" style="color:var(--text3);font-size:11px;text-transform:uppercase;letter-spacing:.06em">📷 Foto <span style="font-weight:400">(opcional)</span></label>
+              <div id="pi-foto-drop" onclick="abrirSelectorFoto('pi-foto-input')" style="border:2px dashed var(--border2);border-radius:var(--radius-sm);padding:14px;text-align:center;cursor:pointer;background:var(--bg3)">
+                <div style="font-size:24px;margin-bottom:4px">📷</div>
+                <div style="font-size:13px;color:var(--text2);font-weight:600">Tocá para agregar foto</div>
+              </div>
+              <input type="file" id="pi-foto-input" accept="image/*" style="display:none" onchange="onFotoPanolSelected(this)">
+              <div id="pi-foto-preview" style="margin-top:10px"></div>
+            </div>
+
+            <button class="btn-login" id="btn-save-panol-item" onclick="savePanolItem()">🔧 Guardar ítem</button>
+          </div>
+        </div>
+
+        <!-- MODAL SACAR DE PAÑOL -->
+        <div class="overlay" id="ov-panol-sacar">
+          <div class="modal">
+            <div class="modal-head"><span class="modal-title">📤 Sacar de pañol</span><button class="btn-close" onclick="closeOv('ov-panol-sacar')">×</button></div>
+            <div id="panol-sacar-info" style="background:var(--bg3);border-radius:8px;padding:10px 12px;margin-bottom:12px"></div>
+            <input type="hidden" id="ps-item-id">
+
+            <div class="form-group" id="ps-cantidad-wrap" style="display:none">
+              <label class="form-label">Cantidad a sacar <span style="color:var(--red)">*</span></label>
+              <input type="number" min="1" class="form-input" id="ps-cantidad"/>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Destino <span style="color:var(--red)">*</span></label>
+              <input class="form-input" id="ps-destino" placeholder="Ej: Papa Francisco, Camioneta S-10, Operativo..."/>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">¿Quién la retira? <span style="color:var(--red)">*</span></label>
+              <input class="form-input" id="ps-quien" placeholder="Nombre del agente o responsable"/>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Observaciones <span style="font-weight:400;color:var(--text3);font-size:11px">(opcional)</span></label>
+              <textarea class="form-textarea" id="ps-obs" style="min-height:56px" placeholder="Motivo, detalle..."></textarea>
+            </div>
+
+            <button class="btn-login" id="btn-save-panol-sacar" onclick="confirmarSacarPanol()">📤 Confirmar salida</button>
+          </div>
+        </div>
+
+        <!-- MODAL DEVOLVER A PAÑOL -->
+        <div class="overlay" id="ov-panol-devolver">
+          <div class="modal">
+            <div class="modal-head"><span class="modal-title">📥 Devolver a pañol</span><button class="btn-close" onclick="closeOv('ov-panol-devolver')">×</button></div>
+            <div id="panol-devolver-info" style="background:var(--bg3);border-radius:8px;padding:10px 12px;margin-bottom:12px"></div>
+            <input type="hidden" id="pd-item-id">
+
+            <div class="form-group" id="pd-cantidad-wrap" style="display:none">
+              <label class="form-label">Cantidad a devolver <span style="color:var(--red)">*</span></label>
+              <input type="number" min="1" class="form-input" id="pd-cantidad"/>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Observaciones <span style="font-weight:400;color:var(--text3);font-size:11px">(opcional — estado en que vuelve, etc.)</span></label>
+              <textarea class="form-textarea" id="pd-obs" style="min-height:56px"></textarea>
+            </div>
+
+            <button class="btn-login" id="btn-save-panol-devolver" onclick="confirmarDevolverPanol()">📥 Confirmar devolución</button>
+          </div>
+        </div>
+
+        <!-- MODAL DAR DE BAJA -->
+        <div class="overlay" id="ov-panol-baja">
+          <div class="modal">
+            <div class="modal-head"><span class="modal-title">🗑 Dar de baja</span><button class="btn-close" onclick="closeOv('ov-panol-baja')">×</button></div>
+            <div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:#fca5a5">
+              La herramienta se quita del stock disponible. Queda registrada en el historial de bajas con el motivo.
+            </div>
+            <div id="panol-baja-info" style="background:var(--bg3);border-radius:8px;padding:10px 12px;margin-bottom:12px"></div>
+            <input type="hidden" id="pb-item-id">
+
+            <div class="form-group" id="pb-cantidad-wrap" style="display:none">
+              <label class="form-label">Cantidad a dar de baja <span style="color:var(--red)">*</span></label>
+              <input type="number" min="1" class="form-input" id="pb-cantidad"/>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Motivo <span style="color:var(--red)">*</span></label>
+              <select class="form-select" id="pb-motivo-sel" onchange="togglePanolMotivoOtro()">
+                <option value="">— Seleccioná el motivo —</option>
+                <option value="Rota / dañada">Rota / dañada</option>
+                <option value="Perdida">Perdida</option>
+                <option value="Robada">Robada</option>
+                <option value="Vida útil cumplida">Vida útil cumplida</option>
+                <option value="__otro__">+ Otro (escribir)</option>
+              </select>
+              <input type="text" class="form-input" id="pb-motivo-otro" placeholder="Escribí el motivo..." style="display:none;margin-top:6px"/>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Observaciones <span style="font-weight:400;color:var(--text3);font-size:11px">(opcional)</span></label>
+              <textarea class="form-textarea" id="pb-obs" style="min-height:56px"></textarea>
+            </div>
+
+            <button class="btn-login" id="btn-save-panol-baja" onclick="confirmarBajaPanol()" style="background:linear-gradient(135deg,#ef4444,#b91c1c)">🗑 Confirmar baja</button>
+          </div>
+        </div>
+
         <div class="view" id="view-inmuebles">
           <div class="page-header">
             <h2><span style="color:#34d399;margin-right:8px;text-shadow:0 0 12px rgba(52,211,153,0.5)">🏠</span>Historial de Inmuebles</h2>
@@ -3722,6 +3925,10 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
     <button class="nav-btn" onclick="goView('relevamiento')" id="nb-relevamiento" style="display:none">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
       <span>Relev.</span>
+    </button>
+    <button class="nav-btn" onclick="goView('panol')" id="nb-panol" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
+      <span>Pañol</span>
     </button>
     <button class="nav-btn" onclick="goView('admin')" id="nb-admin" style="display:none">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6"/><path d="M18 14l2 2 4-4" stroke-width="2"/></svg><span>Admin</span>
@@ -7310,6 +7517,10 @@ function initApp() {
   var canSeeRelev = (USER.rol === 'ADMIN');
   if ($('si-relevamiento')) $('si-relevamiento').style.display = canSeeRelev ? 'block' : 'none';
   if ($('nb-relevamiento')) $('nb-relevamiento').style.display = canSeeRelev ? 'flex' : 'none';
+  // Pañol: exclusivo Emergencias y Administración del sistema
+  var canSeePanol = ['Emergencias', 'Administración'].indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN';
+  if ($('si-panol')) $('si-panol').style.display = canSeePanol ? 'block' : 'none';
+  if ($('nb-panol')) $('nb-panol').style.display = canSeePanol ? 'flex' : 'none';
   if (!canSeeGPS) {
     var _gpsSub = document.getElementById('chof-sub-gps');
     if (_gpsSub) _gpsSub.style.display = 'none';
@@ -14038,6 +14249,7 @@ function goView(name) {
     if (name === 'inventario' && typeof loadInventario === 'function') loadInventario();
     if (name === 'pendientes' && typeof loadPendientes === 'function') loadPendientes();
     if (name === 'relevamiento' && typeof loadRelevamientos === 'function') loadRelevamientos();
+    if (name === 'panol' && typeof loadPanol === 'function') loadPanol();
     if (name === 'dashboard') {
       if (typeof loadDash === 'function') loadDash();
       if (typeof loadNoticias === 'function') loadNoticias();
@@ -20959,6 +21171,559 @@ function relevTab(zona, btn) {
   Object.keys(RELEV_ZONAS).forEach(function(z) {
     var p = document.getElementById('relev-panel-' + z);
     if (p) p.style.display = z === zona ? 'block' : 'none';
+  });
+}
+
+// ══ PAÑOL — Inventario de herramientas (Emergencias + Administración del sistema) ══
+var PANOL_CACHE = [];       // items del catalogo (tabla panol_items)
+var PANOL_TAB_ACTUAL = 'stock';
+var PI_FOTO_FILE = null;
+
+function panolTab(tab) {
+  PANOL_TAB_ACTUAL = tab;
+  ['stock','afuera','bajas','historial'].forEach(function(t) {
+    var btn = document.getElementById('panol-tab-' + t);
+    var panel = document.getElementById('panol-tab-content-' + t);
+    var active = t === tab;
+    if (btn) {
+      btn.style.background  = active ? 'rgba(59,130,246,.15)' : 'transparent';
+      btn.style.color       = active ? '#93c5fd' : 'var(--text3)';
+      btn.style.borderColor = active ? 'rgba(59,130,246,.35)' : 'var(--border)';
+    }
+    if (panel) panel.style.display = active ? 'block' : 'none';
+  });
+  if (tab === 'historial') loadPanolHistorial();
+  else renderPanolTab();
+}
+
+function loadPanol() {
+  document.getElementById('panol-list-stock').innerHTML = '<div class="empty"><div class="icon">🔧</div><p>Cargando pañol...</p></div>';
+  db.from('panol_items').select('*').order('nombre', {ascending: true}).then(function(res) {
+    if (res.error) {
+      document.getElementById('panol-list-stock').innerHTML = '<div class="empty"><p>Error: ' + res.error.message + '</p></div>';
+      return;
+    }
+    PANOL_CACHE = res.data || [];
+    actualizarFiltroCategoriasPanol();
+    renderPanolStats();
+    renderPanolTab();
+  });
+}
+
+function actualizarFiltroCategoriasPanol() {
+  var sel = document.getElementById('panol-filtro-cat');
+  if (!sel) return;
+  var valorActual = sel.value;
+  var cats = {};
+  PANOL_CACHE.forEach(function(it) { if (it.categoria) cats[it.categoria] = true; });
+  var catsOrdenadas = Object.keys(cats).sort();
+  sel.innerHTML = '<option value="">Todas las categorías</option>' +
+    catsOrdenadas.map(function(c) { return '<option>' + c + '</option>'; }).join('');
+  if (valorActual) sel.value = valorActual;
+}
+
+function renderPanolStats() {
+  var cont = document.getElementById('panol-stats');
+  if (!cont) return;
+  var totalItems = PANOL_CACHE.length;
+  var afuera = PANOL_CACHE.filter(function(it) {
+    return it.modo === 'unidad' ? it.estado === 'afuera' : (it.cantidad_afuera || 0) > 0;
+  }).length;
+  var bajas = PANOL_CACHE.filter(function(it) { return it.estado === 'baja'; }).length;
+  cont.innerHTML =
+    '<div class="stat-card"><div class="stat-lbl">Ítems</div><div class="stat-val c-blue">' + totalItems + '</div><div class="stat-sub">en el catálogo</div></div>' +
+    '<div class="stat-card"><div class="stat-lbl">Afuera</div><div class="stat-val c-yellow">' + afuera + '</div><div class="stat-sub">retiradas del pañol</div></div>' +
+    '<div class="stat-card"><div class="stat-lbl">Bajas</div><div class="stat-val c-red">' + bajas + '</div><div class="stat-sub">dadas de baja</div></div>';
+}
+
+function filtrarPanol() { renderPanolTab(); }
+
+function renderPanolTab() {
+  if (PANOL_TAB_ACTUAL === 'historial') return; // tiene su propia carga
+  var search = (document.getElementById('panol-search') || {}).value || '';
+  search = search.toLowerCase().trim();
+  var catFiltro = (document.getElementById('panol-filtro-cat') || {}).value || '';
+
+  var filtrados = PANOL_CACHE.filter(function(it) {
+    if (PANOL_TAB_ACTUAL === 'stock') {
+      if (it.estado === 'baja') return false;
+      if (it.modo === 'unidad' && it.estado === 'afuera') return false;
+      if (it.modo === 'cantidad' && (it.cantidad_disponible || 0) <= 0) return false;
+    } else if (PANOL_TAB_ACTUAL === 'afuera') {
+      if (it.modo === 'unidad' && it.estado !== 'afuera') return false;
+      if (it.modo === 'cantidad' && !((it.cantidad_afuera || 0) > 0)) return false;
+    } else if (PANOL_TAB_ACTUAL === 'bajas') {
+      if (it.estado !== 'baja' && !((it.cantidad_baja || 0) > 0)) return false;
+    }
+    if (catFiltro && it.categoria !== catFiltro) return false;
+    if (search) {
+      var hay = (it.nombre || '').toLowerCase().indexOf(search) >= 0 ||
+                (it.nro_inventario || '').toLowerCase().indexOf(search) >= 0;
+      if (!hay) return false;
+    }
+    return true;
+  });
+
+  // Agrupar por categoria
+  var grupos = {};
+  filtrados.forEach(function(it) {
+    var cat = it.categoria || 'Sin categoría';
+    if (!grupos[cat]) grupos[cat] = [];
+    grupos[cat].push(it);
+  });
+  var catsOrdenadas = Object.keys(grupos).sort();
+
+  var targetId = 'panol-list-' + PANOL_TAB_ACTUAL;
+  var cont = document.getElementById(targetId);
+  if (!cont) return;
+
+  if (!filtrados.length) {
+    cont.innerHTML = '<div class="empty"><div class="icon">🔧</div><p>Sin ítems para mostrar</p></div>';
+    return;
+  }
+
+  var html = catsOrdenadas.map(function(cat) {
+    var items = grupos[cat];
+    var itemsHtml = items.map(function(it) { return renderPanolItemCard(it); }).join('');
+    return '<div style="margin-bottom:16px">' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">' +
+        '<span style="font-size:12px;font-weight:800;color:var(--accent3);text-transform:uppercase;letter-spacing:.05em">' + cat + '</span>' +
+        '<span class="badge b-blue">' + items.length + '</span>' +
+        '<div style="flex:1;height:1px;background:var(--border)"></div>' +
+      '</div>' +
+      itemsHtml +
+    '</div>';
+  }).join('');
+  cont.innerHTML = html;
+}
+
+function renderPanolItemCard(it) {
+  var esUnidad = it.modo === 'unidad';
+  var esBaja = it.estado === 'baja';
+  var afuera = esUnidad ? it.estado === 'afuera' : (it.cantidad_afuera || 0) > 0;
+  var borde = esBaja ? 'var(--text3)' : afuera ? 'var(--yellow)' : 'var(--green)';
+
+  var cantidadTxt = '';
+  if (!esUnidad) {
+    if (PANOL_TAB_ACTUAL === 'bajas') {
+      cantidadTxt = (it.cantidad_baja || 0) + ' dada(s) de baja';
+    } else if (PANOL_TAB_ACTUAL === 'afuera') {
+      cantidadTxt = (it.cantidad_afuera || 0) + ' afuera';
+    } else {
+      cantidadTxt = (it.cantidad_disponible || 0) + ' disponible(s) de ' + (it.cantidad_total || 0);
+    }
+  }
+
+  var fotoHtml = it.foto_url
+    ? '<img src="' + it.foto_url + '" onclick="abrirFotoLightbox(\'' + it.foto_url + '\')" style="width:52px;height:52px;border-radius:8px;object-fit:cover;flex-shrink:0;cursor:zoom-in;border:1px solid var(--border2)">'
+    : '<div style="width:52px;height:52px;border-radius:8px;flex-shrink:0;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:20px;border:1px solid var(--border2)">🔧</div>';
+
+  var acciones = '';
+  if (PANOL_TAB_ACTUAL === 'stock') {
+    acciones = '<button onclick="abrirSacarPanol(\'' + it.id + '\')" style="padding:6px 12px;border-radius:6px;border:1px solid rgba(245,158,11,.35);background:rgba(245,158,11,.1);color:#fcd34d;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">📤 Sacar</button>';
+  } else if (PANOL_TAB_ACTUAL === 'afuera') {
+    acciones = '<button onclick="abrirDevolverPanol(\'' + it.id + '\')" style="padding:6px 12px;border-radius:6px;border:1px solid rgba(16,185,129,.35);background:rgba(16,185,129,.1);color:#6ee7b7;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">📥 Devolver</button>';
+  }
+  var botonBaja = (PANOL_TAB_ACTUAL !== 'bajas')
+    ? '<button onclick="abrirBajaPanol(\'' + it.id + '\')" style="padding:6px 10px;border-radius:6px;border:1px solid rgba(239,68,68,.3);background:transparent;color:#f87171;font-size:11px;font-weight:700;cursor:pointer">🗑</button>'
+    : '';
+  var botonEditar = '<button onclick="abrirEditarItemPanol(\'' + it.id + '\')" style="padding:6px 10px;border-radius:6px;border:1px solid rgba(245,158,11,.3);background:transparent;color:#fcd34d;font-size:11px;font-weight:700;cursor:pointer">✎</button>';
+
+  return '<div class="card" style="border-left:3px solid ' + borde + ';margin-bottom:8px' + (esBaja ? ';opacity:0.6' : '') + '">' +
+    '<div style="display:flex;gap:10px;align-items:center">' +
+      fotoHtml +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="font-size:13.5px;font-weight:700">' + (it.nombre || '') + '</div>' +
+        (it.nro_inventario ? '<div style="font-size:10.5px;color:var(--text3)">N° ' + it.nro_inventario + '</div>' : '') +
+        (cantidadTxt ? '<div style="font-size:11px;color:var(--text2);margin-top:2px">' + cantidadTxt + '</div>' : '') +
+        (esUnidad && afuera && it.destino_actual ? '<div style="font-size:11px;color:#fcd34d;margin-top:2px">📍 ' + it.destino_actual + (it.responsable_actual ? ' · ' + it.responsable_actual : '') + '</div>' : '') +
+      '</div>' +
+      '<div style="display:flex;gap:6px;flex-shrink:0;align-items:center">' + acciones + botonBaja + botonEditar + '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+// ── CRUD del catalogo ────────────────────────────────────────────────────
+function togglePanolCatOtra() {
+  var sel = document.getElementById('pi-categoria-sel');
+  var otra = document.getElementById('pi-categoria-otra');
+  if (!sel || !otra) return;
+  otra.style.display = sel.value === '__otra__' ? 'block' : 'none';
+  if (sel.value !== '__otra__') otra.value = '';
+}
+
+function selPanolModo(modo) {
+  document.getElementById('pi-modo').value = modo;
+  var btnU = document.getElementById('pi-btn-unidad');
+  var btnC = document.getElementById('pi-btn-cantidad');
+  var wrapCant = document.getElementById('pi-cantidad-wrap');
+  if (modo === 'unidad') {
+    btnU.style.borderColor = '#3b82f6'; btnU.style.background = 'rgba(59,130,246,.1)'; btnU.style.color = '#93c5fd';
+    btnC.style.borderColor = 'rgba(255,255,255,0.1)'; btnC.style.background = 'var(--bg3)'; btnC.style.color = 'var(--text2)';
+    wrapCant.style.display = 'none';
+  } else {
+    btnC.style.borderColor = '#3b82f6'; btnC.style.background = 'rgba(59,130,246,.1)'; btnC.style.color = '#93c5fd';
+    btnU.style.borderColor = 'rgba(255,255,255,0.1)'; btnU.style.background = 'var(--bg3)'; btnU.style.color = 'var(--text2)';
+    wrapCant.style.display = 'block';
+  }
+}
+
+function abrirNuevoItemPanol() {
+  document.getElementById('panol-item-modal-title').textContent = '🔧 Nuevo ítem de pañol';
+  document.getElementById('pi-edit-id').value = '';
+  document.getElementById('pi-nombre').value = '';
+  document.getElementById('pi-categoria-sel').value = '';
+  document.getElementById('pi-categoria-otra').value = '';
+  document.getElementById('pi-categoria-otra').style.display = 'none';
+  document.getElementById('pi-nro-inventario').value = '';
+  document.getElementById('pi-obs').value = '';
+  document.getElementById('pi-cantidad').value = '';
+  document.getElementById('pi-foto-preview').innerHTML = '';
+  PI_FOTO_FILE = null;
+  selPanolModo('unidad');
+  // Cargar categorias ya usadas en el select (ademas de las fijas)
+  var sel = document.getElementById('pi-categoria-sel');
+  var catsExtra = {};
+  PANOL_CACHE.forEach(function(it) {
+    if (it.categoria && ['Manual','Eléctrica','Matafuegos'].indexOf(it.categoria) < 0) catsExtra[it.categoria] = true;
+  });
+  var extrasHtml = Object.keys(catsExtra).sort().map(function(c) { return '<option>' + c + '</option>'; }).join('');
+  if (extrasHtml) {
+    var otraOpt = sel.querySelector('option[value="__otra__"]');
+    otraOpt.insertAdjacentHTML('beforebegin', extrasHtml);
+  }
+  openOv('ov-panol-item');
+}
+
+function abrirEditarItemPanol(id) {
+  var it = PANOL_CACHE.find(function(x) { return x.id === id; });
+  if (!it) return;
+  document.getElementById('panol-item-modal-title').textContent = '🔧 Editar ítem de pañol';
+  document.getElementById('pi-edit-id').value = it.id;
+  document.getElementById('pi-nombre').value = it.nombre || '';
+  document.getElementById('pi-nro-inventario').value = it.nro_inventario || '';
+  document.getElementById('pi-obs').value = it.observaciones || '';
+  document.getElementById('pi-foto-preview').innerHTML = it.foto_url ? '<img src="' + it.foto_url + '" style="width:80px;height:80px;border-radius:8px;object-fit:cover">' : '';
+  PI_FOTO_FILE = null;
+  selPanolModo(it.modo || 'unidad');
+  document.getElementById('pi-cantidad').value = it.cantidad_total || '';
+
+  var sel = document.getElementById('pi-categoria-sel');
+  var catsFijas = ['Manual','Eléctrica','Matafuegos'];
+  if (it.categoria && catsFijas.indexOf(it.categoria) < 0) {
+    var otraOpt = sel.querySelector('option[value="__otra__"]');
+    if (!sel.querySelector('option[value="' + it.categoria + '"]')) {
+      otraOpt.insertAdjacentHTML('beforebegin', '<option>' + it.categoria + '</option>');
+    }
+  }
+  sel.value = it.categoria || '';
+  document.getElementById('pi-categoria-otra').style.display = 'none';
+  document.getElementById('pi-categoria-otra').value = '';
+  openOv('ov-panol-item');
+}
+
+function onFotoPanolSelected(input) {
+  var file = input.files[0];
+  if (!file) return;
+  PI_FOTO_FILE = file;
+  var prev = document.getElementById('pi-foto-preview');
+  if (prev) prev.innerHTML = '<img src="' + URL.createObjectURL(file) + '" style="width:80px;height:80px;border-radius:8px;object-fit:cover">';
+}
+
+function savePanolItem() {
+  var id = document.getElementById('pi-edit-id').value;
+  var nombre = (document.getElementById('pi-nombre').value || '').trim();
+  var catSel = document.getElementById('pi-categoria-sel').value;
+  var categoria = catSel === '__otra__' ? (document.getElementById('pi-categoria-otra').value || '').trim() : catSel;
+  var modo = document.getElementById('pi-modo').value;
+  var cantidad = parseInt(document.getElementById('pi-cantidad').value) || 0;
+  var nroInv = (document.getElementById('pi-nro-inventario').value || '').trim();
+  var obs = (document.getElementById('pi-obs').value || '').trim();
+
+  if (!nombre) { toast('Indicá el nombre de la herramienta', 'err'); return; }
+  if (!categoria) { toast('Indicá la categoría', 'err'); return; }
+  if (modo === 'cantidad' && cantidad <= 0) { toast('Indicá la cantidad total', 'err'); return; }
+
+  setLoading('btn-save-panol-item', true);
+
+  function guardarConFoto(fotoUrl) {
+    var payload = {
+      nombre: nombre, categoria: categoria, modo: modo,
+      nro_inventario: nroInv || null, observaciones: obs || null
+    };
+    if (fotoUrl) payload.foto_url = fotoUrl;
+    if (!id) {
+      // Alta nueva
+      payload.estado = 'base';
+      if (modo === 'cantidad') {
+        payload.cantidad_total = cantidad;
+        payload.cantidad_disponible = cantidad;
+        payload.cantidad_afuera = 0;
+        payload.cantidad_baja = 0;
+      }
+      db.from('panol_items').insert(payload).then(function(r) {
+        setLoading('btn-save-panol-item', false);
+        if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+        closeOv('ov-panol-item');
+        toast('🔧 Ítem agregado al pañol');
+        loadPanol();
+      });
+    } else {
+      // Edicion: si es por cantidad, ajustar el total preservando lo que ya esta afuera/baja
+      if (modo === 'cantidad') {
+        var itActual = PANOL_CACHE.find(function(x) { return x.id === id; });
+        var afueraActual = (itActual && itActual.cantidad_afuera) || 0;
+        var bajaActual = (itActual && itActual.cantidad_baja) || 0;
+        payload.cantidad_total = cantidad;
+        payload.cantidad_disponible = Math.max(0, cantidad - afueraActual - bajaActual);
+      }
+      db.from('panol_items').update(payload).eq('id', id).then(function(r) {
+        setLoading('btn-save-panol-item', false);
+        if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+        closeOv('ov-panol-item');
+        toast('✓ Ítem actualizado');
+        loadPanol();
+      });
+    }
+  }
+
+  if (PI_FOTO_FILE) {
+    uploadToR2Comprimido(PI_FOTO_FILE, 'panol').then(guardarConFoto).catch(function() { guardarConFoto(null); });
+  } else {
+    guardarConFoto(null);
+  }
+}
+
+// ── Sacar / Devolver / Baja ───────────────────────────────────────────────
+function abrirSacarPanol(id) {
+  var it = PANOL_CACHE.find(function(x) { return x.id === id; });
+  if (!it) return;
+  document.getElementById('ps-item-id').value = id;
+  document.getElementById('panol-sacar-info').innerHTML = '<div style="font-size:14px;font-weight:800">' + it.nombre + '</div>' + (it.categoria ? '<div style="font-size:11px;color:var(--text3)">' + it.categoria + '</div>' : '');
+  document.getElementById('ps-destino').value = '';
+  document.getElementById('ps-quien').value = '';
+  document.getElementById('ps-obs').value = '';
+  var wrapCant = document.getElementById('ps-cantidad-wrap');
+  if (it.modo === 'cantidad') {
+    wrapCant.style.display = 'block';
+    document.getElementById('ps-cantidad').value = '';
+    document.getElementById('ps-cantidad').max = it.cantidad_disponible || 0;
+  } else {
+    wrapCant.style.display = 'none';
+  }
+  openOv('ov-panol-sacar');
+}
+
+function confirmarSacarPanol() {
+  var id = document.getElementById('ps-item-id').value;
+  var it = PANOL_CACHE.find(function(x) { return x.id === id; });
+  if (!it) return;
+  var destino = (document.getElementById('ps-destino').value || '').trim();
+  var quien = (document.getElementById('ps-quien').value || '').trim();
+  var obs = (document.getElementById('ps-obs').value || '').trim();
+  var cantidad = it.modo === 'cantidad' ? parseInt(document.getElementById('ps-cantidad').value) || 0 : 1;
+
+  if (!destino) { toast('Indicá el destino', 'err'); return; }
+  if (!quien) { toast('Indicá quién retira', 'err'); return; }
+  if (it.modo === 'cantidad') {
+    if (cantidad <= 0) { toast('Indicá la cantidad a sacar', 'err'); return; }
+    if (cantidad > (it.cantidad_disponible || 0)) { toast('No hay esa cantidad disponible', 'err'); return; }
+  }
+
+  setLoading('btn-save-panol-sacar', true);
+  db.from('panol_movimientos').insert({
+    item_id: id, tipo: 'salida', cantidad: cantidad,
+    destino: destino, persona: quien, observaciones: obs || null,
+    registrado_por: USER ? (USER.nombre || USER.puesto) : ''
+  }).then(function() {
+    var payload = {};
+    if (it.modo === 'unidad') {
+      payload.estado = 'afuera';
+      payload.destino_actual = destino;
+      payload.responsable_actual = quien;
+    } else {
+      payload.cantidad_disponible = Math.max(0, (it.cantidad_disponible || 0) - cantidad);
+      payload.cantidad_afuera = (it.cantidad_afuera || 0) + cantidad;
+    }
+    db.from('panol_items').update(payload).eq('id', id).then(function(r) {
+      setLoading('btn-save-panol-sacar', false);
+      if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+      closeOv('ov-panol-sacar');
+      toast('📤 Salida registrada');
+      loadPanol();
+    });
+  });
+}
+
+function abrirDevolverPanol(id) {
+  var it = PANOL_CACHE.find(function(x) { return x.id === id; });
+  if (!it) return;
+  document.getElementById('pd-item-id').value = id;
+  document.getElementById('panol-devolver-info').innerHTML = '<div style="font-size:14px;font-weight:800">' + it.nombre + '</div>' +
+    (it.modo === 'unidad' && it.destino_actual ? '<div style="font-size:11px;color:var(--text3)">Estaba en: ' + it.destino_actual + (it.responsable_actual ? ' · ' + it.responsable_actual : '') + '</div>' : '');
+  document.getElementById('pd-obs').value = '';
+  var wrapCant = document.getElementById('pd-cantidad-wrap');
+  if (it.modo === 'cantidad') {
+    wrapCant.style.display = 'block';
+    document.getElementById('pd-cantidad').value = '';
+    document.getElementById('pd-cantidad').max = it.cantidad_afuera || 0;
+  } else {
+    wrapCant.style.display = 'none';
+  }
+  openOv('ov-panol-devolver');
+}
+
+function confirmarDevolverPanol() {
+  var id = document.getElementById('pd-item-id').value;
+  var it = PANOL_CACHE.find(function(x) { return x.id === id; });
+  if (!it) return;
+  var obs = (document.getElementById('pd-obs').value || '').trim();
+  var cantidad = it.modo === 'cantidad' ? parseInt(document.getElementById('pd-cantidad').value) || 0 : 1;
+
+  if (it.modo === 'cantidad') {
+    if (cantidad <= 0) { toast('Indicá la cantidad a devolver', 'err'); return; }
+    if (cantidad > (it.cantidad_afuera || 0)) { toast('No puede devolver más de lo que está afuera', 'err'); return; }
+  }
+
+  setLoading('btn-save-panol-devolver', true);
+  db.from('panol_movimientos').insert({
+    item_id: id, tipo: 'devolucion', cantidad: cantidad,
+    destino: 'Pañol — Base Castañares', persona: null, observaciones: obs || null,
+    registrado_por: USER ? (USER.nombre || USER.puesto) : ''
+  }).then(function() {
+    var payload = {};
+    if (it.modo === 'unidad') {
+      payload.estado = 'base';
+      payload.destino_actual = null;
+      payload.responsable_actual = null;
+    } else {
+      payload.cantidad_disponible = (it.cantidad_disponible || 0) + cantidad;
+      payload.cantidad_afuera = Math.max(0, (it.cantidad_afuera || 0) - cantidad);
+    }
+    db.from('panol_items').update(payload).eq('id', id).then(function(r) {
+      setLoading('btn-save-panol-devolver', false);
+      if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+      closeOv('ov-panol-devolver');
+      toast('📥 Devolución registrada');
+      loadPanol();
+    });
+  });
+}
+
+function togglePanolMotivoOtro() {
+  var sel = document.getElementById('pb-motivo-sel');
+  var otro = document.getElementById('pb-motivo-otro');
+  if (!sel || !otro) return;
+  otro.style.display = sel.value === '__otro__' ? 'block' : 'none';
+  if (sel.value !== '__otro__') otro.value = '';
+}
+
+function abrirBajaPanol(id) {
+  var it = PANOL_CACHE.find(function(x) { return x.id === id; });
+  if (!it) return;
+  document.getElementById('pb-item-id').value = id;
+  document.getElementById('panol-baja-info').innerHTML = '<div style="font-size:14px;font-weight:800">' + it.nombre + '</div>';
+  document.getElementById('pb-motivo-sel').value = '';
+  document.getElementById('pb-motivo-otro').value = '';
+  document.getElementById('pb-motivo-otro').style.display = 'none';
+  document.getElementById('pb-obs').value = '';
+  var wrapCant = document.getElementById('pb-cantidad-wrap');
+  if (it.modo === 'cantidad') {
+    wrapCant.style.display = 'block';
+    document.getElementById('pb-cantidad').value = '';
+    var disponibleParaBaja = (it.cantidad_disponible || 0) + (it.cantidad_afuera || 0);
+    document.getElementById('pb-cantidad').max = disponibleParaBaja;
+  } else {
+    wrapCant.style.display = 'none';
+  }
+  openOv('ov-panol-baja');
+}
+
+function confirmarBajaPanol() {
+  var id = document.getElementById('pb-item-id').value;
+  var it = PANOL_CACHE.find(function(x) { return x.id === id; });
+  if (!it) return;
+  var motivoSel = document.getElementById('pb-motivo-sel').value;
+  var motivo = motivoSel === '__otro__' ? (document.getElementById('pb-motivo-otro').value || '').trim() : motivoSel;
+  var obs = (document.getElementById('pb-obs').value || '').trim();
+  var cantidad = it.modo === 'cantidad' ? parseInt(document.getElementById('pb-cantidad').value) || 0 : 1;
+
+  if (!motivo) { toast('Indicá el motivo de la baja', 'err'); return; }
+  if (it.modo === 'cantidad' && cantidad <= 0) { toast('Indicá la cantidad a dar de baja', 'err'); return; }
+
+  showConfirm('🗑️', 'Dar de baja', '¿Confirmás que querés dar de baja "' + it.nombre + '"? Esta acción no se puede deshacer.', function() {
+    setLoading('btn-save-panol-baja', true);
+    db.from('panol_movimientos').insert({
+      item_id: id, tipo: 'baja', cantidad: cantidad,
+      destino: null, persona: null, motivo: motivo, observaciones: obs || null,
+      registrado_por: USER ? (USER.nombre || USER.puesto) : ''
+    }).then(function() {
+      var payload = {};
+      if (it.modo === 'unidad') {
+        payload.estado = 'baja';
+      } else {
+        // Restar primero de lo disponible; si no alcanza, restar tambien de lo que esta afuera
+        var restante = cantidad;
+        var nuevoDisp = it.cantidad_disponible || 0;
+        var nuevoAfuera = it.cantidad_afuera || 0;
+        var quitarDeDisp = Math.min(restante, nuevoDisp);
+        nuevoDisp -= quitarDeDisp;
+        restante -= quitarDeDisp;
+        if (restante > 0) {
+          var quitarDeAfuera = Math.min(restante, nuevoAfuera);
+          nuevoAfuera -= quitarDeAfuera;
+        }
+        payload.cantidad_disponible = nuevoDisp;
+        payload.cantidad_afuera = nuevoAfuera;
+        payload.cantidad_baja = (it.cantidad_baja || 0) + cantidad;
+      }
+      db.from('panol_items').update(payload).eq('id', id).then(function(r) {
+        setLoading('btn-save-panol-baja', false);
+        if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+        closeOv('ov-panol-baja');
+        toast('🗑 Baja registrada');
+        loadPanol();
+      });
+    });
+  }, 'Dar de baja', 'var(--red)');
+}
+
+// ── Historial completo de movimientos ──────────────────────────────────────
+function loadPanolHistorial() {
+  var cont = document.getElementById('panol-list-historial');
+  if (!cont) return;
+  cont.innerHTML = '<div class="empty"><div class="icon">📜</div><p>Cargando historial...</p></div>';
+  db.from('panol_movimientos').select('*, panol_items(nombre, categoria)').order('created_at', {ascending: false}).limit(80).then(function(res) {
+    if (res.error) {
+      cont.innerHTML = '<div class="empty"><p>Error: ' + res.error.message + '</p></div>';
+      return;
+    }
+    var data = res.data || [];
+    if (!data.length) {
+      cont.innerHTML = '<div class="empty"><div class="icon">📜</div><p>Sin movimientos registrados</p></div>';
+      return;
+    }
+    var iconos = { salida: '📤', devolucion: '📥', baja: '🗑' };
+    var colores = { salida: 'var(--yellow)', devolucion: 'var(--green)', baja: 'var(--red)' };
+    var html = data.map(function(m) {
+      var nom = (m.panol_items && m.panol_items.nombre) || 'Ítem eliminado';
+      var icon = iconos[m.tipo] || '•';
+      var color = colores[m.tipo] || 'var(--text3)';
+      var detalle = '';
+      if (m.tipo === 'salida') detalle = 'Destino: ' + (m.destino || '') + (m.persona ? ' · ' + m.persona : '');
+      else if (m.tipo === 'devolucion') detalle = 'Devuelta a pañol';
+      else if (m.tipo === 'baja') detalle = 'Motivo: ' + (m.motivo || '');
+      return '<div class="card" style="border-left:3px solid ' + color + ';margin-bottom:8px">' +
+        '<div style="display:flex;justify-content:space-between;gap:8px;margin-bottom:4px">' +
+          '<div style="font-size:13px;font-weight:700">' + icon + ' ' + nom + (m.cantidad > 1 ? ' (x' + m.cantidad + ')' : '') + '</div>' +
+          '<span style="font-size:10px;color:var(--text3);white-space:nowrap">' + formatTs(m.created_at) + '</span>' +
+        '</div>' +
+        '<div style="font-size:11px;color:var(--text2)">' + detalle + '</div>' +
+        (m.observaciones ? '<div style="font-size:11px;color:var(--text3);margin-top:2px">' + m.observaciones + '</div>' : '') +
+        '<div style="font-size:10px;color:var(--text3);margin-top:4px">Registró: ' + (m.registrado_por || '') + '</div>' +
+      '</div>';
+    }).join('');
+    cont.innerHTML = html;
   });
 }
 
