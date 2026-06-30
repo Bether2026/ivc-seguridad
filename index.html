@@ -11544,9 +11544,13 @@ function _loadDash() {
 }
 function _renderFichajeRow(fr, canSeeGeo) {
   var _fEnTramite = fr.tramite_desde && !fr.tramite_hasta;
-  var h = '<div style="display:flex;align-items:center;gap:10px;padding:8px 6px;border-bottom:1px solid rgba(255,255,255,.05)' + (_fEnTramite ? ';background:rgba(245,158,11,0.06)' : '') + '">';
+  // Wrapper con scroll horizontal propio: en mobile la fila completa (nombre + hora + botones)
+  // suele ser mas ancha que la pantalla. Antes el contenedor padre (.card) tenia overflow:hidden,
+  // que CORTABA el contenido en vez de permitir deslizar. Este wrapper soluciona eso.
+  var h = '<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;border-bottom:1px solid rgba(255,255,255,.05)' + (_fEnTramite ? ';background:rgba(245,158,11,0.06)' : '') + '">';
+  h += '<div style="display:flex;align-items:center;gap:10px;padding:8px 6px;min-width:max-content">';
   h += '<span style="width:7px;height:7px;border-radius:50%;background:' + (_fEnTramite ? '#fbbf24' : '#10b981') + ';flex-shrink:0;box-shadow:0 0 6px ' + (_fEnTramite ? '#fbbf2499' : '#10b98199') + '"></span>';
-  h += '<div style="flex:1;min-width:0;overflow:hidden">';
+  h += '<div style="flex-shrink:0;width:128px;min-width:128px;overflow:hidden">';
   h += '<div style="font-size:13px;font-weight:600;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + fr.agente + '</div>';
   if (canSeeGeo && fr.geo_entrada && fr.geo_entrada.direccion) {
     h += '<div style="font-size:10px;color:var(--text3);margin-top:1px">&#128205; ' + fr.geo_entrada.direccion + '</div>';
@@ -11583,6 +11587,8 @@ function _renderFichajeRow(fr, canSeeGeo) {
     }
   }
   h += '</div>';
+  h += '</div>'; // cierre flex interno
+  h += '</div>'; // cierre wrapper overflow-x:auto
   return h;
 }
 
