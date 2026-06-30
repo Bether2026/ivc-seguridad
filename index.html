@@ -1374,6 +1374,10 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
       </div>
     </div>
 
+    <div class="form-group">
+      <label class="form-label" style="color:var(--text3);font-size:11px;text-transform:uppercase;letter-spacing:.06em">&#x23F0; Hora del evento <span style="font-size:10px;font-weight:400">(opcional &mdash; editala si el hecho ocurri&oacute; antes)</span></label>
+      <input type="time" class="form-input" id="n-hora-evento" style="font-size:15px;font-family:var(--mono)">
+    </div>
     <button class="btn-login" id="btn-save-nov" onclick="saveNov()">Guardar Novedad</button>
   </div>
 </div>
@@ -2722,6 +2726,10 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
             <span>Sacar foto(s) del punto ahora <span style="color:var(--red)">*</span></span>
           </button>
           <div id="ctrl-foto-prev" style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" style="color:var(--text3);font-size:11px;text-transform:uppercase;letter-spacing:.06em">&#x23F0; Hora del evento <span style="font-size:10px;font-weight:400">(opcional &mdash; editala si el control fue antes)</span></label>
+          <input type="time" class="form-input" id="ctrl-hora-evento" style="font-size:15px;font-family:var(--mono)">
         </div>
         <button class="btn-login" id="btn-save-ctrl" onclick="guardarControl()">&#x2713; Confirmar control</button>
       </div>
@@ -8358,7 +8366,13 @@ function verPunto(id) {
     if (!ctrl.length) { document.getElementById('pd-historial').innerHTML = '<div style="color:var(--text3);font-size:12px;padding:10px 0">Sin controles aún</div>'; return; }
     document.getElementById('pd-historial').innerHTML = ctrl.map(function(c) {
       var isOk = c.estado === 'ok';
-      return '<div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)"><div style="flex-shrink:0;width:28px;height:28px;border-radius:50%;background:' + (isOk ? 'rgba(16,185,129,.15)' : 'rgba(245,158,11,.15)') + ';display:flex;align-items:center;justify-content:center;font-size:14px">' + (isOk ? '&#x2705;' : '&#x26A0;&#xFE0F;') + '</div><div style="flex:1"><div style="display:flex;justify-content:space-between;margin-bottom:2px"><span style="font-size:12px;font-weight:700;color:' + (isOk ? 'var(--green)' : 'var(--yellow)') + '">' + (isOk ? 'Sin novedad' : 'Con novedad') + '</span><span style="font-size:10px;color:var(--text3)">' + (c.fecha||'') + ' ' + (c.hora||'') + '</span></div><div style="font-size:11px;color:var(--text3)">' + (c.agente||'') + '</div>' + (c.observaciones ? '<div style="font-size:12px;color:var(--text2);margin-top:4px">' + c.observaciones + '</div>' : '') + (c.foto_url ? '<img src="' + c.foto_url + '" style="width:100%;max-height:120px;object-fit:cover;border-radius:6px;margin-top:6px">' : '') + '</div></div>';
+      (function(c, isOk) {
+      var _ctrlHoraEvBadge = '';
+      if (c.hora_evento && c.hora && c.hora_evento !== c.hora) {
+        _ctrlHoraEvBadge = '<span style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:#fbbf24;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);border-radius:5px;padding:2px 7px;margin-top:4px">⏰ Evento: ' + c.hora_evento + ' · Registrado: ' + c.hora + '</span>';
+      }
+      return '<div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)"><div style="flex-shrink:0;width:28px;height:28px;border-radius:50%;background:' + (isOk ? 'rgba(16,185,129,.15)' : 'rgba(245,158,11,.15)') + ';display:flex;align-items:center;justify-content:center;font-size:14px">' + (isOk ? '&#x2705;' : '&#x26A0;&#xFE0F;') + '</div><div style="flex:1"><div style="display:flex;justify-content:space-between;margin-bottom:2px"><span style="font-size:12px;font-weight:700;color:' + (isOk ? 'var(--green)' : 'var(--yellow)') + '">' + (isOk ? 'Sin novedad' : 'Con novedad') + '</span><span style="font-size:10px;color:var(--text3)">' + (c.fecha||'') + ' ' + (c.hora||'') + '</span></div><div style="font-size:11px;color:var(--text3)">' + (c.agente||'') + '</div>' + (c.observaciones ? '<div style="font-size:12px;color:var(--text2);margin-top:4px">' + c.observaciones + '</div>' : '') + _ctrlHoraEvBadge + (c.foto_url ? '<img src="' + c.foto_url + '" style="width:100%;max-height:120px;object-fit:cover;border-radius:6px;margin-top:6px">' : '') + '</div></div>';
+    })(c, isOk)
     }).join('');
   });
   openOv('ov-punto-detalle');
@@ -8374,6 +8388,9 @@ function abrirRegistrarControl() {
   var prevEl = document.getElementById('ctrl-foto-prev'); if (prevEl) prevEl.innerHTML = '';
   var lbl = document.getElementById('ctrl-obs-label'); if (lbl) lbl.textContent = 'Observaciones';
   ['ok','nov'].forEach(function(x) { var btn = document.getElementById('ctrl-btn-' + x); if (btn) { btn.style.borderColor='var(--border2)'; btn.style.background='var(--bg3)'; btn.style.color='var(--text2)'; } });
+  // Pre-cargar hora del evento con la hora actual
+  var _cHoraEv = document.getElementById('ctrl-hora-evento');
+  if (_cHoraEv) _cHoraEv.value = _horaActualHHMM();
   closeOv('ov-punto-detalle');
   openOv('ov-control');
 }
@@ -8455,7 +8472,9 @@ function guardarControl() {
     db.from('controles_punto').insert({
       punto_id: CTRL_PUNTO_ID, agente: USER.nombre || USER.puesto, puesto: USER.puesto,
       estado: CTRL_ESTADO, observaciones: obs || null, foto_url: fotoUrl, fotos: fotoUrls,
-      fecha: ahora, hora: horaActualAR(), created_at: new Date().toISOString()
+      fecha: ahora, hora: horaActualAR(),
+      hora_evento: (function() { var el = document.getElementById('ctrl-hora-evento'); return (el && el.value) ? el.value : null; })(),
+      created_at: new Date().toISOString()
     }).then(function(r) {
       setLoading('btn-save-ctrl', false);
       if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
@@ -8474,6 +8493,7 @@ function guardarControl() {
             foto_url:  fotoUrl,
             fotos:     fotoUrls,
             pendiente: true,
+            hora_evento: (function() { var el = document.getElementById('ctrl-hora-evento'); return (el && el.value) ? el.value : null; })(),
             created_at: new Date().toISOString()
           };
           db.from('novedades').insert(novPayload).then(function(rn) {
@@ -12097,6 +12117,14 @@ function toggleOtroPuesto() {
   if (!esOtro) txt.value = '';
 }
 
+
+function _horaActualHHMM() {
+  var now = new Date();
+  var ar = new Date(now.toLocaleString('en-US', { timeZone: 'America/Argentina/Buenos_Aires' }));
+  var h = ar.getHours().toString().padStart(2, '0');
+  var m = ar.getMinutes().toString().padStart(2, '0');
+  return h + ':' + m;
+}
 async function abrirNuevaNovedad() {
   // Reset form
   var tipoEl = document.getElementById('n-tipo');
@@ -12127,6 +12155,9 @@ async function abrirNuevaNovedad() {
       }
     } catch(e) { console.error('Error cargando fichajes:', e); }
   }
+  // Pre-cargar hora del evento con la hora actual
+  var _nHoraEv = document.getElementById('n-hora-evento');
+  if (_nHoraEv) _nHoraEv.value = _horaActualHHMM();
   openOv('ov-nov');
 }
 
@@ -12183,6 +12214,7 @@ function _saveNov() {
             pendiente: pend,
             caso: null,
             cargado_por: $('n-agente').value || null,
+            hora_evento: (function() { var el = document.getElementById('n-hora-evento'); return (el && el.value) ? el.value : null; })(),
             fotos: []
           };
           _context39.n = 1;
@@ -12240,7 +12272,7 @@ function _saveNov() {
             }).catch(function() {});
           }
           FOTOS_PENDIENTES = [];
-          ['n-asunto-otro', 'n-ubicacion', 'n-detalle', 'n-texto-informe', 'n-nro-pd', 'n-nro-pu'].forEach(function (id) {
+          ['n-asunto-otro', 'n-ubicacion', 'n-detalle', 'n-texto-informe', 'n-nro-pd', 'n-nro-pu', 'n-hora-evento'].forEach(function (id) {
             var el = document.getElementById(id); if (el) el.value = '';
           });
           if ($('n-area')) $('n-area').value = '';
@@ -18107,7 +18139,17 @@ function renderNovedadesList(list) {
       }
       fotosHtml += '</div>';
     }
-    return '<div class="nov-item ' + '' + '">' + '<div class="nov-badges"><span class="badge ' + bc + '">' + (n.tipo || 'Otro') + '</span>' + pendBadge + urgBadge + altaBadge + '</div>' + '<div class="nov-title">' + (n.asunto || 'Sin titulo') + '</div>' + '<div class="nov-text">' + (n.detalle || '') + '</div>' + '<div class="nov-meta">' + '<span>📍 ' + (n.ubicacion || n.puesto) + '</span>' + '<span>' + formatTs(n.created_at) + ' · ' + n.puesto + '</span>' + cargBadge + casoBadge + '</div>' + fotosHtml + '</div>';
+    // Badge discrepancia hora_evento vs hora de carga
+    var horaEvBadge = '';
+    if (n.hora_evento) {
+      var _tsDate = new Date(n.created_at);
+      var _tsAR = new Date(_tsDate.toLocaleString('en-US', { timeZone: 'America/Argentina/Buenos_Aires' }));
+      var _tsHHMM = _tsAR.getHours().toString().padStart(2,'0') + ':' + _tsAR.getMinutes().toString().padStart(2,'0');
+      if (n.hora_evento !== _tsHHMM) {
+        horaEvBadge = '<div style="margin-top:5px"><span style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:#fbbf24;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);border-radius:5px;padding:2px 7px">⏰ Evento: ' + n.hora_evento + ' · Cargado: ' + _tsHHMM + '</span></div>';
+      }
+    }
+    return '<div class="nov-item ' + '' + '">' + '<div class="nov-badges"><span class="badge ' + bc + '">' + (n.tipo || 'Otro') + '</span>' + pendBadge + urgBadge + altaBadge + '</div>' + '<div class="nov-title">' + (n.asunto || 'Sin titulo') + '</div>' + '<div class="nov-text">' + (n.detalle || '') + '</div>' + '<div class="nov-meta">' + '<span>📍 ' + (n.ubicacion || n.puesto) + '</span>' + '<span>' + formatTs(n.created_at) + ' · ' + n.puesto + '</span>' + cargBadge + casoBadge + '</div>' + horaEvBadge + fotosHtml + '</div>';
   }).join('');
   document.getElementById('nov-list').innerHTML = html;
   ivcCacheGuardar('novedades', html);
