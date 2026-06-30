@@ -16843,9 +16843,7 @@ function llavesTab(tab, btn) {
 function loadLlaves() {
   var data = getLlavesDataActual();
   var totalConNombre = 0;
-  for (var nn = 1; nn <= 92; nn++) { if (data[nn] && data[nn].trim() !== '') totalConNombre++; }
-  // Para Base Castañares mostramos todos los 92 slots aunque estén vacíos
-  if (LLAVES_SEDE_ACTUAL === 'castanares') totalConNombre = 93;
+  for (var nn = 1; nn <= 92; nn++) { if (data[nn] && String(data[nn]).trim() !== '') totalConNombre++; }
   document.getElementById('llaves-total').textContent = totalConNombre;
   renderTablero({});
   var tableroFiltro = LLAVES_SEDE_ACTUAL === 'castanares' ? 'castanares' : 'obrador';
@@ -16866,7 +16864,16 @@ function loadLlaves() {
       if (!l.estado_actual || l.estado_actual === 'base') enObrador++;
       else if (l.estado_actual === 'prestada') retiradas++;
     }
-    var sinRegistrar = totalConNombre - LLAVES_CACHE.length;
+    // Total real = union del diccionario fijo (sugerencias) con las llaves ya cargadas en Supabase,
+    // asi un numero cargado fuera del diccionario predefinido tambien cuenta en el TOTAL.
+    var totalReal = totalConNombre;
+    for (var bnk in byNum) {
+      var bnkNum = parseInt(bnk);
+      var enDiccionario = data[bnkNum] && String(data[bnkNum]).trim() !== '';
+      if (!enDiccionario) totalReal++;
+    }
+    document.getElementById('llaves-total').textContent = totalReal;
+    var sinRegistrar = totalReal - LLAVES_CACHE.length;
     document.getElementById('llaves-base').textContent = enObrador;
     document.getElementById('llaves-prestadas').textContent = retiradas;
     document.getElementById('llaves-sa').textContent = sinRegistrar > 0 ? sinRegistrar : 0;
@@ -16879,21 +16886,31 @@ function renderTablero(byNum) {
   var cont = document.getElementById('llaves-tablero-grid');
   if (!cont) return;
   var data = getLlavesDataActual();
-  var esBC = LLAVES_SEDE_ACTUAL === 'castanares';
   var html = '';
-  var _dks = Object.keys(data).map(Number).sort(function(a,b){return a-b;});
-  var _nMin = _dks.length ? _dks[0] : 1;
-  var _nMax = _dks.length ? _dks[_dks.length-1] : 92;
-  for (var n = _nMin; n <= _nMax; n++) {
+  // Union de numeros: los que tienen nombre en el diccionario fijo (sugerencias predefinidas)
+  // MAS los que ya existen como llave real en Supabase (byNum), aunque no esten en el diccionario.
+  // Antes el tablero solo recorria el diccionario fijo, por lo que una llave nueva con un numero
+  // sin nombre predefinido (ej: Obrador 53, o cualquier numero en Base Castañares) quedaba invisible
+  // aunque estuviera guardada correctamente en la base de datos.
+  var numerosSet = {};
+  for (var nk in data) {
+    if (data[nk] && String(data[nk]).trim() !== '') numerosSet[parseInt(nk)] = true;
+  }
+  for (var bk in byNum) {
+    numerosSet[parseInt(bk)] = true;
+  }
+  var numeros = Object.keys(numerosSet).map(Number).sort(function(a,b){return a-b;});
+  for (var ni = 0; ni < numeros.length; ni++) {
+    var n = numeros[ni];
     var llave = byNum[n];
-    var objetivo = data[n] || '';
-    // Para Obrador Savio: solo mostrar las que tienen nombre. Para BC: mostrar todos los 92 slots
-    if (!esBC && !objetivo) continue;
-    var label = objetivo || ('Nro. ' + n); // BC sin nombre muestra "Nro. X"
+    // El nombre real cargado en Supabase tiene prioridad sobre el diccionario fijo (que es solo
+    // una sugerencia de autocompletado). Si la llave fue registrada con otro nombre, se respeta ese.
+    var objetivo = (llave && llave.nombre) ? llave.nombre : (data[n] || '');
+    var label = objetivo || ('Nro. ' + n);
     var retirada = llave && llave.estado_actual === 'prestada';
     var registrada = !!llave;
-    var color = retirada ? '#f59e0b' : registrada ? '#34d399' : (esBC && !objetivo ? 'rgba(255,255,255,0.15)' : 'rgba(96,165,250,0.3)');
-    var icon = retirada ? '📤' : registrada ? '🔑' : (esBC && !objetivo ? '◦' : '◦');
+    var color = retirada ? '#f59e0b' : registrada ? '#34d399' : 'rgba(96,165,250,0.3)';
+    var icon = retirada ? '📤' : registrada ? '🔑' : '◦';
     var short = label.length > 18 ? label.substring(0,16) + '…' : label;
     html += '<div onclick="abrirDetalleLlave(' + n + ')" title="' + n + ' - ' + label.replace(/"/g,'') + '" ';
     html += 'style="background:rgba(15,40,80,0.6);border:1.5px solid ' + color + ';border-radius:8px;padding:6px 4px;text-align:center;cursor:pointer;" ';
@@ -16953,15 +16970,18 @@ function filtrarLlaves() {
   var byNum = {};
   for (var i = 0; i < LLAVES_CACHE.length; i++) byNum[parseInt(LLAVES_CACHE[i].numero_tablero)] = LLAVES_CACHE[i];
   var data = getLlavesDataActual();
-  var esBC = LLAVES_SEDE_ACTUAL === 'castanares';
   var rows = [];
-  var _dks2 = Object.keys(data).map(Number).sort(function(a,b){return a-b;});
-  var _nMin2 = _dks2.length ? _dks2[0] : 1;
-  var _nMax2 = _dks2.length ? _dks2[_dks2.length-1] : 92;
-  for (var n = _nMin2; n <= _nMax2; n++) {
+  // Misma union que en renderTablero: diccionario fijo + llaves reales de Supabase.
+  var numerosSet2 = {};
+  for (var nk2 in data) {
+    if (data[nk2] && String(data[nk2]).trim() !== '') numerosSet2[parseInt(nk2)] = true;
+  }
+  for (var bk2 in byNum) numerosSet2[parseInt(bk2)] = true;
+  var numeros2 = Object.keys(numerosSet2).map(Number).sort(function(a,b){return a-b;});
+  for (var ni2 = 0; ni2 < numeros2.length; ni2++) {
+    var n = numeros2[ni2];
     var llave = byNum[n];
-    var obj = data[n] || '';
-    if (!esBC && !obj) continue; // Obrador: solo slots con nombre
+    var obj = (llave && llave.nombre) ? llave.nombre : (data[n] || '');
     var label = obj || ('Nro. ' + n);
     var estado = llave ? (llave.estado_actual || 'base') : 'sinregistrar';
     if (filtro === 'base' && estado !== 'base') continue;
