@@ -7518,7 +7518,7 @@ function initApp() {
   if ($('si-relevamiento')) $('si-relevamiento').style.display = canSeeRelev ? 'block' : 'none';
   if ($('nb-relevamiento')) $('nb-relevamiento').style.display = canSeeRelev ? 'flex' : 'none';
   // Pañol: exclusivo Emergencias y Administración del sistema
-  var canSeePanol = ['Emergencias', 'Administración'].indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN';
+  var canSeePanol = ['Emergencias', 'Administración'].indexOf(USER.puesto) >= 0;
   if ($('si-panol')) $('si-panol').style.display = canSeePanol ? 'block' : 'none';
   if ($('nb-panol')) $('nb-panol').style.display = canSeePanol ? 'flex' : 'none';
   if (!canSeeGPS) {
