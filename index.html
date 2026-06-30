@@ -2381,6 +2381,7 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
         <button class="tab active" onclick="llavesTab('tablero',this)">🗂 Tablero</button>
         <button class="tab" onclick="llavesTab('lista',this)">📋 Lista</button>
         <button class="tab" onclick="llavesTab('movimientos',this)">📜 Historial</button>
+        <button class="tab" onclick="llavesTab('entregadas',this)">📦 Entregadas</button>
       </div>
 
       <!-- TABLERO VISUAL -->
@@ -2405,6 +2406,11 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
       <!-- HISTORIAL MOVIMIENTOS -->
       <div id="llaves-tab-movimientos" style="display:none">
         <div id="llaves-historial-list"><div class="empty"><div class="icon">📜</div><p>Cargando historial...</p></div></div>
+      </div>
+
+      <!-- ENTREGAS DEFINITIVAS -->
+      <div id="llaves-tab-entregadas" style="display:none">
+        <div id="llaves-entregadas-list"><div class="empty"><div class="icon">📦</div><p>Cargando entregas...</p></div></div>
       </div>
     </div>
 
@@ -4379,6 +4385,61 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
     </div>
 
     <button class="btn-login" id="btn-save-mov" onclick="saveMovimiento()">✓ Registrar Movimiento</button>
+
+    <div id="mov-entrega-wrap" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)">
+      <button type="button" onclick="abrirEntregaDesdeMovimiento()" style="width:100%;padding:11px;border-radius:10px;border:1px solid rgba(239,68,68,.35);background:rgba(239,68,68,.08);color:#fca5a5;font-family:var(--font);font-size:12.5px;font-weight:700;cursor:pointer">📦 Registrar entrega definitiva (la llave deja de volver al tablero)</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ENTREGA DEFINITIVA DE LLAVE -->
+<div class="overlay" id="ov-entrega-llave">
+  <div class="modal">
+    <div class="modal-head"><span class="modal-title">📦 Entrega definitiva de llave</span><button class="btn-close" onclick="closeOv('ov-entrega-llave')">×</button></div>
+
+    <div id="entrega-llave-info" style="background:var(--bg3);border-radius:8px;padding:10px 12px;margin-bottom:12px"></div>
+    <input type="hidden" id="entrega-llave-id">
+    <input type="hidden" id="entrega-llave-numero">
+
+    <div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:10px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:#fca5a5">
+      Esta acción es <strong>definitiva</strong>. La llave se quita del tablero para siempre y no podrá registrarse como devuelta. Verificá los datos antes de confirmar.
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">¿A quién se entrega? <span style="color:var(--red)">*</span></label>
+      <input class="form-input" id="entrega-a-quien" placeholder="Nombre y apellido / empresa / organismo"/>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">¿Quién entrega? <span style="color:var(--red)">*</span></label>
+      <input class="form-input" id="entrega-quien-entrega" placeholder="Nombre del responsable que hace la entrega"/>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Fecha de entrega <span style="color:var(--red)">*</span></label>
+      <input type="date" class="form-input" id="entrega-fecha" style="font-family:var(--mono)"/>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Observaciones</label>
+      <textarea class="form-textarea" id="entrega-obs" style="min-height:70px" placeholder="Motivo de la entrega, detalle adicional..."></textarea>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label" style="color:var(--text3);font-size:11px;text-transform:uppercase;letter-spacing:.06em">📎 Documentación <span style="font-weight:400">(opcional — fotos o PDF, podés agregar varios)</span></label>
+      <div id="entrega-doc-drop" onclick="agregarDocEntrega()" style="border:2px dashed var(--border2);border-radius:var(--radius-sm);padding:14px;text-align:center;cursor:pointer;background:var(--bg3)">
+        <div style="font-size:24px;margin-bottom:4px">📎</div>
+        <div style="font-size:13px;color:var(--text2);font-weight:600">Tocá para adjuntar documentación</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">Foto del acta, recibo firmado, etc.</div>
+      </div>
+      <input type="file" id="entrega-doc-input" accept="image/*,application/pdf" multiple style="display:none" onchange="onDocEntregaSelected(this)">
+      <div id="entrega-doc-preview" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"></div>
+      <div id="entrega-doc-mas" style="display:none;margin-top:8px">
+        <button type="button" onclick="agregarDocEntrega()" style="width:100%;padding:10px;border-radius:var(--radius-xs);border:1px dashed var(--border2);background:none;color:var(--accent3);font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer">+ Agregar otro documento</button>
+      </div>
+    </div>
+
+    <button class="btn-login" id="btn-save-entrega" onclick="confirmarEntregaLlave()" style="background:linear-gradient(135deg,#ef4444,#b91c1c)">📦 Confirmar entrega definitiva</button>
   </div>
 </div>
 
@@ -16834,10 +16895,13 @@ function llavesTab(tab, btn) {
   var tT = document.getElementById('llaves-tab-tablero');
   var tL = document.getElementById('llaves-tab-lista');
   var tM = document.getElementById('llaves-tab-movimientos');
+  var tE = document.getElementById('llaves-tab-entregadas');
   if (tT) tT.style.display = tab === 'tablero' ? 'block' : 'none';
   if (tL) tL.style.display = tab === 'lista' ? 'block' : 'none';
   if (tM) tM.style.display = tab === 'movimientos' ? 'block' : 'none';
+  if (tE) tE.style.display = tab === 'entregadas' ? 'block' : 'none';
   if (tab === 'movimientos') loadHistorialLlaves();
+  if (tab === 'entregadas') loadEntregasLlaves();
 }
 
 function loadLlaves() {
@@ -16847,7 +16911,7 @@ function loadLlaves() {
   document.getElementById('llaves-total').textContent = totalConNombre;
   renderTablero({});
   var tableroFiltro = LLAVES_SEDE_ACTUAL === 'castanares' ? 'castanares' : 'obrador';
-  db.from('llaves').select('*').eq('tablero', tableroFiltro).order('numero_tablero', {ascending: true}).then(function(result) {
+  db.from('llaves').select('*').eq('tablero', tableroFiltro).neq('estado_actual', 'entregada').order('numero_tablero', {ascending: true}).then(function(result) {
     if (result.error) {
       console.error('Error cargando llaves:', result.error.message);
       document.getElementById('llaves-base').textContent = '—';
@@ -16951,6 +17015,14 @@ function abrirDetalleLlave(numero) {
   var destEl = document.getElementById('mov-destino'); if (destEl) destEl.value = '';
   var motivoEl = document.getElementById('mov-motivo'); if (motivoEl) motivoEl.value = '';
   toggleMovFields();
+  // Botón de entrega definitiva — solo visible para ADMIN
+  var btnEntregaWrap = document.getElementById('mov-entrega-wrap');
+  if (btnEntregaWrap) {
+    btnEntregaWrap.style.display = (USER && USER.rol === 'ADMIN') ? 'block' : 'none';
+    btnEntregaWrap.setAttribute('data-llave-id', llave.id);
+    btnEntregaWrap.setAttribute('data-llave-numero', numero);
+    btnEntregaWrap.setAttribute('data-llave-objetivo', objetivo);
+  }
   openOv('ov-mov-llave');
 }
 
@@ -17061,7 +17133,167 @@ function saveMovimiento() {
       if (result.error) { toast('Error: ' + result.error.message, 'err'); return; }
       closeOv('ov-mov-llave');
       toast(tipo === 'devolucion' ? 'Llave devuelta al tablero' : 'Llave retirada — registrado');
+      loadLlaves();
     });
+  });
+}
+
+// ── ENTREGA DEFINITIVA DE LLAVES (solo ADMIN) ──────────────────────────────
+var ENTREGA_DOCS = [];
+
+function abrirEntregaDesdeMovimiento() {
+  var wrap = document.getElementById('mov-entrega-wrap');
+  if (!wrap) return;
+  var id = wrap.getAttribute('data-llave-id');
+  var numero = wrap.getAttribute('data-llave-numero');
+  var objetivo = wrap.getAttribute('data-llave-objetivo');
+  document.getElementById('entrega-llave-id').value = id;
+  document.getElementById('entrega-llave-numero').value = numero;
+  document.getElementById('entrega-llave-info').innerHTML =
+    '<div style="font-size:15px;font-weight:800;margin-bottom:4px">Nro. ' + numero + ' — ' + objetivo + '</div>';
+  document.getElementById('entrega-a-quien').value = '';
+  document.getElementById('entrega-quien-entrega').value = '';
+  document.getElementById('entrega-obs').value = '';
+  var fechaEl = document.getElementById('entrega-fecha');
+  if (fechaEl) fechaEl.value = typeof fechaHoyAR === 'function' ? fechaHoyAR() : new Date().toISOString().slice(0,10);
+  ENTREGA_DOCS = [];
+  renderDocEntregaPreview();
+  closeOv('ov-mov-llave');
+  openOv('ov-entrega-llave');
+}
+
+function agregarDocEntrega() {
+  document.getElementById('entrega-doc-input').click();
+}
+
+function onDocEntregaSelected(input) {
+  var files = Array.prototype.slice.call(input.files);
+  files.forEach(function(f) { ENTREGA_DOCS.push(f); });
+  renderDocEntregaPreview();
+  input.value = '';
+}
+
+function renderDocEntregaPreview() {
+  var wrap = document.getElementById('entrega-doc-preview');
+  var btnMas = document.getElementById('entrega-doc-mas');
+  if (!wrap) return;
+  if (!ENTREGA_DOCS.length) {
+    wrap.innerHTML = '';
+    if (btnMas) btnMas.style.display = 'none';
+    return;
+  }
+  wrap.innerHTML = ENTREGA_DOCS.map(function(f, i) {
+    var esPdf = f.type === 'application/pdf';
+    var thumb = esPdf
+      ? '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:26px;background:var(--bg2)">📄</div>'
+      : '<img src="' + URL.createObjectURL(f) + '" style="width:100%;height:100%;object-fit:cover">';
+    return '<div style="position:relative;width:80px;height:80px;border-radius:8px;overflow:hidden;border:1px solid var(--border2)">' +
+      thumb +
+      '<button onclick="removeDocEntrega(' + i + ')" style="position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;border:none;background:rgba(0,0,0,.7);color:white;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center">×</button>' +
+      '</div>';
+  }).join('');
+  if (btnMas) btnMas.style.display = 'block';
+}
+
+function removeDocEntrega(idx) {
+  ENTREGA_DOCS.splice(idx, 1);
+  renderDocEntregaPreview();
+}
+
+function confirmarEntregaLlave() {
+  var id = document.getElementById('entrega-llave-id').value;
+  var numero = document.getElementById('entrega-llave-numero').value;
+  var aQuien = (document.getElementById('entrega-a-quien').value || '').trim();
+  var quienEntrega = (document.getElementById('entrega-quien-entrega').value || '').trim();
+  var fecha = document.getElementById('entrega-fecha').value;
+  var obs = (document.getElementById('entrega-obs').value || '').trim();
+
+  if (!aQuien) { toast('Indicá a quién se entrega la llave', 'err'); return; }
+  if (!quienEntrega) { toast('Indicá quién hace la entrega', 'err'); return; }
+  if (!fecha) { toast('Seleccioná la fecha de entrega', 'err'); return; }
+
+  showConfirm('📦', 'Confirmar entrega definitiva', 'Esta llave dejará de aparecer en el tablero para siempre. ¿Confirmás la entrega?', function() {
+    setLoading('btn-save-entrega', true);
+    var subidaDocs = ENTREGA_DOCS.length
+      ? Promise.all(ENTREGA_DOCS.map(function(f) { return uploadToR2Comprimido(f, 'llaves_entregas').catch(function() { return null; }); }))
+      : Promise.resolve([]);
+
+    subidaDocs.then(function(urls) {
+      var urlsValidas = urls.filter(function(u) { return !!u; });
+      db.from('llaves_entregas').insert({
+        llave_id: id,
+        numero_tablero: parseInt(numero),
+        entregada_a: aQuien,
+        entregada_por: quienEntrega,
+        fecha_entrega: fecha,
+        observaciones: obs || null,
+        documentos: urlsValidas,
+        registrado_por: USER ? (USER.nombre || USER.puesto) : ''
+      }).then(function(resIns) {
+        if (resIns.error) {
+          setLoading('btn-save-entrega', false);
+          toast('Error guardando entrega: ' + resIns.error.message, 'err');
+          return;
+        }
+        db.from('llaves').update({
+          estado_actual: 'entregada',
+          persona_actual: aQuien,
+          ubicacion_actual: 'Entregada definitivamente'
+        }).eq('id', id).then(function(resUpd) {
+          setLoading('btn-save-entrega', false);
+          if (resUpd.error) { toast('Error: ' + resUpd.error.message, 'err'); return; }
+          closeOv('ov-entrega-llave');
+          toast('📦 Llave Nro. ' + numero + ' marcada como entregada definitivamente');
+          ENTREGA_DOCS = [];
+          loadLlaves();
+        });
+      });
+    });
+  });
+}
+
+function loadEntregasLlaves() {
+  var cont = document.getElementById('llaves-entregadas-list');
+  if (!cont) return;
+  cont.innerHTML = '<div class="empty"><div class="icon">📦</div><p>Cargando entregas...</p></div>';
+  var tableroFiltro = LLAVES_SEDE_ACTUAL === 'castanares' ? 'castanares' : 'obrador';
+  db.from('llaves_entregas').select('*, llaves(numero_tablero, nombre, tablero)').order('fecha_entrega', {ascending: false}).then(function(res) {
+    if (res.error) {
+      cont.innerHTML = '<div class="empty"><p>Error: ' + res.error.message + '</p></div>';
+      return;
+    }
+    var data = (res.data || []).filter(function(e) { return e.llaves && e.llaves.tablero === tableroFiltro; });
+    if (!data.length) {
+      cont.innerHTML = '<div class="empty"><div class="icon">📦</div><p>Sin entregas registradas en esta sede</p></div>';
+      return;
+    }
+    var html = data.map(function(e) {
+      var nro = e.llaves ? e.llaves.numero_tablero : e.numero_tablero;
+      var nom = (e.llaves && e.llaves.nombre) || '';
+      var docsHtml = '';
+      if (e.documentos && e.documentos.length) {
+        docsHtml = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">' +
+          e.documentos.map(function(url) {
+            var esPdf = url.toLowerCase().indexOf('.pdf') >= 0;
+            return esPdf
+              ? '<a href="' + url + '" target="_blank" style="display:flex;align-items:center;gap:4px;padding:4px 8px;border-radius:6px;border:1px solid var(--border2);font-size:10px;color:var(--accent3);text-decoration:none">📄 PDF</a>'
+              : '<a href="' + url + '" target="_blank" style="display:block;width:56px;height:56px;border-radius:6px;overflow:hidden;border:1px solid var(--border2)"><img src="' + url + '" style="width:100%;height:100%;object-fit:cover" loading="lazy"></a>';
+          }).join('') +
+          '</div>';
+      }
+      return '<div class="card" style="border-left:3px solid #ef4444;margin-bottom:8px">' +
+        '<div style="display:flex;justify-content:space-between;gap:8px;margin-bottom:6px">' +
+          '<div style="font-size:14px;font-weight:800">Nro. ' + nro + (nom ? ' — ' + nom : '') + '</div>' +
+          '<span class="badge b-red">ENTREGADA</span>' +
+        '</div>' +
+        '<div style="font-size:12px;color:var(--text2);margin-bottom:2px">👤 Entregada a: <strong>' + (e.entregada_a || '') + '</strong></div>' +
+        '<div style="font-size:11px;color:var(--text3);margin-bottom:2px">Entregó: ' + (e.entregada_por || '') + '</div>' +
+        '<div style="font-size:11px;color:var(--text3);margin-bottom:2px">Fecha: ' + (e.fecha_entrega || '') + '</div>' +
+        (e.observaciones ? '<div style="font-size:12px;color:var(--text2);margin-top:6px">' + e.observaciones + '</div>' : '') +
+        docsHtml +
+      '</div>';
+    }).join('');
+    cont.innerHTML = html;
   });
 }
 
