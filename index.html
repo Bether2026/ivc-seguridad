@@ -1581,11 +1581,6 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
     <div class="form-group"><label class="form-label">Móvil / Vehículo *</label>
       <select class="form-select" id="c-movil">
         <option value="">— Seleccionar móvil —</option>
-        <option>S-10 · AA-909-LF</option>
-        <option>S-10 · AA-909-LD</option>
-        <option>Berlingo · MYH-863</option>
-        <option>S-10 vieja · EKT-637</option>
-        <option>Jumper · KWI-159</option>
       </select>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
@@ -1660,12 +1655,6 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
     <div class="form-group"><label class="form-label">Vehículo correcto *</label>
       <select class="form-select" id="em-movil">
         <option value="">— Seleccioná el vehículo correcto —</option>
-        <option>S-10 · AA-909-LF</option>
-        <option>S-10 · AA-909-LD</option>
-        <option>S-10 Gris · AA-909-LE</option>
-        <option>Berlingo · MYH-863</option>
-        <option>S-10 vieja · EKT-637</option>
-        <option>Jumper · KWI-159</option>
       </select>
     </div>
     <div class="form-group"><label class="form-label">Motivo de la corrección *</label>
@@ -1759,7 +1748,7 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
     <div class="form-group"><label class="form-label">Chofer</label>
       <select class="form-select" id="comb-chofer"><option value="">— Seleccionar —</option><option>ACOSTA PAMELA</option><option>ALVAREZ OZON NICOLAS MARCELO</option><option>ARROYO LAURA</option><option>CASTILLO ANGEL HERNAN</option><option>CONTE LUCAS EZEQUIEL</option><option>DEL COLLE DAMIAN EZEQUIEL</option><option>GIMENEZ GREGORIO</option><option>LUACES JONATHAN RICARDO</option></select>
     </div>
-    <div class="form-group"><label class="form-label">Móvil / Vehículo</label><select class="form-select" id="comb-movil"><option value="">— Seleccionar móvil —</option><option>S-10 · AA-909-LF</option><option>S-10 · AA-909-LD</option><option>Berlingo · MYH-863</option><option>S-10 vieja · EKT-637</option><option>Jumper · KWI-159</option></select></div>
+    <div class="form-group"><label class="form-label">Móvil / Vehículo</label><select class="form-select" id="comb-movil"><option value="">— Seleccionar móvil —</option></select></div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Litros</label><input class="form-input" type="number" step="0.1" id="comb-litros" placeholder="Litros"/></div>
       <div class="form-group"><label class="form-label">Importe ($)</label><input class="form-input" type="number" id="comb-importe" placeholder="Importe"/></div>
@@ -1783,7 +1772,7 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
     <div class="form-group"><label class="form-label">Chofer</label>
       <select class="form-select" id="inc-chofer"><option value="">— Seleccionar —</option><option>ACOSTA PAMELA</option><option>ALVAREZ OZON NICOLAS MARCELO</option><option>ARROYO LAURA</option><option>CONTE LUCAS EZEQUIEL</option><option>LUACES JONATHAN RICARDO</option></select>
     </div>
-    <div class="form-group"><label class="form-label">Móvil</label><select class="form-select" id="inc-movil"><option value="">— Seleccionar móvil —</option><option>S-10 · AA-909-LF</option><option>S-10 · AA-909-LD</option><option>Berlingo · MYH-863</option><option>S-10 vieja · EKT-637</option><option>Jumper · KWI-159</option></select></div>
+    <div class="form-group"><label class="form-label">Móvil</label><select class="form-select" id="inc-movil"><option value="">— Seleccionar móvil —</option></select></div>
     <div class="form-group"><label class="form-label">Tipo de incidencia</label>
       <select class="form-select" id="inc-tipo"><option>Pinchazo / rueda</option><option>Desperfecto mecánico</option><option>Choque / colisión</option><option>Falla eléctrica</option><option>Otra</option></select>
     </div>
@@ -1803,7 +1792,7 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
 <div class="overlay" id="ov-taller">
   <div class="modal">
     <div class="modal-head"><span class="modal-title">🔧 Ingreso a Taller</span><button class="btn-close" onclick="closeOv('ov-taller')">×</button></div>
-    <div class="form-group"><label class="form-label">Móvil</label><select class="form-select" id="tal-movil"><option value="">— Seleccionar móvil —</option><option>S-10 · AA-909-LF</option><option>S-10 · AA-909-LD</option><option>Berlingo · MYH-863</option><option>S-10 vieja · EKT-637</option><option>Jumper · KWI-159</option></select></div>
+    <div class="form-group"><label class="form-label">Móvil</label><select class="form-select" id="tal-movil"><option value="">— Seleccionar móvil —</option></select></div>
     <div class="form-group"><label class="form-label">Tipo</label>
       <select class="form-select" id="tal-tipo"><option>Service / Mantenimiento</option><option>Reparación mecánica</option><option>Reparación eléctrica</option><option>Carrocería / Pintura</option><option>Neumáticos</option><option>Otro</option></select>
     </div>
@@ -3263,6 +3252,7 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
         <button id="adm-tab-informe" onclick="selAdminTab('informe')" style="flex-shrink:0;padding:8px 18px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">📄 Informe Diario</button>
         <button id="adm-tab-metricas" onclick="selAdminTab('metricas')" style="flex-shrink:0;padding:8px 18px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">📈 Métricas</button>
         <button id="adm-tab-turnos" onclick="selAdminTab('turnos')" style="flex-shrink:0;padding:8px 18px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;position:relative">🕐 Turnos<span id="adm-tab-turnos-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:#ef4444;color:#fff;border-radius:50%;width:16px;height:16px;font-size:9px;font-weight:800;line-height:16px;text-align:center">!</span></button>
+        <button id="adm-tab-vehiculos" onclick="selAdminTab('vehiculos')" style="flex-shrink:0;padding:8px 18px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">🚗 Vehículos</button>
         <button id="adm-tab-dispositivos" onclick="selAdminTab('dispositivos')" style="flex-shrink:0;padding:8px 18px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;display:none">📱 Dispositivos</button>
       </div>
 
@@ -3665,6 +3655,17 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
         <!-- Lista -->
         <div id="adm-ag-lista">
           <div class="empty"><div class="icon">&#x1F465;</div><p>Carg&#xE1; el panel tocando la pesta&#xF1;a</p></div>
+        </div>
+      </div>
+      <div id="adm-panel-vehiculos" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+          <input id="adm-veh-search" oninput="filtrarVehiculosAdmin(this.value)" placeholder="&#x1F50D; Buscar por modelo o patente..." style="flex:1;min-width:180px;padding:9px 14px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--font);font-size:13px;outline:none"/>
+          <button onclick="nuevoVehiculoAdmin()" style="flex-shrink:0;display:flex;align-items:center;gap:6px;padding:9px 16px;border-radius:10px;border:1px solid rgba(59,130,246,.35);background:rgba(59,130,246,.1);color:#93c5fd;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">
+            + Nuevo vehículo
+          </button>
+        </div>
+        <div id="adm-veh-lista">
+          <div class="empty"><div class="icon">🚗</div><p>Cargá el panel tocando la pestaña</p></div>
         </div>
       </div>
         </div><!-- /view-admin -->
@@ -4562,6 +4563,35 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
     <button class="btn-login" id="btn-save-agente" onclick="saveAgente()">&#128101; Guardar Agente</button>
   </div>
 </div>
+</div>
+
+<!-- MODAL ABM VEHICULO -->
+<div class="overlay" id="ov-vehiculo">
+  <div class="modal">
+    <div class="modal-head"><span class="modal-title" id="vehiculo-modal-title">🚗 Nuevo Vehículo</span><button class="btn-close" onclick="closeOv('ov-vehiculo')">×</button></div>
+    <input type="hidden" id="vehiculo-edit-id">
+
+    <div class="form-group">
+      <label class="form-label">Modelo <span style="color:var(--red)">*</span></label>
+      <input class="form-input" id="veh-modelo" placeholder="Ej: S-10, Berlingo, Jumper..."/>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Patente <span style="color:var(--red)">*</span></label>
+      <input class="form-input" id="veh-patente" placeholder="Ej: AA-909-LF" style="text-transform:uppercase"/>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Observaciones <span style="font-weight:400;color:var(--text3);font-size:11px">(opcional)</span></label>
+      <textarea class="form-textarea" id="veh-obs" style="min-height:56px" placeholder="Detalle adicional..."></textarea>
+    </div>
+
+    <div class="form-group">
+      <label class="form-check"><input type="checkbox" id="veh-activo" checked> Vehículo activo (aparece en los selectores de la app)</label>
+    </div>
+
+    <button class="btn-login" id="btn-save-vehiculo" onclick="saveVehiculo()">🚗 Guardar Vehículo</button>
+  </div>
 </div>
 
 <!-- MODAL AJUSTE DE LICENCIA -->
@@ -7181,6 +7211,12 @@ function doLogout() {
   }, 'Salir', 'var(--red)');
 }
 function initApp() {
+  // Cargar vehiculos en los selectores de toda la app (combustible, incidencias, taller,
+  // choferes). Antes estaban hardcodeados con <option> fijos en el HTML; ahora se llenan
+  // dinamicamente desde Supabase para que Administracion pueda agregar vehiculos sin
+  // tener que editar codigo.
+  if (typeof cargarVehiculosEnSelectores === 'function') cargarVehiculosEnSelectores();
+
   // Usuario Choferes: solo ve Fichaje y Choferes
   if (USER.puesto === 'Choferes' && USER.rol === 'POR PUESTO') {
     var ocultarChof = ['nb-novedades','nb-objetivos','nb-llaves','nb-estadisticas','nb-rrhh','nb-agenda','nb-inmuebles','nb-admin'];
@@ -8664,7 +8700,7 @@ function scrollAdminTop() {
 }
 
 function selAdminTab(tab) {
-  var tabs = ['general','horas','personal','informe','metricas'];
+  var tabs = ['general','horas','personal','informe','metricas','vehiculos'];
   tabs.forEach(function(t) {
     var btn   = document.getElementById('adm-tab-' + t);
     var panel = document.getElementById('adm-panel-' + t);
@@ -8685,6 +8721,7 @@ function selAdminTab(tab) {
   if (tab === 'personal') { loadAgentesAdmin(); }
   if (tab === 'informe')  { iniciarTabInforme(); }
   if (tab === 'metricas') { selMetricaPeriodo('dia'); }
+  if (tab === 'vehiculos') { loadVehiculosAdmin(); }
 }
 
 
@@ -10049,6 +10086,149 @@ function editarAgenteAdmin(id) {
   if (heEl) heEl.value = a.hora_entrada || '';
   if (hsEl) hsEl.value = a.hora_salida || '';
   openOv('ov-agente');
+}
+
+// ── ABM DE VEHICULOS (solo Administracion del sistema) ──────────────────────
+var VEHICULOS_CACHE = [];
+
+function loadVehiculosAdmin() {
+  var cont = document.getElementById('adm-veh-lista');
+  if (!cont) return;
+  cont.innerHTML = '<div class="empty"><div class="icon">🚗</div><p>Cargando vehículos...</p></div>';
+  db.from('vehiculos').select('*').order('modelo', {ascending: true}).then(function(res) {
+    if (res.error) {
+      cont.innerHTML = '<div class="empty"><p>Error: ' + res.error.message + '</p></div>';
+      return;
+    }
+    VEHICULOS_CACHE = res.data || [];
+    renderVehiculosAdmin(VEHICULOS_CACHE);
+  });
+}
+
+function renderVehiculosAdmin(lista) {
+  var cont = document.getElementById('adm-veh-lista');
+  if (!cont) return;
+  if (!lista.length) {
+    cont.innerHTML = '<div class="empty"><div class="icon">🚗</div><p>Sin vehículos cargados. Tocá "+ Nuevo vehículo" para agregar uno.</p></div>';
+    return;
+  }
+  var html = lista.map(function(v) {
+    var inactivo = v.activo === false;
+    return '<div class="card" style="border-left:3px solid ' + (inactivo ? 'var(--text3)' : 'var(--accent3)') + ';margin-bottom:8px' + (inactivo ? ';opacity:0.55' : '') + '">' +
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">' +
+        '<div style="flex:1;min-width:0">' +
+          '<div style="font-size:14px;font-weight:800">' + (v.modelo || '') + ' · ' + (v.patente || '') + '</div>' +
+          (inactivo ? '<span class="badge b-gray" style="margin-top:4px;display:inline-block">INACTIVO</span>' : '') +
+          (v.observaciones ? '<div style="font-size:12px;color:var(--text3);margin-top:4px">' + v.observaciones + '</div>' : '') +
+        '</div>' +
+        '<div style="display:flex;gap:6px;flex-shrink:0">' +
+          '<button onclick="editarVehiculoAdmin(\'' + v.id + '\')" style="padding:6px 10px;border-radius:6px;border:1px solid rgba(245,158,11,.3);background:transparent;color:#fcd34d;font-size:11px;font-weight:700;cursor:pointer">✎</button>' +
+          '<button onclick="eliminarVehiculoAdmin(\'' + v.id + '\',\'' + (v.modelo||'').replace(/'/g,'') + ' ' + (v.patente||'').replace(/'/g,'') + '\')" style="padding:6px 10px;border-radius:6px;border:1px solid rgba(239,68,68,.3);background:transparent;color:#f87171;font-size:11px;font-weight:700;cursor:pointer">🗑</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+  cont.innerHTML = html;
+}
+
+function filtrarVehiculosAdmin(q) {
+  q = (q || '').toLowerCase().trim();
+  if (!q) { renderVehiculosAdmin(VEHICULOS_CACHE); return; }
+  var filtrados = VEHICULOS_CACHE.filter(function(v) {
+    return (v.modelo || '').toLowerCase().indexOf(q) >= 0 || (v.patente || '').toLowerCase().indexOf(q) >= 0;
+  });
+  renderVehiculosAdmin(filtrados);
+}
+
+function nuevoVehiculoAdmin() {
+  document.getElementById('vehiculo-modal-title').textContent = '🚗 Nuevo Vehículo';
+  document.getElementById('vehiculo-edit-id').value = '';
+  document.getElementById('veh-modelo').value = '';
+  document.getElementById('veh-patente').value = '';
+  document.getElementById('veh-obs').value = '';
+  document.getElementById('veh-activo').checked = true;
+  openOv('ov-vehiculo');
+}
+
+function editarVehiculoAdmin(id) {
+  var v = null;
+  for (var i = 0; i < VEHICULOS_CACHE.length; i++) {
+    if (VEHICULOS_CACHE[i].id === id) { v = VEHICULOS_CACHE[i]; break; }
+  }
+  if (!v) return;
+  document.getElementById('vehiculo-modal-title').textContent = '🚗 Editar Vehículo';
+  document.getElementById('vehiculo-edit-id').value = v.id;
+  document.getElementById('veh-modelo').value = v.modelo || '';
+  document.getElementById('veh-patente').value = v.patente || '';
+  document.getElementById('veh-obs').value = v.observaciones || '';
+  document.getElementById('veh-activo').checked = v.activo !== false;
+  openOv('ov-vehiculo');
+}
+
+function saveVehiculo() {
+  var id = document.getElementById('vehiculo-edit-id').value;
+  var modelo = (document.getElementById('veh-modelo').value || '').trim();
+  var patente = (document.getElementById('veh-patente').value || '').trim().toUpperCase();
+  var obs = (document.getElementById('veh-obs').value || '').trim();
+  var activo = document.getElementById('veh-activo').checked;
+
+  if (!modelo) { toast('Indicá el modelo del vehículo', 'err'); return; }
+  if (!patente) { toast('Indicá la patente', 'err'); return; }
+
+  var payload = { modelo: modelo, patente: patente, observaciones: obs || null, activo: activo };
+  setLoading('btn-save-vehiculo', true);
+
+  var query = id
+    ? db.from('vehiculos').update(payload).eq('id', id)
+    : db.from('vehiculos').insert(payload);
+
+  query.then(function(result) {
+    setLoading('btn-save-vehiculo', false);
+    if (result.error) { toast('Error: ' + result.error.message, 'err'); return; }
+    closeOv('ov-vehiculo');
+    toast(id ? '✓ Vehículo actualizado' : '✓ Vehículo agregado');
+    loadVehiculosAdmin();
+    cargarVehiculosEnSelectores();
+  });
+}
+
+function eliminarVehiculoAdmin(id, nombre) {
+  showConfirm('🗑️', 'Eliminar vehículo', '¿Eliminar ' + nombre + ' del sistema? Esta acción no se puede deshacer.', function() {
+    db.from('vehiculos').delete().eq('id', id).then(function(r) {
+      if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+      toast('✓ Vehículo eliminado');
+      loadVehiculosAdmin();
+      cargarVehiculosEnSelectores();
+    });
+  }, 'Eliminar', 'var(--red)');
+}
+
+// Llena dinamicamente los selectores de movil/vehiculo de toda la app (combustible,
+// incidencias, taller) a partir de la tabla vehiculos. Antes estaban hardcodeados
+// con <option> fijos repetidos en 4 lugares del HTML, asi que agregar un vehiculo
+// nuevo requeria editar el codigo. Ahora se cargan dinamicamente al iniciar la app
+// y cada vez que se agrega/edita/elimina uno desde el panel de Administracion.
+function cargarVehiculosEnSelectores() {
+  db.from('vehiculos').select('*').eq('activo', true).order('modelo', {ascending: true}).then(function(res) {
+    if (res.error) { console.error('Error cargando vehiculos para selectores:', res.error.message); return; }
+    var lista = res.data || [];
+    var selectIds = ['c-movil', 'em-movil', 'comb-movil', 'inc-movil', 'tal-movil'];
+    var optionsVehiculos = lista.map(function(v) {
+      var label = (v.modelo || '') + ' · ' + (v.patente || '');
+      return '<option>' + label.replace(/</g,'&lt;') + '</option>';
+    }).join('');
+    selectIds.forEach(function(selId) {
+      var sel = document.getElementById(selId);
+      if (!sel) return;
+      var valorActual = sel.value;
+      // Conservar la opcion placeholder propia de cada select (el texto varia entre ellos)
+      var placeholderOpt = sel.querySelector('option[value=""]');
+      var placeholderHtml = placeholderOpt ? placeholderOpt.outerHTML : '<option value="">— Seleccionar móvil —</option>';
+      sel.innerHTML = placeholderHtml + optionsVehiculos;
+      // Mantener la seleccion previa si todavia existe en la nueva lista
+      if (valorActual) sel.value = valorActual;
+    });
+  });
 }
 
 function nuevoAgenteAdmin() {
