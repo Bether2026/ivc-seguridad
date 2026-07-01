@@ -11069,10 +11069,15 @@ function loadHorasReales() {
           fichsDia.forEach(function(f) {
             if (!f.entrada) return;
             var ent = new Date(f.entrada);
-            _entrada = f.entrada;
+            // Primera entrada del día (no sobrescribir si ya hay una más temprana) —
+            // antes esto se pisaba con cada fichaje y terminaba mostrando la entrada
+            // del ÚLTIMO fichaje procesado, no la real del día, cuando el agente
+            // fichaba en más de un puesto en la misma jornada.
+            if (!_entrada || new Date(f.entrada) < new Date(_entrada)) _entrada = f.entrada;
             if (f.salida) {
               var sal = new Date(f.salida);
-              _salida = f.salida;
+              // Última salida del día
+              if (!_salida || new Date(f.salida) > new Date(_salida)) _salida = f.salida;
               var diff = (sal - ent) / 3600000;
               if (diff < 0) diff += 24;
               totalDia += diff;
@@ -11259,12 +11264,16 @@ function renderHorasTabla(rows, diasMes) {
         balanceTxt = '—';
       } else if (dia.hs !== null && dia.hs > 0) {
         // Tiene registro
+        // FIX: antes usaba getUTCHours()/getUTCMinutes() directo sobre el timestamp UTC,
+        // sin restar las 3 horas de Argentina. Eso desfasaba el horario mostrado en esta
+        // tabla 3hs respecto al resto de la app (Historial de fichajes, formatTs, etc.),
+        // que si convierte correctamente a hora AR.
         if (dia._entrada) {
-          var eIn = new Date(dia._entrada);
+          var eIn = new Date(new Date(dia._entrada).getTime() - 3 * 60 * 60 * 1000);
           entrada = String(eIn.getUTCHours()).padStart(2,'0') + ':' + String(eIn.getUTCMinutes()).padStart(2,'0');
         }
         if (dia._salida) {
-          var eSal = new Date(dia._salida);
+          var eSal = new Date(new Date(dia._salida).getTime() - 3 * 60 * 60 * 1000);
           salida = String(eSal.getUTCHours()).padStart(2,'0') + ':' + String(eSal.getUTCMinutes()).padStart(2,'0');
         } else {
           salida = '\u26A0 sin';
