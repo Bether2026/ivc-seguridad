@@ -2009,7 +2009,20 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
         </select>
       </div>
       <div class="form-group"><label class="form-label" id="f-agente-label">Agente</label>
-        <select class="form-select" id="f-sel" onchange="selAgent(this.value)"><option value="">— Seleccionar agente —</option></select>
+        <!-- Buscador de agente: reemplaza el <select> nativo que en mobile obliga a scrollear
+             toda la lista. El input filtra en tiempo real y muestra un dropdown propio. -->
+        <div id="f-sel-wrap" style="position:relative">
+          <input type="text" id="f-sel-input" autocomplete="off" autocorrect="off" spellcheck="false"
+            placeholder="Escribí el nombre del agente..."
+            oninput="filtrarAgentesFichaje(this.value)"
+            onfocus="filtrarAgentesFichaje(this.value)"
+            onblur="setTimeout(function(){cerrarDropAgentes()},180)"
+            style="width:100%;padding:11px 14px;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;color:var(--text);font-family:var(--font);font-size:14px;outline:none;box-sizing:border-box">
+          <div id="f-sel-clear" onclick="limpiarSelAgente()" style="display:none;position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:18px;color:var(--text3);cursor:pointer;line-height:1">×</div>
+          <div id="f-sel-drop" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--bg2);border:1px solid var(--border2);border-radius:10px;z-index:9999;max-height:240px;overflow-y:auto;box-shadow:0 8px 32px rgba(0,0,0,.45)"></div>
+        </div>
+        <!-- select oculto para mantener compatibilidad con selAgent() y todo el codigo existente -->
+        <select id="f-sel" onchange="selAgent(this.value)" style="display:none"><option value="">— Seleccionar agente —</option></select>
       </div>
       <!-- Campo hora manual — SOLO Administrador de sistema -->
       <div class="form-group" id="f-hora-override-wrap" style="display:none">
@@ -12243,8 +12256,95 @@ function getFechaFichaje() {
   return fechaHoyAR() || '';
 }
 
+// ── BUSCADOR DE AGENTES EN FICHAJE ──────────────────────────────────────────
+// Reemplaza el <select> nativo de Android/iOS que obliga a scrollear cientos
+// de nombres. El input filtra en tiempo real y muestra un dropdown propio.
+// El <select id="f-sel"> sigue existiendo (oculto) para mantener compatibilidad
+// con selAgent() y todo el codigo de fichaje existente.
+
+function filtrarAgentesFichaje(q) {
+  var drop = document.getElementById('f-sel-drop');
+  var clearBtn = document.getElementById('f-sel-clear');
+  if (!drop) return;
+  if (clearBtn) clearBtn.style.display = q ? 'block' : 'none';
+  q = (q || '').trim().toLowerCase();
+  // Filtrar el array AGENTES (ya ordenado alfabeticamente)
+  var fuente = (typeof AGENTES !== 'undefined' && AGENTES.length) ? AGENTES : [];
+  var filtrados = q
+    ? fuente.filter(function(a) { return a.toLowerCase().indexOf(q) >= 0; })
+    : fuente;
+  if (!filtrados.length) {
+    drop.innerHTML = '<div style="padding:12px 14px;font-size:13px;color:var(--text3)">Sin resultados</div>';
+    drop.style.display = 'block';
+    return;
+  }
+  drop.innerHTML = filtrados.map(function(a) {
+    // Resaltar el fragmento que coincide con la búsqueda
+    var label = a;
+    if (q) {
+      var idx = a.toLowerCase().indexOf(q);
+      if (idx >= 0) {
+        label = a.substring(0, idx) +
+          '<strong style="color:var(--accent3)">' + a.substring(idx, idx + q.length) + '</strong>' +
+          a.substring(idx + q.length);
+      }
+    }
+    return '<div onclick="elegirAgenteFichaje(\'' + a.replace(/'/g, "\\'") + '\')" ' +
+      'style="padding:11px 14px;font-size:14px;font-weight:600;cursor:pointer;border-bottom:1px solid var(--border);transition:background .12s" ' +
+      'onmouseover="this.style.background=\'var(--bg3)\'" onmouseout="this.style.background=\'\'">' +
+      label + '</div>';
+  }).join('');
+  drop.style.display = 'block';
+}
+
+function elegirAgenteFichaje(nombre) {
+  var input = document.getElementById('f-sel-input');
+  var drop = document.getElementById('f-sel-drop');
+  var clearBtn = document.getElementById('f-sel-clear');
+  var sel = document.getElementById('f-sel');
+  if (input) input.value = nombre;
+  if (drop) drop.style.display = 'none';
+  if (clearBtn) clearBtn.style.display = 'block';
+  // Sincronizar con el select oculto para que selAgent() funcione igual que antes
+  if (sel) {
+    // Agregar la opcion si no existe (puede pasar si AGENTES se cargo despues)
+    var existe = Array.prototype.some.call(sel.options, function(o) { return o.value === nombre; });
+    if (!existe) {
+      var opt = document.createElement('option');
+      opt.value = nombre;
+      opt.textContent = nombre;
+      sel.appendChild(opt);
+    }
+    sel.value = nombre;
+  }
+  selAgent(nombre);
+}
+
+function cerrarDropAgentes() {
+  var drop = document.getElementById('f-sel-drop');
+  if (drop) drop.style.display = 'none';
+}
+
+function limpiarSelAgente() {
+  var input = document.getElementById('f-sel-input');
+  var drop = document.getElementById('f-sel-drop');
+  var clearBtn = document.getElementById('f-sel-clear');
+  var sel = document.getElementById('f-sel');
+  if (input) { input.value = ''; input.focus(); }
+  if (drop) drop.style.display = 'none';
+  if (clearBtn) clearBtn.style.display = 'none';
+  if (sel) sel.value = '';
+  selAgent('');
+}
+
 function selAgent(nombre) {
   SEL_AGENT = nombre || null;
+  // Sincronizar el input visible del buscador cuando selAgent se llama
+  // desde otras partes del codigo (ej: al tocar un nombre en la lista de fichados activos)
+  var _sinpVis = document.getElementById('f-sel-input');
+  var _sclearBtn = document.getElementById('f-sel-clear');
+  if (_sinpVis && _sinpVis.value !== (nombre || '')) _sinpVis.value = nombre || '';
+  if (_sclearBtn) _sclearBtn.style.display = nombre ? 'block' : 'none';
   if (!nombre) {
     $('f-name').textContent = 'Sin agente seleccionado';
     $('f-info').textContent = 'Seleccioná un agente para fichar';
