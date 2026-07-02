@@ -13281,6 +13281,63 @@ var OBJ_FOTO_FILE = null;
 var OBJ_UPD_FOTOS = [];
 var OBJ_CON_INCIDENCIA = false;
 
+// ── Persistencia de fotos en curso para "Registrar punto" ──────────────
+// Protege contra el caso conocido de que Android mate la pestaña/WebView
+// al abrir la cámara varias veces seguidas (mismo problema que ya existe
+// documentado para el formulario de Novedades, pero acá faltaba la defensa).
+// Si eso pasa, al reabrir el punto se recuperan las fotos ya tomadas en vez
+// de perderlas en silencio. No afecta el flujo normal si IndexedDB no está
+// disponible: en ese caso simplemente no persiste nada y todo sigue igual.
+var IVC_STAGE_DB_NAME = 'ivc_staging';
+var IVC_STAGE_STORE = 'obj_fotos';
+function ivcStageDB() {
+  return new Promise(function(resolve) {
+    if (!window.indexedDB) { resolve(null); return; }
+    try {
+      var req = indexedDB.open(IVC_STAGE_DB_NAME, 1);
+      req.onupgradeneeded = function(e) {
+        var db = e.target.result;
+        if (!db.objectStoreNames.contains(IVC_STAGE_STORE)) db.createObjectStore(IVC_STAGE_STORE);
+      };
+      req.onsuccess = function(e) { resolve(e.target.result); };
+      req.onerror = function() { resolve(null); };
+    } catch (e) { resolve(null); }
+  });
+}
+function ivcGuardarStageObj(objId) {
+  if (!objId) return;
+  ivcStageDB().then(function(db) {
+    if (!db) return;
+    try {
+      var tx = db.transaction(IVC_STAGE_STORE, 'readwrite');
+      tx.objectStore(IVC_STAGE_STORE).put(OBJ_UPD_FOTOS.slice(), objId);
+    } catch (e) { /* no interrumpir el flujo si esto falla */ }
+  });
+}
+function ivcLimpiarStageObj(objId) {
+  if (!objId) return;
+  ivcStageDB().then(function(db) {
+    if (!db) return;
+    try {
+      var tx = db.transaction(IVC_STAGE_STORE, 'readwrite');
+      tx.objectStore(IVC_STAGE_STORE).delete(objId);
+    } catch (e) {}
+  });
+}
+function ivcRestaurarStageObj(objId) {
+  return ivcStageDB().then(function(db) {
+    if (!db || !objId) return [];
+    return new Promise(function(resolve) {
+      try {
+        var tx = db.transaction(IVC_STAGE_STORE, 'readonly');
+        var req = tx.objectStore(IVC_STAGE_STORE).get(objId);
+        req.onsuccess = function() { resolve(req.result || []); };
+        req.onerror = function() { resolve([]); };
+      } catch (e) { resolve([]); }
+    });
+  });
+}
+
 function previewObjFoto(input) {
   OBJ_FOTO_FILE = input.files[0] || null;
   var wrap = document.getElementById('obj-foto-preview');
@@ -13294,11 +13351,13 @@ function previewUpdFoto(input) {
   OBJ_UPD_FOTOS = OBJ_UPD_FOTOS.concat(nuevos);
   input.value = '';
   _renderUpdFotos();
+  ivcGuardarStageObj((document.getElementById('upd-obj-id') || {}).value);
 }
 
 function quitarUpdFoto(idx) {
   OBJ_UPD_FOTOS.splice(idx, 1);
   _renderUpdFotos();
+  ivcGuardarStageObj((document.getElementById('upd-obj-id') || {}).value);
 }
 
 function _renderUpdFotos() {
@@ -13462,6 +13521,17 @@ function openUpdObj(id, prog) {
   OBJ_CON_INCIDENCIA = false;
   selIncidencia(false); // reset buttons to Sin incidencia
   openOv('ov-obj-upd');
+
+  // Si quedaron fotos pendientes de una sesión anterior interrumpida
+  // (ej: Android cerró la app al usar la cámara), las recuperamos acá
+  // en vez de que se pierdan en silencio.
+  ivcRestaurarStageObj(id).then(function(fotosPendientes) {
+    if (fotosPendientes && fotosPendientes.length) {
+      OBJ_UPD_FOTOS = fotosPendientes;
+      _renderUpdFotos();
+      toast('📷 Se recuperaron ' + fotosPendientes.length + ' foto(s) que habían quedado sin guardar');
+    }
+  });
 }
 
 function abrirFotoLightbox(url) {
@@ -13577,7 +13647,13 @@ async function saveUpdObj() {
         }
       }
       fotoUrl = fotosUrls[0] || null; // mantiene compatibilidad con el campo singular existente
-      if (OBJ_UPD_FOTOS.length && !fotosUrls.length) toast('Las fotos no pudieron subirse', 'err');
+      if (OBJ_UPD_FOTOS.length && !fotosUrls.length) {
+        toast('Las fotos no pudieron subirse', 'err');
+      } else if (fotosUrls.length < OBJ_UPD_FOTOS.length) {
+        // Antes esto pasaba desapercibido: se guardaban menos fotos de las
+        // seleccionadas sin ningún aviso. Ahora se informa explícitamente.
+        toast('⚠️ Se subieron ' + fotosUrls.length + ' de ' + OBJ_UPD_FOTOS.length + ' fotos — volvé a intentar agregar las que faltan', 'err');
+      }
     } catch(e) {
       console.error('Error foto:', e);
     }
@@ -13621,6 +13697,8 @@ async function saveUpdObj() {
 
   setLoading('btn-save-upd', false);
   if (saveRes.error) { toast('Error: ' + saveRes.error.message, 'err'); return; }
+
+  ivcLimpiarStageObj(id);
 
   // Auto-generate novedad if incidencia
   if (OBJ_CON_INCIDENCIA && obs) {
