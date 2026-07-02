@@ -2549,6 +2549,7 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
             </div>
             <div style="display:flex;gap:8px;flex-wrap:wrap">
               <button onclick="guardarBorradorInforme()" id="btn-guardar-borrador" style="padding:8px 14px;border-radius:10px;border:1px solid rgba(96,165,250,.35);background:rgba(96,165,250,.1);color:#93c5fd;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">💾 Guardar</button>
+              <button onclick="sincronizarInformeOriginales()" style="padding:8px 14px;border-radius:10px;border:1px solid rgba(251,146,60,.35);background:rgba(251,146,60,.08);color:#fdba74;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer" title="Guardar las correcciones en las novedades y recorridos originales">⬆ Guardar en originales</button>
               <button onclick="descargarInformeFinal()" style="padding:8px 18px;border-radius:10px;border:1px solid rgba(16,185,129,.35);background:rgba(16,185,129,.15);color:#6ee7b7;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">⬇ Descargar</button>
             </div>
           </div>
@@ -2563,6 +2564,22 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
           <input type="file" id="inf-foto-extra-input" accept="image/*" style="display:none" onchange="onFotoExtraInformeSelected(this)">
         </div>
         <div id="inf-preview-frame" style="border:1px solid var(--border2);border-radius:10px;overflow:hidden;background:#fff;min-height:300px"></div>
+      </div>
+
+      <!-- HISTORIAL PD / PU -->
+      <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:16px;margin-top:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:10px">
+          <div>
+            <div style="font-size:13px;font-weight:700;color:var(--text)">📋 Historial de PD / PU</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px">Todos los informes cargados por Administración, agrupados por día</div>
+          </div>
+          <button onclick="cargarHistorialPDs()" style="padding:8px 16px;border-radius:10px;border:1px solid rgba(96,165,250,.35);background:rgba(96,165,250,.08);color:#93c5fd;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">🔄 Cargar</button>
+        </div>
+        <div id="inf-hist-status" style="display:none;padding:10px 14px;background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2);border-radius:10px;margin-bottom:10px;font-size:12px;color:#93c5fd;display:none;align-items:center;gap:8px">
+          <span class="spinner" style="width:12px;height:12px;border-width:2px"></span>
+          <span>Cargando historial...</span>
+        </div>
+        <div id="inf-hist-lista"></div>
       </div>
     </div>
 
@@ -6638,7 +6655,60 @@ function abrirSelectorFoto(inputId) {
     '</div>';
   document.body.appendChild(modal);
 }
+// ── Draft de novedad: protege el texto del form si Android mata la app al abrir la cámara ──
+var NOV_DRAFT_KEY = 'ivc_nov_draft';
+var NOV_DRAFT_TTL = 30 * 60 * 1000; // 30 minutos
+var NOV_DRAFT_FIELDS = ['n-puesto-sel','n-puesto-otro-txt','n-tipo','n-asunto-otro','n-ubicacion','n-detalle','n-agente','n-area','n-urgente','n-nro-pd','n-nro-pu','n-texto-informe','n-hora-evento'];
+
+function guardarDraftNovedad() {
+  var ov = document.getElementById('ov-nov');
+  if (!ov || !ov.classList.contains('open')) return; // solo si el form de novedad está abierto
+  if (window._EDIT_NOV_ID) return; // no interferir con ediciones
+  try {
+    var data = { _ts: Date.now(), _campos: {} };
+    NOV_DRAFT_FIELDS.forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el && el.value) data._campos[id] = el.value;
+    });
+    var pend = document.getElementById('n-pend');
+    if (pend) data._pend = !!pend.checked;
+    localStorage.setItem(NOV_DRAFT_KEY, JSON.stringify(data));
+  } catch (e) { /* localStorage lleno o bloqueado: no romper el flujo de la cámara */ }
+}
+
+function restaurarDraftNovedad() {
+  try {
+    var raw = localStorage.getItem(NOV_DRAFT_KEY);
+    if (!raw) return;
+    var data = JSON.parse(raw);
+    if (!data || !data._ts || (Date.now() - data._ts) > NOV_DRAFT_TTL) {
+      localStorage.removeItem(NOV_DRAFT_KEY);
+      return;
+    }
+    var restaurado = false;
+    NOV_DRAFT_FIELDS.forEach(function(id) {
+      if (data._campos && data._campos[id] !== undefined) {
+        var el = document.getElementById(id);
+        if (el) { el.value = data._campos[id]; restaurado = true; }
+      }
+    });
+    var pend = document.getElementById('n-pend');
+    if (pend && data._pend) pend.checked = true;
+    if (restaurado) {
+      // Reaplicar visibilidad de campos condicionales
+      if (typeof toggleOtroAsunto === 'function') toggleOtroAsunto();
+      if (typeof toggleOtroPuesto === 'function') toggleOtroPuesto();
+      toast('\u270D Se restaur\u00F3 el borrador de la novedad (las fotos deben volver a tomarse)');
+    }
+  } catch (e) { /* draft corrupto: ignorar */ }
+}
+
+function limpiarDraftNovedad() {
+  try { localStorage.removeItem(NOV_DRAFT_KEY); } catch (e) {}
+}
+
 function usarCamara(inputId) {
+  guardarDraftNovedad();
   var modal = document.getElementById('foto-selector-modal');
   if (modal) modal.remove();
   var input = document.getElementById(inputId);
@@ -6648,6 +6718,7 @@ function usarCamara(inputId) {
   setTimeout(function() { input.removeAttribute('capture'); }, 500);
 }
 function usarGaleria(inputId) {
+  guardarDraftNovedad();
   var modal = document.getElementById('foto-selector-modal');
   if (modal) modal.remove();
   var input = document.getElementById(inputId);
@@ -9709,6 +9780,191 @@ function iniciarTabInforme() {
   if (autorEl && !autorEl.value && USER) autorEl.value = USER.nombre || USER.puesto || '';
 }
 
+function cargarHistorialPDs() {
+  var statusEl = document.getElementById('inf-hist-status');
+  var listaEl  = document.getElementById('inf-hist-lista');
+  if (!listaEl) return;
+
+  listaEl.innerHTML = '';
+  if (statusEl) { statusEl.style.display = 'flex'; }
+
+  // Traer novedades que tengan nro_pd o nro_pu, de Administración
+  db.from('novedades')
+    .select('id, created_at, puesto, asunto, nro_pd, nro_pu, texto_informe')
+    .or('nro_pd.not.is.null,nro_pu.not.is.null')
+    .eq('puesto', 'Administración')
+    .order('created_at', { ascending: false })
+    .then(function(res) {
+      if (statusEl) statusEl.style.display = 'none';
+
+      var rows = res.data || [];
+
+      if (rows.length === 0) {
+        listaEl.innerHTML = '<div style="text-align:center;padding:18px;font-size:13px;color:var(--text3)">Sin PD / PU registrados aún.</div>';
+        return;
+      }
+
+      // Agrupar por fecha Argentina (UTC-3)
+      var grupos = {}; // { 'YYYY-MM-DD': [rows] }
+      var orden  = []; // fechas en orden de aparición (ya viene desc)
+
+      for (var i = 0; i < rows.length; i++) {
+        var r = rows[i];
+        // Calcular fecha AR a partir del timestamp UTC
+        var d = new Date(r.created_at);
+        d.setUTCHours(d.getUTCHours() - 3); // AR = UTC-3
+        var fechaAR = d.toISOString().substring(0, 10);
+
+        if (!grupos[fechaAR]) {
+          grupos[fechaAR] = [];
+          orden.push(fechaAR);
+        }
+        grupos[fechaAR].push(r);
+      }
+
+      var html = '';
+
+      for (var fi = 0; fi < orden.length; fi++) {
+        var fecha = orden[fi];
+        var items = grupos[fecha];
+
+        // Ordenar dentro del día: PD desc, luego PU desc
+        items.sort(function(a, b) {
+          var pdA = a.nro_pd ? parseInt(a.nro_pd) : 0;
+          var pdB = b.nro_pd ? parseInt(b.nro_pd) : 0;
+          var puA = a.nro_pu ? parseInt(a.nro_pu) : 0;
+          var puB = b.nro_pu ? parseInt(b.nro_pu) : 0;
+          // Primero comparar PD
+          if (pdB !== pdA) return pdB - pdA;
+          return puB - puA;
+        });
+
+        // Encabezado de fecha
+        var partesFecha = fecha.split('-');
+        var fechaLabel = partesFecha[2] + '/' + partesFecha[1] + '/' + partesFecha[0];
+        html += '<div style="margin-bottom:12px">';
+        html += '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;padding:4px 0 6px;border-bottom:1px solid var(--border2);margin-bottom:8px">' + fechaLabel + '</div>';
+
+        for (var ii = 0; ii < items.length; ii++) {
+          var item = items[ii];
+          var badgePD = item.nro_pd ? '<span style="display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;background:rgba(96,165,250,.15);color:#93c5fd;margin-right:6px">PD ' + item.nro_pd + '</span>' : '';
+          var badgePU = item.nro_pu ? '<span style="display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;background:rgba(251,146,60,.15);color:#fdba74;margin-right:6px">PU ' + item.nro_pu + '</span>' : '';
+          var asunto  = item.asunto ? '<span style="font-size:12px;color:var(--text2)">' + item.asunto + '</span>' : '';
+          var detalle = item.texto_informe ? '<div style="font-size:11px;color:var(--text3);margin-top:3px;line-height:1.5">' + item.texto_informe + '</div>' : '';
+
+          html += '<div style="padding:8px 10px;border-radius:10px;background:var(--bg3);margin-bottom:6px">';
+          html += '<div>' + badgePD + badgePU + asunto + '</div>';
+          html += detalle;
+          html += '</div>';
+        }
+
+        html += '</div>';
+      }
+
+      listaEl.innerHTML = html;
+    })
+    .catch(function(err) {
+      if (statusEl) statusEl.style.display = 'none';
+      listaEl.innerHTML = '<div style="padding:12px;font-size:13px;color:var(--red)">Error al cargar el historial.</div>';
+    });
+}
+
+function sincronizarInformeOriginales() {
+  // Sincroniza texto_informe/observaciones editados en el preview hacia los
+  // registros originales (novedades y objetivos). Los puntos de recorrido
+  // (data-src="act") NO se sincronizan: viven dentro de un JSON y reescribirlo
+  // puede pisar datos concurrentes. Solo escribe filas realmente modificadas,
+  // comparando contra una relectura fresca de la base.
+  var frame = document.getElementById('inf-preview-frame');
+  if (!frame || !frame.innerHTML) { toast('Primero generá el preview', 'err'); return; }
+
+  var filas = frame.querySelectorAll('.novedad[data-nid]');
+  if (!filas.length) { toast('No hay filas para sincronizar', 'err'); return; }
+
+  var novItems = [], objItems = [], actCount = 0, nuevasCount = 0;
+  for (var i = 0; i < filas.length; i++) {
+    var fila = filas[i];
+    var nid = fila.getAttribute('data-nid');
+    var src = fila.getAttribute('data-src') || 'nov';
+    if (src === 'act') { actCount++; continue; }
+    if (!nid || nid === 'null' || nid === 'undefined') { nuevasCount++; continue; }
+    var txtEl = fila.querySelector('.nov-txt');
+    var obsEl = fila.querySelector('.obs-txt');
+    var txt = txtEl ? (txtEl.innerText !== undefined ? txtEl.innerText : txtEl.textContent) : '';
+    var obs = obsEl ? (obsEl.innerText !== undefined ? obsEl.innerText : obsEl.textContent) : '';
+    txt = (txt || '').trim();
+    obs = (obs || '').trim();
+    var item = { id: nid, txt: txt, obs: obs };
+    if (src === 'obj') objItems.push(item); else novItems.push(item);
+  }
+
+  if (!novItems.length && !objItems.length) {
+    toast('No hay filas sincronizables (solo puntos de recorrido o filas nuevas)', 'err');
+    return;
+  }
+
+  showConfirm('Actualizar originales', 'Sincronizar cambios',
+    'Los textos e informes editados se guardarán en los registros originales de novedades y recorridos. ¿Continuar?',
+    function() { _ejecutarSincInforme(novItems, objItems, actCount, nuevasCount); });
+}
+
+function _ejecutarSincInforme(novItems, objItems, actCount, nuevasCount) {
+  toast('Sincronizando...', 'info');
+  var novIds = novItems.map(function(x) { return x.id; });
+  var objIds = objItems.map(function(x) { return x.id; });
+
+  var qNov = novIds.length ? db.from('novedades').select('id,texto_informe,detalle,observaciones').in('id', novIds) : Promise.resolve({ data: [] });
+  var qObj = objIds.length ? db.from('objetivos').select('id,texto_informe').in('id', objIds) : Promise.resolve({ data: [] });
+
+  Promise.all([qNov, qObj]).then(function(res) {
+    var novOrig = {}, objOrig = {};
+    (res[0].data || []).forEach(function(r) { novOrig[String(r.id)] = r; });
+    (res[1].data || []).forEach(function(r) { objOrig[String(r.id)] = r; });
+
+    var updates = [];
+    var cambiadas = 0;
+
+    novItems.forEach(function(item) {
+      var orig = novOrig[String(item.id)];
+      if (!orig) return; // registro ya no existe — no crear nada
+      var txtOrig = (orig.texto_informe || orig.detalle || '\u2014').trim();
+      var obsOrig = (orig.observaciones || '').trim();
+      var payload = {};
+      if (item.txt && item.txt !== txtOrig && item.txt !== '\u2014') payload.texto_informe = item.txt;
+      if (item.obs !== obsOrig) payload.observaciones = item.obs || null;
+      if (Object.keys(payload).length) {
+        cambiadas++;
+        updates.push(db.from('novedades').update(payload).eq('id', item.id));
+      }
+    });
+
+    objItems.forEach(function(item) {
+      var orig = objOrig[String(item.id)];
+      if (!orig) return;
+      var txtOrig = (orig.texto_informe || '').trim();
+      if (item.txt && item.txt !== txtOrig && item.txt !== '\u2014') {
+        cambiadas++;
+        updates.push(db.from('objetivos').update({ texto_informe: item.txt }).eq('id', item.id));
+      }
+    });
+
+    if (!updates.length) {
+      toast('Sin cambios respecto a los originales');
+      return;
+    }
+
+    Promise.all(updates).then(function(resultados) {
+      var errores = resultados.filter(function(r) { return r && r.error; }).length;
+      var msg = '\u2713 ' + (cambiadas - errores) + ' registro(s) actualizado(s)';
+      if (errores) msg += ' \u2014 ' + errores + ' con error';
+      if (actCount) msg += ' (puntos de recorrido no se sincronizan)';
+      toast(msg, errores ? 'err' : undefined);
+    });
+  }).catch(function() {
+    toast('Error al leer los registros originales', 'err');
+  });
+}
+
 function generarPreviewInforme() {
   var desdeEl   = document.getElementById('inf-fecha-desde');
   var hastaEl   = document.getElementById('inf-fecha-hasta');
@@ -9772,6 +10028,7 @@ function generarPreviewInforme() {
       if (obj.texto_informe || obj.nro_pd || obj.nro_pu) {
         puntosInforme.push({
           id:            obj.id,
+          _src:          'obj',
           puesto:        obj.puesto || USER.puesto,
           tipo:          'Control de Objetivo',
           asunto:        obj.nombre || 'Recorrido',
@@ -9792,6 +10049,7 @@ function generarPreviewInforme() {
         if (a.texto_informe || a.nro_pd || a.nro_pu) {
           puntosInforme.push({
             id:            obj.id + '_' + (a.nro_pd || a.nro_pu || Math.random()),
+            _src:          'act',
             puesto:        obj.puesto || USER.puesto,
             tipo:          'Control de Objetivo',
             asunto:        'Punto: ' + (a.lugar || obj.nombre || 'Recorrido'),
@@ -9968,7 +10226,7 @@ function construirHTMLEditablePreview(porPuesto, novedades, fotosMap, fechaDispl
       fotos = fotos.filter(Boolean);
       var fotosB64 = fotos.map(function(u){return{u:u,b:fotosMap[u]||null};}).filter(function(f){return f.b;});
 
-      html += '<div class="novedad" data-nid="' + escapeHTML(String(n.id)) + '">\n';
+      html += '<div class="novedad" data-nid="' + escapeHTML(String(n.id)) + '" data-src="' + (n._src || 'nov') + '">\n';
       html += '<button class="btn-del-row" onclick="eliminarFilaInforme(this)" title="Eliminar fila">&times;</button>\n';
       html += '<div class="col1"><div class="c1-tipo" contenteditable="true">' + escapeHTML(n.tipo || n.asunto || 'Novedad') + '</div>';
       html += '<div class="c1-meta" contenteditable="true"><strong>' + escapeHTML(fechaReal || fechaDisplay) + '</strong><br>' + escapeHTML(horaStr) + ' hs</div>';
@@ -10754,13 +11012,14 @@ function loadComparativas() {
     if (tipo === 'agente')    renderCompAgente(fichs, tipoMap, lics, anio, agenteNombre, cont);
     if (tipo === 'puesto')    renderCompPuesto(fichs, tipoMap, anio, cont);
     if (tipo === 'ausencias') renderCompAusencias(fichs, lics, anio, cont);
-    if (tipo === 'ranking')   renderCompRanking(fichs, tipoMap, anio, cont);
+    if (tipo === 'ranking')   renderCompRanking(fichs, tipoMap, anio, cont, lics);
   });
 }
 
-function calcHorasAgenteMes(fichs, nombre, anio, mes, tipoMap) {
+function calcHorasAgenteMes(fichs, nombre, anio, mes, tipoMap, lics) {
   var tipo = tipoMap[(nombre||'').toUpperCase()] || 'CH';
   var horas_base_tipo = HORAS_TIPO[tipo] || 8;
+  var licsAg = lics || [];
   var totalTrab = 0, totalACumplir = 0;
   var diasMes = new Date(anio, mes, 0).getDate();
   for (var d = 1; d <= diasMes; d++) {
@@ -10775,6 +11034,10 @@ function calcHorasAgenteMes(fichs, nombre, anio, mes, tipoMap) {
       var ar = new Date(new Date(f.entrada).getTime() - 10800000);
       return ar.getDate() === d && ar.getMonth() === mes-1 && ar.getFullYear() === anio;
     });
+    // FIX: días con licencia no generan horas a cumplir (misma lógica que loadHorasReales)
+    var tieneLic = licsAg.some(function(l) {
+      return (l.agente || '').trim() === nombre && l.fecha_desde <= fechaStr && l.fecha_hasta >= fechaStr;
+    });
     if (fichsDia.length > 0) {
       var tot = 0;
       fichsDia.forEach(function(f) {
@@ -10784,7 +11047,7 @@ function calcHorasAgenteMes(fichs, nombre, anio, mes, tipoMap) {
         tot += diff;
       });
       if (tot > 0) { totalTrab += tot; totalACumplir += hAcum; }
-    } else if (!esFer) {
+    } else if (!esFer && !tieneLic) {
       totalACumplir += hAcum;
     }
   }
@@ -10799,7 +11062,7 @@ function renderCompEquipo(fichs, tipoMap, lics, anio, cont) {
   for (var m = 1; m <= 12; m++) {
     var totalTrab = 0, totalACumplir = 0, totalLics = 0;
     agentes.forEach(function(ag) {
-      var r = calcHorasAgenteMes(fichs, ag, anio, m, tipoMap);
+      var r = calcHorasAgenteMes(fichs, ag, anio, m, tipoMap, lics);
       totalTrab += r.trab; totalACumplir += r.aCumplir;
     });
     var licsMes = lics.filter(function(l) {
@@ -10841,7 +11104,7 @@ function renderCompAgente(fichs, tipoMap, lics, anio, nombre, cont) {
   var totalTrabAnio = 0, totalExtraAnio = 0, totalFaltaAnio = 0;
 
   for (var m = 1; m <= 12; m++) {
-    var r = calcHorasAgenteMes(fichs, nombre, anio, m, tipoMap);
+    var r = calcHorasAgenteMes(fichs, nombre, anio, m, tipoMap, lics);
     mesesData.push({ label: MESES_NOMBRES[m-1], valor: r.trab, valor2: r.aCumplir, diff: r.diff });
     totalTrabAnio += r.trab;
     if (r.diff > 0) totalExtraAnio += r.diff;
@@ -10950,7 +11213,7 @@ function renderCompAusencias(fichs, lics, anio, cont) {
   cont.innerHTML = html;
 }
 
-function renderCompRanking(fichs, tipoMap, anio, cont) {
+function renderCompRanking(fichs, tipoMap, anio, cont, lics) {
   var agentesSet = {};
   fichs.forEach(function(f) { if (f.agente) agentesSet[f.agente.trim()] = true; });
   var agentes = Object.keys(agentesSet);
@@ -10958,7 +11221,7 @@ function renderCompRanking(fichs, tipoMap, anio, cont) {
   agentes.forEach(function(ag) {
     var totExtra = 0, totFalta = 0;
     for (var m = 1; m <= 12; m++) {
-      var r = calcHorasAgenteMes(fichs, ag, anio, m, tipoMap);
+      var r = calcHorasAgenteMes(fichs, ag, anio, m, tipoMap, lics);
       if (r.diff > 0) totExtra += r.diff;
       if (r.diff < 0) totFalta += Math.abs(r.diff);
     }
@@ -11100,8 +11363,9 @@ function loadHorasReales() {
           totalTrabajadas += horasTrab;
           if (diaSemana !== 0 && !feriado) totalACumplir += hACumplir;
         } else if (codLic) {
-          // Licencia — contar como día cumplido con código
-          if (diaSemana !== 0 && !feriado) totalACumplir += hACumplir;
+          // Licencia — día justificado: NO suma horas a cumplir.
+          // FIX: antes sumaba hACumplir sin acreditar horas trabajadas,
+          // generando déficit falso en el balance mensual del agente.
         } else if (diaSemana !== 0 && !feriado) {
           totalACumplir += hACumplir; // día hábil sin fichar
         }
@@ -11185,6 +11449,7 @@ function renderHorasTabla(rows, diasMes) {
     var horasFalta = 0;
     var diasLicencia = 0;
     var diasSinRegistro = 0;
+    var diasSinSalidaCero = 0;
     r.diasInfo.forEach(function(dia) {
       if (dia.diaSemana === 0 || dia.feriado) return;
       if (dia.lic) { diasLicencia++; return; }
@@ -11192,6 +11457,8 @@ function renderHorasTabla(rows, diasMes) {
         var diff = dia.hs - dia.aCumplir;
         if (diff > 0.25)  horasExtra += diff;
         if (diff < -0.25) horasFalta += Math.abs(diff);
+      } else if (dia.sinSalida) {
+        diasSinSalidaCero++;
       } else {
         diasSinRegistro++;
       }
@@ -11207,6 +11474,7 @@ function renderHorasTabla(rows, diasMes) {
     html += '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:999px;background:rgba(255,255,255,.06);color:' + tipoColor + '">' + (r.tipo || '—') + '</span>';
     html += '<span style="font-size:11px;color:var(--text3)">&#x1F4C5; ' + r.diasTrabajados + ' d\xEDas fichados</span>';
     if (diasLicencia > 0) html += '<span style="font-size:11px;color:var(--yellow)">&#x1F4C4; ' + diasLicencia + ' lic.</span>';
+    if (diasSinSalidaCero > 0) html += '<span style="font-size:11px;color:#fdba74">&#x26A0; ' + diasSinSalidaCero + ' sin salida</span>';
     if (diasSinRegistro > 0) html += '<span style="font-size:11px;color:var(--red)">&#x26A0; ' + diasSinRegistro + ' sin registro</span>';
     html += '</div></div>';
     // Balance + flecha
@@ -11295,6 +11563,21 @@ function renderHorasTabla(rows, diasMes) {
           estadoColor = '#a78bfa';
         } else {
           estadoTxt = '';
+        }
+      } else if (dia.sinSalida) {
+        // Fichó entrada pero NO fichó salida — el día quedó en 0 horas
+        bg = 'rgba(251,146,60,.06)';
+        if (dia._entrada) {
+          var eInSS = new Date(new Date(dia._entrada).getTime() - 3 * 60 * 60 * 1000);
+          entrada = String(eInSS.getUTCHours()).padStart(2,'0') + ':' + String(eInSS.getUTCMinutes()).padStart(2,'0');
+        }
+        salida = '\u26A0 sin';
+        trabajoTxt = '0 hs';
+        estadoTxt = '&#x26A0; Sin fichar salida';
+        estadoColor = '#fdba74';
+        if (!esFeriado && dia.diaSemana !== 0) {
+          balanceTxt = '-' + formatHoras(dia.aCumplir);
+          balanceColor = 'var(--red)';
         }
       } else if (dia.diaSemana !== 6) {
         // Sin registro (día hábil)
@@ -12645,6 +12928,51 @@ var TIPO_BADGE = {
   'Poda / Corte de pasto': 'b-green',
   'Atención al público': 'b-purple'
 };
+function _filtrarNovAdmin(list) {
+  // Ocultar novedades solo_admin para usuarios que no son Administrador del sistema
+  // Cubre tanto las nuevas (campo solo_admin) como las existentes (por asunto)
+  if (USER && USER.rol === 'ADMIN') return list;
+  var asuntosAdmin = ['Corrección de vehículo en hoja de ruta', 'Traslado de puesto'];
+  return list.filter(function(n) {
+    if (n.solo_admin) return false;
+    if (asuntosAdmin.indexOf(n.asunto) >= 0) return false;
+    return true;
+  });
+}
+
+function _appendBotonMasNov(rawCount) {
+  // Solo agregar el botón si la última página vino completa (probablemente hay más)
+  var el = document.getElementById('nov-list');
+  if (!el || rawCount < NOV_LIMIT) return;
+  var wrap = document.createElement('div');
+  wrap.style.cssText = 'padding:12px 0 6px;text-align:center';
+  wrap.innerHTML = '<button id="nov-more-btn" onclick="cargarMasNovedades()" style="padding:9px 20px;border-radius:10px;border:1px solid rgba(96,165,250,.35);background:rgba(96,165,250,.08);color:#93c5fd;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">\u2B07 Cargar m\u00E1s antiguas</button>';
+  el.appendChild(wrap);
+}
+
+function cargarMasNovedades() {
+  var btn = document.getElementById('nov-more-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Cargando...'; }
+  NOV_PAGE++;
+  var f = filtro();
+  var desde = NOV_PAGE * NOV_LIMIT;
+  var q = db.from('novedades').select('*').order('created_at', { ascending: false }).range(desde, desde + NOV_LIMIT - 1);
+  if (f) q = q.eq('puesto', f);
+  if (CUR_NOV_TAB === 'pendientes') q = q.eq('pendiente', true);
+  q.then(function(res) {
+    if (res.error) {
+      NOV_PAGE--;
+      if (btn) { btn.disabled = false; btn.textContent = '\u2B07 Cargar m\u00E1s antiguas'; }
+      toast('Error: ' + res.error.message, 'err');
+      return;
+    }
+    var raw = res.data || [];
+    NOV_CACHE = NOV_CACHE.concat(_filtrarNovAdmin(raw));
+    renderNovedadesAgrupadas(NOV_CACHE);
+    _appendBotonMasNov(raw.length);
+  });
+}
+
 function loadNovedades() {
   return _loadNovedades.apply(this, arguments);
 }
@@ -12657,9 +12985,10 @@ function _loadNovedades() {
           el = document.getElementById('nov-list');
           if (el) el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3)">Cargando...</div>';
           f = filtro();
+          NOV_PAGE = 0;
           q = db.from('novedades').select('*').order('created_at', {
             ascending: false
-          });
+          }).range(0, NOV_LIMIT - 1);
           if (f) q = q.eq('puesto', f);
           if (CUR_NOV_TAB === 'pendientes') q = q.eq('pendiente', true);
           _context38.n = 1;
@@ -12673,17 +13002,7 @@ function _loadNovedades() {
           if (typeof ivcEsErrorDeRed === 'function' && ivcEsErrorDeRed(res.error)) { ivcEntrarOffline(); ivcCacheRestaurar('novedades', 'nov-list'); } else { document.getElementById('nov-list').innerHTML = '<div class="empty"><p>Error: ' + res.error.message + '</p></div>'; }
           return _context38.a(2);
         case 2:
-          list = res.data || [];
-          // Ocultar novedades solo_admin para usuarios que no son Administrador del sistema
-          // Cubre tanto las nuevas (campo solo_admin) como las existentes (por asunto)
-          if (!USER || USER.rol !== 'ADMIN') {
-            var asuntosAdmin = ['Corrección de vehículo en hoja de ruta', 'Traslado de puesto'];
-            list = list.filter(function(n) {
-              if (n.solo_admin) return false;
-              if (asuntosAdmin.indexOf(n.asunto) >= 0) return false;
-              return true;
-            });
-          }
+          list = _filtrarNovAdmin(res.data || []);
           NOV_CACHE = list;
           searchEl = document.getElementById('nov-search');
           if (!(searchEl && searchEl.value.trim())) {
@@ -12694,6 +13013,7 @@ function _loadNovedades() {
           return _context38.a(2);
         case 3:
           renderNovedadesAgrupadas(list);
+          _appendBotonMasNov((res.data || []).length);
         case 4:
           return _context38.a(2);
       }
@@ -12781,6 +13101,7 @@ async function abrirNuevaNovedad() {
   // Pre-cargar hora del evento con la hora actual
   var _nHoraEv = document.getElementById('n-hora-evento');
   if (_nHoraEv) _nHoraEv.value = _horaActualHHMM();
+  restaurarDraftNovedad();
   openOv('ov-nov');
 }
 
@@ -12874,6 +13195,7 @@ function _saveNov() {
         case 4:
           setLoading('btn-save-nov', false);
           closeOv('ov-nov');
+          limpiarDraftNovedad();
           toast('OK Novedad guardada' + (FOTOS_PENDIENTES.length ? " con ".concat(FOTOS_PENDIENTES.length, " foto(s)") : ''));
           // Push si es comunicación inmediata
           if ($('n-urgente') && $('n-urgente').value === '1') {
@@ -13499,10 +13821,20 @@ function _loadObjetivos() {
                 ohtml += '</div></div>';
 
                 // Stats badges (always visible)
+                // FIX: tieneInfObj ahora también considera el informe cargado a nivel
+                // objetivo (guardarInformeObj escribe en objetivos.texto_informe/nro_pd/nro_pu),
+                // antes solo miraba los puntos y el botón nunca cambiaba de estado.
+                var tieneInfObj = !!(o.texto_informe || o.nro_pd || o.nro_pu) || puntos.some(function(p) { return p.texto_informe || p.nro_pd || p.nro_pu; });
+                var ROLES_ADM_OBJ = ['Administración', 'Administrador'];
+                var esAdmObj = USER && (ROLES_ADM_OBJ.indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN');
                 ohtml += '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">';
                 ohtml += '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(96,165,250,0.12);color:var(--accent3)">📍 ' + puntos.length + ' punto' + (puntos.length !== 1 ? 's' : '') + '</span>';
                 if (sinInc > 0) ohtml += '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(52,211,153,0.1);color:var(--green)">✅ ' + sinInc + ' sin inc.</span>';
                 if (conInc > 0) ohtml += '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(239,68,68,0.15);color:#f87171">⚠️ ' + conInc + ' con inc.</span>';
+                if (esAdmObj && tieneInfObj) {
+                  var infBadgeTxt = o.nro_pd ? 'PD N\xB0 ' + o.nro_pd : (o.nro_pu ? 'PU N\xB0 ' + o.nro_pu : 'Informe cargado');
+                  ohtml += '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(16,185,129,0.12);color:var(--green);border:1px solid rgba(16,185,129,0.3)">📋 ' + infBadgeTxt + '</span>';
+                }
                 ohtml += '</div>';
 
                 // Progress bar (always visible)
@@ -13554,10 +13886,8 @@ function _loadObjetivos() {
                   ohtml += '</div>';
                 }
 
-                // Botón cargar informe — solo para gestión/admin
-                var ROLES_ADM_OBJ = ['Administración', 'Administrador'];
-                if (USER && (ROLES_ADM_OBJ.indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN')) {
-                  var tieneInfObj = puntos.some(function(p) { return p.texto_informe || p.nro_pd || p.nro_pu; });
+                // Botón cargar informe — solo para gestión/admin (usa tieneInfObj/esAdmObj calculados arriba)
+                if (esAdmObj) {
                   ohtml += '<div style="margin-top:8px;border-top:1px solid rgba(255,255,255,.06);padding-top:8px">';
                   ohtml += '<button onclick="event.stopPropagation();abrirCargarInformeObj(\'' + o.id + '\')" ';
                   ohtml += 'style="width:100%;padding:8px;background:' + (tieneInfObj ? 'rgba(16,185,129,0.12)' : 'rgba(59,130,246,0.08)') + ';border:1px solid ' + (tieneInfObj ? 'rgba(16,185,129,0.35)' : 'rgba(59,130,246,0.25)') + ';border-radius:8px;color:' + (tieneInfObj ? 'var(--green)' : '#93c5fd') + ';font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font)">';
@@ -16669,6 +16999,38 @@ function _loadLicencias() {
   }));
   return _loadLicencias.apply(this, arguments);
 }
+function extractoDiasLicHTML(desde, hasta) {
+  // Genera la lista día por día de una licencia (máx 92 días por seguridad)
+  var DIAS_SEM = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+  var d = new Date(desde + 'T12:00:00');
+  var fin = new Date(hasta + 'T12:00:00');
+  var html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:4px;padding-top:8px">';
+  var count = 0;
+  while (d <= fin && count < 92) {
+    var dd = String(d.getDate()).padStart(2, '0');
+    var mm = String(d.getMonth() + 1).padStart(2, '0');
+    var yy = d.getFullYear();
+    var esDom = d.getDay() === 0;
+    html += '<div style="font-size:11px;font-family:var(--mono);padding:4px 8px;border-radius:6px;background:' + (esDom ? 'rgba(255,255,255,.03)' : 'var(--bg2)') + ';color:' + (esDom ? 'var(--text3)' : 'var(--text2)') + '">';
+    html += DIAS_SEM[d.getDay()] + ' ' + dd + '/' + mm + '/' + yy;
+    html += '</div>';
+    d.setDate(d.getDate() + 1);
+    count++;
+  }
+  html += '</div>';
+  if (count >= 92) html += '<div style="font-size:10px;color:var(--text3);margin-top:4px">Mostrando los primeros 92 días</div>';
+  return html;
+}
+
+function toggleLicExtracto(id) {
+  var det   = document.getElementById('lic-ext-' + id);
+  var arrow = document.getElementById('lic-ext-arrow-' + id);
+  if (!det) return;
+  var open = det.style.display === 'block';
+  det.style.display = open ? 'none' : 'block';
+  if (arrow) arrow.innerHTML = open ? '&#x25BC;' : '&#x25B2;';
+}
+
 function renderLic(l, activa) {
   var dias = calcDias(l.fecha_desde, l.fecha_hasta);
   var isPDF = l.archivo && l.archivo.includes('.pdf');
@@ -16690,6 +17052,12 @@ function renderLic(l, activa) {
   html += '<span>' + fechas + '</span>';
   html += '<span style="font-weight:600;color:var(--accent3)">' + diasText + '</span>';
   html += '</div>';
+  // Extracto de días (colapsable)
+  html += '<div onclick="toggleLicExtracto(\'' + l.id + '\')" style="display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--accent3);cursor:pointer;padding:4px 0;user-select:none">';
+  html += '<span>&#x1F4C5; Ver extracto de d\xEDas</span>';
+  html += '<span id="lic-ext-arrow-' + l.id + '" style="font-size:10px">&#x25BC;</span>';
+  html += '</div>';
+  html += '<div id="lic-ext-' + l.id + '" style="display:none">' + extractoDiasLicHTML(l.fecha_desde, l.fecha_hasta) + '</div>';
   if (l.observaciones) html += '<div style="font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:8px">' + l.observaciones + '</div>';
   if (l.archivo) {
     if (isPDF) {
@@ -18858,6 +19226,8 @@ setTimeout(function () {
   }, 400);
 }, 1600);
 var NOV_CACHE = [];
+var NOV_LIMIT = 120; // Máx. novedades por página — evita DOM gigante en roles TODOS/ADMIN
+var NOV_PAGE = 0;
 var NOV_SEARCH_TIMER = null;
 function normalizar(s) {
   if (!s) return '';
