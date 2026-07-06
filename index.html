@@ -9100,7 +9100,7 @@ function _guardarControlUpdate(fotoUrls, fotoUrl) {
   if (CTRL_ESTADO === 'novedad' && !obs) { toast('Describí la novedad encontrada', 'err'); return; }
   setLoading('btn-save-ctrl', true);
   var payload = { estado: CTRL_ESTADO, observaciones: obs || null };
-  if (fotoUrls && fotoUrls.length) { payload.foto_url = fotoUrl; payload.fotos = fotoUrls; }
+  if (fotoUrls && fotoUrls.length) { payload.foto_url = fotoUrl; }
   db.from('controles_punto').update(payload).eq('id', window._CTRL_EDIT_ID).then(function(r) {
     if (r.error) { setLoading('btn-save-ctrl', false); toast('Error: ' + r.error.message, 'err'); return; }
     // Opción A: deshabilitar edición automáticamente al guardar
@@ -9123,7 +9123,7 @@ function _guardarControlInsert(fotoUrls, fotoUrl) {
   var ahora = fechaHoyAR();
   db.from('controles_punto').insert({
     punto_id: CTRL_PUNTO_ID, agente: USER.nombre || USER.puesto, puesto: USER.puesto,
-    estado: CTRL_ESTADO, observaciones: obs || null, foto_url: fotoUrl, fotos: fotoUrls,
+    estado: CTRL_ESTADO, observaciones: obs || null, foto_url: fotoUrl,
     fecha: ahora, hora: horaActualAR(),
     hora_evento: (function() { var el = document.getElementById('ctrl-hora-evento'); return (el && el.value) ? el.value : null; })(),
     created_at: new Date().toISOString()
@@ -11866,10 +11866,16 @@ function exportarHorasReales() {
   f1.push('', 'TOTAL HS', 'TOTAL MODULOS', 'TOTAL EN $');
   var csv = BOM + f1.join(SEP) + '\n';
 
-  // Fila 2: encabezados columnas
+  // Nombres cortos de día (índice 0=Dom)
+  var diasSemNom = ['Dom','Lun','Mar','Mie','Jue','Vie','Sab'];
+
+  // Fila 2: encabezados columnas con dia de semana + numero
   var f2 = ['ord', 'DNI', 'Apellido y Nombre'];
-  for (var d = 1; d <= diasMes; d++) f2.push(d);
-  f2.push('', 'TOTAL HS', 'TOTAL MODULOS', 'TOTAL EN $');
+  for (var d = 1; d <= diasMes; d++) {
+    var diaSemCol = new Date(anio + '-' + String(mes).padStart(2,'0') + '-' + String(d).padStart(2,'0') + 'T12:00:00').getDay();
+    f2.push(diasSemNom[diaSemCol] + ' ' + d);
+  }
+  f2.push('', 'TOTAL HS EXTRAS', 'TOTAL MODULOS', 'TOTAL EN $');
   csv += f2.join(SEP) + '\n';
 
   // Fila 3: encabezados con nombre del mes (opcional, espeja formato original)
@@ -11887,29 +11893,28 @@ function exportarHorasReales() {
       var info = diasInfo[di];
       var celda = '';
       if (info.diaSemana === 0) {
-        // Domingo: vacio (columna sin dato)
+        // Domingo: vacio
         celda = '';
       } else if (info.lic) {
-        // Tiene licencia registrada: mostrar codigo
+        // Licencia: mostrar codigo
         celda = info.lic;
       } else if (info.sinSalida && info.hs === null) {
         // Fichó entrada pero sin salida
         celda = 'NF';
-      } else if (info.hs !== null && info.hs > 0) {
-        // Horas trabajadas: 2 decimales con punto
-        celda = (Math.round(info.hs * 100) / 100).toString().replace('.', ',');
-      } else if (info.hs === 0) {
-        celda = '0';
+      } else if (info.hs !== null) {
+        // Extras/deficit del dia: horas trabajadas menos horas a cumplir segun condicion
+        var diff = Math.round((info.hs - info.aCumplir) * 100) / 100;
+        celda = diff.toString().replace('.', ',');
       }
-      // Si feriado y sin dato: vacio
+      // Sin fichaje en dia habil/feriado: celda vacia (ausencia)
       row.push(celda);
     }
-    // Totales
-    var totalHs = Math.round(r.totalTrabajadas * 100) / 100;
-    var modulos = Math.round((totalHs / 7) * 1000000) / 1000000; // 7hs = 1 modulo (referencia)
-    var importe = Math.round(totalHs * VALOR_MODULO / 7);
+    // Totales: diferencia neta del mes (trabajadas - a cumplir)
+    var totalDiff = Math.round(r.diff * 100) / 100;
+    var modulos   = Math.round((totalDiff / 7) * 1000000) / 1000000;
+    var importe   = Math.round(totalDiff * VALOR_MODULO / 7);
     row.push('');
-    row.push(totalHs.toString().replace('.', ','));
+    row.push(totalDiff.toString().replace('.', ','));
     row.push(modulos.toString().replace('.', ','));
     row.push(importe);
     csv += row.join(SEP) + '\n';
