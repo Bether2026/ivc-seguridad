@@ -1833,6 +1833,7 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
           <option value="Jefe de departamento|TODOS">Jefe de departamento ★</option>
           <option value="Emergencias|TODOS">Emergencias ★</option>
         <option value="Administrador|ADMIN">Administrador del sistema ⚙️</option>
+        <option value="Programaci&#xF3;n|TODOS">Programaci&#xF3;n ★</option>
         </select>
       </div>
       <div class="field">
@@ -5997,7 +5998,7 @@ function renderNovCard(n) {
   // Boton actualizar novedad
   h += '<div style="border-top:1px solid var(--border);padding-top:10px;margin-top:4px;display:flex;gap:8px;flex-wrap:wrap">';
   // Botón editar completa — SOLO Administrador del sistema
-  if (USER && USER.rol === 'ADMIN') {
+  if (USER && (USER.rol === 'ADMIN' || USER.puesto === 'Programaci\xF3n')) {
     h += '<button onclick="event.stopPropagation();abrirEdicionCompletaNovedad(\'' + n.id + '\')" '
       + 'style="padding:9px 14px;background:rgba(251,146,60,.1);border:1px solid rgba(251,146,60,.35);border-radius:8px;color:#fdba74;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);white-space:nowrap">'
       + '✏️ Editar completa</button>';
@@ -6006,14 +6007,14 @@ function renderNovCard(n) {
   h += 'style="flex:1;padding:9px;background:rgba(37,99,235,0.12);border:1px solid rgba(37,99,235,0.3);border-radius:8px;color:var(--accent3);font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font)">';
   h += '+ Agregar actualización al seguimiento</button>';
   // Botón editar asunto — exclusivo Administración (unificar criterios para agrupar)
-  if (USER && USER.puesto === 'Administración') {
+  if (USER && (USER.puesto === 'Administración' || USER.puesto === 'Programaci\xF3n')) {
     h += '<button onclick="event.stopPropagation();abrirEditarAsuntoNovedad(\'' + n.id + '\',\'' + (n.asunto || '').replace(/'/g, "\\'") + '\')" ';
     h += 'style="padding:9px 12px;background:rgba(168,85,247,0.1);border:1px solid rgba(168,85,247,0.3);border-radius:8px;color:#c084fc;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font);white-space:nowrap">';
     h += '✏️ Editar asunto';
     h += '</button>';
   }
   // Botón cargar informe — solo para gestión/admin
-  var ROLES_ADM_NOV = ['Administración', 'Administrador'];
+  var ROLES_ADM_NOV = ['Administración', 'Administrador', 'Programaci\xF3n'];
   if (USER && (ROLES_ADM_NOV.indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN')) {
     var tieneInforme = n.texto_informe || n.nro_pd || n.nro_pu;
     h += '<button onclick="abrirCargarInforme(\'' + n.id + '\')" ';
@@ -6916,7 +6917,8 @@ var EMAILS_AUTH = {
   'Responsable de turno': 'responsabledeturno@ivc.local',
   'Jefe de departamento': 'jefededepartamento@ivc.local',
   'Emergencias': 'emergencias@ivc.local',
-  'Administrador': 'administrador@ivc.local'
+  'Administrador': 'administrador@ivc.local',
+  'Programaci\u00f3n': 'programacion@ivc.local'
 };
 var CREDS_HASH = {}; // Obsoleto — migrado a Supabase Auth
 function registrarEvento(_x9, _x0, _x1) {
@@ -7385,8 +7387,8 @@ function openOv(id) {
   // Empujar estado al historial para que el botón "atrás" del celular cierre el overlay
   // en vez de salir de la app
   history.pushState({ overlay: id }, '');
-  var ROLES_ADM = ['Administración', 'Administrador']; // Solo estos ven la sección de informe (PD/PU)
-  var ROLES_GESTION_PUESTO = ['Administración', 'Administrador', 'Gerencia', 'Jefe de departamento', 'Responsable de turno', 'Emergencias']; // Estos pueden cargar en nombre de otro puesto
+  var ROLES_ADM = ['Administración', 'Administrador', 'Programaci\xF3n']; // Solo estos ven la sección de informe (PD/PU)
+  var ROLES_GESTION_PUESTO = ['Administración', 'Administrador', 'Gerencia', 'Jefe de departamento', 'Responsable de turno', 'Emergencias', 'Programaci\xF3n']; // Estos pueden cargar en nombre de otro puesto
   var esAdm = ROLES_ADM.includes(USER ? USER.puesto : '') || (USER && USER.rol === 'ADMIN');
   var esGestionPuesto = ROLES_GESTION_PUESTO.includes(USER ? USER.puesto : '') || (USER && USER.rol === 'ADMIN');
   if (id === 'ov-nov') {
@@ -7622,7 +7624,7 @@ function initApp() {
   if ($('si-precintos')) $('si-precintos').style.display = _puedePrecintos ? 'flex' : 'none';
   if ($('nb-precintos')) $('nb-precintos').style.display = _puedePrecintos ? 'flex' : 'none';
   // Informe Diario — exclusivo Administración y Administrador del sistema
-  var _puedeInforme = ['Administración', 'Administrador'].indexOf(USER.puesto) >= 0 || (USER.rol === 'ADMIN');
+  var _puedeInforme = ['Administración', 'Administrador', 'Programaci\xF3n'].indexOf(USER.puesto) >= 0 || (USER.rol === 'ADMIN');
   if ($('si-informediario')) $('si-informediario').style.display = _puedeInforme ? 'flex' : 'none';
   if ($('nb-informediario')) $('nb-informediario').style.display = _puedeInforme ? 'flex' : 'none';
   var canSeeGPS = ['Gerencia', 'Administrador'].includes(USER.puesto);
@@ -12536,8 +12538,7 @@ function _renderFichajeRow(fr, canSeeGeo) {
   }
   h += '</div>';
   h += '<span style="font-family:var(--mono);font-size:11px;color:var(--text2);flex-shrink:0;white-space:nowrap">' + formatTs(fr.entrada) + '</span>';
-  if (USER.rol === 'ADMIN') {
-    h += '<button onclick="abrirEditarFichaje(' + fr.id + ',\'' + (fr.agente||'').replace(/'/g,'') + '\',\'' + (fr.entrada||'') + '\',\'' + (fr.salida||'') + '\')" style="flex-shrink:0;padding:4px 8px;background:transparent;border:1px solid rgba(245,158,11,.3);border-radius:6px;color:#fcd34d;font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font)">&#x1F552;</button>';
+  if (USER.rol === 'ADMIN' || USER.puesto === 'Programaci\xF3n') {
   }
   h += '<button data-fid="' + fr.id + '" data-fagente="' + fr.agente.replace(/"/g, '').replace(/'/g, '') + '" data-fpuesto="' + (fr.puesto||'').replace(/"/g, '').replace(/'/g, '') + '" onclick="var b=this;abrirTrasladoPuesto(b.getAttribute(\'data-fid\'),b.getAttribute(\'data-fagente\'),b.getAttribute(\'data-fpuesto\'))" style="flex-shrink:0;padding:4px 8px;background:transparent;border:1px solid rgba(99,102,241,.35);border-radius:6px;color:#a5b4fc;font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font)" title="Trasladar a otro puesto">🔁</button>';
   h += '<button data-fid="' + fr.id + '" data-fnombre="' + fr.agente.replace(/"/g, '').replace(/'/g, '') + '" onclick="var b=this;marcarSalidaDirecta(b.getAttribute(\'data-fid\'),b.getAttribute(\'data-fnombre\'))" style="flex-shrink:0;padding:4px 10px;background:transparent;border:1px solid rgba(239,68,68,0.4);border-radius:6px;color:#f87171;font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font);white-space:nowrap">Salida</button>';
@@ -14042,7 +14043,7 @@ function _loadObjetivos() {
                 // objetivo (guardarInformeObj escribe en objetivos.texto_informe/nro_pd/nro_pu),
                 // antes solo miraba los puntos y el botón nunca cambiaba de estado.
                 var tieneInfObj = !!(o.texto_informe || o.nro_pd || o.nro_pu) || puntos.some(function(p) { return p.texto_informe || p.nro_pd || p.nro_pu; });
-                var ROLES_ADM_OBJ = ['Administración', 'Administrador'];
+                var ROLES_ADM_OBJ = ['Administración', 'Administrador', 'Programaci\xF3n'];
                 var esAdmObj = USER && (ROLES_ADM_OBJ.indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN');
                 ohtml += '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">';
                 ohtml += '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(96,165,250,0.12);color:var(--accent3)">📍 ' + puntos.length + ' punto' + (puntos.length !== 1 ? 's' : '') + '</span>';
