@@ -14865,7 +14865,7 @@ function goView(name) {
   if (document.getElementById('si-' + name)) document.getElementById('si-' + name).classList.add('active');
   $('fab').style.display = ['novedades', 'objetivos', 'choferes', 'fichaje', 'llaves', 'rrhh', 'agenda'].includes(name) ? 'flex' : 'none';
   try {
-    if (name === 'llaves' && typeof loadLlaves === 'function') loadLlaves();
+    if (name === 'llaves' && typeof loadLlaves === 'function') { actualizarSelectLlave(); loadLlaves(); }
     if (name === 'rrhh' && typeof loadRRHH === 'function') loadRRHH();
     if (name === 'admin') {
       selAdminTab('general');
@@ -17948,12 +17948,25 @@ var LLAVES_DATA = {
 };
 // Tablero Base Castañares — vacío para completar desde la app
 var LLAVES_DATA_BC = {};
-for (var _bcN = 94; _bcN <= 186; _bcN++) { LLAVES_DATA_BC[_bcN] = ''; }
+for (var _bcN = 93; _bcN <= 185; _bcN++) { LLAVES_DATA_BC[_bcN] = ''; }
 
 var LLAVES_SEDE_ACTUAL = 'obrador'; // 'obrador' | 'castanares'
 
 function getLlavesDataActual() {
   return LLAVES_SEDE_ACTUAL === 'castanares' ? LLAVES_DATA_BC : LLAVES_DATA;
+}
+
+function actualizarSelectLlave() {
+  var sel = document.getElementById('ll-numero');
+  if (!sel) return;
+  var data = getLlavesDataActual();
+  var rango = getLlavesRango();
+  var html = '<option value="">— Seleccionar número —</option>';
+  for (var i = rango.min; i <= rango.max; i++) {
+    var nombre = data[i] ? (i + ' — ' + data[i]) : String(i);
+    html += '<option value="' + i + '">' + nombre + '</option>';
+  }
+  sel.innerHTML = html;
 }
 
 function selLlavesSede(sede, btn) {
@@ -17970,6 +17983,7 @@ function selLlavesSede(sede, btn) {
   // Restaurar active en el tab de contenido actual
   var tabBtns = document.querySelectorAll('#view-llaves .tabs:not(:first-of-type) .tab');
   if (tabBtns.length) tabBtns[0].classList.add('active'); // default tablero
+  actualizarSelectLlave();
   loadLlaves();
 }
 var LLAVES_CACHE = [];
@@ -17991,10 +18005,15 @@ function llavesTab(tab, btn) {
   if (tab === 'entregadas') loadEntregasLlaves();
 }
 
+function getLlavesRango() {
+  return LLAVES_SEDE_ACTUAL === 'castanares' ? {min: 93, max: 185} : {min: 1, max: 92};
+}
+
 function loadLlaves() {
   var data = getLlavesDataActual();
+  var rango = getLlavesRango();
   var totalConNombre = 0;
-  for (var nn = 1; nn <= 92; nn++) { if (data[nn] && String(data[nn]).trim() !== '') totalConNombre++; }
+  for (var nn = rango.min; nn <= rango.max; nn++) { if (data[nn] && String(data[nn]).trim() !== '') totalConNombre++; }
   document.getElementById('llaves-total').textContent = totalConNombre;
   renderTablero({});
   var tableroFiltro = LLAVES_SEDE_ACTUAL === 'castanares' ? 'castanares' : 'obrador';
@@ -18199,7 +18218,7 @@ function saveMovimiento() {
   db.from('llaves_movimientos').insert({
     llave_id: id, tipo: tipo,
     persona: quien || null,
-    ubicacion: tipo === 'devolucion' ? 'Obrador Savio — Tablero' : (donde || null),
+    ubicacion: tipo === 'devolucion' ? (LLAVES_SEDE_ACTUAL === 'castanares' ? 'Base Castañares — Tablero' : 'Obrador Savio — Tablero') : (donde || null),
     motivo: motivo || null,
     registrado_por: USER ? USER.puesto : ''
   }).then(function() {
@@ -18207,12 +18226,12 @@ function saveMovimiento() {
     if (tipo === 'devolucion') {
       updates.estado_actual = 'base';
       updates.persona_actual = null;
-      updates.ubicacion_actual = 'Obrador Savio — Tablero';
+      updates.ubicacion_actual = LLAVES_SEDE_ACTUAL === 'castanares' ? 'Base Castañares — Tablero' : 'Obrador Savio — Tablero';
       updates.vehiculo = null;
     } else {
       updates.estado_actual = 'prestada';
       updates.persona_actual = quien || null;
-      updates.ubicacion_actual = donde || 'Fuera del obrador';
+      updates.ubicacion_actual = donde || (LLAVES_SEDE_ACTUAL === 'castanares' ? 'Fuera de Base Castañares' : 'Fuera del obrador');
       updates.vehiculo = null;
     }
     db.from('llaves').update(updates).eq('id', id).then(function(result) {
