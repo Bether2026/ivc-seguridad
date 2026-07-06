@@ -5763,7 +5763,7 @@ var ENA_OBJURLS = [];
 var ENA_FOTOS_ACTUALES = [];
 
 function abrirEdicionCompletaNovedad(id) {
-  if (!USER || USER.rol !== 'ADMIN') { toast('Sin permiso', 'err'); return; }
+  if (!USER || (USER.rol !== 'ADMIN' && USER.puesto !== 'Programaci\xF3n')) { toast('Sin permiso', 'err'); return; }
   for (var _ei = 0; _ei < ENA_OBJURLS.length; _ei++) { URL.revokeObjectURL(ENA_OBJURLS[_ei]); } ENA_OBJURLS = [];
   ENA_FOTOS_NUEVAS = [];
   ENA_FOTOS_ACTUALES = [];
@@ -12660,7 +12660,7 @@ var EF_ENTRADA_ORIG = '';
 var EF_SALIDA_ORIG = '';
 
 function abrirEditarFichaje(id, agente, entradaISO, salidaISO) {
-  if (!USER || USER.rol !== 'ADMIN') { toast('Solo el Administrador de sistema puede editar fichajes', 'err'); return; }
+  if (!USER || (USER.rol !== 'ADMIN' && USER.puesto !== 'Programaci\xF3n')) { toast('Solo el Administrador de sistema o Programaci\xF3n puede editar fichajes', 'err'); return; }
   EF_ID = id;
   EF_AGENTE = agente;
   EF_ENTRADA_ORIG = entradaISO;
