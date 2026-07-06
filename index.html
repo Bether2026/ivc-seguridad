@@ -11846,18 +11846,80 @@ function toggleHRDetalle(idx) {
 
 function exportarHorasReales() {
   if (!HR_DATA.length) { toast('Sin datos para exportar', 'err'); return; }
-  var mes  = (document.getElementById('hr-mes') || {}).value  || '';
-  var anio = (document.getElementById('hr-anio') || {}).value || '';
-  var csv = 'Nombre,Tipo,Dias Fichados,Horas Trabajadas,Horas A Cumplir,Balance\n';
-  HR_DATA.forEach(function(r) {
-    csv += '"' + r.nombre + '",' + r.tipo + ',' + r.diasTrabajados + ',' +
-           r.totalTrabajadas.toFixed(2) + ',' + r.totalACumplir.toFixed(2) + ',' +
-           r.diff.toFixed(2) + '\n';
-  });
+  var mes  = parseInt((document.getElementById('hr-mes') || {}).value  || new Date().getMonth() + 1);
+  var anio = parseInt((document.getElementById('hr-anio') || {}).value || new Date().getFullYear());
+  var diasMes = new Date(anio, mes, 0).getDate();
+  var mesesNom = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  var VALOR_MODULO = 4000; // referencia para calcular importe en $
+
+  // Cabecera tipo Excel del Gerente
+  // Fila 1: REAL | fecha | (vacio x dias) | TOTAL HS | TOTAL MODULOS | TOTAL EN $
+  // Fila 2: ord | DNI | Apellido y Nombre | 1 | 2 | ... | N | | |
+  // Filas de datos: num | dni | nombre | horas-o-codigo por dia | total | modulos | importe
+
+  var BOM = '\uFEFF'; // UTF-8 BOM para que Excel lo abra bien
+  var SEP = ';'; // punto y coma para compatibilidad con Excel regional
+
+  // Fila 1: titulo
+  var f1 = ['REAL', '', '', anio + '-' + String(mes).padStart(2,'0')];
+  for (var i = 1; i < diasMes; i++) f1.push('');
+  f1.push('', 'TOTAL HS', 'TOTAL MODULOS', 'TOTAL EN $');
+  var csv = BOM + f1.join(SEP) + '\n';
+
+  // Fila 2: encabezados columnas
+  var f2 = ['ord', 'DNI', 'Apellido y Nombre'];
+  for (var d = 1; d <= diasMes; d++) f2.push(d);
+  f2.push('', 'TOTAL HS', 'TOTAL MODULOS', 'TOTAL EN $');
+  csv += f2.join(SEP) + '\n';
+
+  // Fila 3: encabezados con nombre del mes (opcional, espeja formato original)
+  var f3 = ['', '', mesesNom[mes - 1] + ' ' + anio];
+  for (var d2 = 1; d2 <= diasMes; d2++) f3.push(d2);
+  f3.push('', '', '', '');
+  csv += f3.join(SEP) + '\n';
+
+  // Filas de datos
+  for (var ri = 0; ri < HR_DATA.length; ri++) {
+    var r = HR_DATA[ri];
+    var row = [ri + 1, '', r.nombre];
+    var diasInfo = r.diasInfo || [];
+    for (var di = 0; di < diasInfo.length; di++) {
+      var info = diasInfo[di];
+      var celda = '';
+      if (info.diaSemana === 0) {
+        // Domingo: vacio (columna sin dato)
+        celda = '';
+      } else if (info.lic) {
+        // Tiene licencia registrada: mostrar codigo
+        celda = info.lic;
+      } else if (info.sinSalida && info.hs === null) {
+        // Fichó entrada pero sin salida
+        celda = 'NF';
+      } else if (info.hs !== null && info.hs > 0) {
+        // Horas trabajadas: 2 decimales con punto
+        celda = (Math.round(info.hs * 100) / 100).toString().replace('.', ',');
+      } else if (info.hs === 0) {
+        celda = '0';
+      }
+      // Si feriado y sin dato: vacio
+      row.push(celda);
+    }
+    // Totales
+    var totalHs = Math.round(r.totalTrabajadas * 100) / 100;
+    var modulos = Math.round((totalHs / 7) * 1000000) / 1000000; // 7hs = 1 modulo (referencia)
+    var importe = Math.round(totalHs * VALOR_MODULO / 7);
+    row.push('');
+    row.push(totalHs.toString().replace('.', ','));
+    row.push(modulos.toString().replace('.', ','));
+    row.push(importe);
+    csv += row.join(SEP) + '\n';
+  }
+
   var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   var url  = URL.createObjectURL(blob);
   var a    = document.createElement('a');
-  a.href = url; a.download = 'horas_' + anio + '_' + String(mes).padStart(2,'0') + '.csv';
+  a.href = url;
+  a.download = 'HorasReales_' + mesesNom[mes - 1] + '_' + anio + '.csv';
   a.click();
   URL.revokeObjectURL(url);
   toast('&#x1F4C5; CSV descargado');
