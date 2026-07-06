@@ -2704,6 +2704,10 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
           <input class="form-input" id="np-direccion" placeholder="Ej: Pasaje Los Aromos 234"/>
         </div>
         <div class="form-group">
+          <label class="form-label">Manzana</label>
+          <input class="form-input" id="np-manzana" placeholder="Ej: Manzana 2"/>
+        </div>
+        <div class="form-group">
           <label class="form-label">Categor&#xED;a</label>
           <select class="form-select" id="np-categoria" onchange="toggleCatOtro(this.value)">
             <option value="Construcci&#xF3;n no autorizada">&#x1F3D7; Construcci&#xF3;n no autorizada</option>
@@ -8686,7 +8690,7 @@ function _renderFotosCtrl() {
 function abrirNuevoPunto() {
   window._NP_EDIT_ID = null;
   NP_FOTO_FILE = null; NP_PRIORIDAD = 'media';
-  ['np-barrio','np-titulo','np-direccion','np-descripcion'].forEach(function(id) { var el = document.getElementById(id); if (el) el.value = ''; });
+  ['np-barrio','np-titulo','np-direccion','np-manzana','np-descripcion'].forEach(function(id) { var el = document.getElementById(id); if (el) el.value = ''; });
   var cat = document.getElementById('np-categoria'); if (cat) cat.selectedIndex = 0;
   var cdn = document.getElementById('np-controles-dia'); if (cdn) cdn.value = '3';
   var prev = document.getElementById('np-foto-prev'); if (prev) prev.innerHTML = '';
@@ -8706,6 +8710,7 @@ function abrirEditarPunto(id) {
   var elBarrio = document.getElementById('np-barrio'); if (elBarrio) elBarrio.value = punto.barrio || '';
   var elTit    = document.getElementById('np-titulo');    if (elTit)    elTit.value    = punto.titulo || '';
   var elDir    = document.getElementById('np-direccion'); if (elDir)    elDir.value    = punto.direccion || '';
+  var elManz   = document.getElementById('np-manzana');   if (elManz)   elManz.value   = punto.manzana   || '';
   var elDesc   = document.getElementById('np-descripcion'); if (elDesc) elDesc.value   = punto.descripcion || '';
   var elCat    = document.getElementById('np-categoria'); if (elCat)    elCat.value    = punto.categoria || '';
   var elCDia   = document.getElementById('np-controles-dia'); if (elCDia) elCDia.value = String(punto.controles_dia || 3);
@@ -8727,6 +8732,7 @@ function guardarNuevoPunto() {
   var barrio = (document.getElementById('np-barrio') || {}).value;
   var titulo  = ((document.getElementById('np-titulo') || {}).value || '').trim();
   var dir     = ((document.getElementById('np-direccion') || {}).value || '').trim();
+  var manzana = ((document.getElementById('np-manzana') || {}).value || '').trim();
   var cat     = (document.getElementById('np-categoria') || {}).value;
   var desc    = ((document.getElementById('np-descripcion') || {}).value || '').trim();
   var cDia    = (document.getElementById('np-controles-dia') || {}).value;
@@ -8742,6 +8748,7 @@ function guardarNuevoPunto() {
     function doUpdate(fotoUrl) {
       var payload = {
         barrio: barrio, titulo: titulo, direccion: dir,
+        manzana: manzana || null,
         categoria: cat, prioridad: NP_PRIORIDAD,
         descripcion: desc || null,
         controles_dia: parseInt(cDia) || 0
@@ -8766,6 +8773,7 @@ function guardarNuevoPunto() {
   function doInsert(fotoUrl) {
     db.from('puntos_criticos').insert({
       barrio: barrio, titulo: titulo, direccion: dir,
+      manzana: manzana || null,
       categoria: cat, prioridad: NP_PRIORIDAD,
       descripcion: desc || null,
       controles_dia: parseInt(cDia) || 0,
@@ -8896,13 +8904,24 @@ function renderPendientes(data) {
     list.innerHTML = '<div class="empty"><div class="icon">&#x26A0;</div><p>' + (PEND_FILTER === 'resueltos' ? 'Sin casos resueltos' : 'Sin puntos críticos') + '</p></div>';
     return;
   }
-  // Agrupar por barrio
+  // Agrupar por barrio → manzana → puntos
   var porBarrio = {};
-  filtered.forEach(function(p) { var b = p.barrio || 'Sin barrio'; if (!porBarrio[b]) porBarrio[b] = []; porBarrio[b].push(p); });
+  filtered.forEach(function(p) {
+    var b = p.barrio || 'Sin barrio';
+    var m = p.manzana || 'Sin manzana';
+    if (!porBarrio[b]) porBarrio[b] = {};
+    if (!porBarrio[b][m]) porBarrio[b][m] = [];
+    porBarrio[b][m].push(p);
+  });
   var html = '';
   Object.keys(porBarrio).sort().forEach(function(barrio) {
-    var puntos = porBarrio[barrio];
-    html += '<div style="margin-bottom:18px"><div style="font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.12em;margin-bottom:8px;display:flex;align-items:center;gap:8px"><span style="flex:1;height:1px;background:var(--border)"></span><span>&#x1F4CD; ' + barrio + ' (' + puntos.length + ')</span><span style="flex:1;height:1px;background:var(--border)"></span></div>';
+    var porManzana = porBarrio[barrio];
+    var totalBarrio = 0;
+    Object.keys(porManzana).forEach(function(m) { totalBarrio += porManzana[m].length; });
+    html += '<div style="margin-bottom:18px"><div style="font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px;display:flex;align-items:center;gap:8px"><span style="flex:1;height:1px;background:var(--border)"></span><span>&#x1F4CD; ' + barrio + ' (' + totalBarrio + ')</span><span style="flex:1;height:1px;background:var(--border)"></span></div>';
+    Object.keys(porManzana).sort().forEach(function(manzana) {
+      var puntos = porManzana[manzana];
+      html += '<div style="margin-bottom:12px"><div style="font-size:10px;font-weight:700;color:var(--text3);letter-spacing:.08em;margin-bottom:6px;padding-left:4px;display:flex;align-items:center;gap:6px"><span style="width:16px;height:1px;background:var(--border2)"></span><span>&#x1F3D7; ' + manzana + ' &middot; ' + puntos.length + ' punto' + (puntos.length !== 1 ? 's' : '') + '</span></div>';
     puntos.forEach(function(p) {
       var pr = pendPrioStyle(p.prioridad || 'media');
       var esResuelto = p.estado === 'resuelto';
@@ -8925,7 +8944,9 @@ function renderPendientes(data) {
       }
       html += '</div>';
     });
-    html += '</div>';
+      html += '</div>'; // cierre manzana
+    });
+    html += '</div>'; // cierre barrio
   });
   list.innerHTML = html;
 }
