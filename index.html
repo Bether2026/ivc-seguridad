@@ -2743,8 +2743,12 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
         </div>
         <div id="pd-info" style="margin-bottom:14px"></div>
         <!-- Botón registrar control -->
-        <button id="btn-registrar-control" onclick="abrirRegistrarControl()" style="width:100%;margin-bottom:14px;padding:12px;border-radius:10px;border:1px solid rgba(16,185,129,.35);background:rgba(16,185,129,.1);color:#6ee7b7;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer">
+        <button id="btn-registrar-control" onclick="abrirRegistrarControl()" style="width:100%;margin-bottom:10px;padding:12px;border-radius:10px;border:1px solid rgba(16,185,129,.35);background:rgba(16,185,129,.1);color:#6ee7b7;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer">
           &#x1F4F8; Registrar control ahora
+        </button>
+        <!-- Botón completar datos (visible solo cuando admin habilita edicion_datos_habilitada) -->
+        <button id="btn-editar-datos-punto" onclick="abrirEditarDatosPunto()" style="display:none;width:100%;margin-bottom:14px;padding:12px;border-radius:10px;border:1px solid rgba(167,139,250,.35);background:rgba(167,139,250,.1);color:#c4b5fd;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer">
+          &#x1F4DD; Completar datos del punto
         </button>
         <!-- Historial -->
         <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">Historial de controles</div>
@@ -2796,6 +2800,34 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
           <input type="time" class="form-input" id="ctrl-hora-evento" style="font-size:15px;font-family:var(--mono)">
         </div>
         <button class="btn-login" id="btn-save-ctrl" onclick="guardarControl()">&#x2713; Confirmar control</button>
+      </div>
+    </div>
+
+    <!-- OVERLAY: Editar datos del punto crítico (habilitado por admin para el puesto) -->
+    <div class="overlay" id="ov-editar-datos-punto">
+      <div class="modal">
+        <div class="modal-head">
+          <span class="modal-title">&#x270F; Completar datos del punto</span>
+          <button class="btn-close" onclick="closeOv('ov-editar-datos-punto')">&#xD7;</button>
+        </div>
+        <div id="edp-punto-info" style="padding:10px 12px;background:var(--bg3);border-radius:8px;margin-bottom:14px;font-size:13px;color:var(--text2)"></div>
+        <div class="form-group">
+          <label class="form-label">Direcci&#xF3;n / Ubicaci&#xF3;n</label>
+          <input class="form-input" id="edp-direccion" placeholder="Ej: Pasaje Los Aromos 234"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Descripci&#xF3;n detallada</label>
+          <textarea class="form-textarea" id="edp-descripcion" placeholder="Descrip\xED el caso con todo el detalle..." style="min-height:100px"></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Foto del punto <span style="font-size:10px;color:var(--text3);font-weight:400">(opcional)</span></label>
+          <input type="file" accept="image/*" id="edp-foto-input" onchange="prevFotoEDP(this)" style="display:none">
+          <button type="button" onclick="abrirSelectorFoto('edp-foto-input')" style="display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:8px;border:1px dashed var(--border2);background:var(--bg2);color:var(--text3);font-family:var(--font);font-size:12px;cursor:pointer;width:100%">
+            <span style="font-size:18px">&#128247;</span> Foto del punto cr&#xED;tico
+          </button>
+          <div id="edp-foto-prev" style="margin-top:8px"></div>
+        </div>
+        <button class="btn-login" id="btn-save-edp" onclick="guardarDatosPunto()">&#x2713; Guardar datos</button>
       </div>
     </div>
 
@@ -8722,6 +8754,9 @@ function renderPendientes(data) {
       if (p.edicion_habilitada) {
         html += '<div style="margin-top:6px;padding:4px 10px;border-radius:6px;background:rgba(251,146,60,.12);border:1px solid rgba(251,146,60,.3);font-size:10px;font-weight:700;color:#fdba74;text-align:center">&#x270F; Edici\xF3n activa para el puesto</div>';
       }
+      if (p.edicion_datos_habilitada) {
+        html += '<div style="margin-top:4px;padding:4px 10px;border-radius:6px;background:rgba(167,139,250,.12);border:1px solid rgba(167,139,250,.3);font-size:10px;font-weight:700;color:#c4b5fd;text-align:center">&#x1F4DD; Completar datos habilitado</div>';
+      }
       html += '</div>';
     });
     html += '</div>';
@@ -8783,6 +8818,11 @@ function verPunto(id) {
     (punto.foto_inicial ? '<img src="' + punto.foto_inicial + '" style="width:100%;max-height:160px;object-fit:cover;border-radius:8px;margin-top:8px">' : '') + '</div>';
   var btnCtrl = document.getElementById('btn-registrar-control');
   if (btnCtrl) btnCtrl.style.display = punto.estado === 'resuelto' ? 'none' : 'block';
+  // Botón completar datos — visible cuando admin habilitó edicion_datos_habilitada
+  var btnEditarDatos = document.getElementById('btn-editar-datos-punto');
+  if (btnEditarDatos) {
+    btnEditarDatos.style.display = punto.edicion_datos_habilitada ? 'block' : 'none';
+  }
   var adminDiv = document.getElementById('pd-admin-btns');
   if (adminDiv) {
     adminDiv.style.display = esGestion ? 'flex' : 'none';
@@ -8794,6 +8834,8 @@ function verPunto(id) {
       if (USER && USER.rol === 'ADMIN') {
         var editActivo = !!punto.edicion_habilitada;
         btnsHtml += '<button id="btn-toggle-edicion" onclick="toggleEdicionPunto(' + id + ',' + (editActivo ? 'false' : 'true') + ')" style="padding:10px 14px;border-radius:8px;border:1px solid ' + (editActivo ? 'rgba(251,146,60,.4)' : 'rgba(96,165,250,.3)') + ';background:' + (editActivo ? 'rgba(251,146,60,.1)' : 'rgba(96,165,250,.08)') + ';color:' + (editActivo ? '#fdba74' : '#93c5fd') + ';font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">' + (editActivo ? '&#x1F512; Deshabilitar edici\xF3n' : '&#x1F513; Habilitar edici\xF3n') + '</button>';
+        var datosActivo = !!punto.edicion_datos_habilitada;
+        btnsHtml += '<button id="btn-toggle-datos" onclick="toggleEdicionDatosPunto(' + id + ',' + (datosActivo ? 'false' : 'true') + ')" style="padding:10px 14px;border-radius:8px;border:1px solid ' + (datosActivo ? 'rgba(167,139,250,.4)' : 'rgba(167,139,250,.2)') + ';background:' + (datosActivo ? 'rgba(167,139,250,.12)' : 'transparent') + ';color:' + (datosActivo ? '#c4b5fd' : 'var(--text3)') + ';font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">' + (datosActivo ? '&#x1F4DD; Datos: ON' : '&#x1F4DD; Datos: OFF') + '</button>';
       }
       adminDiv.innerHTML = btnsHtml;
     }
@@ -8937,6 +8979,97 @@ function toggleEdicionPunto(id, habilitar) {
       loadPendientes();
     });
   }, habilitar ? 'Habilitar' : 'Deshabilitar', habilitar ? '#fdba74' : 'var(--text3)');
+}
+
+function toggleEdicionDatosPunto(id, habilitar) {
+  var label = habilitar ? 'Habilitar completar datos' : 'Deshabilitar completar datos';
+  var msg   = habilitar
+    ? 'El puesto podr\xE1 completar la direcci\xF3n, descripci\xF3n y foto del punto. Se desactiva autom\xE1ticamente al guardar.'
+    : '\xBFDesactivar la edici\xF3n de datos para este punto?';
+  showConfirm('&#x1F4DD;', label, msg, function() {
+    db.from('puntos_criticos').update({ edicion_datos_habilitada: habilitar }).eq('id', id).then(function(r) {
+      if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+      toast(habilitar ? '&#x1F4DD; Completar datos habilitado' : '&#x1F4DD; Completar datos deshabilitado');
+      var pIdx = -1; for (var _pi3 = 0; _pi3 < _PEND_DATA.length; _pi3++) { if (_PEND_DATA[_pi3].id === id) { pIdx = _pi3; break; } }
+      if (pIdx >= 0) _PEND_DATA[pIdx].edicion_datos_habilitada = habilitar;
+      closeOv('ov-punto-detalle');
+      loadPendientes();
+    });
+  }, habilitar ? 'Habilitar' : 'Deshabilitar', habilitar ? '#c4b5fd' : 'var(--text3)');
+}
+
+var EDP_FOTO_FILE = null;
+
+function prevFotoEDP(input) {
+  var f = input && input.files && input.files[0]; if (!f) return;
+  EDP_FOTO_FILE = f;
+  var prev = document.getElementById('edp-foto-prev'); if (!prev) return;
+  var url = URL.createObjectURL(f);
+  prev.innerHTML = '<div style="position:relative;display:inline-block">' +
+    '<img src="' + url + '" style="max-height:120px;border-radius:8px;display:block">' +
+    '<button onclick="EDP_FOTO_FILE=null;document.getElementById(\'edp-foto-prev\').innerHTML=\'\'" ' +
+    'style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,.6);color:#fff;border:none;border-radius:50%;width:22px;height:22px;font-size:14px;cursor:pointer;line-height:1">&times;</button>' +
+    '</div>';
+}
+
+function abrirEditarDatosPunto() {
+  var punto = _PEND_DATA.find(function(p) { return p.id === CTRL_PUNTO_ID; }); if (!punto) return;
+  EDP_FOTO_FILE = null;
+  var infoEl = document.getElementById('edp-punto-info');
+  if (infoEl) infoEl.innerHTML = '<strong>' + punto.titulo + '</strong><br><span style="font-size:11px;color:var(--text3)">&#x1F4CD; ' + (punto.direccion || '') + '</span>';
+  var dirEl = document.getElementById('edp-direccion');
+  if (dirEl) dirEl.value = punto.direccion || '';
+  var descEl = document.getElementById('edp-descripcion');
+  if (descEl) descEl.value = punto.descripcion || '';
+  var prevEl = document.getElementById('edp-foto-prev');
+  if (prevEl) prevEl.innerHTML = punto.foto_inicial
+    ? '<img src="' + punto.foto_inicial + '" style="max-height:100px;border-radius:8px;opacity:.6"> <span style="font-size:10px;color:var(--text3)">Foto actual</span>'
+    : '';
+  closeOv('ov-punto-detalle');
+  openOv('ov-editar-datos-punto');
+}
+
+function guardarDatosPunto() {
+  var dirEl  = document.getElementById('edp-direccion');
+  var descEl = document.getElementById('edp-descripcion');
+  var dir    = (dirEl  ? dirEl.value  : '').trim();
+  var desc   = (descEl ? descEl.value : '').trim();
+  if (!dir && !desc && !EDP_FOTO_FILE) { toast('Complet\xE1 al menos un campo', 'err'); return; }
+  setLoading('btn-save-edp', true);
+
+  function doUpdate(fotoUrl) {
+    var payload = { edicion_datos_habilitada: false };
+    if (dir)     payload.direccion   = dir;
+    if (desc)    payload.descripcion = desc;
+    if (fotoUrl) payload.foto_inicial = fotoUrl;
+    db.from('puntos_criticos').update(payload).eq('id', CTRL_PUNTO_ID).then(function(r) {
+      setLoading('btn-save-edp', false);
+      if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+      // Actualizar _PEND_DATA en memoria
+      var pIdx = -1; for (var _pi4 = 0; _pi4 < _PEND_DATA.length; _pi4++) { if (_PEND_DATA[_pi4].id === CTRL_PUNTO_ID) { pIdx = _pi4; break; } }
+      if (pIdx >= 0) {
+        if (dir)     _PEND_DATA[pIdx].direccion   = dir;
+        if (desc)    _PEND_DATA[pIdx].descripcion = desc;
+        if (fotoUrl) _PEND_DATA[pIdx].foto_inicial = fotoUrl;
+        _PEND_DATA[pIdx].edicion_datos_habilitada = false;
+      }
+      EDP_FOTO_FILE = null;
+      closeOv('ov-editar-datos-punto');
+      toast('\u2713 Datos del punto actualizados');
+      loadPendientes();
+    });
+  }
+
+  if (EDP_FOTO_FILE) {
+    uploadToR2Comprimido(EDP_FOTO_FILE, 'puntos_criticos').then(function(url) {
+      doUpdate(url);
+    }).catch(function() {
+      setLoading('btn-save-edp', false);
+      toast('Error subiendo la foto', 'err');
+    });
+  } else {
+    doUpdate(null);
+  }
 }
 
 function guardarControl() {
