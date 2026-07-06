@@ -7574,7 +7574,7 @@ function initApp() {
   // La visibilidad de todas las secciones la maneja aplicarPermisosAlLogin()
   // No hardcodear displays acá para no sobreescribir los permisos configurados
   var sel = $('f-sel');
-  var ROLES_GESTION_FICH = ['Administración', 'Administrador', 'Gerencia', 'Jefe de departamento', 'Responsable de turno', 'Emergencias'];
+  var ROLES_GESTION_FICH = ['Administración', 'Administrador', 'Gerencia', 'Jefe de departamento', 'Responsable de turno', 'Emergencias', 'Programaci\xF3n'];
   var esGestionFich = ROLES_GESTION_FICH.includes(USER.puesto) || USER.rol === 'ADMIN';
 
   // Label del campo: puestos comunes ven "Tu nombre", gestión ve "Agente"
@@ -7598,13 +7598,12 @@ function initApp() {
   tick();
   TIMER = setInterval(tick, 1000);
 
-  // Campo hora override — SOLO Administrador de sistema
+  // Campo hora override — Administrador de sistema y Programación
   var horaWrap = document.getElementById('f-hora-override-wrap');
   if (horaWrap) {
-    var esAdminSistema = USER.rol === 'ADMIN';
+    var esAdminSistema = USER.rol === 'ADMIN' || USER.puesto === 'Programaci\xF3n';
     horaWrap.style.display = esAdminSistema ? 'block' : 'none';
     if (esAdminSistema) {
-      // Setear la hora actual como valor por defecto
       var horaInput = document.getElementById('f-hora-override');
       if (horaInput) {
         horaInput.value = horaActualAR();
@@ -12538,18 +12537,19 @@ function _renderFichajeRow(fr, canSeeGeo) {
   }
   h += '</div>';
   h += '<span style="font-family:var(--mono);font-size:11px;color:var(--text2);flex-shrink:0;white-space:nowrap">' + formatTs(fr.entrada) + '</span>';
-  if (USER.rol === 'ADMIN' || USER.puesto === 'Programaci\xF3n') {
+  var _esAdminOProg = USER.rol === 'ADMIN' || USER.puesto === 'Programaci\xF3n';
+  if (_esAdminOProg) {
+    h += '<button onclick="abrirEditarFichaje(' + fr.id + ',\'' + (fr.agente||'').replace(/'/g,'') + '\',\'' + (fr.entrada||'') + '\',\'' + (fr.salida||'') + '\')" style="flex-shrink:0;padding:4px 8px;background:transparent;border:1px solid rgba(245,158,11,.3);border-radius:6px;color:#fcd34d;font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font)">&#x1F552;</button>';
   }
   h += '<button data-fid="' + fr.id + '" data-fagente="' + fr.agente.replace(/"/g, '').replace(/'/g, '') + '" data-fpuesto="' + (fr.puesto||'').replace(/"/g, '').replace(/'/g, '') + '" onclick="var b=this;abrirTrasladoPuesto(b.getAttribute(\'data-fid\'),b.getAttribute(\'data-fagente\'),b.getAttribute(\'data-fpuesto\'))" style="flex-shrink:0;padding:4px 8px;background:transparent;border:1px solid rgba(99,102,241,.35);border-radius:6px;color:#a5b4fc;font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font)" title="Trasladar a otro puesto">🔁</button>';
   h += '<button data-fid="' + fr.id + '" data-fnombre="' + fr.agente.replace(/"/g, '').replace(/'/g, '') + '" onclick="var b=this;marcarSalidaDirecta(b.getAttribute(\'data-fid\'),b.getAttribute(\'data-fnombre\'))" style="flex-shrink:0;padding:4px 10px;background:transparent;border:1px solid rgba(239,68,68,0.4);border-radius:6px;color:#f87171;font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font);white-space:nowrap">Salida</button>';
-  // Botón "No fichó salida" — solo Administración y Administrador del sistema.
-  // Cierra el fichaje sin sumar horas (queda marcado como cierre manual).
-  var _puedeNoFicho = ['Administración', 'Administrador'].indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN';
+  // Botón "No fichó salida" — Administración, Administrador y Programación
+  var _puedeNoFicho = ['Administración', 'Administrador', 'Programaci\xF3n'].indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN';
   if (_puedeNoFicho) {
     h += '<button data-fid="' + fr.id + '" data-fnombre="' + fr.agente.replace(/"/g, '').replace(/'/g, '') + '" onclick="var b=this;marcarNoFichoSalida(b.getAttribute(\'data-fid\'),b.getAttribute(\'data-fnombre\'))" style="flex-shrink:0;padding:4px 8px;background:rgba(120,113,108,0.12);border:1px solid rgba(168,162,158,0.4);border-radius:6px;color:#d6d3d1;font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font);white-space:nowrap" title="Cerrar sin sumar horas (el agente olvidó fichar salida)">No fichó salida</button>';
   }
-  // Observaciones y Tramite — solo Administracion y Responsable de turno (no Gerencia/Jefe/Emergencias/otros)
-  var _puedeObsTramite = ['Administración', 'Administrador', 'Responsable de turno'].indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN';
+  // Observaciones y Tramite — Administración, Administrador, Responsable de turno y Programación
+  var _puedeObsTramite = ['Administración', 'Administrador', 'Responsable de turno', 'Programaci\xF3n'].indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN';
   if (_puedeObsTramite) {
     var _tieneObs = fr.observaciones && fr.observaciones.trim();
     h += '<button data-fid="' + fr.id + '" data-fnombre="' + fr.agente.replace(/"/g, '').replace(/'/g, '') + '" data-fobs="' + (fr.observaciones||'').replace(/"/g, '&quot;').replace(/'/g, '&#39;') + '" onclick="var b=this;abrirObsFichaje(b.getAttribute(\'data-fid\'),b.getAttribute(\'data-fnombre\'),b.getAttribute(\'data-fobs\'))" style="flex-shrink:0;padding:4px 8px;background:' + (_tieneObs ? 'rgba(59,130,246,0.15)' : 'transparent') + ';border:1px solid rgba(59,130,246,.35);border-radius:6px;color:#93c5fd;font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font)" title="' + (_tieneObs ? 'Ver/editar observacion' : 'Agregar observacion') + '">' + (_tieneObs ? '📝' : '📋') + '</button>';
