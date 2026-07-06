@@ -8718,7 +8718,11 @@ function renderPendientes(data) {
       if (reqHoy > 0 && !esResuelto) {
         html += '<div style="margin-top:6px"><div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-bottom:3px"><span>Controles hoy</span><span style="color:' + pctC + '">' + ctrlHoy + ' / ' + reqHoy + '</span></div><div style="height:4px;background:var(--bg3);border-radius:999px;overflow:hidden"><div style="height:100%;width:' + pct + '%;background:' + pctC + ';border-radius:999px"></div></div></div>';
       }
-      html += '<div style="margin-top:8px;display:flex;align-items:center;justify-content:space-between"><span style="font-size:10px;color:var(--text3)">Desde ' + (p.fecha_creacion || '') + '</span><span style="font-size:11px;font-weight:700;color:' + (esResuelto ? 'var(--green)' : 'var(--red)') + '">' + (esResuelto ? '&#x2705; Resuelto' : '&#x1F534; Activo') + '</span></div></div>';
+      html += '<div style="margin-top:8px;display:flex;align-items:center;justify-content:space-between"><span style="font-size:10px;color:var(--text3)">Desde ' + (p.fecha_creacion || '') + '</span><span style="font-size:11px;font-weight:700;color:' + (esResuelto ? 'var(--green)' : 'var(--red)') + '">' + (esResuelto ? '&#x2705; Resuelto' : '&#x1F534; Activo') + '</span></div>';
+      if (p.edicion_habilitada) {
+        html += '<div style="margin-top:6px;padding:4px 10px;border-radius:6px;background:rgba(251,146,60,.12);border:1px solid rgba(251,146,60,.3);font-size:10px;font-weight:700;color:#fdba74;text-align:center">&#x270F; Edici\xF3n activa para el puesto</div>';
+      }
+      html += '</div>';
     });
     html += '</div>';
   });
@@ -8786,6 +8790,11 @@ function verPunto(id) {
       var btnsHtml = '';
       if (punto.estado === 'activo') btnsHtml += '<button onclick="resolverPunto(' + id + ')" style="flex:1;padding:10px;border-radius:8px;border:1px solid rgba(16,185,129,.3);background:rgba(16,185,129,.08);color:#6ee7b7;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">&#x2705; Marcar resuelto</button>';
       btnsHtml += '<button onclick="eliminarPunto(' + id + ')" style="padding:10px 14px;border-radius:8px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.08);color:#fca5a5;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">&#x1F5D1;</button>';
+      // Botón edición habilitada — solo Administrador de sistema
+      if (USER && USER.rol === 'ADMIN') {
+        var editActivo = !!punto.edicion_habilitada;
+        btnsHtml += '<button id="btn-toggle-edicion" onclick="toggleEdicionPunto(' + id + ',' + (editActivo ? 'false' : 'true') + ')" style="padding:10px 14px;border-radius:8px;border:1px solid ' + (editActivo ? 'rgba(251,146,60,.4)' : 'rgba(96,165,250,.3)') + ';background:' + (editActivo ? 'rgba(251,146,60,.1)' : 'rgba(96,165,250,.08)') + ';color:' + (editActivo ? '#fdba74' : '#93c5fd') + ';font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">' + (editActivo ? '&#x1F512; Deshabilitar edici\xF3n' : '&#x1F513; Habilitar edici\xF3n') + '</button>';
+      }
       adminDiv.innerHTML = btnsHtml;
     }
   }
@@ -8817,9 +8826,33 @@ function abrirRegistrarControl() {
   var prevEl = document.getElementById('ctrl-foto-prev'); if (prevEl) prevEl.innerHTML = '';
   var lbl = document.getElementById('ctrl-obs-label'); if (lbl) lbl.textContent = 'Observaciones';
   ['ok','nov'].forEach(function(x) { var btn = document.getElementById('ctrl-btn-' + x); if (btn) { btn.style.borderColor='var(--border2)'; btn.style.background='var(--bg3)'; btn.style.color='var(--text2)'; } });
-  // Pre-cargar hora del evento con la hora actual
   var _cHoraEv = document.getElementById('ctrl-hora-evento');
   if (_cHoraEv) _cHoraEv.value = _horaActualHHMM();
+
+  // Modo edición: si el admin habilitó edición, pre-cargar el último control
+  window._CTRL_EDIT_ID = null;
+  var tituloModal = document.querySelector('#ov-control .modal-title');
+  if (punto && punto.edicion_habilitada) {
+    if (tituloModal) tituloModal.textContent = '\u270F Completar / editar control';
+    var guardarBtn = document.getElementById('btn-save-ctrl');
+    if (guardarBtn) guardarBtn.textContent = '\u2713 Guardar cambios';
+    // Buscar el último control para pre-cargar observaciones y estado
+    db.from('controles_punto').select('*').eq('punto_id', CTRL_PUNTO_ID).order('id', { ascending: false }).limit(1).then(function(r) {
+      var ultimo = r.data && r.data[0];
+      if (ultimo) {
+        window._CTRL_EDIT_ID = ultimo.id;
+        if (obsEl) obsEl.value = ultimo.observaciones || '';
+        if (ultimo.estado) selEstadoControl(ultimo.estado);
+        // Avisar que la foto es obligatoria aunque ya exista una previa
+        if (lbl) lbl.textContent = 'Observaciones (editables)';
+      }
+    });
+  } else {
+    if (tituloModal) tituloModal.textContent = '&#x1F4F8; Registrar control';
+    var guardarBtnN = document.getElementById('btn-save-ctrl');
+    if (guardarBtnN) guardarBtnN.textContent = '\u2713 Confirmar control';
+  }
+
   closeOv('ov-punto-detalle');
   openOv('ov-control');
 }
@@ -8888,61 +8921,112 @@ function descargarInformeRecorridos() {
 }
 
 
+function toggleEdicionPunto(id, habilitar) {
+  var label = habilitar ? 'Habilitar edici\xF3n del puesto' : 'Deshabilitar edici\xF3n';
+  var msg   = habilitar
+    ? 'El puesto podr\xE1 completar fotos y editar el \xFAltimo control registrado. Se desactiva autom\xE1ticamente al guardar.'
+    : '\xBFDesactivar el modo edici\xF3n para este punto?';
+  showConfirm('&#x270F;', label, msg, function() {
+    db.from('puntos_criticos').update({ edicion_habilitada: habilitar }).eq('id', id).then(function(r) {
+      if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+      toast(habilitar ? '&#x1F513; Edici\xF3n habilitada' : '&#x1F512; Edici\xF3n deshabilitada');
+      // Actualizar _PEND_DATA en memoria para que el badge refleje el cambio sin recargar
+      var pIdx = -1; for (var _pi = 0; _pi < _PEND_DATA.length; _pi++) { if (_PEND_DATA[_pi].id === id) { pIdx = _pi; break; } }
+      if (pIdx >= 0) _PEND_DATA[pIdx].edicion_habilitada = habilitar;
+      closeOv('ov-punto-detalle');
+      loadPendientes();
+    });
+  }, habilitar ? 'Habilitar' : 'Deshabilitar', habilitar ? '#fdba74' : 'var(--text3)');
+}
+
 function guardarControl() {
   if (!CTRL_ESTADO)    { toast('Seleccioná el estado del punto', 'err'); return; }
-  if (!CTRL_FOTOS.length) { toast('Al menos una foto del control es obligatoria', 'err'); return; }
+  if (!CTRL_FOTOS.length && !window._CTRL_EDIT_ID) { toast('Al menos una foto del control es obligatoria', 'err'); return; }
+  // En modo edición la foto es opcional si ya tenía una (el puesto puede solo corregir texto)
+  if (!CTRL_FOTOS.length && window._CTRL_EDIT_ID) {
+    // Guardar sin foto nueva: UPDATE solo texto/estado
+    _guardarControlUpdate([], null);
+    return;
+  }
   var obs = ((document.getElementById('ctrl-obs') || {}).value || '').trim();
   if (CTRL_ESTADO === 'novedad' && !obs) { toast('Describí la novedad encontrada', 'err'); return; }
   setLoading('btn-save-ctrl', true);
-  var ahora = fechaHoyAR();
 
   Promise.all(CTRL_FOTOS.map(function(f) { return uploadToR2Comprimido(f, 'controles'); })).then(function(fotoUrls) {
-    var fotoUrl = fotoUrls[0]; // mantiene foto_url para compatibilidad con lo existente
-    db.from('controles_punto').insert({
-      punto_id: CTRL_PUNTO_ID, agente: USER.nombre || USER.puesto, puesto: USER.puesto,
-      estado: CTRL_ESTADO, observaciones: obs || null, foto_url: fotoUrl, fotos: fotoUrls,
-      fecha: ahora, hora: horaActualAR(),
-      hora_evento: (function() { var el = document.getElementById('ctrl-hora-evento'); return (el && el.value) ? el.value : null; })(),
-      created_at: new Date().toISOString()
-    }).then(function(r) {
+    if (window._CTRL_EDIT_ID) {
+      _guardarControlUpdate(fotoUrls, fotoUrls[0] || null);
+    } else {
+      _guardarControlInsert(fotoUrls, fotoUrls[0] || null);
+    }
+  }).catch(function() { setLoading('btn-save-ctrl', false); toast('Error subiendo foto(s)', 'err'); });
+}
+
+function _guardarControlUpdate(fotoUrls, fotoUrl) {
+  var obs = ((document.getElementById('ctrl-obs') || {}).value || '').trim();
+  if (CTRL_ESTADO === 'novedad' && !obs) { toast('Describí la novedad encontrada', 'err'); return; }
+  setLoading('btn-save-ctrl', true);
+  var payload = { estado: CTRL_ESTADO, observaciones: obs || null };
+  if (fotoUrls && fotoUrls.length) { payload.foto_url = fotoUrl; payload.fotos = fotoUrls; }
+  db.from('controles_punto').update(payload).eq('id', window._CTRL_EDIT_ID).then(function(r) {
+    if (r.error) { setLoading('btn-save-ctrl', false); toast('Error: ' + r.error.message, 'err'); return; }
+    // Opción A: deshabilitar edición automáticamente al guardar
+    db.from('puntos_criticos').update({ edicion_habilitada: false }).eq('id', CTRL_PUNTO_ID).then(function() {
+      var pIdx = -1; for (var _pi2 = 0; _pi2 < _PEND_DATA.length; _pi2++) { if (_PEND_DATA[_pi2].id === CTRL_PUNTO_ID) { pIdx = _pi2; break; } }
+      if (pIdx >= 0) _PEND_DATA[pIdx].edicion_habilitada = false;
       setLoading('btn-save-ctrl', false);
-      if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
-
-      // Si hay incidencia → crear novedad automáticamente
-      if (CTRL_ESTADO === 'novedad' && obs) {
-        // Obtener info del punto crítico para la novedad
-        db.from('puntos_criticos').select('titulo,categoria,barrio').eq('id', CTRL_PUNTO_ID).single().then(function(rp) {
-          var punto = (rp.data || {});
-          var novPayload = {
-            puesto:    punto.barrio || USER.puesto,
-            tipo:      punto.categoria || 'Punto crítico',
-            asunto:    'Control: ' + (punto.titulo || 'Punto crítico'),
-            detalle:   obs,
-            agente:    USER.nombre || USER.puesto,
-            foto_url:  fotoUrl,
-            fotos:     fotoUrls,
-            pendiente: true,
-            hora_evento: (function() { var el = document.getElementById('ctrl-hora-evento'); return (el && el.value) ? el.value : null; })(),
-            created_at: new Date().toISOString()
-          };
-          db.from('novedades').insert(novPayload).then(function(rn) {
-            if (!rn.error) {
-              toast('\u26A0\uFE0F Incidencia registrada y novedad creada autom\xE1ticamente');
-            } else {
-              toast('\u26A0\uFE0F Control registrado (novedad no pudo crearse)');
-            }
-          });
-        });
-      } else {
-        toast(CTRL_ESTADO === 'ok' ? '\u2705 Control registrado \u2014 Sin novedad' : '\u26A0\uFE0F Control registrado');
-      }
-
+      window._CTRL_EDIT_ID = null;
       closeOv('ov-control');
       for (var _ci2 = 0; _ci2 < CTRL_OBJURLS.length; _ci2++) { URL.revokeObjectURL(CTRL_OBJURLS[_ci2]); } CTRL_OBJURLS = [];
       CTRL_FOTOS = [];
+      toast('\u270F Control actualizado \u2014 edici\xF3n desactivada');
       loadPendientes();
     });
-  }).catch(function() { setLoading('btn-save-ctrl', false); toast('Error subiendo foto(s)', 'err'); });
+  });
+}
+
+function _guardarControlInsert(fotoUrls, fotoUrl) {
+  var obs = ((document.getElementById('ctrl-obs') || {}).value || '').trim();
+  var ahora = fechaHoyAR();
+  db.from('controles_punto').insert({
+    punto_id: CTRL_PUNTO_ID, agente: USER.nombre || USER.puesto, puesto: USER.puesto,
+    estado: CTRL_ESTADO, observaciones: obs || null, foto_url: fotoUrl, fotos: fotoUrls,
+    fecha: ahora, hora: horaActualAR(),
+    hora_evento: (function() { var el = document.getElementById('ctrl-hora-evento'); return (el && el.value) ? el.value : null; })(),
+    created_at: new Date().toISOString()
+  }).then(function(r) {
+    setLoading('btn-save-ctrl', false);
+    if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+    if (CTRL_ESTADO === 'novedad' && obs) {
+      db.from('puntos_criticos').select('titulo,categoria,barrio').eq('id', CTRL_PUNTO_ID).single().then(function(rp) {
+        var punto = (rp.data || {});
+        var novPayload = {
+          puesto:    punto.barrio || USER.puesto,
+          tipo:      punto.categoria || 'Punto crítico',
+          asunto:    'Control: ' + (punto.titulo || 'Punto crítico'),
+          detalle:   obs,
+          agente:    USER.nombre || USER.puesto,
+          foto_url:  fotoUrl,
+          fotos:     fotoUrls,
+          pendiente: true,
+          hora_evento: (function() { var el = document.getElementById('ctrl-hora-evento'); return (el && el.value) ? el.value : null; })(),
+          created_at: new Date().toISOString()
+        };
+        db.from('novedades').insert(novPayload).then(function(rn) {
+          if (!rn.error) {
+            toast('\u26A0\uFE0F Incidencia registrada y novedad creada autom\xE1ticamente');
+          } else {
+            toast('\u26A0\uFE0F Control registrado (novedad no pudo crearse)');
+          }
+        });
+      });
+    } else {
+      toast(CTRL_ESTADO === 'ok' ? '\u2705 Control registrado \u2014 Sin novedad' : '\u26A0\uFE0F Control registrado');
+    }
+    closeOv('ov-control');
+    for (var _ci2 = 0; _ci2 < CTRL_OBJURLS.length; _ci2++) { URL.revokeObjectURL(CTRL_OBJURLS[_ci2]); } CTRL_OBJURLS = [];
+    CTRL_FOTOS = [];
+    loadPendientes();
+  });
 }
 
 function resolverPunto(id) {
@@ -13281,63 +13365,6 @@ var OBJ_FOTO_FILE = null;
 var OBJ_UPD_FOTOS = [];
 var OBJ_CON_INCIDENCIA = false;
 
-// ── Persistencia de fotos en curso para "Registrar punto" ──────────────
-// Protege contra el caso conocido de que Android mate la pestaña/WebView
-// al abrir la cámara varias veces seguidas (mismo problema que ya existe
-// documentado para el formulario de Novedades, pero acá faltaba la defensa).
-// Si eso pasa, al reabrir el punto se recuperan las fotos ya tomadas en vez
-// de perderlas en silencio. No afecta el flujo normal si IndexedDB no está
-// disponible: en ese caso simplemente no persiste nada y todo sigue igual.
-var IVC_STAGE_DB_NAME = 'ivc_staging';
-var IVC_STAGE_STORE = 'obj_fotos';
-function ivcStageDB() {
-  return new Promise(function(resolve) {
-    if (!window.indexedDB) { resolve(null); return; }
-    try {
-      var req = indexedDB.open(IVC_STAGE_DB_NAME, 1);
-      req.onupgradeneeded = function(e) {
-        var db = e.target.result;
-        if (!db.objectStoreNames.contains(IVC_STAGE_STORE)) db.createObjectStore(IVC_STAGE_STORE);
-      };
-      req.onsuccess = function(e) { resolve(e.target.result); };
-      req.onerror = function() { resolve(null); };
-    } catch (e) { resolve(null); }
-  });
-}
-function ivcGuardarStageObj(objId) {
-  if (!objId) return;
-  ivcStageDB().then(function(db) {
-    if (!db) return;
-    try {
-      var tx = db.transaction(IVC_STAGE_STORE, 'readwrite');
-      tx.objectStore(IVC_STAGE_STORE).put(OBJ_UPD_FOTOS.slice(), objId);
-    } catch (e) { /* no interrumpir el flujo si esto falla */ }
-  });
-}
-function ivcLimpiarStageObj(objId) {
-  if (!objId) return;
-  ivcStageDB().then(function(db) {
-    if (!db) return;
-    try {
-      var tx = db.transaction(IVC_STAGE_STORE, 'readwrite');
-      tx.objectStore(IVC_STAGE_STORE).delete(objId);
-    } catch (e) {}
-  });
-}
-function ivcRestaurarStageObj(objId) {
-  return ivcStageDB().then(function(db) {
-    if (!db || !objId) return [];
-    return new Promise(function(resolve) {
-      try {
-        var tx = db.transaction(IVC_STAGE_STORE, 'readonly');
-        var req = tx.objectStore(IVC_STAGE_STORE).get(objId);
-        req.onsuccess = function() { resolve(req.result || []); };
-        req.onerror = function() { resolve([]); };
-      } catch (e) { resolve([]); }
-    });
-  });
-}
-
 function previewObjFoto(input) {
   OBJ_FOTO_FILE = input.files[0] || null;
   var wrap = document.getElementById('obj-foto-preview');
@@ -13351,13 +13378,11 @@ function previewUpdFoto(input) {
   OBJ_UPD_FOTOS = OBJ_UPD_FOTOS.concat(nuevos);
   input.value = '';
   _renderUpdFotos();
-  ivcGuardarStageObj((document.getElementById('upd-obj-id') || {}).value);
 }
 
 function quitarUpdFoto(idx) {
   OBJ_UPD_FOTOS.splice(idx, 1);
   _renderUpdFotos();
-  ivcGuardarStageObj((document.getElementById('upd-obj-id') || {}).value);
 }
 
 function _renderUpdFotos() {
@@ -13521,17 +13546,6 @@ function openUpdObj(id, prog) {
   OBJ_CON_INCIDENCIA = false;
   selIncidencia(false); // reset buttons to Sin incidencia
   openOv('ov-obj-upd');
-
-  // Si quedaron fotos pendientes de una sesión anterior interrumpida
-  // (ej: Android cerró la app al usar la cámara), las recuperamos acá
-  // en vez de que se pierdan en silencio.
-  ivcRestaurarStageObj(id).then(function(fotosPendientes) {
-    if (fotosPendientes && fotosPendientes.length) {
-      OBJ_UPD_FOTOS = fotosPendientes;
-      _renderUpdFotos();
-      toast('📷 Se recuperaron ' + fotosPendientes.length + ' foto(s) que habían quedado sin guardar');
-    }
-  });
 }
 
 function abrirFotoLightbox(url) {
@@ -13647,13 +13661,7 @@ async function saveUpdObj() {
         }
       }
       fotoUrl = fotosUrls[0] || null; // mantiene compatibilidad con el campo singular existente
-      if (OBJ_UPD_FOTOS.length && !fotosUrls.length) {
-        toast('Las fotos no pudieron subirse', 'err');
-      } else if (fotosUrls.length < OBJ_UPD_FOTOS.length) {
-        // Antes esto pasaba desapercibido: se guardaban menos fotos de las
-        // seleccionadas sin ningún aviso. Ahora se informa explícitamente.
-        toast('⚠️ Se subieron ' + fotosUrls.length + ' de ' + OBJ_UPD_FOTOS.length + ' fotos — volvé a intentar agregar las que faltan', 'err');
-      }
+      if (OBJ_UPD_FOTOS.length && !fotosUrls.length) toast('Las fotos no pudieron subirse', 'err');
     } catch(e) {
       console.error('Error foto:', e);
     }
@@ -13697,8 +13705,6 @@ async function saveUpdObj() {
 
   setLoading('btn-save-upd', false);
   if (saveRes.error) { toast('Error: ' + saveRes.error.message, 'err'); return; }
-
-  ivcLimpiarStageObj(id);
 
   // Auto-generate novedad if incidencia
   if (OBJ_CON_INCIDENCIA && obs) {
