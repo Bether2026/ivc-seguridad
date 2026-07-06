@@ -2781,6 +2781,13 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
           <button class="btn-close" onclick="closeOv('ov-control')">&#xD7;</button>
         </div>
         <div id="ctrl-punto-info" style="padding:10px 12px;background:var(--bg3);border-radius:8px;margin-bottom:14px;font-size:13px;color:var(--text2)"></div>
+        <!-- Agente que realiza el control -->
+        <div class="form-group" id="ctrl-agente-wrap">
+          <label class="form-label">&#x1F464; Agente que realiza el control <span style="color:var(--red)">*</span></label>
+          <select class="form-select" id="ctrl-agente-sel">
+            <option value="">Cargando...</option>
+          </select>
+        </div>
         <!-- Estado -->
         <div class="form-group">
           <label class="form-label">Estado del punto <span style="color:var(--red)">*</span></label>
@@ -9006,13 +9013,23 @@ function verPunto(id) {
     if (!ctrl.length) { document.getElementById('pd-historial').innerHTML = '<div style="color:var(--text3);font-size:12px;padding:10px 0">Sin controles aún</div>'; return; }
     document.getElementById('pd-historial').innerHTML = ctrl.map(function(c) {
       var isOk = c.estado === 'ok';
-      (function(c, isOk) {
-      var _ctrlHoraEvBadge = '';
+      var horaEvBadge = '';
       if (c.hora_evento && c.hora && c.hora_evento !== c.hora) {
-        _ctrlHoraEvBadge = '<span style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:#fbbf24;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);border-radius:5px;padding:2px 7px;margin-top:4px">⏰ Evento: ' + c.hora_evento + ' · Registrado: ' + c.hora + '</span>';
+        horaEvBadge = '<span style="display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:#fbbf24;background:rgba(245,158,11,0.12);border:1px solid rgba(245,158,11,0.3);border-radius:5px;padding:2px 7px;margin-top:4px">&#x23F0; Evento: ' + c.hora_evento + ' &middot; Registrado: ' + c.hora + '</span>';
       }
-      return '<div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)"><div style="flex-shrink:0;width:28px;height:28px;border-radius:50%;background:' + (isOk ? 'rgba(16,185,129,.15)' : 'rgba(245,158,11,.15)') + ';display:flex;align-items:center;justify-content:center;font-size:14px">' + (isOk ? '&#x2705;' : '&#x26A0;&#xFE0F;') + '</div><div style="flex:1"><div style="display:flex;justify-content:space-between;margin-bottom:2px"><span style="font-size:12px;font-weight:700;color:' + (isOk ? 'var(--green)' : 'var(--yellow)') + '">' + (isOk ? 'Sin novedad' : 'Con novedad') + '</span><span style="font-size:10px;color:var(--text3)">' + (c.fecha||'') + ' ' + (c.hora||'') + '</span></div><div style="font-size:11px;color:var(--text3)">' + (c.agente||'') + '</div>' + (c.observaciones ? '<div style="font-size:12px;color:var(--text2);margin-top:4px">' + c.observaciones + '</div>' : '') + _ctrlHoraEvBadge + (c.foto_url ? '<img src="' + c.foto_url + '" style="width:100%;max-height:120px;object-fit:cover;border-radius:6px;margin-top:6px">' : '') + '</div></div>';
-    })(c, isOk)
+      var fechaStr = (c.fecha || '').split('-').reverse().join('/');
+      return '<div style="display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)">'
+        + '<div style="flex-shrink:0;width:32px;height:32px;border-radius:50%;background:' + (isOk ? 'rgba(16,185,129,.15)' : 'rgba(245,158,11,.15)') + ';display:flex;align-items:center;justify-content:center;font-size:16px">' + (isOk ? '&#x2705;' : '&#x26A0;&#xFE0F;') + '</div>'
+        + '<div style="flex:1;min-width:0">'
+        + '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">'
+        + '<span style="font-size:12px;font-weight:700;color:' + (isOk ? 'var(--green)' : 'var(--yellow)') + '">' + (isOk ? 'Sin novedad' : 'Con novedad') + '</span>'
+        + '<span style="font-family:var(--mono);font-size:13px;font-weight:800;color:var(--text)">' + (c.hora || '--:--') + '</span>'
+        + '</div>'
+        + '<div style="font-size:11px;color:var(--text3);margin-bottom:2px">&#x1F464; ' + (c.agente || 'Sin datos') + (c.fecha ? ' &middot; ' + fechaStr : '') + '</div>'
+        + (c.observaciones ? '<div style="font-size:12px;color:var(--text2);background:var(--bg3);border-radius:6px;padding:6px 8px;margin-top:4px">' + c.observaciones + '</div>' : '')
+        + horaEvBadge
+        + (c.foto_url ? '<img src="' + c.foto_url + '" style="width:100%;max-height:120px;object-fit:cover;border-radius:6px;margin-top:6px">' : '')
+        + '</div></div>';
     }).join('');
   });
   openOv('ov-punto-detalle');
@@ -9056,6 +9073,35 @@ function abrirRegistrarControl() {
   }
 
   closeOv('ov-punto-detalle');
+
+  // Cargar agentes fichados en el puesto del punto
+  var ctrlSel = document.getElementById('ctrl-agente-sel');
+  if (ctrlSel) {
+    ctrlSel.innerHTML = '<option value="">Cargando...</option>';
+    var puestoCtrl = (punto && punto.barrio) ? punto.barrio : USER.puesto;
+    db.from('fichajes').select('agente').eq('activo', true).eq('puesto', puestoCtrl).then(function(res) {
+      var activos = (res.data || []);
+      ctrlSel.innerHTML = '';
+      if (activos.length) {
+        activos.forEach(function(f) {
+          var o = document.createElement('option');
+          o.value = f.agente; o.textContent = f.agente;
+          ctrlSel.appendChild(o);
+        });
+        // Si el usuario actual está fichado, pre-seleccionarlo
+        for (var ai = 0; ai < activos.length; ai++) {
+          if (activos[ai].agente === USER.nombre) { ctrlSel.value = USER.nombre; break; }
+        }
+      } else {
+        // Sin fichados: fallback al usuario logueado
+        var oFb = document.createElement('option');
+        oFb.value = USER.nombre || USER.puesto;
+        oFb.textContent = (USER.nombre || USER.puesto) + ' (sin fichaje activo)';
+        ctrlSel.appendChild(oFb);
+      }
+    });
+  }
+
   openOv('ov-control');
 }
 
@@ -9279,9 +9325,10 @@ function _guardarControlUpdate(fotoUrls, fotoUrl) {
 
 function _guardarControlInsert(fotoUrls, fotoUrl) {
   var obs = ((document.getElementById('ctrl-obs') || {}).value || '').trim();
+  var agenteCtrl = ((document.getElementById('ctrl-agente-sel') || {}).value || '').trim() || USER.nombre || USER.puesto;
   var ahora = fechaHoyAR();
   db.from('controles_punto').insert({
-    punto_id: CTRL_PUNTO_ID, agente: USER.nombre || USER.puesto, puesto: USER.puesto,
+    punto_id: CTRL_PUNTO_ID, agente: agenteCtrl, puesto: USER.puesto,
     estado: CTRL_ESTADO, observaciones: obs || null, foto_url: fotoUrl,
     fecha: ahora, hora: horaActualAR(),
     hora_evento: (function() { var el = document.getElementById('ctrl-hora-evento'); return (el && el.value) ? el.value : null; })(),
@@ -9297,7 +9344,7 @@ function _guardarControlInsert(fotoUrls, fotoUrl) {
           tipo:      punto.categoria || 'Punto crítico',
           asunto:    'Control: ' + (punto.titulo || 'Punto crítico'),
           detalle:   obs,
-          agente:    USER.nombre || USER.puesto,
+          agente:    agenteCtrl,
           foto_url:  fotoUrl,
           fotos:     fotoUrls,
           pendiente: true,
