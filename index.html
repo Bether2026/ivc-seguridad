@@ -2659,6 +2659,12 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
 
       <!-- Panel: Historial del día -->
       <div id="pend-panel-historial" style="display:none">
+        <!-- Selector de rango -->
+        <div style="display:flex;gap:6px;margin-bottom:10px">
+          <button id="hist-r-7"  onclick="selHistRango(7)"  style="flex:1;padding:7px;border-radius:8px;border:1px solid rgba(244,63,94,.35);background:rgba(244,63,94,.12);color:#fda4af;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">&#x1F4C5; 7 d&#xED;as</button>
+          <button id="hist-r-30" onclick="selHistRango(30)" style="flex:1;padding:7px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">&#x1F4C5; 30 d&#xED;as</button>
+          <button id="hist-r-0"  onclick="selHistRango(0)"  style="flex:1;padding:7px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">&#x1F4DC; Todo</button>
+        </div>
         <div id="pend-hist-list">
           <div class="empty"><div class="icon"><span class="spinner"></span></div></div>
         </div>
@@ -3675,7 +3681,7 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
             </div>
             <div style="margin-top:18px;display:flex;gap:8px">
               <button onclick="loadHorasReales()" style="padding:8px 16px;border-radius:8px;border:1px solid rgba(59,130,246,.35);background:rgba(59,130,246,.1);color:#93c5fd;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">&#x1F504; Actualizar</button>
-              <button onclick="exportarHorasReales()" style="padding:8px 16px;border-radius:8px;border:1px solid rgba(16,185,129,.35);background:rgba(16,185,129,.1);color:#6ee7b7;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">&#x1F4C5; CSV</button>
+              <button onclick="exportarHorasReales()" style="padding:8px 16px;border-radius:8px;border:1px solid rgba(16,185,129,.35);background:rgba(16,185,129,.1);color:#6ee7b7;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">&#x1F4C4; Exportar</button>
             </div>
           </div>
           <div id="hr-resumen" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px"></div>
@@ -8808,78 +8814,124 @@ function selPendTab(tab) {
     }
     if (panel) panel.style.display = activo ? 'block' : 'none';
   });
-  if (tab === 'historial') cargarHistorialPendientes();
+  if (tab === 'historial') selHistRango(_HIST_RANGO);
+}
+
+var _HIST_RANGO = 7;
+
+function selHistRango(dias) {
+  _HIST_RANGO = dias;
+  var rangos = [7, 30, 0];
+  rangos.forEach(function(r) {
+    var btn = document.getElementById('hist-r-' + r);
+    if (!btn) return;
+    var activo = r === dias;
+    btn.style.background  = activo ? 'rgba(244,63,94,.12)' : 'transparent';
+    btn.style.color       = activo ? '#fda4af' : 'var(--text3)';
+    btn.style.borderColor = activo ? 'rgba(244,63,94,.35)' : 'var(--border)';
+  });
+  cargarHistorialPendientes();
 }
 
 function cargarHistorialPendientes() {
   var el = document.getElementById('pend-hist-list');
   if (!el) return;
   el.innerHTML = '<div class="empty"><div class="icon"><span class="spinner"></span></div></div>';
-  var hoy = fechaHoyAR();
-  // Traer todos los controles de hoy con info del punto
-  db.from('controles_punto')
-    .select('*')
-    .eq('fecha', hoy)
-    .order('id', { ascending: false })
-    .limit(200)
-    .then(function(r) {
-      var ctrl = r.data || [];
-      if (!ctrl.length) {
-        el.innerHTML = '<div class="empty"><div class="icon">&#x1F4CB;</div><p>Sin controles registrados hoy</p></div>';
-        return;
+
+  var query = db.from('controles_punto').select('*').order('fecha', { ascending: false }).order('hora', { ascending: false });
+
+  if (_HIST_RANGO > 0) {
+    // Calcular fecha desde en AR (UTC-3)
+    var ahora = new Date();
+    var arOffset = -3 * 60;
+    var arMs = ahora.getTime() + (ahora.getTimezoneOffset() + arOffset) * 60000;
+    var desde = new Date(arMs - _HIST_RANGO * 24 * 60 * 60 * 1000);
+    var mm = String(desde.getMonth() + 1).padStart(2, '0');
+    var dd = String(desde.getDate()).padStart(2, '0');
+    var fechaDesde = desde.getFullYear() + '-' + mm + '-' + dd;
+    query = query.gte('fecha', fechaDesde);
+  }
+
+  query.limit(400).then(function(r) {
+    var ctrl = r.data || [];
+    if (!ctrl.length) {
+      el.innerHTML = '<div class="empty"><div class="icon">&#x1F4CB;</div><p>Sin controles en este per&#xED;odo</p></div>';
+      return;
+    }
+
+    // Agrupar: barrio → manzana → titulo → registros
+    // Usa _PEND_DATA como lookup en cliente (sin query extra)
+    var porBarrio = {};
+    ctrl.forEach(function(c) {
+      var punto = null;
+      for (var i = 0; i < _PEND_DATA.length; i++) {
+        if (_PEND_DATA[i].id === c.punto_id) { punto = _PEND_DATA[i]; break; }
       }
-      // Agrupar por barrio usando _PEND_DATA si está disponible, sino usar punto_id
-      var porBarrio = {};
-      ctrl.forEach(function(c) {
-        // Buscar el punto en _PEND_DATA para obtener barrio y titulo
-        var punto = null;
-        for (var i = 0; i < _PEND_DATA.length; i++) {
-          if (_PEND_DATA[i].id === c.punto_id) { punto = _PEND_DATA[i]; break; }
-        }
-        var barrio = (punto && punto.barrio) ? punto.barrio : 'Sin barrio';
-        var titulo = (punto && punto.titulo) ? punto.titulo : 'Punto #' + c.punto_id;
-        c._barrio = barrio;
-        c._titulo = titulo;
-        if (!porBarrio[barrio]) porBarrio[barrio] = {};
-        if (!porBarrio[barrio][titulo]) porBarrio[barrio][titulo] = [];
-        porBarrio[barrio][titulo].push(c);
+      var barrio  = (punto && punto.barrio)   ? punto.barrio   : 'Sin barrio';
+      var manzana = (punto && punto.manzana)  ? punto.manzana  : 'Sin manzana';
+      var titulo  = (punto && punto.titulo)   ? punto.titulo   : 'Punto #' + c.punto_id;
+      if (!porBarrio[barrio]) porBarrio[barrio] = {};
+      if (!porBarrio[barrio][manzana]) porBarrio[barrio][manzana] = {};
+      if (!porBarrio[barrio][manzana][titulo]) porBarrio[barrio][manzana][titulo] = [];
+      porBarrio[barrio][manzana][titulo].push(c);
+    });
+
+    var html = '';
+    Object.keys(porBarrio).sort().forEach(function(barrio) {
+      var porManzana = porBarrio[barrio];
+      var totalBarrio = 0;
+      Object.keys(porManzana).forEach(function(m) {
+        Object.keys(porManzana[m]).forEach(function(t) { totalBarrio += porManzana[m][t].length; });
       });
-      var html = '';
-      var barrios = Object.keys(porBarrio).sort();
-      barrios.forEach(function(barrio) {
-        var puntos = porBarrio[barrio];
-        var totalBarrio = 0;
-        Object.keys(puntos).forEach(function(t) { totalBarrio += puntos[t].length; });
-        html += '<div style="margin-bottom:18px">';
-        html += '<div style="font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.12em;margin-bottom:8px;display:flex;align-items:center;gap:8px">';
-        html += '<span style="flex:1;height:1px;background:var(--border)"></span>';
-        html += '<span>&#x1F4CD; ' + barrio + ' <span style="font-family:var(--mono);background:rgba(244,63,94,.15);color:#fda4af;padding:1px 7px;border-radius:999px;font-size:10px">' + totalBarrio + '</span></span>';
-        html += '<span style="flex:1;height:1px;background:var(--border)"></span></div>';
-        Object.keys(puntos).sort().forEach(function(titulo) {
-          var registros = puntos[titulo];
+
+      // Separador de barrio
+      html += '<div style="margin-bottom:18px">';
+      html += '<div style="font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.12em;margin-bottom:10px;display:flex;align-items:center;gap:8px">';
+      html += '<span style="flex:1;height:1px;background:var(--border)"></span>';
+      html += '<span>&#x1F4CD; ' + barrio + ' <span style="font-family:var(--mono);background:rgba(244,63,94,.15);color:#fda4af;padding:1px 7px;border-radius:999px;font-size:10px">' + totalBarrio + '</span></span>';
+      html += '<span style="flex:1;height:1px;background:var(--border)"></span></div>';
+
+      Object.keys(porManzana).sort().forEach(function(manzana) {
+        var porTitulo = porManzana[manzana];
+        var totalManzana = 0;
+        Object.keys(porTitulo).forEach(function(t) { totalManzana += porTitulo[t].length; });
+
+        // Contenedor de manzana con marco rojo fino (igual que en la lista de puntos)
+        html += '<div style="margin-bottom:12px;border:1px solid rgba(244,63,94,.25);border-left:3px solid rgba(244,63,94,.7);border-radius:8px;padding:10px 10px 6px 12px;background:rgba(244,63,94,.03)">';
+        html += '<div style="font-size:10px;font-weight:800;color:rgba(244,63,94,.8);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px">';
+        html += '&#x1F4CD; ' + manzana + ' <span style="font-weight:400;color:var(--text3)">&middot; ' + totalManzana + ' control' + (totalManzana !== 1 ? 'es' : '') + '</span></div>';
+
+        Object.keys(porTitulo).sort().forEach(function(titulo) {
+          var registros = porTitulo[titulo];
           html += '<div style="background:var(--bg2);border:1px solid var(--border);border-radius:10px;margin-bottom:8px;overflow:hidden">';
           html += '<div style="padding:10px 12px;background:var(--bg3);display:flex;align-items:center;justify-content:space-between">';
           html += '<span style="font-size:12px;font-weight:700;color:var(--text)">' + titulo + '</span>';
           html += '<span style="font-family:var(--mono);font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:rgba(96,165,250,.15);color:#93c5fd;border:1px solid rgba(96,165,250,.25)">' + registros.length + ' ctrl</span>';
           html += '</div>';
+
           registros.forEach(function(c) {
             var isOk = c.estado === 'ok';
+            var fechaStr = (c.fecha || '').split('-').reverse().join('/');
             html += '<div style="padding:8px 12px;border-top:1px solid var(--border);display:flex;align-items:flex-start;gap:10px">';
-            html += '<span style="font-size:16px">' + (isOk ? '&#x2705;' : '&#x26A0;&#xFE0F;') + '</span>';
-            html += '<div style="flex:1">';
-            html += '<div style="display:flex;justify-content:space-between;margin-bottom:2px">';
+            html += '<span style="font-size:15px">' + (isOk ? '&#x2705;' : '&#x26A0;&#xFE0F;') + '</span>';
+            html += '<div style="flex:1;min-width:0">';
+            html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">';
             html += '<span style="font-size:12px;font-weight:600;color:' + (isOk ? 'var(--green)' : 'var(--yellow)') + '">' + (isOk ? 'Sin novedad' : 'Con novedad') + '</span>';
-            html += '<span style="font-size:10px;color:var(--text3)">' + (c.hora || '') + '</span></div>';
-            html += '<div style="font-size:11px;color:var(--text3)">' + (c.agente || '') + '</div>';
-            if (c.observaciones) html += '<div style="font-size:11px;color:var(--text2);margin-top:3px">' + c.observaciones + '</div>';
+            html += '<span style="font-family:var(--mono);font-size:11px;font-weight:700;color:var(--text2)">' + (c.hora || '--:--') + '</span>';
+            html += '</div>';
+            html += '<div style="font-size:11px;color:var(--text3)">&#x1F464; ' + (c.agente || '') + (c.fecha ? ' &middot; ' + fechaStr : '') + '</div>';
+            if (c.observaciones) html += '<div style="font-size:11px;color:var(--text2);background:var(--bg3);border-radius:5px;padding:4px 7px;margin-top:3px">' + c.observaciones + '</div>';
             html += '</div></div>';
           });
           html += '</div>';
         });
-        html += '</div>';
+        html += '</div>'; // cierre manzana
       });
-      el.innerHTML = html;
+      html += '</div>'; // cierre barrio
     });
+
+    el.innerHTML = html;
+  });
 }
 
 function filtrarPendientes(f) {
@@ -8933,7 +8985,7 @@ function renderPendientes(data) {
       html += '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px"><div style="flex:1"><div style="display:flex;align-items:center;gap:8px;margin-bottom:3px"><span style="font-size:14px;font-weight:800;color:var(--text)">' + p.titulo + '</span>' + (reqHoy > 0 && !esResuelto ? '<span style="flex-shrink:0;font-family:var(--mono);font-size:11px;font-weight:700;padding:2px 7px;border-radius:999px;background:' + (ctrlHoy >= reqHoy ? 'rgba(16,185,129,.15)' : ctrlHoy > 0 ? 'rgba(245,158,11,.15)' : 'rgba(239,68,68,.1)') + ';color:' + (ctrlHoy >= reqHoy ? 'var(--green)' : ctrlHoy > 0 ? 'var(--yellow)' : 'var(--red)') + ';border:1px solid ' + (ctrlHoy >= reqHoy ? 'rgba(16,185,129,.3)' : ctrlHoy > 0 ? 'rgba(245,158,11,.3)' : 'rgba(239,68,68,.2)') + '">' + ctrlHoy + '&#x2713;/' + reqHoy + '</span>' : '') + '</div><div style="font-size:11px;color:var(--text3)">&#x1F4CD; ' + p.direccion + '</div></div>';
       html += '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0"><span style="font-size:10px;font-weight:700;padding:3px 8px;border-radius:999px;background:' + pr.bg + ';color:' + pr.color + ';border:1px solid ' + pr.border + '">' + pr.icon + ' ' + pr.label + '</span><span style="font-size:10px;color:var(--text3)">' + (p.categoria || '') + '</span></div></div>';
       if (reqHoy > 0 && !esResuelto) {
-        html += '<div style="margin-top:6px"><div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-bottom:3px"><span>Controles hoy</span><span style="color:' + pctC + '">' + ctrlHoy + ' / ' + reqHoy + '</span></div><div style="height:4px;background:var(--bg3);border-radius:999px;overflow:hidden"><div style="height:100%;width:' + pct + '%;background:' + pctC + ';border-radius:999px"></div></div></div>';
+        html += '<div style="margin-top:6px"><div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3);margin-bottom:3px"><span>&#xFA;lt. 24hs</span><span style="color:' + pctC + '">' + ctrlHoy + ' / ' + reqHoy + '</span></div><div style="height:4px;background:var(--bg3);border-radius:999px;overflow:hidden"><div style="height:100%;width:' + pct + '%;background:' + pctC + ';border-radius:999px"></div></div></div>';
       }
       html += '<div style="margin-top:8px;display:flex;align-items:center;justify-content:space-between"><span style="font-size:10px;color:var(--text3)">Desde ' + (p.fecha_creacion || '') + '</span><span style="font-size:11px;font-weight:700;color:' + (esResuelto ? 'var(--green)' : 'var(--red)') + '">' + (esResuelto ? '&#x2705; Resuelto' : '&#x1F534; Activo') + '</span></div>';
       if (p.edicion_habilitada) {
@@ -8969,9 +9021,16 @@ function loadPendientes() {
     var data = r.data || [];
     if (!data.length) { _PEND_DATA = []; renderResumenPend([]); renderPendientes([]); return; }
     var hoy = fechaHoyAR();
+    // Calcular ayer en AR (UTC-3) para cubrir las últimas 24hs
+    var ahoraMs = new Date().getTime();
+    var arOffsetMs = -3 * 60 * 60 * 1000;
+    var ahorAr = new Date(ahoraMs + new Date().getTimezoneOffset() * 60000 + arOffsetMs);
+    var ayerAr = new Date(ahorAr.getTime() - 24 * 60 * 60 * 1000);
+    var ayer = ayerAr.getFullYear() + '-' + String(ayerAr.getMonth() + 1).padStart(2, '0') + '-' + String(ayerAr.getDate()).padStart(2, '0');
+    var hace24h = new Date(ahoraMs - 24 * 60 * 60 * 1000).toISOString();
     var ids = data.map(function(p) { return p.id; });
-    db.from('controles_punto').select('punto_id').in('punto_id', ids).eq('fecha', hoy).then(function(rc) {
-      var ctrl = rc.data || [];
+    db.from('controles_punto').select('punto_id,created_at').in('punto_id', ids).in('fecha', [hoy, ayer]).then(function(rc) {
+      var ctrl = (rc.data || []).filter(function(c) { return c.created_at && c.created_at >= hace24h; });
       data.forEach(function(p) { p._controles_hoy = ctrl.filter(function(c) { return c.punto_id === p.id; }).length; });
       _PEND_DATA = data;
       renderResumenPend(data);
@@ -11785,11 +11844,12 @@ function loadHorasReales() {
 
         var horasTrab = null;
         var sinSalida = false;
-        var _entrada = null, _salida = null;
+        var _entrada = null, _salida = null, _obs = [];
         if (fichsDia.length > 0) {
           var totalDia = 0;
           fichsDia.forEach(function(f) {
             if (!f.entrada) return;
+            if (f.observaciones) _obs.push(f.observaciones);
             var ent = new Date(f.entrada);
             // Primera entrada del día (no sobrescribir si ya hay una más temprana) —
             // antes esto se pisaba con cada fichaje y terminaba mostrando la entrada
@@ -11829,7 +11889,7 @@ function loadHorasReales() {
           totalACumplir += hACumplir; // día hábil sin fichar
         }
 
-        diasInfo.push({ d: d, fecha: fechaStr, feriado: feriado, diaSemana: diaSemana, hs: horasTrab, aCumplir: hACumplir, lic: codLic, sinSalida: sinSalida, _entrada: _entrada, _salida: _salida });
+        diasInfo.push({ d: d, fecha: fechaStr, feriado: feriado, diaSemana: diaSemana, hs: horasTrab, aCumplir: hACumplir, lic: codLic, sinSalida: sinSalida, _entrada: _entrada, _salida: _salida, _obs: _obs.join(' | ') });
       }
 
       var diff = totalTrabajadas - totalACumplir;
@@ -12089,86 +12149,169 @@ function exportarHorasReales() {
   if (!HR_DATA.length) { toast('Sin datos para exportar', 'err'); return; }
   var mes  = parseInt((document.getElementById('hr-mes') || {}).value  || new Date().getMonth() + 1);
   var anio = parseInt((document.getElementById('hr-anio') || {}).value || new Date().getFullYear());
-  var diasMes = new Date(anio, mes, 0).getDate();
   var mesesNom = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-  var VALOR_MODULO = 4000; // referencia para calcular importe en $
+  var diasSemNom = ['Domingo','Lunes','Martes','Miercoles','Jueves','Viernes','Sabado'];
 
-  // Cabecera tipo Excel del Gerente
-  // Fila 1: REAL | fecha | (vacio x dias) | TOTAL HS | TOTAL MODULOS | TOTAL EN $
-  // Fila 2: ord | DNI | Apellido y Nombre | 1 | 2 | ... | N | | |
-  // Filas de datos: num | dni | nombre | horas-o-codigo por dia | total | modulos | importe
+  toast('Generando informe...');
 
-  var BOM = '\uFEFF'; // UTF-8 BOM para que Excel lo abra bien
-  var SEP = ';'; // punto y coma para compatibilidad con Excel regional
+  // Traer legajo y sector de la tabla agentes (una sola query)
+  db.from('agentes').select('nombre,legajo,puesto').then(function(ra) {
+    var agInfo = {};
+    (ra.data || []).forEach(function(a) {
+      if (a.nombre) agInfo[a.nombre.trim().toUpperCase()] = { legajo: a.legajo || '', sector: a.puesto || '' };
+    });
+    _generarInformeHTML(mes, anio, mesesNom, diasSemNom, agInfo);
+  });
+}
 
-  // Fila 1: titulo
-  var f1 = ['REAL', '', '', anio + '-' + String(mes).padStart(2,'0')];
-  for (var i = 1; i < diasMes; i++) f1.push('');
-  f1.push('', 'TOTAL HS', 'TOTAL MODULOS', 'TOTAL EN $');
-  var csv = BOM + f1.join(SEP) + '\n';
+function _hrHoraAR(iso) {
+  // ISO UTC a HH:MM en Argentina (UTC-3)
+  if (!iso) return '';
+  var t = new Date(new Date(iso).getTime() - 3 * 3600000);
+  return String(t.getUTCHours()).padStart(2, '0') + ':' + String(t.getUTCMinutes()).padStart(2, '0');
+}
 
-  // Nombres cortos de día (índice 0=Dom)
-  var diasSemNom = ['Dom','Lun','Mar','Mie','Jue','Vie','Sab'];
-
-  // Fila 2: encabezados columnas con dia de semana + numero
-  var f2 = ['ord', 'DNI', 'Apellido y Nombre'];
-  for (var d = 1; d <= diasMes; d++) {
-    var diaSemCol = new Date(anio + '-' + String(mes).padStart(2,'0') + '-' + String(d).padStart(2,'0') + 'T12:00:00').getDay();
-    f2.push(diasSemNom[diaSemCol] + ' ' + d);
+function _hrClasifica(info) {
+  // Devuelve { clase, etiqueta } segun el estado del dia
+  if (info.lic) {
+    var L = info.lic.toUpperCase();
+    if (L.indexOf('VAC') >= 0 || L.indexOf('ORD') >= 0) return { clase: 'vac',  etiqueta: 'Vacaciones' };
+    if (L.indexOf('ENF') >= 0)                          return { clase: 'enf',  etiqueta: 'Enfermedad' };
+    if (L === 'ART' || L.indexOf('ART ') === 0 || L.indexOf(' ART') >= 0 || L.indexOf('ACCIDENTE') >= 0) return { clase: 'art',  etiqueta: 'ART' };
+    if (L.indexOf('EST') >= 0 || L.indexOf('EXA') >= 0) return { clase: 'est',  etiqueta: 'Estudio' };
+    if (L.indexOf('FRA') >= 0)                          return { clase: 'fra',  etiqueta: 'Franco' };
+    return { clase: 'otra', etiqueta: info.lic };
   }
-  f2.push('', 'TOTAL HS EXTRAS', 'TOTAL MODULOS', 'TOTAL EN $');
-  csv += f2.join(SEP) + '\n';
+  if (info.hs !== null)                    return { clase: 'trab', etiqueta: '' };
+  if (info.sinSalida)                      return { clase: 'nf',   etiqueta: 'Sin salida' };
+  if (info.feriado)                        return { clase: 'fer',  etiqueta: 'Feriado' };
+  if (info.diaSemana === 0)                return { clase: 'dom',  etiqueta: '' };
+  return { clase: 'aus', etiqueta: 'Ausente' };
+}
 
-  // Fila 3: encabezados con nombre del mes (opcional, espeja formato original)
-  var f3 = ['', '', mesesNom[mes - 1] + ' ' + anio];
-  for (var d2 = 1; d2 <= diasMes; d2++) f3.push(d2);
-  f3.push('', '', '', '');
-  csv += f3.join(SEP) + '\n';
+function _generarInformeHTML(mes, anio, mesesNom, diasSemNom, agInfo) {
+  var titulo = 'Informe Mensual de Asistencia — ' + mesesNom[mes - 1] + ' ' + anio;
 
-  // Filas de datos
-  for (var ri = 0; ri < HR_DATA.length; ri++) {
-    var r = HR_DATA[ri];
-    var row = [ri + 1, '', r.nombre];
-    var diasInfo = r.diasInfo || [];
-    for (var di = 0; di < diasInfo.length; di++) {
-      var info = diasInfo[di];
-      var celda = '';
-      if (info.diaSemana === 0) {
-        // Domingo: vacio
-        celda = '';
-      } else if (info.lic) {
-        // Licencia: mostrar codigo
-        celda = info.lic;
-      } else if (info.sinSalida && info.hs === null) {
-        // Fichó entrada pero sin salida
-        celda = 'NF';
-      } else if (info.hs !== null) {
-        // Extras/deficit del dia: horas trabajadas menos horas a cumplir segun condicion
-        var diff = Math.round((info.hs - info.aCumplir) * 100) / 100;
-        celda = diff.toString().replace('.', ',');
-      }
-      // Sin fichaje en dia habil/feriado: celda vacia (ausencia)
-      row.push(celda);
-    }
-    // Totales: diferencia neta del mes (trabajadas - a cumplir)
-    var totalDiff = Math.round(r.diff * 100) / 100;
-    var modulos   = Math.round((totalDiff / 7) * 1000000) / 1000000;
-    var importe   = Math.round(totalDiff * VALOR_MODULO / 7);
-    row.push('');
-    row.push(totalDiff.toString().replace('.', ','));
-    row.push(modulos.toString().replace('.', ','));
-    row.push(importe);
-    csv += row.join(SEP) + '\n';
-  }
+  // Totales globales
+  var G = { agentes: HR_DATA.length, horas: 0, diasTrab: 0, vac: 0, enf: 0, art: 0, est: 0, fra: 0, otra: 0, aus: 0, nov: 0 };
 
-  var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  var cuerpo = '';
+  HR_DATA.forEach(function(r) {
+    var info = agInfo[r.nombre.toUpperCase()] || { legajo: '', sector: '' };
+    var S = { vac: 0, enf: 0, art: 0, est: 0, fra: 0, otra: 0, aus: 0 };
+    var filas = '';
+
+    (r.diasInfo || []).forEach(function(d) {
+      var cl = _hrClasifica(d);
+      if (S[cl.clase] !== undefined) S[cl.clase]++;
+      var hsTxt = d.hs !== null ? formatHoras(d.hs) : '';
+      var obs = d._obs || '';
+      filas += '<tr class="' + cl.clase + '">'
+        + '<td>' + diasSemNom[d.diaSemana] + '</td>'
+        + '<td>' + String(d.d).padStart(2, '0') + '/' + String(mes).padStart(2, '0') + '</td>'
+        + '<td>' + _hrHoraAR(d._entrada) + '</td>'
+        + '<td>' + _hrHoraAR(d._salida) + '</td>'
+        + '<td class="num">' + hsTxt + '</td>'
+        + '<td>' + cl.etiqueta + '</td>'
+        + '<td class="obs">' + obs + '</td>'
+        + '</tr>';
+    });
+
+    var totalLic = S.vac + S.enf + S.art + S.est + S.fra + S.otra;
+    G.horas += r.totalTrabajadas; G.diasTrab += r.diasTrabajados;
+    G.vac += S.vac; G.enf += S.enf; G.art += S.art; G.est += S.est; G.fra += S.fra; G.otra += S.otra; G.aus += S.aus;
+
+    cuerpo += '<section class="agente">'
+      + '<div class="ag-head"><h2>' + r.nombre + '</h2><div class="ag-meta">'
+      + (info.legajo ? '<span>Legajo: <b>' + info.legajo + '</b></span>' : '')
+      + (info.sector ? '<span>Sector: <b>' + info.sector + '</b></span>' : '')
+      + '<span>Condicion: <b>' + r.tipo + '</b></span></div></div>'
+      + '<table><thead><tr><th>Dia</th><th>Fecha</th><th>Ingreso</th><th>Egreso</th><th>Hs trabajadas</th><th>Novedad</th><th>Observaciones</th></tr></thead>'
+      + '<tbody>' + filas + '</tbody></table>'
+      + '<div class="resumen">'
+      + '<div class="res-item"><span>' + formatHoras(r.totalTrabajadas) + '</span><label>Total horas</label></div>'
+      + '<div class="res-item"><span>' + r.diasTrabajados + '</span><label>Dias trabajados</label></div>'
+      + '<div class="res-item"><span>' + S.vac + '</span><label>Vacaciones</label></div>'
+      + '<div class="res-item"><span>' + S.enf + '</span><label>Enfermedad</label></div>'
+      + '<div class="res-item"><span>' + S.est + '</span><label>Estudio</label></div>'
+      + '<div class="res-item"><span>' + S.art + '</span><label>ART</label></div>'
+      + '<div class="res-item"><span>' + S.fra + '</span><label>Francos</label></div>'
+      + '<div class="res-item"><span>' + S.otra + '</span><label>Otras novedades</label></div>'
+      + '<div class="res-item destacado"><span>' + totalLic + '</span><label>Total licencias</label></div>'
+      + '</div></section>';
+  });
+
+  var totalLicG = G.vac + G.enf + G.art + G.est + G.fra + G.otra;
+  var resumenGlobal = '<section class="global">'
+    + '<h2>Resumen general del periodo</h2>'
+    + '<div class="resumen">'
+    + '<div class="res-item"><span>' + G.agentes + '</span><label>Agentes</label></div>'
+    + '<div class="res-item"><span>' + formatHoras(G.horas) + '</span><label>Total horas trabajadas</label></div>'
+    + '<div class="res-item"><span>' + G.diasTrab + '</span><label>Dias trabajados</label></div>'
+    + '<div class="res-item destacado"><span>' + totalLicG + '</span><label>Total licencias</label></div>'
+    + '<div class="res-item"><span>' + G.vac + '</span><label>Vacaciones</label></div>'
+    + '<div class="res-item"><span>' + G.enf + '</span><label>Enfermedad</label></div>'
+    + '<div class="res-item"><span>' + G.est + '</span><label>Estudio</label></div>'
+    + '<div class="res-item"><span>' + G.art + '</span><label>ART</label></div>'
+    + '<div class="res-item"><span>' + G.fra + '</span><label>Francos</label></div>'
+    + '<div class="res-item"><span>' + G.otra + '</span><label>Otras novedades</label></div>'
+    + '<div class="res-item"><span>' + G.aus + '</span><label>Ausencias</label></div>'
+    + '</div></section>';
+
+  var css = 'body{font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:0;padding:24px;background:#f5f6f8;color:#1a2233}'
+    + 'header.doc{text-align:center;margin-bottom:28px}'
+    + 'header.doc h1{font-size:22px;margin:0 0 4px}'
+    + 'header.doc p{color:#5a6478;margin:0;font-size:13px}'
+    + 'section.agente{background:#fff;border:1px solid #dfe3ea;border-radius:10px;padding:20px;margin-bottom:24px;page-break-after:always;break-after:page}'
+    + 'section.agente:last-of-type{page-break-after:auto;break-after:auto}'
+    + '.ag-head{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;border-bottom:2px solid #1a2233;padding-bottom:8px;margin-bottom:12px}'
+    + '.ag-head h2{font-size:17px;margin:0}'
+    + '.ag-meta{display:flex;gap:16px;font-size:12px;color:#5a6478}'
+    + 'table{width:100%;border-collapse:collapse;font-size:12px}'
+    + 'thead th{background:#1a2233;color:#fff;padding:7px 8px;text-align:left;font-weight:600}'
+    + 'tbody td{padding:6px 8px;border-bottom:1px solid #e8ebf0}'
+    + 'td.num{font-variant-numeric:tabular-nums;font-weight:600}'
+    + 'td.obs{color:#5a6478;font-size:11px;max-width:220px}'
+    + 'tr.trab td{background:#f2faf4}'
+    + 'tr.vac td{background:#e8f2fd}'
+    + 'tr.enf td{background:#fdeeee}'
+    + 'tr.art td{background:#fdf3e6}'
+    + 'tr.est td{background:#f1ecfb}'
+    + 'tr.fra td{background:#eef1f5}'
+    + 'tr.fer td{background:#fdf9e2}'
+    + 'tr.aus td{background:#fbe4e4;color:#8a2b2b}'
+    + 'tr.nf td{background:#fff4de}'
+    + 'tr.dom td{background:#fafafa;color:#98a0ae}'
+    + 'tr.otra td{background:#eef7f7}'
+    + '.resumen{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}'
+    + '.res-item{flex:1;min-width:100px;background:#f5f6f8;border:1px solid #dfe3ea;border-radius:8px;padding:10px;text-align:center}'
+    + '.res-item span{display:block;font-size:16px;font-weight:700}'
+    + '.res-item label{font-size:10px;color:#5a6478;text-transform:uppercase;letter-spacing:.05em}'
+    + '.res-item.destacado{background:#1a2233;border-color:#1a2233}'
+    + '.res-item.destacado span,.res-item.destacado label{color:#fff}'
+    + 'section.global{background:#fff;border:2px solid #1a2233;border-radius:10px;padding:20px}'
+    + 'section.global h2{margin:0 0 12px;font-size:16px}'
+    + '@media print{body{background:#fff;padding:0}'
+    + 'section.agente,section.global{border:none;border-radius:0;padding:8px 0}'
+    + 'thead{display:table-header-group}'
+    + 'tr{page-break-inside:avoid;break-inside:avoid}'
+    + '.no-print{display:none}}';
+
+  var doc = '<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">'
+    + '<meta name="viewport" content="width=device-width,initial-scale=1">'
+    + '<title>' + titulo + '</title><style>' + css + '</style></head><body>'
+    + '<header class="doc"><h1>IVC Seguridad y Emergencias</h1><p>' + titulo + ' &middot; Generado el ' + fechaHoyAR().split('-').reverse().join('/') + '</p></header>'
+    + cuerpo + resumenGlobal
+    + '</body></html>';
+
+  var blob = new Blob([doc], { type: 'text/html;charset=utf-8;' });
   var url  = URL.createObjectURL(blob);
   var a    = document.createElement('a');
   a.href = url;
-  a.download = 'HorasReales_' + mesesNom[mes - 1] + '_' + anio + '.csv';
+  a.download = 'Informe_Asistencia_' + mesesNom[mes - 1] + '_' + anio + '.html';
   a.click();
   URL.revokeObjectURL(url);
-  toast('&#x1F4C5; CSV descargado');
+  toast('\u2714 Informe HTML descargado');
 }
 
 function loadPersonalHR() {
