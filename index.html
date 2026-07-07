@@ -9465,7 +9465,7 @@ function eliminarControlPunto(ctrlId, puntoId) {
 
 function resolverPunto(id) {
   showConfirm('&#x2705;', 'Marcar como resuelto', '¿Confirmás que este punto crítico fue resuelto?', function() {
-    db.from('puntos_criticos').update({ estado: 'resuelto', fecha_resolucion: fechaHoyAR().fecha }).eq('id', id).then(function(r) {
+    db.from('puntos_criticos').update({ estado: 'resuelto', fecha_resolucion: fechaHoyAR() }).eq('id', id).then(function(r) {
       if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
       toast('\u2705 Punto marcado como resuelto'); closeOv('ov-punto-detalle'); loadPendientes();
     });
@@ -11601,14 +11601,23 @@ function loadComparativas() {
   Promise.all([
     db.from('fichajes').select('agente,puesto,entrada,salida').gte('entrada', desde).lte('entrada', hasta),
     db.from('personal_tipos').select('nombre,tipo'),
-    db.from('licencias').select('agente,fecha_desde,fecha_hasta,tipo_licencia').gte('fecha_desde', anio + '-01-01').lte('fecha_hasta', anio + '-12-31')
+    db.from('licencias').select('agente,fecha_desde,fecha_hasta,tipo_licencia').gte('fecha_desde', anio + '-01-01').lte('fecha_hasta', anio + '-12-31'),
+    db.from('agentes').select('nombre,tipo')
   ]).then(function(res) {
-    var fichs    = res[0].data || [];
-    var personal = res[1].data || [];
-    var lics     = res[2].data || [];
+    var fichs     = res[0].data || [];
+    var personal  = res[1].data || [];
+    var lics      = res[2].data || [];
+    var agentesDb = res[3].data || [];
 
+    // La condición registrada en la sección Agentes tiene prioridad
+    // (mismo criterio que loadHorasReales)
     var tipoMap = {};
     personal.forEach(function(p) { tipoMap[p.nombre.trim().toUpperCase()] = p.tipo; });
+    agentesDb.forEach(function(a) {
+      if (!a.nombre) return;
+      var t = (a.tipo || '').trim().toUpperCase();
+      if (HORAS_TIPO[t] !== undefined) tipoMap[a.nombre.trim().toUpperCase()] = t;
+    });
 
     if (tipo === 'equipo')    renderCompEquipo(fichs, tipoMap, lics, anio, cont);
     if (tipo === 'agente')    renderCompAgente(fichs, tipoMap, lics, anio, agenteNombre, cont);
@@ -11619,38 +11628,40 @@ function loadComparativas() {
 }
 
 function calcHorasAgenteMes(fichs, nombre, anio, mes, tipoMap, lics) {
-  var tipo = tipoMap[(nombre||'').toUpperCase()] || 'CH';
-  var horas_base_tipo = HORAS_TIPO[tipo] || 8;
+  // Mismo motor de cálculo que loadHorasReales: reconstrucción de jornadas
+  // (nocturnas asignadas al día correcto según condición, guardias
+  // consecutivas, turnos partidos) + regla de "corresponde trabajar".
+  // Mantiene la firma { trab, aCumplir, diff } para sus 3 llamadores.
+  var tipo = tipoMap[(nombre || '').toUpperCase()] || 'CH';
   var licsAg = lics || [];
+
+  // Fichajes del agente y reconstrucción de jornadas
+  var fichsAg = fichs.filter(function(f) { return (f.agente || '').trim() === nombre; });
+  var jornadas = reconstruirJornadasHR(fichsAg, tipo);
+
   var totalTrab = 0, totalACumplir = 0;
   var diasMes = new Date(anio, mes, 0).getDate();
   for (var d = 1; d <= diasMes; d++) {
     var fechaStr = anio + '-' + String(mes).padStart(2,'0') + '-' + String(d).padStart(2,'0');
     var diaSem = new Date(fechaStr + 'T12:00:00').getDay();
-    if (diaSem === 0) continue;
     var esFer = esFeriado(fechaStr);
-    var hAcum = horasParaTipo(tipo, fechaStr);
-    var fichsDia = fichs.filter(function(f) {
-      if ((f.agente||'').trim() !== nombre) return false;
-      if (!f.entrada) return false;
-      var ar = new Date(new Date(f.entrada).getTime() - 10800000);
-      return ar.getDate() === d && ar.getMonth() === mes-1 && ar.getFullYear() === anio;
-    });
-    // FIX: días con licencia no generan horas a cumplir (misma lógica que loadHorasReales)
+    var corresponde = correspondeTrabajarHR(tipo, diaSem, esFer);
+    var hAcum = corresponde ? (HORAS_TIPO[tipo] || 8) : 0;
+
+    var j = jornadas[fechaStr];
+    var horas = (j && j.horas > 0) ? j.horas : null;
+
     var tieneLic = licsAg.some(function(l) {
       return (l.agente || '').trim() === nombre && l.fecha_desde <= fechaStr && l.fecha_hasta >= fechaStr;
     });
-    if (fichsDia.length > 0) {
-      var tot = 0;
-      fichsDia.forEach(function(f) {
-        if (!f.salida) return;
-        var diff = (new Date(f.salida) - new Date(f.entrada)) / 3600000;
-        if (diff < 0) diff += 24;
-        tot += diff;
-      });
-      if (tot > 0) { totalTrab += tot; totalACumplir += hAcum; }
-    } else if (!esFer && !tieneLic) {
-      totalACumplir += hAcum;
+
+    if (horas !== null) {
+      totalTrab += horas;
+      totalACumplir += hAcum; // 0 si no correspondía: todo cuenta como extra
+    } else if (tieneLic) {
+      // Licencia: día justificado, no genera obligación
+    } else if (corresponde) {
+      totalACumplir += hAcum; // debía trabajar y no hay registro
     }
   }
   return { trab: totalTrab, aCumplir: totalACumplir, diff: totalTrab - totalACumplir };
