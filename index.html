@@ -11304,26 +11304,53 @@ function formatDiffHM(h) {
   return (neg ? '-' : '+') + String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0');
 }
 
-function reconstruirJornadasHR(fichs) {
+function reconstruirJornadasHR(fichs, tipo) {
   // Reconstruye jornadas laborales a partir de fichajes crudos.
-  // Regla base: la jornada pertenece al día AR del ingreso (jornadas
-  // nocturnas 18:00→06:00 o 23:35→12:00 quedan en el día que comenzaron).
-  // Excepción: si ya existe una jornada asignada a ese día y el ingreso
-  // es >= 20:00, el fichaje corresponde a la guardia del día siguiente
-  // (caso: guardia del sábado 00:10 + ingreso 23:40 = guardia del domingo).
-  // El encadenamiento se propaga a guardias consecutivas.
+  //
+  // CH/PH (agentes hábiles, incluye turno noche):
+  //   - Jornada que cruza medianoche (ej. domingo 22:00 → lunes 06:00)
+  //     se asigna al día en que TERMINA el servicio (el día hábil que
+  //     corresponde). Así el viernes queda cubierto por la jornada que
+  //     comenzó el jueves 22:00.
+  //   - Sin salida con ingreso >= 20:00: se asume patrón nocturno y se
+  //     asigna al día siguiente.
+  //   - Jornada dentro del mismo día: se asigna a ese día.
+  //
+  // CI/PI (guardias de fin de semana/feriados):
+  //   - La jornada pertenece al día del ingreso (sábado 18:00 → domingo
+  //     06:00 = guardia del sábado).
+  //   - Excepción: si ya existe una jornada ese día y el ingreso es
+  //     >= 20:00, corresponde a la guardia del día siguiente
+  //     (sábado 00:10 + sábado 23:40 = guardias de sábado y domingo).
+  var esHabil = (tipo === 'CH' || tipo === 'PH');
   var orden = fichs.slice().sort(function(a, b) {
     return new Date(a.entrada || 0) - new Date(b.entrada || 0);
   });
   var jorn = {};
+  function fmtAR(dateAR) {
+    return dateAR.getUTCFullYear() + '-' + String(dateAR.getUTCMonth() + 1).padStart(2, '0') + '-' + String(dateAR.getUTCDate()).padStart(2, '0');
+  }
   orden.forEach(function(f) {
     if (!f.entrada) return;
     var entAR = new Date(new Date(f.entrada).getTime() - 3 * 3600000);
-    var fecha = entAR.getUTCFullYear() + '-' + String(entAR.getUTCMonth() + 1).padStart(2, '0') + '-' + String(entAR.getUTCDate()).padStart(2, '0');
-    if (jorn[fecha] && entAR.getUTCHours() >= 20) {
-      var sig = new Date(entAR.getTime() + 24 * 3600000);
-      fecha = sig.getUTCFullYear() + '-' + String(sig.getUTCMonth() + 1).padStart(2, '0') + '-' + String(sig.getUTCDate()).padStart(2, '0');
+    var fecha = fmtAR(entAR);
+
+    if (esHabil) {
+      if (f.salida) {
+        var salAR = new Date(new Date(f.salida).getTime() - 3 * 3600000);
+        var fechaSal = fmtAR(salAR);
+        if (fechaSal !== fecha) fecha = fechaSal; // nocturna: día en que termina
+      } else if (entAR.getUTCHours() >= 20) {
+        // Sin salida con ingreso nocturno: patrón de turno noche
+        fecha = fmtAR(new Date(entAR.getTime() + 24 * 3600000));
+      }
+    } else {
+      // CI/PI: día de ingreso, con excepción de guardia consecutiva
+      if (jorn[fecha] && entAR.getUTCHours() >= 20) {
+        fecha = fmtAR(new Date(entAR.getTime() + 24 * 3600000));
+      }
     }
+
     var horas = 0, sinSal = false;
     if (f.salida) {
       var diff = (new Date(f.salida) - new Date(f.entrada)) / 3600000;
@@ -11848,15 +11875,23 @@ function loadHorasReales() {
   Promise.all([
     db.from('fichajes').select('*').gte('entrada', desde).lte('entrada', hasta).order('entrada', { ascending: true }),
     db.from('personal_tipos').select('*'),
-    db.from('licencias').select('*').gte('fecha_desde', anio + '-' + String(mes).padStart(2,'0') + '-01').lte('fecha_hasta', anio + '-' + String(mes).padStart(2,'0') + '-31')
+    db.from('licencias').select('*').gte('fecha_desde', anio + '-' + String(mes).padStart(2,'0') + '-01').lte('fecha_hasta', anio + '-' + String(mes).padStart(2,'0') + '-31'),
+    db.from('agentes').select('nombre,tipo')
   ]).then(function(results) {
     var fichajes  = results[0].data || [];
     var personal  = results[1].data || [];
     var licencias = results[2].data || [];
+    var agentesDb = results[3].data || [];
 
-    // Mapa nombre → tipo
+    // Mapa nombre → tipo. La condición registrada en la sección Agentes
+    // (agentes.tipo) tiene prioridad sobre personal_tipos.
     var tipoMap = {};
     personal.forEach(function(p) { tipoMap[p.nombre.trim().toUpperCase()] = p.tipo; });
+    agentesDb.forEach(function(a) {
+      if (!a.nombre) return;
+      var t = (a.tipo || '').trim().toUpperCase();
+      if (HORAS_TIPO[t] !== undefined) tipoMap[a.nombre.trim().toUpperCase()] = t;
+    });
 
     // Días del mes
     var diasMes = new Date(anio, mes, 0).getDate();
@@ -11879,8 +11914,9 @@ function loadHorasReales() {
       var fichs = porAgente[nombre];
 
       // Reconstruir jornadas laborales ANTES de calcular:
-      // resuelve nocturnas, guardias consecutivas y multiples fichajes por dia
-      var jornadas = reconstruirJornadasHR(fichs);
+      // resuelve nocturnas (asignadas al día correcto según condición),
+      // guardias consecutivas y multiples fichajes por dia
+      var jornadas = reconstruirJornadasHR(fichs, tipo);
 
       var totalTrabajadas = 0;
       var totalACumplir   = 0;
@@ -11922,15 +11958,11 @@ function loadHorasReales() {
         } else if (codLic) {
           // Licencia: dia justificado, no genera obligacion ni faltante
         } else if (corresponde) {
-          // Debia trabajar y no hay fichaje ni licencia
+          // Jornada incompleta (Sin registro o No fichó salida):
+          // la obligación cuenta para el balance en pantalla, pero NO se
+          // calcula diferencia horaria — no hay información suficiente
+          // para determinar cuántas horas trabajó realmente el agente.
           totalACumplir += hACumplir;
-          if (!sinSalida) {
-            // Sin registro: faltante completo del dia
-            totalFaltantes += hACumplir;
-            extras = -hACumplir;
-          }
-          // Con entrada pero sin salida: obligacion cuenta pero el faltante
-          // no se computa (horas reales desconocidas) — se marca 'Sin salida'
         }
 
         diasInfo.push({ d: d, fecha: fechaStr, feriado: feriado, diaSemana: diaSemana, hs: horasTrab, aCumplir: hACumplir, lic: codLic, sinSalida: sinSalida, corresponde: corresponde, extras: extras, _entrada: _entrada, _salida: _salida, _obs: _obsTxt });
@@ -12232,7 +12264,7 @@ function _hrClasifica(info) {
     return { clase: clase, etiqueta: info.lic };
   }
   if (info.hs !== null)     return { clase: 'trab',   etiqueta: '' };
-  if (info.sinSalida)       return { clase: 'nf',     etiqueta: 'Sin salida' };
+  if (info.sinSalida)       return { clase: 'nf',     etiqueta: 'No fich\xF3 salida' };
   if (!info.corresponde)    return { clase: 'nocorr', etiqueta: '' };
   return { clase: 'sinreg', etiqueta: 'Sin registro' };
 }
@@ -12262,6 +12294,7 @@ function _generarInformeHTML(mes, anio, mesesNom, diasSemNom, agInfo) {
       } else if (d.extras !== null && d.extras !== undefined && d.hs !== null) {
         extTxt = '00:00';
       }
+      var obsTxt = (d._obs || '').replace(/cierre manual/gi, 'No fich\xF3 salida');
       filas += '<tr class="' + cl.clase + '">'
         + '<td>' + diasSemNom[d.diaSemana] + '</td>'
         + '<td>' + String(d.d).padStart(2, '0') + '/' + String(mes).padStart(2, '0') + '</td>'
@@ -12270,7 +12303,7 @@ function _generarInformeHTML(mes, anio, mesesNom, diasSemNom, agInfo) {
         + '<td class="num">' + hsTxt + '</td>'
         + '<td class="num ' + extClase + '">' + extTxt + '</td>'
         + '<td>' + cl.etiqueta + '</td>'
-        + '<td class="obs">' + (d._obs || '') + '</td>'
+        + '<td class="obs">' + obsTxt + '</td>'
         + '</tr>';
     });
 
