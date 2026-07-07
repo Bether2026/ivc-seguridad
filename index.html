@@ -11286,6 +11286,63 @@ function horasParaTipo(tipo, fechaStr) {
   return HORAS_TIPO[tipo] || 8;
 }
 
+function correspondeTrabajarHR(tipo, diaSemana, feriado) {
+  // CH/PH: lunes a viernes no feriado. CI/PI: sábados, domingos y feriados.
+  var inhabil = (diaSemana === 0 || diaSemana === 6 || feriado);
+  if (tipo === 'CI' || tipo === 'PI') return inhabil;
+  return !inhabil;
+}
+
+function formatDiffHM(h) {
+  // Diferencia en horas decimales a formato con signo: +00:49 / -00:30
+  if (h === null || h === undefined) return '';
+  var neg = h < 0;
+  var abs = Math.abs(h);
+  var hh = Math.floor(abs);
+  var mm = Math.round((abs - hh) * 60);
+  if (mm === 60) { hh++; mm = 0; }
+  return (neg ? '-' : '+') + String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0');
+}
+
+function reconstruirJornadasHR(fichs) {
+  // Reconstruye jornadas laborales a partir de fichajes crudos.
+  // Regla base: la jornada pertenece al día AR del ingreso (jornadas
+  // nocturnas 18:00→06:00 o 23:35→12:00 quedan en el día que comenzaron).
+  // Excepción: si ya existe una jornada asignada a ese día y el ingreso
+  // es >= 20:00, el fichaje corresponde a la guardia del día siguiente
+  // (caso: guardia del sábado 00:10 + ingreso 23:40 = guardia del domingo).
+  // El encadenamiento se propaga a guardias consecutivas.
+  var orden = fichs.slice().sort(function(a, b) {
+    return new Date(a.entrada || 0) - new Date(b.entrada || 0);
+  });
+  var jorn = {};
+  orden.forEach(function(f) {
+    if (!f.entrada) return;
+    var entAR = new Date(new Date(f.entrada).getTime() - 3 * 3600000);
+    var fecha = entAR.getUTCFullYear() + '-' + String(entAR.getUTCMonth() + 1).padStart(2, '0') + '-' + String(entAR.getUTCDate()).padStart(2, '0');
+    if (jorn[fecha] && entAR.getUTCHours() >= 20) {
+      var sig = new Date(entAR.getTime() + 24 * 3600000);
+      fecha = sig.getUTCFullYear() + '-' + String(sig.getUTCMonth() + 1).padStart(2, '0') + '-' + String(sig.getUTCDate()).padStart(2, '0');
+    }
+    var horas = 0, sinSal = false;
+    if (f.salida) {
+      var diff = (new Date(f.salida) - new Date(f.entrada)) / 3600000;
+      if (diff < 0) diff += 24;
+      horas = diff;
+    } else {
+      sinSal = true;
+    }
+    if (!jorn[fecha]) jorn[fecha] = { horas: 0, entrada: null, salida: null, sinSalida: false, obs: [] };
+    var J = jorn[fecha];
+    J.horas += horas;
+    if (sinSal) J.sinSalida = true;
+    if (!J.entrada || new Date(f.entrada) < new Date(J.entrada)) J.entrada = f.entrada;
+    if (f.salida && (!J.salida || new Date(f.salida) > new Date(J.salida))) J.salida = f.salida;
+    if (f.observaciones) J.obs.push(f.observaciones);
+  });
+  return jorn;
+}
+
 function tiempoExcel(val) {
   // Los valores de tiempo en Excel vienen como fracción del día (0.333 = 8hs)
   if (!val || isNaN(parseFloat(val))) return null;
@@ -11782,8 +11839,9 @@ function loadHorasReales() {
   var mes  = parseInt((document.getElementById('hr-mes') || {}).value  || new Date().getMonth() + 1);
   var anio = parseInt((document.getElementById('hr-anio') || {}).value || new Date().getFullYear());
 
-  // Rango del mes en UTC
-  var desde = new Date(Date.UTC(anio, mes - 1, 1, 3, 0, 0)).toISOString(); // inicio día 1 AR = 03:00 UTC
+  // Rango del mes en UTC — arranca en el último día del mes ANTERIOR para
+  // capturar guardias nocturnas (ej. ingreso 23:40) que ruedan al día 1
+  var desde = new Date(Date.UTC(anio, mes - 1, 0, 3, 0, 0)).toISOString();
   var hasta = new Date(Date.UTC(anio, mes, 1, 2, 59, 59)).toISOString();   // fin último día
 
   // Cargar fichajes del mes Y tipos de personal en paralelo
@@ -11819,58 +11877,34 @@ function loadHorasReales() {
     agentes.forEach(function(nombre) {
       var tipo = tipoMap[nombre.toUpperCase()] || 'CH';
       var fichs = porAgente[nombre];
-      var totalTrabajadas = 0;
-      var totalACumplir = 0;
-      var diasTrabajados = 0;
-      var diasSinSalida = 0;
 
-      // Por día
+      // Reconstruir jornadas laborales ANTES de calcular:
+      // resuelve nocturnas, guardias consecutivas y multiples fichajes por dia
+      var jornadas = reconstruirJornadasHR(fichs);
+
+      var totalTrabajadas = 0;
+      var totalACumplir   = 0;
+      var totalExtras     = 0;
+      var totalFaltantes  = 0;
+      var diasTrabajados  = 0;
+      var diasSinSalida   = 0;
+
       var diasInfo = [];
       for (var d = 1; d <= diasMes; d++) {
         var fechaStr = anio + '-' + String(mes).padStart(2,'0') + '-' + String(d).padStart(2,'0');
         var fecha = new Date(fechaStr + 'T12:00:00');
         var diaSemana = fecha.getDay();
         var feriado = esFeriado(fechaStr);
-        var hACumplir = horasParaTipo(tipo, fechaStr);
+        var corresponde = correspondeTrabajarHR(tipo, diaSemana, feriado);
+        var hACumplir = corresponde ? (HORAS_TIPO[tipo] || 8) : 0;
 
-        // Fichajes de este día
-        var fichsDia = fichs.filter(function(f) {
-          var entISO = f.entrada;
-          if (!entISO) return false;
-          var entFecha = new Date(entISO);
-          var entAR = new Date(entFecha.getTime() - 3 * 60 * 60 * 1000);
-          return entAR.getDate() === d && entAR.getMonth() === mes - 1 && entAR.getFullYear() === anio;
-        });
-
-        var horasTrab = null;
-        var sinSalida = false;
-        var _entrada = null, _salida = null, _obs = [];
-        if (fichsDia.length > 0) {
-          var totalDia = 0;
-          fichsDia.forEach(function(f) {
-            if (!f.entrada) return;
-            if (f.observaciones) _obs.push(f.observaciones);
-            var ent = new Date(f.entrada);
-            // Primera entrada del día (no sobrescribir si ya hay una más temprana) —
-            // antes esto se pisaba con cada fichaje y terminaba mostrando la entrada
-            // del ÚLTIMO fichaje procesado, no la real del día, cuando el agente
-            // fichaba en más de un puesto en la misma jornada.
-            if (!_entrada || new Date(f.entrada) < new Date(_entrada)) _entrada = f.entrada;
-            if (f.salida) {
-              var sal = new Date(f.salida);
-              // Última salida del día
-              if (!_salida || new Date(f.salida) > new Date(_salida)) _salida = f.salida;
-              var diff = (sal - ent) / 3600000;
-              if (diff < 0) diff += 24;
-              totalDia += diff;
-            } else {
-              sinSalida = true;
-              diasSinSalida++;
-            }
-          });
-          if (totalDia > 0) horasTrab = totalDia;
-          diasTrabajados++;
-        }
+        var j = jornadas[fechaStr];
+        var horasTrab = (j && j.horas > 0) ? j.horas : null;
+        var sinSalida = j ? j.sinSalida : false;
+        if (sinSalida) diasSinSalida++;
+        var _entrada = j ? j.entrada : null;
+        var _salida  = j ? j.salida  : null;
+        var _obsTxt  = j ? j.obs.join(' | ') : '';
 
         // Licencias
         var licDia = licencias.filter(function(l) {
@@ -11878,18 +11912,28 @@ function loadHorasReales() {
         });
         var codLic = licDia.length > 0 ? (licDia[0].tipo_licencia || licDia[0].tipo || 'LIC') : null;
 
+        var extras = null;
         if (horasTrab !== null) {
           totalTrabajadas += horasTrab;
-          if (diaSemana !== 0 && !feriado) totalACumplir += hACumplir;
+          totalACumplir += hACumplir; // 0 si no correspondia trabajar: todo cuenta como extra
+          diasTrabajados++;
+          extras = horasTrab - hACumplir;
+          if (extras > 0) totalExtras += extras; else totalFaltantes += -extras;
         } else if (codLic) {
-          // Licencia — día justificado: NO suma horas a cumplir.
-          // FIX: antes sumaba hACumplir sin acreditar horas trabajadas,
-          // generando déficit falso en el balance mensual del agente.
-        } else if (diaSemana !== 0 && !feriado) {
-          totalACumplir += hACumplir; // día hábil sin fichar
+          // Licencia: dia justificado, no genera obligacion ni faltante
+        } else if (corresponde) {
+          // Debia trabajar y no hay fichaje ni licencia
+          totalACumplir += hACumplir;
+          if (!sinSalida) {
+            // Sin registro: faltante completo del dia
+            totalFaltantes += hACumplir;
+            extras = -hACumplir;
+          }
+          // Con entrada pero sin salida: obligacion cuenta pero el faltante
+          // no se computa (horas reales desconocidas) — se marca 'Sin salida'
         }
 
-        diasInfo.push({ d: d, fecha: fechaStr, feriado: feriado, diaSemana: diaSemana, hs: horasTrab, aCumplir: hACumplir, lic: codLic, sinSalida: sinSalida, _entrada: _entrada, _salida: _salida, _obs: _obs.join(' | ') });
+        diasInfo.push({ d: d, fecha: fechaStr, feriado: feriado, diaSemana: diaSemana, hs: horasTrab, aCumplir: hACumplir, lic: codLic, sinSalida: sinSalida, corresponde: corresponde, extras: extras, _entrada: _entrada, _salida: _salida, _obs: _obsTxt });
       }
 
       var diff = totalTrabajadas - totalACumplir;
@@ -11898,6 +11942,8 @@ function loadHorasReales() {
         tipo: tipo,
         totalTrabajadas: totalTrabajadas,
         totalACumplir: totalACumplir,
+        totalExtras: totalExtras,
+        totalFaltantes: totalFaltantes,
         diff: diff,
         diasTrabajados: diasTrabajados,
         diasSinSalida: diasSinSalida,
@@ -12172,81 +12218,104 @@ function _hrHoraAR(iso) {
 }
 
 function _hrClasifica(info) {
-  // Devuelve { clase, etiqueta } segun el estado del dia
+  // Devuelve { clase, etiqueta } segun el estado del dia.
+  // La etiqueta de licencia se muestra EXACTAMENTE como fue registrada.
   if (info.lic) {
     var L = info.lic.toUpperCase();
-    if (L.indexOf('VAC') >= 0 || L.indexOf('ORD') >= 0) return { clase: 'vac',  etiqueta: 'Vacaciones' };
-    if (L.indexOf('ENF') >= 0)                          return { clase: 'enf',  etiqueta: 'Enfermedad' };
-    if (L === 'ART' || L.indexOf('ART ') === 0 || L.indexOf(' ART') >= 0 || L.indexOf('ACCIDENTE') >= 0) return { clase: 'art',  etiqueta: 'ART' };
-    if (L.indexOf('EST') >= 0 || L.indexOf('EXA') >= 0) return { clase: 'est',  etiqueta: 'Estudio' };
-    if (L.indexOf('FRA') >= 0)                          return { clase: 'fra',  etiqueta: 'Franco' };
-    return { clase: 'otra', etiqueta: info.lic };
+    var clase = 'otra';
+    if (L.indexOf('VAC') >= 0 || L.indexOf('ORD') >= 0) clase = 'vac';
+    else if (L.indexOf('ENF') >= 0 || L.indexOf('FAMILIAR') >= 0) clase = 'enf';
+    else if (L === 'ART' || L.indexOf('ART ') === 0 || L.indexOf(' ART') >= 0 || L.indexOf('ACCIDENTE') >= 0) clase = 'art';
+    else if (L.indexOf('EST') >= 0 || L.indexOf('EXA') >= 0) clase = 'est';
+    else if (L.indexOf('FRA') >= 0) clase = 'fra';
+    else if (L.indexOf('AUSEN') >= 0) clase = 'aus';
+    return { clase: clase, etiqueta: info.lic };
   }
-  if (info.hs !== null)                    return { clase: 'trab', etiqueta: '' };
-  if (info.sinSalida)                      return { clase: 'nf',   etiqueta: 'Sin salida' };
-  if (info.feriado)                        return { clase: 'fer',  etiqueta: 'Feriado' };
-  if (info.diaSemana === 0)                return { clase: 'dom',  etiqueta: '' };
-  return { clase: 'aus', etiqueta: 'Ausente' };
+  if (info.hs !== null)     return { clase: 'trab',   etiqueta: '' };
+  if (info.sinSalida)       return { clase: 'nf',     etiqueta: 'Sin salida' };
+  if (!info.corresponde)    return { clase: 'nocorr', etiqueta: '' };
+  return { clase: 'sinreg', etiqueta: 'Sin registro' };
 }
 
 function _generarInformeHTML(mes, anio, mesesNom, diasSemNom, agInfo) {
   var titulo = 'Informe Mensual de Asistencia — ' + mesesNom[mes - 1] + ' ' + anio;
 
   // Totales globales
-  var G = { agentes: HR_DATA.length, horas: 0, diasTrab: 0, vac: 0, enf: 0, art: 0, est: 0, fra: 0, otra: 0, aus: 0, nov: 0 };
+  var G = { agentes: HR_DATA.length, horas: 0, extras: 0, faltantes: 0, diasTrab: 0,
+            vac: 0, enf: 0, art: 0, est: 0, fra: 0, aus: 0, otra: 0, sinreg: 0 };
 
   var cuerpo = '';
   HR_DATA.forEach(function(r) {
     var info = agInfo[r.nombre.toUpperCase()] || { legajo: '', sector: '' };
-    var S = { vac: 0, enf: 0, art: 0, est: 0, fra: 0, otra: 0, aus: 0 };
+    var S = { vac: 0, enf: 0, art: 0, est: 0, fra: 0, aus: 0, otra: 0, sinreg: 0 };
     var filas = '';
 
     (r.diasInfo || []).forEach(function(d) {
       var cl = _hrClasifica(d);
       if (S[cl.clase] !== undefined) S[cl.clase]++;
       var hsTxt = d.hs !== null ? formatHoras(d.hs) : '';
-      var obs = d._obs || '';
+      var extTxt = '';
+      var extClase = '';
+      if (d.extras !== null && d.extras !== undefined && Math.abs(d.extras) >= 1/120) {
+        extTxt = formatDiffHM(d.extras);
+        extClase = d.extras > 0 ? 'pos' : 'neg';
+      } else if (d.extras !== null && d.extras !== undefined && d.hs !== null) {
+        extTxt = '00:00';
+      }
       filas += '<tr class="' + cl.clase + '">'
         + '<td>' + diasSemNom[d.diaSemana] + '</td>'
         + '<td>' + String(d.d).padStart(2, '0') + '/' + String(mes).padStart(2, '0') + '</td>'
         + '<td>' + _hrHoraAR(d._entrada) + '</td>'
         + '<td>' + _hrHoraAR(d._salida) + '</td>'
         + '<td class="num">' + hsTxt + '</td>'
+        + '<td class="num ' + extClase + '">' + extTxt + '</td>'
         + '<td>' + cl.etiqueta + '</td>'
-        + '<td class="obs">' + obs + '</td>'
+        + '<td class="obs">' + (d._obs || '') + '</td>'
         + '</tr>';
     });
 
-    var totalLic = S.vac + S.enf + S.art + S.est + S.fra + S.otra;
-    G.horas += r.totalTrabajadas; G.diasTrab += r.diasTrabajados;
-    G.vac += S.vac; G.enf += S.enf; G.art += S.art; G.est += S.est; G.fra += S.fra; G.otra += S.otra; G.aus += S.aus;
+    var totalLic = S.vac + S.enf + S.art + S.est + S.fra + S.aus + S.otra;
+    var balance = r.totalExtras - r.totalFaltantes;
+    G.horas += r.totalTrabajadas; G.extras += r.totalExtras; G.faltantes += r.totalFaltantes;
+    G.diasTrab += r.diasTrabajados;
+    G.vac += S.vac; G.enf += S.enf; G.art += S.art; G.est += S.est; G.fra += S.fra;
+    G.aus += S.aus; G.otra += S.otra; G.sinreg += S.sinreg;
 
-    cuerpo += '<section class="agente">'
+    var dataBuscar = (r.nombre + ' ' + (info.legajo || '')).replace(/"/g, '');
+
+    cuerpo += '<section class="agente" data-buscar="' + dataBuscar + '">'
       + '<div class="ag-head"><h2>' + r.nombre + '</h2><div class="ag-meta">'
       + (info.legajo ? '<span>Legajo: <b>' + info.legajo + '</b></span>' : '')
       + (info.sector ? '<span>Sector: <b>' + info.sector + '</b></span>' : '')
       + '<span>Condicion: <b>' + r.tipo + '</b></span></div></div>'
-      + '<table><thead><tr><th>Dia</th><th>Fecha</th><th>Ingreso</th><th>Egreso</th><th>Hs trabajadas</th><th>Novedad</th><th>Observaciones</th></tr></thead>'
+      + '<table><thead><tr><th>Dia</th><th>Fecha</th><th>Ingreso</th><th>Egreso</th><th>Hs trabajadas</th><th>Extras / Faltantes</th><th>Novedad</th><th>Observaciones</th></tr></thead>'
       + '<tbody>' + filas + '</tbody></table>'
       + '<div class="resumen">'
       + '<div class="res-item"><span>' + formatHoras(r.totalTrabajadas) + '</span><label>Total horas</label></div>'
+      + '<div class="res-item"><span class="pos">+' + formatHoras(r.totalExtras) + '</span><label>Hs extras</label></div>'
+      + '<div class="res-item"><span class="neg">-' + formatHoras(r.totalFaltantes) + '</span><label>Hs faltantes</label></div>'
+      + '<div class="res-item destacado"><span>' + formatDiffHM(balance) + '</span><label>Balance</label></div>'
       + '<div class="res-item"><span>' + r.diasTrabajados + '</span><label>Dias trabajados</label></div>'
       + '<div class="res-item"><span>' + S.vac + '</span><label>Vacaciones</label></div>'
       + '<div class="res-item"><span>' + S.enf + '</span><label>Enfermedad</label></div>'
       + '<div class="res-item"><span>' + S.est + '</span><label>Estudio</label></div>'
       + '<div class="res-item"><span>' + S.art + '</span><label>ART</label></div>'
       + '<div class="res-item"><span>' + S.fra + '</span><label>Francos</label></div>'
-      + '<div class="res-item"><span>' + S.otra + '</span><label>Otras novedades</label></div>'
-      + '<div class="res-item destacado"><span>' + totalLic + '</span><label>Total licencias</label></div>'
+      + '<div class="res-item"><span>' + S.otra + '</span><label>Otras</label></div>'
+      + '<div class="res-item"><span>' + totalLic + '</span><label>Total licencias</label></div>'
+      + '<div class="res-item"><span>' + S.sinreg + '</span><label>Sin registro</label></div>'
       + '</div></section>';
   });
 
-  var totalLicG = G.vac + G.enf + G.art + G.est + G.fra + G.otra;
+  var totalLicG = G.vac + G.enf + G.art + G.est + G.fra + G.aus + G.otra;
   var resumenGlobal = '<section class="global">'
     + '<h2>Resumen general del periodo</h2>'
     + '<div class="resumen">'
     + '<div class="res-item"><span>' + G.agentes + '</span><label>Agentes</label></div>'
     + '<div class="res-item"><span>' + formatHoras(G.horas) + '</span><label>Total horas trabajadas</label></div>'
+    + '<div class="res-item"><span class="pos">+' + formatHoras(G.extras) + '</span><label>Total hs extras</label></div>'
+    + '<div class="res-item"><span class="neg">-' + formatHoras(G.faltantes) + '</span><label>Total hs faltantes</label></div>'
+    + '<div class="res-item destacado"><span>' + formatDiffHM(G.extras - G.faltantes) + '</span><label>Balance general</label></div>'
     + '<div class="res-item"><span>' + G.diasTrab + '</span><label>Dias trabajados</label></div>'
     + '<div class="res-item destacado"><span>' + totalLicG + '</span><label>Total licencias</label></div>'
     + '<div class="res-item"><span>' + G.vac + '</span><label>Vacaciones</label></div>'
@@ -12254,14 +12323,18 @@ function _generarInformeHTML(mes, anio, mesesNom, diasSemNom, agInfo) {
     + '<div class="res-item"><span>' + G.est + '</span><label>Estudio</label></div>'
     + '<div class="res-item"><span>' + G.art + '</span><label>ART</label></div>'
     + '<div class="res-item"><span>' + G.fra + '</span><label>Francos</label></div>'
-    + '<div class="res-item"><span>' + G.otra + '</span><label>Otras novedades</label></div>'
     + '<div class="res-item"><span>' + G.aus + '</span><label>Ausencias</label></div>'
+    + '<div class="res-item"><span>' + G.otra + '</span><label>Otras novedades</label></div>'
+    + '<div class="res-item"><span>' + G.sinreg + '</span><label>Sin registro</label></div>'
     + '</div></section>';
 
   var css = 'body{font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:0;padding:24px;background:#f5f6f8;color:#1a2233}'
-    + 'header.doc{text-align:center;margin-bottom:28px}'
+    + 'header.doc{text-align:center;margin-bottom:20px}'
     + 'header.doc h1{font-size:22px;margin:0 0 4px}'
     + 'header.doc p{color:#5a6478;margin:0;font-size:13px}'
+    + '.buscador{max-width:520px;margin:0 auto 24px}'
+    + '.buscador input{width:100%;box-sizing:border-box;padding:11px 16px;border:2px solid #c8cfd9;border-radius:10px;font-size:14px;outline:none}'
+    + '.buscador input:focus{border-color:#1a2233}'
     + 'section.agente{background:#fff;border:1px solid #dfe3ea;border-radius:10px;padding:20px;margin-bottom:24px;page-break-after:always;break-after:page}'
     + 'section.agente:last-of-type{page-break-after:auto;break-after:auto}'
     + '.ag-head{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;border-bottom:2px solid #1a2233;padding-bottom:8px;margin-bottom:12px}'
@@ -12270,38 +12343,49 @@ function _generarInformeHTML(mes, anio, mesesNom, diasSemNom, agInfo) {
     + 'table{width:100%;border-collapse:collapse;font-size:12px}'
     + 'thead th{background:#1a2233;color:#fff;padding:7px 8px;text-align:left;font-weight:600}'
     + 'tbody td{padding:6px 8px;border-bottom:1px solid #e8ebf0}'
-    + 'td.num{font-variant-numeric:tabular-nums;font-weight:600}'
-    + 'td.obs{color:#5a6478;font-size:11px;max-width:220px}'
+    + 'td.num{font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}'
+    + 'td.pos{color:#0d7a3f}'
+    + 'td.neg{color:#b3261e}'
+    + 'span.pos{color:#0d7a3f}'
+    + 'span.neg{color:#b3261e}'
+    + 'td.obs{color:#5a6478;font-size:11px;max-width:200px}'
     + 'tr.trab td{background:#f2faf4}'
     + 'tr.vac td{background:#e8f2fd}'
     + 'tr.enf td{background:#fdeeee}'
     + 'tr.art td{background:#fdf3e6}'
     + 'tr.est td{background:#f1ecfb}'
     + 'tr.fra td{background:#eef1f5}'
-    + 'tr.fer td{background:#fdf9e2}'
     + 'tr.aus td{background:#fbe4e4;color:#8a2b2b}'
+    + 'tr.sinreg td{background:#fff0f0;color:#a33}'
     + 'tr.nf td{background:#fff4de}'
-    + 'tr.dom td{background:#fafafa;color:#98a0ae}'
+    + 'tr.nocorr td{background:#fbfbfc;color:#c2c8d0}'
     + 'tr.otra td{background:#eef7f7}'
     + '.resumen{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}'
-    + '.res-item{flex:1;min-width:100px;background:#f5f6f8;border:1px solid #dfe3ea;border-radius:8px;padding:10px;text-align:center}'
-    + '.res-item span{display:block;font-size:16px;font-weight:700}'
-    + '.res-item label{font-size:10px;color:#5a6478;text-transform:uppercase;letter-spacing:.05em}'
+    + '.res-item{flex:1;min-width:90px;background:#f5f6f8;border:1px solid #dfe3ea;border-radius:8px;padding:10px;text-align:center}'
+    + '.res-item span{display:block;font-size:15px;font-weight:700}'
+    + '.res-item label{font-size:9px;color:#5a6478;text-transform:uppercase;letter-spacing:.05em}'
     + '.res-item.destacado{background:#1a2233;border-color:#1a2233}'
     + '.res-item.destacado span,.res-item.destacado label{color:#fff}'
     + 'section.global{background:#fff;border:2px solid #1a2233;border-radius:10px;padding:20px}'
     + 'section.global h2{margin:0 0 12px;font-size:16px}'
     + '@media print{body{background:#fff;padding:0}'
+    + '.buscador,.no-print{display:none}'
     + 'section.agente,section.global{border:none;border-radius:0;padding:8px 0}'
     + 'thead{display:table-header-group}'
-    + 'tr{page-break-inside:avoid;break-inside:avoid}'
-    + '.no-print{display:none}}';
+    + 'tr{page-break-inside:avoid;break-inside:avoid}}';
+
+  var buscadorJs = 'function filtrarAgentes(q){q=(q||"").toLowerCase();'
+    + 'var s=document.querySelectorAll("section.agente");'
+    + 'for(var i=0;i<s.length;i++){var t=(s[i].getAttribute("data-buscar")||"").toLowerCase();'
+    + 's[i].style.display=t.indexOf(q)>=0?"":"none";}}';
 
   var doc = '<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">'
     + '<meta name="viewport" content="width=device-width,initial-scale=1">'
     + '<title>' + titulo + '</title><style>' + css + '</style></head><body>'
     + '<header class="doc"><h1>IVC Seguridad y Emergencias</h1><p>' + titulo + ' &middot; Generado el ' + fechaHoyAR().split('-').reverse().join('/') + '</p></header>'
+    + '<div class="buscador"><input type="text" placeholder="Buscar por apellido, nombre o legajo..." oninput="filtrarAgentes(this.value)"></div>'
     + cuerpo + resumenGlobal
+    + '<scr' + 'ipt>' + buscadorJs + '</scr' + 'ipt>'
     + '</body></html>';
 
   var blob = new Blob([doc], { type: 'text/html;charset=utf-8;' });
