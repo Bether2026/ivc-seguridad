@@ -1907,6 +1907,9 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
         <span>Pañol</span>
       </button>
+      <button class="sidebar-item" onclick="goView('horas')" id="si-horas" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Horas Reales
+      </button>
       <button class="sidebar-item" onclick="goView('admin')" id="si-admin" style="display:none">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6"/></svg> Admin
       </button>
@@ -3966,6 +3969,16 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
         </div>
       </div>
         </div><!-- /view-admin -->
+        <!-- VISTA HORAS REALES — Gerencia (reutiliza adm-panel-horas) -->
+        <div class="view" id="view-horas">
+          <div style="padding:16px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+              <span style="font-size:18px">&#x23F1;</span>
+              <span style="font-size:16px;font-weight:800;color:var(--text)">Horas Reales</span>
+            </div>
+            <div id="view-horas-contenido"></div>
+          </div>
+        </div>
   </main>
   <nav class="bottomnav">
     <button class="nav-btn active" onclick="goView('dashboard')" id="nb-dashboard">
@@ -4128,6 +4141,10 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
         <label class="form-label">Texto del informe <span style="font-size:10px;font-weight:400;color:var(--text3)">(peg&#xE1; el texto del Access)</span></label>
         <textarea class="form-textarea" id="ci-texto" style="min-height:120px;border-color:rgba(59,130,246,.3)" placeholder="Peg&#xE1; ac&#xE1; el texto formal. Si lo dej&#xE1;s vac&#xED;o se usa el texto del agente."></textarea>
       </div>
+      <div class="form-group">
+        <label class="form-label">Observaciones <span style="font-size:10px;font-weight:400;color:var(--text3)">(aparecen en la columna Observaciones del informe)</span></label>
+        <textarea class="form-textarea" id="ci-obs" style="min-height:70px" placeholder="Observaci&#xF3;n del agente o de Administraci&#xF3;n..."></textarea>
+      </div>
       <button class="btn-login" id="ci-btn-save" onclick="guardarInformeNovedad()">&#x2713; Guardar informe</button>
     </div>
   </div>
@@ -4172,6 +4189,10 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
       <div class="form-group">
         <label class="form-label">Texto del informe <span style="font-size:10px;font-weight:400;color:var(--text3)">(peg&#xE1; el texto del Access)</span></label>
         <textarea class="form-textarea" id="cio-texto" style="min-height:120px;border-color:rgba(59,130,246,.3)" placeholder="Peg&#xE1; el texto formal del recorrido..."></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Observaciones <span style="font-size:10px;font-weight:400;color:var(--text3)">(aparecen en la columna Observaciones del informe)</span></label>
+        <textarea class="form-textarea" id="cio-obs" style="min-height:70px" placeholder="Observaci&#xF3;n del agente o de Administraci&#xF3;n..."></textarea>
       </div>
       <button class="btn-login" id="cio-btn-save" onclick="guardarInformeObj()">&#x2713; Guardar informe</button>
     </div>
@@ -5512,11 +5533,14 @@ function abrirCargarInformeObj(objId) {
   if (cioSel) cioSel.style.display = 'block';
   var nroEl = document.getElementById('cio-nro');
   var textoEl = document.getElementById('cio-texto');
+  var obsEl = document.getElementById('cio-obs');
   if (nroEl) nroEl.value = '';
   if (textoEl) textoEl.value = '';
+  if (obsEl) obsEl.value = '';
   // Pre-cargar si ya tiene informe guardado
-  db.from('objetivos').select('texto_informe,nro_pd,nro_pu').eq('id', objId).single().then(function(r) {
+  db.from('objetivos').select('texto_informe,nro_pd,nro_pu,observaciones').eq('id', objId).single().then(function(r) {
     var d = r.data || {};
+    if (obsEl) obsEl.value = d.observaciones || '';
     if (d.texto_informe || d.nro_pd || d.nro_pu) {
       // Ya tiene informe — abrir directo en el formulario con los datos
       var tipo = d.nro_pd ? 'PD' : 'PU';
@@ -5537,9 +5561,10 @@ function guardarInformeObj() {
   var nroPD = tipo === 'PD' ? nro : null;
   var nroPU = tipo === 'PU' ? nro : null;
   var texto = document.getElementById('cio-texto').value.trim() || null;
+  var obsCio = ((document.getElementById('cio-obs') || {}).value || '').trim() || null;
   if (!id) { toast('Error: ID del recorrido no encontrado', 'err'); return; }
   setLoading('cio-btn-save', true);
-  db.from('objetivos').update({ texto_informe: texto, nro_pd: nroPD, nro_pu: nroPU }).eq('id', id).then(function(r) {
+  db.from('objetivos').update({ texto_informe: texto, nro_pd: nroPD, nro_pu: nroPU, observaciones: obsCio }).eq('id', id).then(function(r) {
     setLoading('cio-btn-save', false);
     if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
     toast('\u2713 Informe guardado');
@@ -5566,13 +5591,15 @@ function abrirCargarInforme(novId) {
   document.getElementById('ci-nov-id').value = novId;
   document.getElementById('ci-texto').value  = '';
   document.getElementById('ci-nro').value    = '';
+  var ciObs = document.getElementById('ci-obs'); if (ciObs) ciObs.value = '';
   // Resetear selector
   document.getElementById('ci-selector').style.display = 'block';
   document.getElementById('ci-form').style.display = 'none';
 
   // Si ya tiene informe, pre-cargar y mostrar formulario directamente
-  db.from('novedades').select('texto_informe,nro_pd,nro_pu').eq('id', novId).single().then(function(r) {
+  db.from('novedades').select('texto_informe,nro_pd,nro_pu,observaciones').eq('id', novId).single().then(function(r) {
     var d = r.data || {};
+    if (ciObs) ciObs.value = d.observaciones || '';
     if (d.nro_pd || d.nro_pu || d.texto_informe) {
       // Tiene datos — abrir formulario con el tipo ya seleccionado
       var tipo = d.nro_pu ? 'PU' : 'PD';
@@ -5589,8 +5616,9 @@ function guardarInformeNovedad() {
   var tipo  = document.getElementById('ci-tipo-sel').value;
   var nro   = document.getElementById('ci-nro').value ? parseInt(document.getElementById('ci-nro').value) : null;
   var texto = document.getElementById('ci-texto').value.trim() || null;
+  var obs   = ((document.getElementById('ci-obs') || {}).value || '').trim() || null;
   if (!tipo) { toast('Selecci\xF3n PD o PU primero', 'err'); return; }
-  var payload = { texto_informe: texto };
+  var payload = { texto_informe: texto, observaciones: obs };
   if (tipo === 'PD') { payload.nro_pd = nro; payload.nro_pu = null; }
   else               { payload.nro_pu = nro; payload.nro_pd = null; }
   setLoading('ci-btn-save', true);
@@ -7691,6 +7719,9 @@ function initApp() {
     var siAdm = document.getElementById('si-admin');
     if (siAdm) siAdm.style.display = 'flex';
   }
+  // Horas Reales visible solo para Gerencia (lectura completa, sin editar admin)
+  var siHoras = document.getElementById('si-horas');
+  if (siHoras) siHoras.style.display = (USER.puesto === 'Gerencia') ? 'flex' : 'none';
   // Admin sees all sections like TODOS
   if (USER.rol === 'ADMIN' || USER.rol === 'TODOS') {
     var allNavBtns = ['nb-fichaje', 'nb-novedades', 'nb-objetivos', 'nb-choferes', 'nb-agenda'];
@@ -9513,6 +9544,14 @@ function scrollAdminTop() {
 }
 
 function selAdminTab(tab) {
+  // Si adm-panel-horas fue movido a la vista de Gerencia, devolverlo aquí
+  var _horasPanel = document.getElementById('adm-panel-horas');
+  var _adminView  = document.getElementById('view-admin');
+  if (_horasPanel && _adminView && !_adminView.contains(_horasPanel)) {
+    // Insertarlo antes del panel de personal (orden original)
+    var _ref = document.getElementById('adm-panel-personal');
+    if (_ref && _ref.parentNode) _ref.parentNode.insertBefore(_horasPanel, _ref);
+  }
   var tabs = ['general','horas','personal','informe','metricas','vehiculos'];
   tabs.forEach(function(t) {
     var btn   = document.getElementById('adm-tab-' + t);
@@ -10555,7 +10594,10 @@ function generarPreviewInforme() {
           nro_pd:        obj.nro_pd || null,
           nro_pu:        obj.nro_pu || null,
           agente:        obj.cargado_por || '',
-          observaciones: null,
+          // Si hay texto formal, la observación del agente va a la columna
+          // Observaciones. Si no lo hay, la observación ES el cuerpo (detalle)
+          // y no se duplica en la columna 3.
+          observaciones: obj.texto_informe ? (obj.observaciones || null) : null,
           foto_url:      null,
           fuerza_publica: false,
           created_at:    obj.created_at
@@ -10711,7 +10753,7 @@ function construirHTMLEditablePreview(porPuesto, novedades, fotosMap, fechaDispl
   var mesNombres = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
   var mesN = mesIdx >= 0 ? (mesNombres[mesIdx] || '') + (partes[2] ? ' ' + partes[2] : '') : '';
 
-  var style = '<style>\n* { box-sizing:border-box; margin:0; padding:0; }\nbody { font-family:Lato,Arial,sans-serif; font-size:10.5pt; color:#1a1a2e; background:#fff; }\n.page { max-width:100%; }\n.header { background:' + AZUL_OSC + '; padding:14px 28px; display:flex; align-items:center; gap:20px; }\n.logo-wrap { flex-shrink:0; width:58px; height:58px; background:rgba(255,255,255,.1); border-radius:13px; padding:4px; display:flex; align-items:center; justify-content:center; }\n.logo-wrap img { width:50px; height:50px; object-fit:contain; border-radius:10px; }\n.hc { flex:1; }\n.h-parte { font-size:13pt; font-weight:900; color:rgba(255,255,255,.5); letter-spacing:.35em; text-transform:uppercase; }\n.h-main { font-size:15pt; font-weight:900; color:#fff; letter-spacing:.04em; text-transform:uppercase; margin-top:2px; }\n.h-org { font-size:7pt; color:rgba(255,255,255,.45); text-transform:uppercase; letter-spacing:.12em; margin-top:3px; }\n.h-fecha { text-align:right; flex-shrink:0; color:#fff; }\n.h-dia { font-size:30pt; font-weight:900; line-height:1; }\n.h-mes { font-size:8.5pt; color:rgba(255,255,255,.8); margin-top:3px; font-weight:700; text-transform:capitalize; }\n.h-dnom { font-size:7.5pt; color:rgba(255,255,255,.45); font-style:italic; text-transform:capitalize; }\n.col-bar { display:grid; grid-template-columns:170px 1fr 210px; background:' + AZUL_MID + '; }\n.col-bar-h { padding:8px 14px; font-size:8pt; font-weight:900; color:#fff; text-transform:uppercase; letter-spacing:.1em; text-align:center; }\n.col-bar-h:not(:last-child) { border-right:1px solid rgba(255,255,255,.15); }\n.novedad { display:grid; grid-template-columns:170px 1fr 210px; border-bottom:1px solid #dde3ef; position:relative; }\n.novedad:nth-child(even) { background:#f8f9fc; }\n.col1 { padding:13px 12px; border-right:1px solid #dde3ef; }\n.c1-tipo { font-size:11pt; font-weight:900; color:' + AZUL + '; line-height:1.2; }\n.c1-meta { font-size:7.5pt; color:#555; margin-top:3px; line-height:1.7; }\n.badge-fp { display:inline-block; font-size:7pt; font-weight:900; padding:2px 7px; border-radius:3px; background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; margin-top:4px; }\n.col2 { padding:13px 14px; border-right:1px solid #dde3ef; }\n.nov-txt { font-size:9.5pt; line-height:1.65; color:#2a2a2a; white-space:pre-wrap; }\n.nov-ag { margin-top:8px; font-size:8pt; color:#555; padding-top:7px; border-top:1px solid #e8ecf5; }\n.fotos-wrap { margin-top:10px; padding-top:10px; border-top:1px solid #e8ecf5; }\n.fotos-lbl { font-size:7.5pt; font-weight:700; color:' + AZUL + '; text-transform:uppercase; letter-spacing:.1em; margin-bottom:7px; }\n.fotos-grid { display:flex; flex-wrap:wrap; gap:6px; }\n.foto-t { width:100px; height:75px; object-fit:cover; border:1.5px solid #dde3ef; border-radius:4px; }\n.col3 { padding:13px 12px; }\n.obs-txt { font-family:serif; font-size:8.5pt; line-height:1.7; color:#555; font-style:italic; }\n.barrio-sep { background:' + AZUL_CL + '; border-top:2px solid ' + AZUL + '; border-bottom:1px solid ' + AZUL_BR + '; padding:7px 40px 7px 16px; font-size:8pt; font-weight:900; color:#1e40af; text-transform:uppercase; letter-spacing:.12em; display:flex; align-items:center; gap:8px; position:relative; }\n.footer { background:' + AZUL_OSC + '; padding:13px 24px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px; }\n.fi { font-size:8pt; color:rgba(255,255,255,.8); }\n.footer-brand { text-align:center; font-size:7pt; color:#9ca3af; padding:6px 24px; letter-spacing:.08em; text-transform:uppercase; }\n.btn-del-row { position:absolute; top:6px; right:6px; width:22px; height:22px; border-radius:50%; background:rgba(239,68,68,.85); border:none; color:#fff; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; z-index:10; font-weight:bold; }\n[contenteditable]:hover { background:rgba(59,130,246,.05); border-radius:3px; }\n[contenteditable]:focus { background:rgba(59,130,246,.08); outline:1px dashed rgba(59,130,246,.4); border-radius:3px; }\n.obs-txt:empty:before { content:attr(data-placeholder); color:#bbb; font-style:italic; }\n@media print { .btn-del-row { display:none!important; } [contenteditable] { outline:none!important; background:transparent!important; } .obs-txt:empty:before { content:\"\"!important; } }\n</style>\n';
+  var style = '<style>\n* { box-sizing:border-box; margin:0; padding:0; }\nbody { font-family:Lato,Arial,sans-serif; font-size:10.5pt; color:#1a1a2e; background:#fff; }\n.page { max-width:100%; }\n.header { background:' + AZUL_OSC + '; padding:14px 28px; display:flex; align-items:center; gap:20px; }\n.logo-wrap { flex-shrink:0; width:58px; height:58px; background:rgba(255,255,255,.1); border-radius:13px; padding:4px; display:flex; align-items:center; justify-content:center; }\n.logo-wrap img { width:50px; height:50px; object-fit:contain; border-radius:10px; }\n.hc { flex:1; }\n.h-parte { font-size:13pt; font-weight:900; color:rgba(255,255,255,.5); letter-spacing:.35em; text-transform:uppercase; }\n.h-main { font-size:15pt; font-weight:900; color:#fff; letter-spacing:.04em; text-transform:uppercase; margin-top:2px; }\n.h-org { font-size:7pt; color:rgba(255,255,255,.45); text-transform:uppercase; letter-spacing:.12em; margin-top:3px; }\n.h-fecha { text-align:right; flex-shrink:0; color:#fff; }\n.h-dia { font-size:30pt; font-weight:900; line-height:1; }\n.h-mes { font-size:8.5pt; color:rgba(255,255,255,.8); margin-top:3px; font-weight:700; text-transform:capitalize; }\n.h-dnom { font-size:7.5pt; color:rgba(255,255,255,.45); font-style:italic; text-transform:capitalize; }\n.col-bar { display:grid; grid-template-columns:170px 1fr 210px; background:' + AZUL_MID + '; }\n.col-bar-h { padding:8px 14px; font-size:8pt; font-weight:900; color:#fff; text-transform:uppercase; letter-spacing:.1em; text-align:center; }\n.col-bar-h:not(:last-child) { border-right:1px solid rgba(255,255,255,.15); }\n.novedad { display:grid; grid-template-columns:170px 1fr 210px; border-bottom:1px solid #dde3ef; position:relative; }\n.novedad:nth-child(even) { background:#f8f9fc; }\n.col1 { padding:13px 12px; border-right:1px solid #dde3ef; }\n.c1-tipo { font-size:11pt; font-weight:900; color:' + AZUL + '; line-height:1.2; }\n.c1-meta { font-size:7.5pt; color:#555; margin-top:3px; line-height:1.7; }\n.badge-fp { display:inline-block; font-size:7pt; font-weight:900; padding:2px 7px; border-radius:3px; background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; margin-top:4px; }\n.col2 { padding:13px 14px; border-right:1px solid #dde3ef; }\n.nov-txt { font-size:9.5pt; line-height:1.65; color:#2a2a2a; white-space:pre-wrap; }\n.nov-ag { margin-top:8px; font-size:8pt; color:#555; padding-top:7px; border-top:1px solid #e8ecf5; }\n.fotos-wrap { margin-top:10px; padding-top:10px; border-top:1px solid #e8ecf5; }\n.fotos-lbl { font-size:7.5pt; font-weight:700; color:' + AZUL + '; text-transform:uppercase; letter-spacing:.1em; margin-bottom:7px; }\n.fotos-grid { display:flex; flex-wrap:wrap; gap:6px; }\n.foto-t { width:100px; height:75px; object-fit:cover; border:1.5px solid #dde3ef; border-radius:4px; }\n.col3 { padding:13px 12px; }\n.obs-txt { font-size:9.5pt; line-height:1.65; color:#555; }\n.barrio-sep { background:' + AZUL_CL + '; border-top:2px solid ' + AZUL + '; border-bottom:1px solid ' + AZUL_BR + '; padding:7px 40px 7px 16px; font-size:8pt; font-weight:900; color:#1e40af; text-transform:uppercase; letter-spacing:.12em; display:flex; align-items:center; gap:8px; position:relative; }\n.footer { background:' + AZUL_OSC + '; padding:13px 24px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px; }\n.fi { font-size:8pt; color:rgba(255,255,255,.8); }\n.footer-brand { text-align:center; font-size:7pt; color:#9ca3af; padding:6px 24px; letter-spacing:.08em; text-transform:uppercase; }\n.btn-del-row { position:absolute; top:6px; right:6px; width:22px; height:22px; border-radius:50%; background:rgba(239,68,68,.85); border:none; color:#fff; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; z-index:10; font-weight:bold; }\n[contenteditable]:hover { background:rgba(59,130,246,.05); border-radius:3px; }\n[contenteditable]:focus { background:rgba(59,130,246,.08); outline:1px dashed rgba(59,130,246,.4); border-radius:3px; }\n.obs-txt:empty:before { content:attr(data-placeholder); color:#bbb; font-style:italic; }\n@media print { .btn-del-row { display:none!important; } [contenteditable] { outline:none!important; background:transparent!important; } .obs-txt:empty:before { content:\"\"!important; } }\n</style>\n';
 
   var html = style + '<div class="page">\n';
   html += '<div class="header">\n';
@@ -10796,7 +10838,7 @@ function construirHTMLInforme(porPuesto, novedades, fotosMap, fechaDisplay, diaN
 
   var html = '<!DOCTYPE html>\n<html lang="es">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n<title>Parte Diario \u2014 ' + fechaDisplay + '</title>\n';
   html += '<link rel="preconnect" href="https://fonts.googleapis.com">\n';
-  html += '<link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&family=Merriweather:ital,wght@0,300;0,700;1,300&display=swap" rel="stylesheet">\n';
+  html += '<link href="https://fonts.googleapis.com/css2?family=Lato:wght@300;400;700;900&display=swap" rel="stylesheet">\n';
   html += '<style>\n';
   html += '*{box-sizing:border-box;margin:0;padding:0}\n';
   html += 'body{font-family:\'Lato\',Arial,sans-serif;font-size:10.5pt;color:#1a1a2e;background:#fff;print-color-adjust:exact;-webkit-print-color-adjust:exact}\n';
@@ -10835,7 +10877,7 @@ function construirHTMLInforme(porPuesto, novedades, fotosMap, fechaDisplay, diaN
   html += '.foto-t{width:100px;height:75px;object-fit:cover;border:1.5px solid #dde3ef;border-radius:4px;cursor:pointer;transition:transform .15s,border-color .15s,box-shadow .15s}\n';
   html += '.foto-t:hover{transform:scale(1.05);border-color:' + AZUL + ';box-shadow:0 3px 12px rgba(37,99,235,.25)}\n';
   html += '.col3{padding:13px 12px}\n';
-  html += '.obs-txt{font-family:\'Merriweather\',serif;font-size:8.5pt;line-height:1.7;color:#555;font-style:italic;font-weight:300}\n';
+  html += '.obs-txt{font-size:9.5pt;line-height:1.65;color:#555}\n';
   html += '.barrio-sep{background:' + AZUL_CL + ';border-top:2px solid ' + AZUL + ';border-bottom:1px solid ' + AZUL_BR + ';padding:7px 16px;font-size:8pt;font-weight:900;color:#1e40af;text-transform:uppercase;letter-spacing:.12em;display:flex;align-items:center;gap:8px}\n';
   html += '.footer{background:' + AZUL_OSC + ';padding:13px 24px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:6px}\n';
   html += '.fi{font-size:8pt;color:rgba(255,255,255,.8)}\n';
@@ -15486,6 +15528,16 @@ function goView(name) {
     if (name === 'pendientes' && typeof loadPendientes === 'function') loadPendientes();
     if (name === 'relevamiento' && typeof loadRelevamientos === 'function') loadRelevamientos();
     if (name === 'panol' && typeof loadPanol === 'function') loadPanol();
+    if (name === 'horas') {
+      // Mover adm-panel-horas al contenedor de Gerencia y activar
+      var _panel = document.getElementById('adm-panel-horas');
+      var _cont  = document.getElementById('view-horas-contenido');
+      if (_panel && _cont && _cont.firstChild !== _panel) {
+        _cont.appendChild(_panel);
+      }
+      if (_panel) _panel.style.display = 'block';
+      if (typeof loadHorasReales === 'function') loadHorasReales();
+    }
     if (name === 'dashboard') {
       if (typeof loadDash === 'function') loadDash();
       if (typeof loadNoticias === 'function') loadNoticias();
