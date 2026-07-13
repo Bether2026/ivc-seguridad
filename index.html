@@ -10170,19 +10170,25 @@ function descargarInformeFinal() {
   var frame = document.getElementById('inf-preview-frame');
   if (!frame || !frame.innerHTML.trim()) { toast('Primero generá el preview', 'err'); return; }
 
+  // Marcar en el DOM las fotos NO tildadas con data-excluir antes de serializar
+  // (innerHTML no preserva el estado dinámico de checked)
+  frame.querySelectorAll('.foto-incluir-chk').forEach(function(chk) {
+    var wrapDiv = chk.closest('div[style*="position:relative"]');
+    if (wrapDiv) wrapDiv.setAttribute('data-excluir', chk.checked ? '0' : '1');
+  });
+
   var tmpDiv = document.createElement('div');
   tmpDiv.innerHTML = frame.innerHTML;
 
-  // Quitar fotos no tildadas (excluidas por el usuario) y sus checkboxes
+  // Quitar fotos marcadas como excluidas y sus checkboxes
+  tmpDiv.querySelectorAll('[data-excluir="1"]').forEach(function(el) { el.remove(); });
+  tmpDiv.querySelectorAll('[data-excluir="0"]').forEach(function(el) {
+    el.removeAttribute('data-excluir');
+  });
+  // Quitar checkboxes de las fotos que quedaron incluidas
   tmpDiv.querySelectorAll('.foto-incluir-chk').forEach(function(chk) {
-    var wrapDiv = chk.closest('div[style*="position:relative"]');
-    if (!chk.checked) {
-      if (wrapDiv) wrapDiv.remove();
-    } else if (wrapDiv) {
-      // Sacar el checkbox visualmente del archivo final, pero conservar la imagen
-      var label = wrapDiv.querySelector('label');
-      if (label) label.remove();
-    }
+    var label = chk.closest('label');
+    if (label) label.remove(); else chk.remove();
   });
 
   // Si una fila quedó sin ninguna foto incluida, sacar el bloque "Imágenes" vacío
