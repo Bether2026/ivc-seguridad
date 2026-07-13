@@ -7941,9 +7941,9 @@ function _mostrarDetallePuesto() {
           if (cont) cont.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3)">Cargando...</div>';
           openOv('ov-puesto-detalle');
           _context26.n = 1;
-          return Promise.all([db.from('fichajes').select('*').eq('puesto', puesto).gte('entrada', hoyInicio), db.from('novedades').select('*').eq('puesto', puesto).gte('created_at', hoyInicio).lte('created_at', hoyFin).order('created_at', {
+          return Promise.all([db.from('fichajes').select('agente,puesto,entrada,salida,activo').eq('puesto', puesto).gte('entrada', hoyInicio), db.from('novedades').select('id,puesto,tipo,asunto,agente,foto_url,pendiente,created_at').eq('puesto', puesto).gte('created_at', hoyInicio).lte('created_at', hoyFin).order('created_at', {
             ascending: false
-          }), db.from('objetivos').select('*').eq('puesto', puesto).gte('created_at', hoyInicio).lte('created_at', hoyFin)]);
+          }), db.from('objetivos').select('id,puesto,nombre,cargado_por,created_at,nro_pd,nro_pu').eq('puesto', puesto).gte('created_at', hoyInicio).lte('created_at', hoyFin)]);
         case 1:
           _yield$Promise$all = _context26.v;
           _yield$Promise$all2 = _slicedToArray(_yield$Promise$all, 3);
@@ -8869,7 +8869,7 @@ function cargarHistorialPendientes() {
   if (!el) return;
   el.innerHTML = '<div class="empty"><div class="icon"><span class="spinner"></span></div></div>';
 
-  var query = db.from('controles_punto').select('*').order('fecha', { ascending: false }).order('hora', { ascending: false });
+  var query = db.from('controles_punto').select('id,punto_id,agente,estado,observaciones,foto_url,fecha,hora,hora_evento,created_at').order('fecha', { ascending: false }).order('hora', { ascending: false });
 
   if (_HIST_RANGO > 0) {
     // Calcular fecha desde en AR (UTC-3)
@@ -9039,7 +9039,7 @@ function loadPendientes() {
   list.innerHTML = '<div class="empty"><div class="icon"><span class="spinner"></span></div></div>';
   var esGestion = USER && (USER.rol === 'ADMIN' || ['Administración','Gerencia','Jefe de departamento','Responsable de turno','Emergencias'].indexOf(USER.puesto) >= 0);
   var wrap = document.getElementById('pend-btn-nuevo-wrap'); if (wrap) wrap.style.display = esGestion ? 'block' : 'none';
-  var query = db.from('puntos_criticos').select('*').order('prioridad', { ascending: true }).order('id', { ascending: false });
+  var query = db.from('puntos_criticos').select('id,barrio,manzana,titulo,direccion,categoria,prioridad,descripcion,controles_dia,foto_inicial,estado,creado_por,fecha_creacion,edicion_habilitada,edicion_datos_habilitada,fecha_resolucion').order('prioridad', { ascending: true }).order('id', { ascending: false });
   // Si vino desde el selector de barrio, aplicar ese filtro
   if (window._PEND_BARRIO_FILTRO) {
     query = query.eq('barrio', window._PEND_BARRIO_FILTRO);
@@ -9713,10 +9713,10 @@ function cargarMetricas() {
   var hasta = rango.hasta;
 
   Promise.all([
-    db.from('novedades').select('*').gte('created_at', desde).lte('created_at', hasta),
-    db.from('fichajes').select('*').gte('entrada', desde),
-    db.from('objetivos').select('*').gte('created_at', desde).lte('created_at', hasta),
-    db.from('licencias').select('*').gte('created_at', desde).lte('created_at', hasta)
+    db.from('novedades').select('id,puesto,tipo,agente,created_at,pendiente').gte('created_at', desde).lte('created_at', hasta),
+    db.from('fichajes').select('agente,puesto,entrada,salida').gte('entrada', desde),
+    db.from('objetivos').select('id,puesto,agente,cargado_por,created_at').gte('created_at', desde).lte('created_at', hasta),
+    db.from('licencias').select('agente,fecha_desde,fecha_hasta,tipo_licencia').gte('created_at', desde).lte('created_at', hasta)
   ]).then(function(res) {
     if (loadEl) loadEl.style.display = 'none';
     if (contEl) contEl.style.opacity = '1';
@@ -9969,7 +9969,7 @@ function cargarPD() {
 
   lista.innerHTML = '<div class="empty"><div class="icon"><span class="spinner"></span></div><p>Cargando novedades...</p></div>';
 
-  var query = db.from('novedades').select('*').order('created_at', { ascending: true });
+  var query = db.from('novedades').select('id,puesto,tipo,asunto,detalle,agente,foto_url,fotos,nro_pd,nro_pu,texto_informe,observaciones,fuerza_publica,pendiente,created_at,updated_at').order('created_at', { ascending: true });
 
   if (desdeVal) {
     var desde = desdeVal + 'T03:00:00.000Z';
@@ -10567,8 +10567,8 @@ function generarPreviewInforme() {
 
   // Cargar en paralelo: novedades Y objetivos del período
   Promise.all([
-    db.from('novedades').select('*').gte('created_at', desdeUTC).lte('created_at', hastaUTC).order('created_at', { ascending: true }),
-    db.from('objetivos').select('*').gte('created_at', desdeUTC).lte('created_at', hastaUTC).order('created_at', { ascending: true })
+    db.from('novedades').select('id,puesto,tipo,asunto,detalle,agente,foto_url,fotos,nro_pd,nro_pu,texto_informe,observaciones,fuerza_publica,pendiente,created_at').gte('created_at', desdeUTC).lte('created_at', hastaUTC).order('created_at', { ascending: true }),
+    db.from('objetivos').select('id,puesto,nombre,observaciones,texto_informe,nro_pd,nro_pu,cargado_por,created_at').gte('created_at', desdeUTC).lte('created_at', hastaUTC).order('created_at', { ascending: true })
   ]).then(function(results) {
     var todasNovedades = results[0].data || [];
     var todosObjetivos = results[1].data || [];
@@ -11926,9 +11926,9 @@ function loadHorasReales() {
 
   // Cargar fichajes del mes Y tipos de personal en paralelo
   Promise.all([
-    db.from('fichajes').select('*').gte('entrada', desde).lte('entrada', hasta).order('entrada', { ascending: true }),
-    db.from('personal_tipos').select('*'),
-    db.from('licencias').select('*').gte('fecha_desde', anio + '-' + String(mes).padStart(2,'0') + '-01').lte('fecha_hasta', anio + '-' + String(mes).padStart(2,'0') + '-31'),
+    db.from('fichajes').select('agente,puesto,entrada,salida,observaciones').gte('entrada', desde).lte('entrada', hasta).order('entrada', { ascending: true }),
+    db.from('personal_tipos').select('nombre,tipo'),
+    db.from('licencias').select('agente,fecha_desde,fecha_hasta,tipo_licencia').gte('fecha_desde', anio + '-' + String(mes).padStart(2,'0') + '-01').lte('fecha_hasta', anio + '-' + String(mes).padStart(2,'0') + '-31'),
     db.from('agentes').select('nombre,tipo')
   ]).then(function(results) {
     var fichajes  = results[0].data || [];
@@ -22439,6 +22439,13 @@ function guardarBorradorInforme(silencioso) {
       var ahora = new Date().toLocaleTimeString('es-AR', {hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'America/Argentina/Buenos_Aires'});
       if (lbl) lbl.textContent = 'Guardado ' + ahora;
       if (!silencioso) toast('\uD83D\uDCBE Borrador guardado correctamente');
+      // Limpiar borradores propios con más de 24hs para no acumular espacio
+      var hace24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      db.from('informes_borrador')
+        .delete()
+        .eq('autor', USER.nombre || USER.puesto)
+        .lt('updated_at', hace24h)
+        .then(function() {}); // silencioso, no bloquea
     });
   });
 }
