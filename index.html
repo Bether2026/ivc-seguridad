@@ -7943,7 +7943,7 @@ function _mostrarDetallePuesto() {
           _context26.n = 1;
           return Promise.all([db.from('fichajes').select('agente,puesto,entrada,salida,activo').eq('puesto', puesto).gte('entrada', hoyInicio), db.from('novedades').select('id,puesto,tipo,asunto,cargado_por,fotos,pendiente,created_at').eq('puesto', puesto).gte('created_at', hoyInicio).lte('created_at', hoyFin).order('created_at', {
             ascending: false
-          }), db.from('objetivos').select('id,puesto,nombre,cargado_por,created_at,nro_pd,nro_pu').eq('puesto', puesto).gte('created_at', hoyInicio).lte('created_at', hoyFin)]);
+          }), db.from('objetivos').select('id,puesto,descripcion,agente,cargado_por,created_at,nro_pd,nro_pu').eq('puesto', puesto).gte('created_at', hoyInicio).lte('created_at', hoyFin)]);
         case 1:
           _yield$Promise$all = _context26.v;
           _yield$Promise$all2 = _slicedToArray(_yield$Promise$all, 3);
@@ -9715,7 +9715,7 @@ function cargarMetricas() {
   Promise.all([
     db.from('novedades').select('id,puesto,tipo,cargado_por,created_at,pendiente').gte('created_at', desde).lte('created_at', hasta),
     db.from('fichajes').select('agente,puesto,entrada,salida').gte('entrada', desde),
-    db.from('objetivos').select('id,puesto,agente,cargado_por,created_at').gte('created_at', desde).lte('created_at', hasta),
+    db.from('objetivos').select('id,puesto,agente,cargado_por,created_at,nro_pd,nro_pu,texto_informe').gte('created_at', desde).lte('created_at', hasta),
     db.from('licencias').select('agente,fecha_desde,fecha_hasta,tipo_licencia').gte('created_at', desde).lte('created_at', hasta)
   ]).then(function(res) {
     if (loadEl) loadEl.style.display = 'none';
@@ -10568,10 +10568,13 @@ function generarPreviewInforme() {
   // Cargar en paralelo: novedades Y objetivos del período
   Promise.all([
     db.from('novedades').select('id,puesto,tipo,asunto,detalle,cargado_por,fotos,nro_pd,nro_pu,texto_informe,observaciones,fuerza_publica,pendiente,hora_evento,created_at').gte('created_at', desdeUTC).lte('created_at', hastaUTC).order('created_at', { ascending: true }),
-    db.from('objetivos').select('id,puesto,nombre,observaciones,texto_informe,nro_pd,nro_pu,cargado_por,actualizaciones,created_at').gte('created_at', desdeUTC).lte('created_at', hastaUTC).order('created_at', { ascending: true })
+    db.from('objetivos').select('id,puesto,descripcion,tipo,agente,cargado_por,observaciones,texto_informe,nro_pd,nro_pu,actualizaciones,created_at').gte('created_at', desdeUTC).lte('created_at', hastaUTC).order('created_at', { ascending: true })
   ]).then(function(results) {
     var todasNovedades = results[0].data || [];
     var todosObjetivos = results[1].data || [];
+    var errObj = results[1].error;
+    var conPD = todosObjetivos.filter(function(o){ return o.nro_pd || o.nro_pu || o.texto_informe; }).length;
+    toast('DEBUG — Nov: ' + todasNovedades.length + ' | Obj: ' + todosObjetivos.length + ' | ConPD: ' + conPD + (errObj ? ' | ERR: ' + errObj.message : ''));
 
     // Filtrar: solo las que tienen texto_informe O nro_pd O nro_pu
     var novedadesInforme = todasNovedades.filter(function(n) {
@@ -10588,7 +10591,7 @@ function generarPreviewInforme() {
           _src:          'obj',
           puesto:        obj.puesto || USER.puesto,
           tipo:          'Control de Objetivo',
-          asunto:        obj.nombre || 'Recorrido',
+          asunto:        obj.descripcion || obj.tipo || 'Recorrido',
           detalle:       obj.observaciones || '',
           texto_informe: obj.texto_informe || null,
           nro_pd:        obj.nro_pd || null,
@@ -10612,8 +10615,8 @@ function generarPreviewInforme() {
             _src:          'act',
             puesto:        obj.puesto || USER.puesto,
             tipo:          'Control de Objetivo',
-            asunto:        'Punto: ' + (a.lugar || obj.nombre || 'Recorrido'),
-            detalle:       a.obs || '',
+            asunto:        'Punto: ' + (a.lugar || a.asunto || obj.descripcion || obj.tipo || 'Recorrido'),
+            detalle:       a.obs || a.detalle || a.descripcion || '',
             texto_informe: a.texto_informe || null,
             nro_pd:        a.nro_pd || null,
             nro_pu:        a.nro_pu || null,
