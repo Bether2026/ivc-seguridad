@@ -10568,7 +10568,7 @@ function generarPreviewInforme() {
   // Cargar en paralelo: novedades Y objetivos del período
   Promise.all([
     db.from('novedades').select('id,puesto,tipo,asunto,detalle,cargado_por,fotos,nro_pd,nro_pu,texto_informe,observaciones,fuerza_publica,pendiente,hora_evento,created_at').gte('created_at', desdeUTC).lte('created_at', hastaUTC).order('created_at', { ascending: true }),
-    db.from('objetivos').select('id,puesto,nombre,observaciones,texto_informe,nro_pd,nro_pu,cargado_por,created_at').gte('created_at', desdeUTC).lte('created_at', hastaUTC).order('created_at', { ascending: true })
+    db.from('objetivos').select('id,puesto,nombre,observaciones,texto_informe,nro_pd,nro_pu,cargado_por,actualizaciones,created_at').gte('created_at', desdeUTC).lte('created_at', hastaUTC).order('created_at', { ascending: true })
   ]).then(function(results) {
     var todasNovedades = results[0].data || [];
     var todosObjetivos = results[1].data || [];
