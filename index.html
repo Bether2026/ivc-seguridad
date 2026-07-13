@@ -10572,9 +10572,6 @@ function generarPreviewInforme() {
   ]).then(function(results) {
     var todasNovedades = results[0].data || [];
     var todosObjetivos = results[1].data || [];
-    var errObj = results[1].error;
-    var conPD = todosObjetivos.filter(function(o){ return o.nro_pd || o.nro_pu || o.texto_informe; }).length;
-    toast('DEBUG — Nov: ' + todasNovedades.length + ' | Obj: ' + todosObjetivos.length + ' | ConPD: ' + conPD + (errObj ? ' | ERR: ' + errObj.message : ''));
 
     // Filtrar: solo las que tienen texto_informe O nro_pd O nro_pu
     var novedadesInforme = todasNovedades.filter(function(n) {
@@ -10584,6 +10581,18 @@ function generarPreviewInforme() {
     // De objetivos: los que tienen texto_informe/nro_pd/nro_pu directamente en el objetivo
     var puntosInforme = [];
     todosObjetivos.forEach(function(obj) {
+      // Extraer fotos del array de actualizaciones (campo foto o fotos[0])
+      var actsArr = obj.actualizaciones || [];
+      var fotosObj = [];
+      actsArr.forEach(function(a) {
+        if (a.fotos && a.fotos.length) {
+          a.fotos.forEach(function(f) { if (f) fotosObj.push(f); });
+        } else if (a.foto) {
+          fotosObj.push(a.foto);
+        }
+      });
+      var primeraFoto = fotosObj.length ? fotosObj[0] : null;
+
       // Informe cargado directamente en el objetivo
       if (obj.texto_informe || obj.nro_pd || obj.nro_pu) {
         puntosInforme.push({
@@ -10597,11 +10606,9 @@ function generarPreviewInforme() {
           nro_pd:        obj.nro_pd || null,
           nro_pu:        obj.nro_pu || null,
           agente:        obj.cargado_por || '',
-          // Si hay texto formal, la observación del agente va a la columna
-          // Observaciones. Si no lo hay, la observación ES el cuerpo (detalle)
-          // y no se duplica en la columna 3.
           observaciones: obj.texto_informe ? (obj.observaciones || null) : null,
-          foto_url:      null,
+          foto_url:      primeraFoto,
+          fotos:         fotosObj,
           fuerza_publica: false,
           created_at:    obj.created_at
         });
@@ -10661,9 +10668,8 @@ function generarPreviewInforme() {
     var diasNom = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
     var diaNom = (desdeVal && desdeVal === hastaVal) ? diasNom[new Date(desdeVal + 'T12:00:00').getDay()] : '';
 
-    // Cargar fotos
+    // Cargar fotos — usar URLs directamente (R2 sirve las imágenes con CORS abierto)
     var fotosMap = {};
-    var fotoPromises = [];
     todos.forEach(function(n) {
       var fotos = [];
       if (n.foto_url)  fotos.push(n.foto_url);
@@ -10671,24 +10677,12 @@ function generarPreviewInforme() {
       if (n.foto_url3) fotos.push(n.foto_url3);
       if (n.fotos && Array.isArray(n.fotos)) fotos = fotos.concat(n.fotos);
       fotos.filter(Boolean).forEach(function(url) {
-        if (!fotosMap[url]) {
-          fotosMap[url] = null;
-          fotoPromises.push(
-            fetch(url).then(function(r){ return r.blob(); }).then(function(b){
-              return new Promise(function(res){
-                var fr = new FileReader();
-                fr.onload = function(e){ fotosMap[url] = e.target.result; res(); };
-                fr.onerror = function(){ res(); };
-                fr.readAsDataURL(b);
-              });
-            }).catch(function(){})
-          );
-        }
+        fotosMap[url] = url; // usar URL directa en vez de base64
       });
     });
 
     if (statusTxt) statusTxt.textContent = 'Generando informe...';
-    Promise.all(fotoPromises).then(function() {
+    Promise.resolve().then(function() {
       if (statusEl) statusEl.style.display = 'none';
       var html = construirHTMLEditablePreview(porPuesto, todos, fotosMap, fechaDisplay, diaNom, autor);
       if (frame) frame.innerHTML = html;
