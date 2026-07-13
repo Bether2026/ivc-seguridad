@@ -7941,7 +7941,7 @@ function _mostrarDetallePuesto() {
           if (cont) cont.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3)">Cargando...</div>';
           openOv('ov-puesto-detalle');
           _context26.n = 1;
-          return Promise.all([db.from('fichajes').select('agente,puesto,entrada,salida,activo').eq('puesto', puesto).gte('entrada', hoyInicio), db.from('novedades').select('id,puesto,tipo,asunto,agente,foto_url,pendiente,created_at').eq('puesto', puesto).gte('created_at', hoyInicio).lte('created_at', hoyFin).order('created_at', {
+          return Promise.all([db.from('fichajes').select('agente,puesto,entrada,salida,activo').eq('puesto', puesto).gte('entrada', hoyInicio), db.from('novedades').select('id,puesto,tipo,asunto,cargado_por,fotos,pendiente,created_at').eq('puesto', puesto).gte('created_at', hoyInicio).lte('created_at', hoyFin).order('created_at', {
             ascending: false
           }), db.from('objetivos').select('id,puesto,nombre,cargado_por,created_at,nro_pd,nro_pu').eq('puesto', puesto).gte('created_at', hoyInicio).lte('created_at', hoyFin)]);
         case 1:
@@ -9713,7 +9713,7 @@ function cargarMetricas() {
   var hasta = rango.hasta;
 
   Promise.all([
-    db.from('novedades').select('id,puesto,tipo,agente,created_at,pendiente').gte('created_at', desde).lte('created_at', hasta),
+    db.from('novedades').select('id,puesto,tipo,cargado_por,created_at,pendiente').gte('created_at', desde).lte('created_at', hasta),
     db.from('fichajes').select('agente,puesto,entrada,salida').gte('entrada', desde),
     db.from('objetivos').select('id,puesto,agente,cargado_por,created_at').gte('created_at', desde).lte('created_at', hasta),
     db.from('licencias').select('agente,fecha_desde,fecha_hasta,tipo_licencia').gte('created_at', desde).lte('created_at', hasta)
@@ -9969,7 +9969,7 @@ function cargarPD() {
 
   lista.innerHTML = '<div class="empty"><div class="icon"><span class="spinner"></span></div><p>Cargando novedades...</p></div>';
 
-  var query = db.from('novedades').select('id,puesto,tipo,asunto,detalle,agente,foto_url,fotos,nro_pd,nro_pu,texto_informe,observaciones,fuerza_publica,pendiente,created_at,updated_at').order('created_at', { ascending: true });
+  var query = db.from('novedades').select('id,puesto,tipo,asunto,detalle,cargado_por,fotos,nro_pd,nro_pu,texto_informe,observaciones,fuerza_publica,pendiente,hora_evento,created_at,ultima_actualizacion').order('created_at', { ascending: true });
 
   if (desdeVal) {
     var desde = desdeVal + 'T03:00:00.000Z';
@@ -10004,7 +10004,7 @@ function filtrarPD() {
   if (tipo === 'novedades')  data = data.filter(function(n) { return !n.es_pendiente; });
   if (tipo === 'pendientes') data = data.filter(function(n) { return n.es_pendiente || n.pendiente; });
   if (busq) data = data.filter(function(n) {
-    return [(n.puesto||''),(n.asunto||''),(n.tipo||''),(n.agente||''),(n.detalle||''),(n.observaciones||'')].join(' ').toLowerCase().indexOf(busq) >= 0;
+    return [(n.puesto||''),(n.asunto||''),(n.tipo||''),(n.cargado_por||''),(n.detalle||''),(n.observaciones||'')].join(' ').toLowerCase().indexOf(busq) >= 0;
   });
 
   PD_CACHE_FILTRADO = data;
@@ -10567,7 +10567,7 @@ function generarPreviewInforme() {
 
   // Cargar en paralelo: novedades Y objetivos del período
   Promise.all([
-    db.from('novedades').select('id,puesto,tipo,asunto,detalle,agente,foto_url,fotos,nro_pd,nro_pu,texto_informe,observaciones,fuerza_publica,pendiente,created_at').gte('created_at', desdeUTC).lte('created_at', hastaUTC).order('created_at', { ascending: true }),
+    db.from('novedades').select('id,puesto,tipo,asunto,detalle,cargado_por,fotos,nro_pd,nro_pu,texto_informe,observaciones,fuerza_publica,pendiente,hora_evento,created_at').gte('created_at', desdeUTC).lte('created_at', hastaUTC).order('created_at', { ascending: true }),
     db.from('objetivos').select('id,puesto,nombre,observaciones,texto_informe,nro_pd,nro_pu,cargado_por,created_at').gte('created_at', desdeUTC).lte('created_at', hastaUTC).order('created_at', { ascending: true })
   ]).then(function(results) {
     var todasNovedades = results[0].data || [];
@@ -10795,7 +10795,7 @@ function construirHTMLEditablePreview(porPuesto, novedades, fotosMap, fechaDispl
       if (n.fuerza_publica) html += '<span class="badge-fp">Fuerza P&uacute;blica</span>';
       html += '</div>\n';
       html += '<div class="col2"><div class="nov-txt" contenteditable="true">' + escapeHTML(n.texto_informe || n.detalle || '\u2014') + '</div>';
-      if (n.agente) html += '<div class="nov-ag"><strong>Agente/s:</strong> ' + escapeHTML(n.agente) + '</div>';
+      if (n.cargado_por) html += '<div class="nov-ag"><strong>Agente/s:</strong> ' + escapeHTML(n.cargado_por) + '</div>';
       if (fotosB64.length > 0) {
         html += '<div class="fotos-wrap"><div class="fotos-lbl">Im\xE1genes <span class="fotos-hint" style="font-weight:400;text-transform:none;letter-spacing:0">(tild\xE1 las que quer\xE9s incluir en el informe final, clic para agrandar)</span></div><div class="fotos-grid">';
         fotosB64.forEach(function(f, fi){
@@ -10943,7 +10943,7 @@ function construirHTMLInforme(porPuesto, novedades, fotosMap, fechaDisplay, diaN
       html += '</div>\n';
       // Col 2
       html += '<div class="col2"><div class="nov-txt">' + escapeHTML(n.texto_informe || n.detalle || n.novedades || '\u2014') + '</div>';
-      if (n.agente) html += '<div class="nov-ag"><strong>Agente/s:</strong> ' + escapeHTML(n.agente) + '</div>';
+      if (n.cargado_por) html += '<div class="nov-ag"><strong>Agente/s:</strong> ' + escapeHTML(n.cargado_por) + '</div>';
       if (fotosB64.length > 0) {
         html += '<div class="fotos-wrap"><div class="fotos-lbl">&#x1F4F7; Im\xE1genes del informe</div><div class="fotos-grid">';
         fotosB64.forEach(function(f, fi) { html += '<img class="foto-t" src="' + f.b + '" alt="Foto ' + (fi+1) + '" onclick="lb(' + (startIdx+fi) + ')">'; });
