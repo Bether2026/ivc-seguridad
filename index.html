@@ -9261,7 +9261,7 @@ function generarInformeRecorridos() {
   if (hastaVal) { var dh = new Date(hastaVal + 'T03:00:00.000Z'); dh.setUTCDate(dh.getUTCDate() + 1); hastaUTC = dh.toISOString(); }
   else          { var dd = new Date(desdeVal  + 'T03:00:00.000Z'); dd.setUTCDate(dd.getUTCDate() + 1); hastaUTC = dd.toISOString(); }
   toast('Cargando recorridos...');
-  db.from('objetivos').select('*').gte('created_at', desdeUTC).lte('created_at', hastaUTC).order('created_at', { ascending: true }).then(function(r) {
+  db.from('objetivos').select('id,created_at,inicio,fin,puesto,cargado_por,estado,actualizaciones,auto_fichaje,texto_informe,nro_pd,nro_pu,descripcion,agente,progreso').gte('created_at', desdeUTC).lte('created_at', hastaUTC).order('created_at', { ascending: true }).then(function(r) {
     if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
     var rutas = r.data || [];
     if (!rutas.length) { toast('Sin recorridos para el per\xEDodo', 'err'); return; }
@@ -12908,16 +12908,16 @@ function _loadDash() {
           var _tmpHoyFin = new Date(hoyIso + 'T03:00:00.000Z');
           _tmpHoyFin.setUTCDate(_tmpHoyFin.getUTCDate() + 1);
           hoyFin = new Date(_tmpHoyFin.getTime() - 1).toISOString(); // 02:59:59.999Z del día siguiente
-          qFich = db.from('fichajes').select('*').eq('activo', true); // Novedades de HOY solamente para el contador
-          qNovHoy = db.from('novedades').select('*').gte('created_at', hoyInicio).lte('created_at', hoyFin); // Novedades pendientes (todas, para alertas) — usamos para badge nav
+          qFich = db.from('fichajes').select('id,puesto').eq('activo', true); // Novedades de HOY solamente para el contador
+          qNovHoy = db.from('novedades').select('id').gte('created_at', hoyInicio).lte('created_at', hoyFin); // Novedades pendientes (todas, para alertas) — usamos para badge nav
           qPend = db.from('novedades').select('id,puesto').eq('pendiente', true); // Objetivos activos
           qObj = db.from('objetivos').select('id,puesto,estado').eq('estado', 'activo'); // Objetivos finalizados HOY
           qObjFin = db.from('objetivos').select('id,puesto').eq('estado', 'finalizado').gte('created_at', hoyInicio).lte('created_at', hoyFin); // Licencias activas
           qLicAct = db.from('licencias').select('id,puesto').lte('fecha_desde', hoyIso).gte('fecha_hasta', hoyIso); // Últimas novedades del día
-          qUlt = db.from('novedades').select('*').gte('created_at', hoyInicio).lte('created_at', hoyFin).order('created_at', {
+          qUlt = db.from('novedades').select('id,created_at,tipo,asunto,puesto,detalle,fotos').gte('created_at', hoyInicio).lte('created_at', hoyFin).order('created_at', {
             ascending: false
           }).limit(5); // Todos los fichajes de hoy para actividad por puesto
-          qFichHoy = db.from('fichajes').select('*').gte('entrada', hoyInicio); // Novedades por puesto hoy
+          qFichHoy = db.from('fichajes').select('id,puesto,agente,entrada').gte('entrada', hoyInicio); // Novedades por puesto hoy
           qNovPuesto = db.from('novedades').select('puesto').gte('created_at', hoyInicio).lte('created_at', hoyFin); // Objetivos por puesto hoy
           qObjPuesto = db.from('objetivos').select('puesto').gte('created_at', hoyInicio).lte('created_at', hoyFin);
           if (f) {
@@ -13216,7 +13216,7 @@ function _loadFichajes() {
           _dbgEl = document.getElementById('f-list');
           if (_dbgEl) _dbgEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3)">Cargando datos...</div>';
           f = filtro();
-          q = db.from('fichajes').select('*').eq('activo', true).order('entrada', {
+          q = db.from('fichajes').select('id,agente,entrada,salida,puesto,activo,geo_entrada,observaciones,tramite_desde,tramite_hasta').eq('activo', true).order('entrada', {
             ascending: false
           });
           if (f) q = q.eq('puesto', f);
@@ -13810,7 +13810,7 @@ function cargarMasNovedades() {
   NOV_PAGE++;
   var f = filtro();
   var desde = NOV_PAGE * NOV_LIMIT;
-  var q = db.from('novedades').select('*').order('created_at', { ascending: false }).range(desde, desde + NOV_LIMIT - 1);
+  var q = db.from('novedades').select('id,created_at,tipo,relevancia,asunto,detalle,puesto,cargado_por,caso,area,fotos,ubicacion,texto_informe,nro_pd,nro_pu,pendiente,solo_admin,observaciones,fuerza_publica,actualizaciones').order('created_at', { ascending: false }).range(desde, desde + NOV_LIMIT - 1);
   if (f) q = q.eq('puesto', f);
   if (CUR_NOV_TAB === 'pendientes') q = q.eq('pendiente', true);
   q.then(function(res) {
@@ -13840,7 +13840,7 @@ function _loadNovedades() {
           if (el) el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3)">Cargando...</div>';
           f = filtro();
           NOV_PAGE = 0;
-          q = db.from('novedades').select('*').order('created_at', {
+          q = db.from('novedades').select('id,created_at,tipo,relevancia,asunto,detalle,puesto,cargado_por,caso,area,fotos,ubicacion,texto_informe,nro_pd,nro_pu,pendiente,solo_admin,observaciones,fuerza_publica,actualizaciones').order('created_at', {
             ascending: false
           }).range(0, NOV_LIMIT - 1);
           if (f) q = q.eq('puesto', f);
@@ -14529,7 +14529,9 @@ function _loadObjetivos() {
           _dbgEl = document.getElementById('obj-list');
           if (_dbgEl) _dbgEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3)">Cargando datos...</div>';
           f = filtro();
-          q = db.from('objetivos').select('*').order('created_at', {
+          var _objDesde = new Date();
+          _objDesde.setDate(_objDesde.getDate() - 60);
+          q = db.from('objetivos').select('id,created_at,inicio,puesto,cargado_por,estado,actualizaciones,auto_fichaje,texto_informe,nro_pd,nro_pu').gte('created_at', _objDesde.toISOString()).order('created_at', {
             ascending: false
           });
           if (f) q = q.eq('puesto', f);
@@ -15884,9 +15886,9 @@ function _loadStats() {
           from = range.from;
           to = range.to;
           label = periodLabel(period); // Queries CON filtro de fecha real
-          novQ = db.from('novedades').select('*').gte('created_at', from).lte('created_at', to);
-          objQ = db.from('objetivos').select('*').gte('created_at', from).lte('created_at', to);
-          licQ = db.from('fichajes').select('*').eq('activo', false).gte('entrada', from).lte('salida', to); // historial fichajes no activos
+          novQ = db.from('novedades').select('id,created_at,tipo,puesto,relevancia,fuerza_publica').gte('created_at', from).lte('created_at', to);
+          objQ = db.from('objetivos').select('id,created_at,puesto,estado,cargado_por').gte('created_at', from).lte('created_at', to);
+          licQ = db.from('fichajes').select('id,agente,puesto,entrada,salida').eq('activo', false).gte('entrada', from).lte('salida', to); // historial fichajes no activos
           // Licencias del período (tabla fichajes no existe para licencias, usamos tabla licencias si existe)
           licRealQ = db.from('licencias').select('*').gte('created_at', from).lte('created_at', to);
           f = filtro();
@@ -22127,7 +22129,7 @@ function buscarHistorialFichajes() {
   if (!lista) return;
   lista.innerHTML = '<div class="empty"><div class="icon"><span class="spinner"></span></div></div>';
 
-  var query = db.from('fichajes').select('*').order('entrada', { ascending: false });
+  var query = db.from('fichajes').select('id,agente,nombre,entrada,salida,puesto,activo,cierre_admin,observaciones').order('entrada', { ascending: false });
 
   // Regla simple: las fechas mandan.
   // - Si hay AMBAS fechas → filtra por ese rango.
