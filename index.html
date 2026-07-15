@@ -11279,19 +11279,26 @@ function cargarVehiculosEnSelectores() {
     if (res.error) { console.error('Error cargando vehiculos para selectores:', res.error.message); return; }
     var lista = res.data || [];
     var selectIds = ['c-movil', 'em-movil', 'comb-movil', 'inc-movil', 'tal-movil'];
-    var optionsVehiculos = lista.map(function(v) {
-      var label = (v.modelo || '') + ' · ' + (v.patente || '');
-      return '<option>' + label.replace(/</g,'&lt;') + '</option>';
-    }).join('');
     selectIds.forEach(function(selId) {
       var sel = document.getElementById(selId);
       if (!sel) return;
       var valorActual = sel.value;
-      // Conservar la opcion placeholder propia de cada select (el texto varia entre ellos)
-      var placeholderOpt = sel.querySelector('option[value=""]');
-      var placeholderHtml = placeholderOpt ? placeholderOpt.outerHTML : '<option value="">— Seleccionar móvil —</option>';
-      sel.innerHTML = placeholderHtml + optionsVehiculos;
-      // Mantener la seleccion previa si todavia existe en la nueva lista
+      // Vaciar completamente y reconstruir con createElement
+      // (innerHTML en <select> no es confiable en WebView Android antiguos)
+      while (sel.options.length > 0) sel.remove(0);
+      // Opción placeholder
+      var ph = document.createElement('option');
+      ph.value = '';
+      ph.textContent = '— Seleccionar móvil —';
+      sel.appendChild(ph);
+      // Opciones de vehículos
+      lista.forEach(function(v) {
+        var opt = document.createElement('option');
+        opt.value = (v.modelo || '') + ' · ' + (v.patente || '');
+        opt.textContent = opt.value;
+        sel.appendChild(opt);
+      });
+      // Restaurar selección previa si todavía existe
       if (valorActual) sel.value = valorActual;
     });
   });
