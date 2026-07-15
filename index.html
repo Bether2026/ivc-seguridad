@@ -14600,7 +14600,7 @@ function buscarEnRecorridos() {
     html += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">';
     html += '<div>';
     html += '<div style="font-size:14px;font-weight:800;color:var(--accent3)">&#x1F464; ' + (obj.cargado_por || 'Agente') + '</div>';
-    html += '<div style="font-size:11px;color:var(--text3)">' + (obj.puesto || '') + ' &middot; ' + formatTs(obj.created_at) + '</div>';
+    html += '<div style="font-size:11px;color:var(--text3)">' + (obj.puesto || '') + ' &middot; ' + formatFechaCompleta(fechaCorta(obj.created_at)) + ' ' + formatTs(obj.created_at) + '</div>';
     html += '</div>';
     html += '<span class="badge ' + (isAct ? 'b-green' : 'b-gray') + '">' + (isAct ? 'En curso' : 'Finalizado') + '</span>';
     html += '</div>';
@@ -20389,22 +20389,43 @@ function coincideAprox(textoNorm, queryNorm) {
 function buscarNovedades() {
   if (NOV_SEARCH_TIMER) clearTimeout(NOV_SEARCH_TIMER);
   NOV_SEARCH_TIMER = setTimeout(function () {
-    var rawQuery = document.getElementById('nov-search').value.trim();
+    var rawQuery = (document.getElementById('nov-search').value || '').trim();
     var info = document.getElementById('nov-search-info');
     if (!rawQuery) {
       info.style.display = 'none';
-      renderNovedadesList(NOV_CACHE);
+      renderNovedadesAgrupadas(NOV_CACHE);
       return;
     }
-    var queryNorm = expandirAbreviaturas(normalizar(rawQuery));
+    var q = normalizar(rawQuery);
     var resultados = [];
     for (var i = 0; i < NOV_CACHE.length; i++) {
       var n = NOV_CACHE[i];
-      var textoBusqueda = expandirAbreviaturas(normalizar((n.asunto || '') + ' ' + (n.detalle || '') + ' ' + (n.ubicacion || '') + ' ' + (n.tipo || '') + ' ' + (n.puesto || '') + ' ' + (n.caso || '') + ' ' + (n.cargado_por || '')));
-      if (coincideAprox(textoBusqueda, queryNorm)) resultados.push(n);
+      // Incluir texto de actualizaciones en la búsqueda
+      var textoActs = '';
+      if (n.actualizaciones && n.actualizaciones.length) {
+        for (var ai = 0; ai < n.actualizaciones.length; ai++) {
+          var upd = n.actualizaciones[ai];
+          textoActs += ' ' + (upd.texto || '') + ' ' + (upd.autor || '');
+        }
+      }
+      var textoBusqueda = normalizar(
+        (n.asunto || '') + ' ' +
+        (n.detalle || '') + ' ' +
+        (n.ubicacion || '') + ' ' +
+        (n.tipo || '') + ' ' +
+        (n.puesto || '') + ' ' +
+        (n.caso || '') + ' ' +
+        (n.cargado_por || '') + ' ' +
+        (n.observaciones || '') + ' ' +
+        textoActs
+      );
+      // Búsqueda exacta: TODAS las palabras deben aparecer
+      var palabras = q.split(' ').filter(function(p) { return p.length > 0; });
+      var todas = palabras.every(function(p) { return textoBusqueda.indexOf(p) !== -1; });
+      if (todas) resultados.push(n);
     }
     info.style.display = 'block';
-    info.innerHTML = '🔍 ' + resultados.length + ' resultado' + (resultados.length !== 1 ? 's' : '') + ' para "' + rawQuery + '"';
+    info.innerHTML = '&#x1F50D; ' + resultados.length + ' resultado' + (resultados.length !== 1 ? 's' : '') + ' para "' + rawQuery + '"';
     renderNovedadesAgrupadas(resultados);
   }, 250);
 }
