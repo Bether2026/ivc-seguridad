@@ -4810,6 +4810,7 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
   <div class="modal">
     <div class="modal-head"><span class="modal-title" id="agente-modal-title">&#128101; Nuevo Agente</span><button class="btn-close" onclick="closeOv('ov-agente')">&#215;</button></div>
     <input type="hidden" id="agente-edit-id">
+    <input type="hidden" id="agente-nombre-original">
 
     <div class="form-group">
       <label class="form-label">Nombre completo <span style="color:var(--red)">*</span></label>
@@ -5175,6 +5176,7 @@ function renderAgenteCard(a) {
 function abrirNuevoAgente() {
   document.getElementById('agente-modal-title').textContent = 'Nuevo Agente';
   document.getElementById('agente-edit-id').value = '';
+  document.getElementById('agente-nombre-original').value = '';
   ['ag-nombre', 'ag-dni', 'ag-legajo', 'ag-cargo', 'ag-turno', 'ag-telefono', 'ag-obs'].forEach(function (id) {
     var e = document.getElementById(id);
     if (e) e.value = '';
@@ -5297,6 +5299,20 @@ function _saveAgente() {
         case 6:
           closeOv('ov-agente');
           toast(editId ? 'Agente actualizado' : 'Agente registrado');
+          // Sincronizar nombre en fichajes si cambió (solo en edición)
+          if (editId && payload.nombre) {
+            var nombreOriginal = (document.getElementById('agente-nombre-original').value || '').trim();
+            var nombreNuevo = payload.nombre.trim();
+            if (nombreOriginal && nombreOriginal.toUpperCase() !== nombreNuevo.toUpperCase()) {
+              db.from('fichajes').update({ agente: nombreNuevo }).eq('agente', nombreOriginal).then(function(rf) {
+                if (rf.error) {
+                  console.error('Error sincronizando nombre en fichajes:', rf.error.message);
+                } else {
+                  console.log('[Agentes] Nombre sincronizado en fichajes: ' + nombreOriginal + ' → ' + nombreNuevo);
+                }
+              });
+            }
+          }
           // Sincronizar tipo con personal_tipos para Horas Reales
           if (payload.tipo && payload.nombre) {
             db.from('personal_tipos').upsert({ nombre: payload.nombre.trim(), tipo: payload.tipo }, { onConflict: 'nombre' }).then(function() {});
@@ -11122,6 +11138,7 @@ function editarAgenteAdmin(id) {
   if (!a) { toast('Agente no encontrado', 'err'); return; }
   document.getElementById('agente-modal-title').textContent = 'Editar Agente';
   document.getElementById('agente-edit-id').value = id;
+  document.getElementById('agente-nombre-original').value = a.nombre || '';
   document.getElementById('ag-nombre').value  = a.nombre  || '';
   document.getElementById('ag-dni').value     = a.dni     || '';
   document.getElementById('ag-legajo').value  = a.legajo  || '';
@@ -11275,39 +11292,49 @@ function eliminarVehiculoAdmin(id, nombre) {
 // nuevo requeria editar el codigo. Ahora se cargan dinamicamente al iniciar la app
 // y cada vez que se agrega/edita/elimina uno desde el panel de Administracion.
 function cargarVehiculosEnSelectores() {
-  db.from('vehiculos').select('*').eq('activo', true).order('modelo', {ascending: true}).then(function(res) {
-    if (res.error) { console.error('Error cargando vehiculos para selectores:', res.error.message); return; }
-    var lista = res.data || [];
-    var selectIds = ['c-movil', 'em-movil', 'comb-movil', 'inc-movil', 'tal-movil'];
-    selectIds.forEach(function(selId) {
-      var sel = document.getElementById(selId);
-      if (!sel) return;
-      var valorActual = sel.value;
-      // Vaciar completamente y reconstruir con createElement
-      // (innerHTML en <select> no es confiable en WebView Android antiguos)
-      while (sel.options.length > 0) sel.remove(0);
-      // Opción placeholder
-      var ph = document.createElement('option');
-      ph.value = '';
-      ph.textContent = '— Seleccionar móvil —';
-      sel.appendChild(ph);
-      // Opciones de vehículos
-      lista.forEach(function(v) {
-        var opt = document.createElement('option');
-        opt.value = (v.modelo || '') + ' · ' + (v.patente || '');
-        opt.textContent = opt.value;
-        sel.appendChild(opt);
+  // Asegurar sesión vigente antes de la query (crítico en WebViews Android)
+  var session = db.auth.session ? db.auth.session() : null;
+  var ahora = Math.floor(Date.now() / 1000);
+  var expiresAt = session && session.expires_at ? session.expires_at : 0;
+  var necesitaRefresh = !session || (expiresAt - ahora) < 300; // menos de 5 min
+
+  function _doCargar() {
+    db.from('vehiculos').select('id,modelo,patente').eq('activo', true).order('modelo', {ascending: true}).then(function(res) {
+      if (res.error) { console.error('Error cargando vehiculos:', res.error.message); return; }
+      var lista = res.data || [];
+      var selectIds = ['c-movil', 'em-movil', 'comb-movil', 'inc-movil', 'tal-movil'];
+      selectIds.forEach(function(selId) {
+        var sel = document.getElementById(selId);
+        if (!sel) return;
+        var valorActual = sel.value;
+        while (sel.options.length > 0) sel.remove(0);
+        var ph = document.createElement('option');
+        ph.value = '';
+        ph.textContent = lista.length ? '— Seleccionar móvil —' : '— Sin móviles disponibles —';
+        sel.appendChild(ph);
+        lista.forEach(function(v) {
+          var opt = document.createElement('option');
+          opt.value = (v.modelo || '') + ' · ' + (v.patente || '');
+          opt.textContent = opt.value;
+          sel.appendChild(opt);
+        });
+        if (valorActual) sel.value = valorActual;
       });
-      // Restaurar selección previa si todavía existe
-      if (valorActual) sel.value = valorActual;
     });
-  });
+  }
+
+  if (necesitaRefresh && db.auth.refreshSession) {
+    db.auth.refreshSession().then(function() { _doCargar(); }).catch(function() { _doCargar(); });
+  } else {
+    _doCargar();
+  }
 }
 
 function nuevoAgenteAdmin() {
   // Resetear y abrir el formulario de agente
   document.getElementById('agente-modal-title').textContent = 'Nuevo Agente';
   document.getElementById('agente-edit-id').value = '';
+  document.getElementById('agente-nombre-original').value = '';
   ['ag-nombre','ag-dni','ag-legajo','ag-cargo','ag-turno','ag-telefono','ag-obs'].forEach(function(id) {
     var el = document.getElementById(id); if (el) el.value = '';
   });
@@ -11978,8 +12005,24 @@ function loadHorasReales() {
       var key = a.nombre.trim().toUpperCase();
       var t = (a.tipo || '').trim().toUpperCase();
       if (HORAS_TIPO[t] !== undefined) tipoMap[key] = t;
-      if (a.hora_entrada) horarioMap[key] = a.hora_entrada;
-      if (a.puesto) puestoAgMap[key] = a.puesto;
+      if (a.hora_entrada) {
+        horarioMap[key] = a.hora_entrada;
+        // Indexar también por las dos primeras palabras (apellido + primer nombre)
+        // para tolerar agentes cuyos fichajes no incluyen el segundo nombre
+        var partes = key.split(' ').filter(function(p) { return p.length > 0; });
+        if (partes.length > 2) {
+          var keyCorto = partes[0] + ' ' + partes[1];
+          if (!horarioMap[keyCorto]) horarioMap[keyCorto] = a.hora_entrada;
+        }
+      }
+      if (a.puesto) {
+        puestoAgMap[key] = a.puesto;
+        var partesPuesto = key.split(' ').filter(function(p) { return p.length > 0; });
+        if (partesPuesto.length > 2) {
+          var keyCortoP = partesPuesto[0] + ' ' + partesPuesto[1];
+          if (!puestoAgMap[keyCortoP]) puestoAgMap[keyCortoP] = a.puesto;
+        }
+      }
     });
 
     // Días del mes
