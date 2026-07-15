@@ -7748,7 +7748,6 @@ function initApp() {
   }
   loadAll();
   loadNoticias();
-  suscribirNotifNovedades();
   // Pedir permiso de notificaciones automáticamente si no fue decidido
   if ('Notification' in window && Notification.permission === 'default') {
     setTimeout(function() {
@@ -7779,13 +7778,17 @@ function initApp() {
   }, function(payload) {
     loadNovedades(); loadDash();
     recargarVistaActual('novedades');
-    // Banner in-app para urgente/alta
     var nov = payload && payload.new;
     if (nov && (nov.relevancia === 'Urgente' || nov.relevancia === 'Alta')) {
       var pref = nov.relevancia === 'Urgente' ? '\ud83d\udea8 URGENTE' : '\u26a0\ufe0f IMPORTANTE';
       var tit = pref + ' \u2014 ' + (nov.puesto || 'Novedad');
       var msg = (nov.asunto || 'Nueva novedad') + (nov.cargado_por ? ' \u00b7 ' + nov.cargado_por : '');
       mostrarBannerAlerta(tit, msg, nov.relevancia);
+      // Push notification (antes en canal notif-novedades)
+      if (payload.eventType === 'INSERT') {
+        mostrarNotificacion(tit, msg);
+        enviarNotificacion(tit, msg, '');
+      }
     }
     var vNov = document.getElementById('view-novedades');
     if (vNov && vNov.style.display === 'none') incrementBadge('nb-badge', 'ivc_badge_nov');
@@ -7801,9 +7804,13 @@ function initApp() {
     }
   }).on('postgres_changes', {
     event: '*', schema: 'public', table: 'rutas'
-  }, function() {
+  }, function(payload) {
     loadChoferes();
     recargarVistaActual('choferes');
+    var vRuta = document.getElementById('view-choferes');
+    if (payload && payload.eventType === 'INSERT' && vRuta && vRuta.style.display === 'none') {
+      incrementBadge('nb-badge-ruta', 'ivc_badge_ruta');
+    }
   }).on('postgres_changes', {
     event: '*', schema: 'public', table: 'noticias'
   }, function(payload) {
@@ -7815,6 +7822,11 @@ function initApp() {
       var tit2 = pref2 + ' \u2014 Comunicaci\u00f3n';
       var msg2 = n2.titulo || n2.mensaje || 'Nueva comunicaci\u00f3n';
       mostrarBannerAlerta(tit2, msg2, n2.importancia === 'Urgente' ? 'Urgente' : 'Alta');
+      // Push notification (antes en canal notif-noticias)
+      if (payload.eventType === 'INSERT') {
+        mostrarNotificacion(tit2, msg2);
+        enviarNotificacion(tit2, msg2, '');
+      }
     }
   }).subscribe(function(status, err) {
     console.log('[Realtime] status:', status, err || '');
@@ -16699,7 +16711,6 @@ function _clearAll() {
                   loadAdminStats();
                   loadAll();
                   loadNoticias();
-                  suscribirNotifNovedades();
                 case 2:
                   return _context53.a(2);
               }
@@ -19911,73 +19922,8 @@ function toggleActivoChofer(id, activo) {
   });
 }
 
-function suscribirNotifNovedades() {
-  var canRecibir = ['Gerencia', 'Administración', 'Administrador', 'Jefe de departamento', 'Responsable de turno', 'Emergencias'].includes(USER.puesto);
-  if (!canRecibir) return;
-  solicitarPermisoNotif().then(function (ok) {
-    if (!ok) return;
-    if (NOTIF_SUBSCRIPTION) try {
-      db.removeChannel(NOTIF_SUBSCRIPTION);
-    } catch (e) {}
-    NOTIF_SUBSCRIPTION = db.channel('notif-novedades').on('postgres_changes', {
-      event: 'INSERT',
-      schema: 'public',
-      table: 'novedades'
-    }, function (payload) {
-      var nov = payload["new"];
-      if (!nov) return;
-      if (nov.relevancia === 'Alta' || nov.relevancia === 'Urgente') {
-        var prefijo = nov.relevancia === 'Urgente' ? '🚨 URGENTE' : '⚠️ IMPORTANTE';
-        var titulo = prefijo + ' — ' + (nov.puesto || 'Novedad');
-        var msg = (nov.asunto || 'Nueva novedad') + (nov.cargado_por ? ' · ' + nov.cargado_por : '');
-        // In-app banner (always works, foreground or background)
-        mostrarBannerAlerta(titulo, msg, nov.relevancia);
-        // OS push notification (works when backgrounded)
-        mostrarNotificacion(titulo, msg);
-        enviarNotificacion(titulo, msg, '');
-      }
-      // Increment badge if not viewing novedades
-      if (document.getElementById('view-novedades') && document.getElementById('view-novedades').style.display === 'none') {
-        incrementBadge('nb-badge', 'ivc_badge_nov');
-      }
-    }).subscribe();
-
-    // Badge objetivos — nuevo recorrido iniciado
-    db.channel('notif-objetivos').on('postgres_changes', {
-      event: 'INSERT', schema: 'public', table: 'objetivos'
-    }, function(payload) {
-      if (document.getElementById('view-objetivos') && document.getElementById('view-objetivos').style.display === 'none') {
-        try { localStorage.setItem('ivc_badge_obj', '1'); } catch(e) {}
-        incrementBadge('nb-badge-obj', 'ivc_badge_obj');
-      }
-    }).subscribe();
-
-    // Badge rutas — nueva ruta iniciada
-    db.channel('notif-rutas').on('postgres_changes', {
-      event: 'INSERT', schema: 'public', table: 'rutas'
-    }, function(payload) {
-      if (document.getElementById('view-choferes') && document.getElementById('view-choferes').style.display === 'none') {
-        incrementBadge('nb-badge-ruta', 'ivc_badge_ruta');
-      }
-    }).subscribe();
-
-    // Push para noticias/comunicaciones urgentes
-    db.channel('notif-noticias').on('postgres_changes', {
-      event: 'INSERT', schema: 'public', table: 'noticias'
-    }, function(payload) {
-      var noticia = payload["new"];
-      if (!noticia) return;
-      if (noticia.importancia === 'Urgente' || noticia.importancia === 'Importante') {
-        var prefijo = noticia.importancia === 'Urgente' ? '📢 URGENTE' : '📣 IMPORTANTE';
-        var titulo = prefijo + ' — Comunicación';
-        var msg = noticia.titulo || noticia.mensaje || 'Nueva comunicación';
-        mostrarBannerAlerta(titulo, msg, noticia.importancia === 'Urgente' ? 'Urgente' : 'Alta');
-        mostrarNotificacion(titulo, msg);
-        enviarNotificacion(titulo, msg, '');
-      }
-    }).subscribe();
-  });
-}
+// suscribirNotifNovedades eliminada — lógica fusionada en canal realtime-all
+// para evitar suscripciones duplicadas que generaban egress innecesario.
 // Timeout de inactividad ELIMINADO por pedido del usuario — la sesion solo se cierra
 // manualmente con el boton "Cerrar sesion". El refresh del token lo maneja Supabase Auth
 // automaticamente via autoRefreshToken configurado en el cliente.
