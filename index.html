@@ -11953,7 +11953,7 @@ function loadHorasReales() {
     db.from('fichajes').select('agente,puesto,entrada,salida,observaciones').gte('entrada', desde).lte('entrada', hasta).order('entrada', { ascending: true }),
     db.from('personal_tipos').select('nombre,tipo'),
     db.from('licencias').select('agente,fecha_desde,fecha_hasta,tipo_licencia').gte('fecha_desde', anio + '-' + String(mes).padStart(2,'0') + '-01').lte('fecha_hasta', anio + '-' + String(mes).padStart(2,'0') + '-31'),
-    db.from('agentes').select('nombre,tipo')
+    db.from('agentes').select('nombre,tipo,hora_entrada,puesto')
   ]).then(function(results) {
     var fichajes  = results[0].data || [];
     var personal  = results[1].data || [];
@@ -11963,11 +11963,16 @@ function loadHorasReales() {
     // Mapa nombre → tipo. La condición registrada en la sección Agentes
     // (agentes.tipo) tiene prioridad sobre personal_tipos.
     var tipoMap = {};
+    var horarioMap = {}; // nombre → hora_entrada
+    var puestoAgMap = {}; // nombre → puesto (para fallback turno)
     personal.forEach(function(p) { tipoMap[p.nombre.trim().toUpperCase()] = p.tipo; });
     agentesDb.forEach(function(a) {
       if (!a.nombre) return;
+      var key = a.nombre.trim().toUpperCase();
       var t = (a.tipo || '').trim().toUpperCase();
-      if (HORAS_TIPO[t] !== undefined) tipoMap[a.nombre.trim().toUpperCase()] = t;
+      if (HORAS_TIPO[t] !== undefined) tipoMap[key] = t;
+      if (a.hora_entrada) horarioMap[key] = a.hora_entrada;
+      if (a.puesto) puestoAgMap[key] = a.puesto;
     });
 
     // Días del mes
@@ -12049,6 +12054,8 @@ function loadHorasReales() {
       rows.push({
         nombre: nombre,
         tipo: tipo,
+        hora_entrada: horarioMap[nombre.toUpperCase()] || '',
+        puesto_ag: puestoAgMap[nombre.toUpperCase()] || '',
         totalTrabajadas: totalTrabajadas,
         totalACumplir: totalACumplir,
         totalExtras: totalExtras,
@@ -12437,10 +12444,11 @@ function _generarInformeHTML(mes, anio, mesesNom, diasSemNom, agInfo, turnosMap)
     if (!info.hora_entrada && info.sector && turnosMap[info.sector.trim().toUpperCase()]) {
       info.hora_entrada = turnosMap[info.sector.trim().toUpperCase()];
     }
+    // Prioridad: dato guardado en HR_DATA (viene de agentes con match exacto en loadHorasReales)
+    var horaEntradaAg = r.hora_entrada || info.hora_entrada || '';
     var S = { vac: 0, enf: 0, art: 0, est: 0, fra: 0, aus: 0, otra: 0, sinreg: 0 };
     var filas = '';
 
-    var horaEntradaAg = info.hora_entrada || '';
     (r.diasInfo || []).forEach(function(d) {
       var cl = _hrClasifica(d);
       if (S[cl.clase] !== undefined) S[cl.clase]++;
@@ -12547,16 +12555,17 @@ function _generarInformeHTML(mes, anio, mesesNom, diasSemNom, agInfo, turnosMap)
     + '.ag-head h2{font-size:17px;margin:0}'
     + '.ag-meta{display:flex;gap:16px;font-size:12px;color:#5a6478}'
     + 'table{width:100%;border-collapse:collapse;font-size:12px}'
-    + 'thead th{background:#1a2233;color:#fff;padding:7px 8px;text-align:left;font-weight:600}'
+    + 'thead th{background:#1a2233;color:#fff;padding:7px 8px;text-align:center;font-weight:600}'
+    + 'thead th:first-child,thead th:nth-child(2){text-align:left}'
     + 'tbody td{padding:6px 8px;border-bottom:1px solid #e8ebf0}'
-    + 'td.num{font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap}'
+    + 'td.num{font-variant-numeric:tabular-nums;font-weight:600;white-space:nowrap;text-align:center}'
     + 'td.pos{color:#0d7a3f}'
     + 'td.neg{color:#b3261e}'
     + 'span.pos{color:#0d7a3f}'
     + 'span.neg{color:#b3261e}'
     + 'tr.alerta-hr td{background:#ffe600 !important;color:#1a2233 !important}'
-    + 'td.er-col{border-left:3px solid #4f46e5;border-right:3px solid #4f46e5;background:rgba(79,70,229,0.06)}'
-    + 'thead th.er-col{background:#4f46e5;border-left:3px solid #3730a3;border-right:3px solid #3730a3}'
+    + 'td.er-col{border-left:1px solid #4f46e5;border-right:1px solid #4f46e5;background:rgba(79,70,229,0.06);text-align:center}'
+    + 'thead th.er-col{background:#4f46e5;border-left:1px solid #3730a3;border-right:1px solid #3730a3;text-align:center}'
     + 'tr.alerta-hr td.er-col{background:#ffe600 !important}'
     + 'td.obs{color:#5a6478;font-size:11px;max-width:200px}'
     + 'tr.trab td{background:#f2faf4}'
@@ -15917,7 +15926,7 @@ function fabClick() {
       openOv('ov-agenda');
     } else toast('Solo administraci\xF3n puede cargar operativos', 'err');
   } else if (CUR_VIEW === 'choferes') {
-    if (CUR_CHOF_SUBTAB === 'rutas') { cargarRespTurnoSelect(); openOv('ov-chof'); }else if (CUR_CHOF_SUBTAB === 'combustible') openOv('ov-combustible');else if (CUR_CHOF_SUBTAB === 'incidencias') openOv('ov-incidencia');else if (CUR_CHOF_SUBTAB === 'taller') openOv('ov-taller');
+    if (CUR_CHOF_SUBTAB === 'rutas') { cargarRespTurnoSelect(); cargarVehiculosEnSelectores(); openOv('ov-chof'); }else if (CUR_CHOF_SUBTAB === 'combustible') { cargarVehiculosEnSelectores(); openOv('ov-combustible'); }else if (CUR_CHOF_SUBTAB === 'incidencias') { cargarVehiculosEnSelectores(); openOv('ov-incidencia'); }else if (CUR_CHOF_SUBTAB === 'taller') { cargarVehiculosEnSelectores(); openOv('ov-taller'); }
   }
 }
 // Ocultar FAB en C.Objetivo para barrios con recorrido automático
