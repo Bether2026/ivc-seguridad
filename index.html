@@ -12310,12 +12310,25 @@ function exportarHorasReales() {
   toast('Generando informe...');
 
   // Traer legajo y sector de la tabla agentes (una sola query)
-  db.from('agentes').select('nombre,legajo,puesto,hora_entrada').then(function(ra) {
+  Promise.all([
+    db.from('agentes').select('nombre,legajo,puesto,hora_entrada'),
+    db.from('turnos_puesto').select('puesto,hora_entrada')
+  ]).then(function(res) {
     var agInfo = {};
-    (ra.data || []).forEach(function(a) {
-      if (a.nombre) agInfo[a.nombre.trim().toUpperCase()] = { legajo: a.legajo || '', sector: a.puesto || '', hora_entrada: a.hora_entrada || '' };
+    var turnosMap = {};
+    (res[1].data || []).forEach(function(t) {
+      if (t.puesto && t.hora_entrada) turnosMap[t.puesto.trim().toUpperCase()] = t.hora_entrada;
     });
-    _generarInformeHTML(mes, anio, mesesNom, diasSemNom, agInfo);
+    (res[0].data || []).forEach(function(a) {
+      if (!a.nombre) return;
+      var horaEnt = a.hora_entrada || '';
+      // Fallback: si el agente no tiene hora_entrada individual, usar la del turno de su puesto
+      if (!horaEnt && a.puesto && turnosMap[a.puesto.trim().toUpperCase()]) {
+        horaEnt = turnosMap[a.puesto.trim().toUpperCase()];
+      }
+      agInfo[a.nombre.trim().toUpperCase()] = { legajo: a.legajo || '', sector: a.puesto || '', hora_entrada: horaEnt };
+    });
+    _generarInformeHTML(mes, anio, mesesNom, diasSemNom, agInfo, turnosMap);
   });
 }
 
@@ -12409,8 +12422,9 @@ function _hrExtrasReales(d, horaEntradaEsperadaStr, tipo) {
   return { extraMin: extraMin, alerta: alerta };
 }
 
-function _generarInformeHTML(mes, anio, mesesNom, diasSemNom, agInfo) {
+function _generarInformeHTML(mes, anio, mesesNom, diasSemNom, agInfo, turnosMap) {
   var titulo = 'Informe Mensual de Asistencia — ' + mesesNom[mes - 1] + ' ' + anio;
+  turnosMap = turnosMap || {};
 
   // Totales globales
   var G = { agentes: HR_DATA.length, horas: 0, extras: 0, faltantes: 0, diasTrab: 0,
@@ -12419,6 +12433,10 @@ function _generarInformeHTML(mes, anio, mesesNom, diasSemNom, agInfo) {
   var cuerpo = '';
   HR_DATA.forEach(function(r) {
     var info = agInfo[r.nombre.toUpperCase()] || { legajo: '', sector: '' };
+    // Si el agente no tiene hora_entrada individual, usar la del turno de su puesto
+    if (!info.hora_entrada && info.sector && turnosMap[info.sector.trim().toUpperCase()]) {
+      info.hora_entrada = turnosMap[info.sector.trim().toUpperCase()];
+    }
     var S = { vac: 0, enf: 0, art: 0, est: 0, fra: 0, aus: 0, otra: 0, sinreg: 0 };
     var filas = '';
 
@@ -12457,7 +12475,7 @@ function _generarInformeHTML(mes, anio, mesesNom, diasSemNom, agInfo) {
         + '<td>' + _hrHoraAR(d._salida) + '</td>'
         + '<td class="num">' + hsTxt + '</td>'
         + '<td class="num ' + extClase + '">' + extTxt + '</td>'
-        + '<td class="' + erClase + '">' + erTxt + '</td>'
+        + '<td class="er-col ' + erClase + '">' + erTxt + '</td>'
         + '<td>' + cl.etiqueta + '</td>'
         + '<td class="obs">' + obsTxt + '</td>'
         + '</tr>';
@@ -12476,7 +12494,7 @@ function _generarInformeHTML(mes, anio, mesesNom, diasSemNom, agInfo) {
       + (info.legajo ? '<span>Legajo: <b>' + info.legajo + '</b></span>' : '')
       + (info.sector ? '<span>Sector: <b>' + info.sector + '</b></span>' : '')
       + '<span>Condicion: <b>' + r.tipo + '</b></span></div></div>'
-      + '<table><thead><tr><th>Dia</th><th>Fecha</th><th>Ingreso</th><th>Egreso</th><th>Hs trabajadas</th><th>Extras / Faltantes</th><th>Extras reales</th><th>Novedad</th><th>Observaciones</th></tr></thead>'
+      + '<table><thead><tr><th>Dia</th><th>Fecha</th><th>Ingreso</th><th>Egreso</th><th>Hs trabajadas</th><th>Extras / Faltantes</th><th class="er-col">Extras reales</th><th>Novedad</th><th>Observaciones</th></tr></thead>'
       + '<tbody>' + filas + '</tbody></table>'
       + '<div class="resumen">'
       + '<div class="res-item"><span>' + formatHoras(r.totalTrabajadas) + '</span><label>Total horas</label></div>'
@@ -12536,7 +12554,10 @@ function _generarInformeHTML(mes, anio, mesesNom, diasSemNom, agInfo) {
     + 'td.neg{color:#b3261e}'
     + 'span.pos{color:#0d7a3f}'
     + 'span.neg{color:#b3261e}'
-    + 'tr.alerta-hr td{background:#fffbe6 !important}'
+    + 'tr.alerta-hr td{background:#ffe600 !important;color:#1a2233 !important}'
+    + 'td.er-col{border-left:3px solid #4f46e5;border-right:3px solid #4f46e5;background:rgba(79,70,229,0.06)}'
+    + 'thead th.er-col{background:#4f46e5;border-left:3px solid #3730a3;border-right:3px solid #3730a3}'
+    + 'tr.alerta-hr td.er-col{background:#ffe600 !important}'
     + 'td.obs{color:#5a6478;font-size:11px;max-width:200px}'
     + 'tr.trab td{background:#f2faf4}'
     + 'tr.vac td{background:#e8f2fd}'
