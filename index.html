@@ -4951,6 +4951,77 @@ var LICENCIA_KEYS = {
   'Paternidad/Maternidad': 'lic_maternidad',
   'Fuerza mayor': 'lic_fuerza'
 };
+// Recalcula los saldos de licencias de cada agente desde el historial real de la tabla licencias
+// y actualiza agentes en Supabase + RRHH_CACHE para que el display sea siempre correcto
+function recalcularSaldosDesdeHistorial() {
+  // Tipos que DESCUENTAN del saldo inicial
+  var tiposDesc = { 'Licencia ordinaria': 'lic_ordinaria', 'Dia particular': 'lic_particular', 'Día particular': 'lic_particular', 'Franco autorizado': 'lic_franco' };
+  // Tipos que ACUMULAN desde 0
+  var tiposAcum = { 'Enfermedad': 'lic_enfermedad', 'Familiar enfermo': 'lic_familiar', 'Duelo': 'lic_duelo' };
+  // Saldos iniciales por tipo de condición
+  var saldosIniciales = {
+    'CH': { lic_ordinaria: 15, lic_franco: 4,  lic_particular: 0 },
+    'CI': { lic_ordinaria: 15, lic_franco: 2,  lic_particular: 0 },
+    'PH': { lic_ordinaria: 15, lic_franco: 0,  lic_particular: 6 },
+    'PI': { lic_ordinaria: 15, lic_franco: 0,  lic_particular: 3 }
+  };
+
+  db.from('licencias').select('agente,tipo,dias').then(function(r) {
+    if (r.error || !r.data) return;
+    // Agrupar días por agente y tipo
+    var porAgente = {};
+    r.data.forEach(function(l) {
+      var nom = (l.agente || '').trim().toUpperCase();
+      if (!nom) return;
+      if (!porAgente[nom]) porAgente[nom] = {};
+      var tipo = l.tipo || '';
+      porAgente[nom][tipo] = (porAgente[nom][tipo] || 0) + (l.dias || 0);
+    });
+
+    // Para cada agente en RRHH_CACHE, calcular saldo real y actualizar si cambió
+    RRHH_CACHE.forEach(function(ag) {
+      if (!ag.nombre) return;
+      var nom = ag.nombre.trim().toUpperCase();
+      var cond = (ag.tipo || 'CH').toUpperCase();
+      var iniciales = saldosIniciales[cond] || saldosIniciales['CH'];
+      var usados = porAgente[nom] || {};
+      var patch = {};
+      var cambio = false;
+
+      // Tipos que descuentan: saldo = inicial - dias_usados
+      Object.keys(tiposDesc).forEach(function(tipoLic) {
+        var key = tiposDesc[tipoLic];
+        if (!patch[key] && patch[key] !== 0) { // no pisar si ya calculado (dia particular tiene dos nombres)
+          var inicial = iniciales[key] !== undefined ? iniciales[key] : 0;
+          var usado = usados[tipoLic] || 0;
+          var nuevo = Math.max(0, inicial - usado);
+          if (ag[key] !== nuevo) { patch[key] = nuevo; cambio = true; }
+        }
+      });
+
+      // Tipos que acumulan: saldo = suma de dias usados
+      Object.keys(tiposAcum).forEach(function(tipoLic) {
+        var key = tiposAcum[tipoLic];
+        var nuevo = usados[tipoLic] || 0;
+        if (ag[key] !== nuevo) { patch[key] = nuevo; cambio = true; }
+      });
+
+      if (!cambio) return;
+
+      // Actualizar en Supabase
+      db.from('agentes').update(patch).eq('nombre', ag.nombre).then(function(ru) {
+        if (ru.error) { console.error('Error recalculando saldo:', ag.nombre, ru.error.message); return; }
+        // Actualizar cache local
+        Object.keys(patch).forEach(function(k) { ag[k] = patch[k]; });
+        // Re-renderizar solo si la vista de RRHH está activa
+        if (document.getElementById('view-rrhh') && document.getElementById('view-rrhh').style.display !== 'none') {
+          filtrarAgentesRRHH();
+        }
+      });
+    });
+  });
+}
+
 function loadRRHH() {
   return _loadRRHH.apply(this, arguments);
 }
@@ -4978,6 +5049,8 @@ function _loadRRHH() {
           RRHH_CACHE = res.data || [];
           actualizarStatsRRHH();
           filtrarAgentesRRHH();
+          // Recalcular saldos reales desde licencias cargadas
+          recalcularSaldosDesdeHistorial();
         case 3:
           return _context9.a(2);
       }
@@ -9710,7 +9783,7 @@ function cargarMetricas() {
     db.from('novedades').select('id,puesto,tipo,cargado_por,created_at,pendiente').gte('created_at', desde).lte('created_at', hasta),
     db.from('fichajes').select('agente,puesto,entrada,salida').gte('entrada', desde),
     db.from('objetivos').select('id,puesto,agente,cargado_por,created_at,nro_pd,nro_pu,texto_informe').gte('created_at', desde).lte('created_at', hasta),
-    db.from('licencias').select('agente,fecha_desde,fecha_hasta,tipo_licencia').gte('created_at', desde).lte('created_at', hasta)
+    db.from('licencias').select('agente,fecha_desde,fecha_hasta,tipo').gte('created_at', desde).lte('created_at', hasta)
   ]).then(function(res) {
     if (loadEl) loadEl.style.display = 'none';
     if (contEl) contEl.style.opacity = '1';
@@ -11658,7 +11731,7 @@ function loadComparativas() {
   Promise.all([
     db.from('fichajes').select('agente,puesto,entrada,salida').gte('entrada', desde).lte('entrada', hasta),
     db.from('personal_tipos').select('nombre,tipo'),
-    db.from('licencias').select('agente,fecha_desde,fecha_hasta,tipo_licencia').gte('fecha_desde', anio + '-01-01').lte('fecha_hasta', anio + '-12-31'),
+    db.from('licencias').select('agente,fecha_desde,fecha_hasta,tipo').gte('fecha_desde', anio + '-01-01').lte('fecha_hasta', anio + '-12-31'),
     db.from('agentes').select('nombre,tipo')
   ]).then(function(res) {
     var fichs     = res[0].data || [];
@@ -11943,7 +12016,7 @@ function loadHorasReales() {
   Promise.all([
     db.from('fichajes').select('agente,puesto,entrada,salida,observaciones').gte('entrada', desde).lte('entrada', hasta).order('entrada', { ascending: true }),
     db.from('personal_tipos').select('nombre,tipo'),
-    db.from('licencias').select('agente,fecha_desde,fecha_hasta,tipo_licencia').gte('fecha_desde', anio + '-' + String(mes).padStart(2,'0') + '-01').lte('fecha_hasta', anio + '-' + String(mes).padStart(2,'0') + '-31'),
+    db.from('licencias').select('agente,fecha_desde,fecha_hasta,tipo').gte('fecha_desde', anio + '-' + String(mes).padStart(2,'0') + '-01').lte('fecha_hasta', anio + '-' + String(mes).padStart(2,'0') + '-31'),
     db.from('agentes').select('nombre,tipo,hora_entrada,puesto')
   ]).then(function(results) {
     var fichajes  = results[0].data || [];
@@ -18126,7 +18199,7 @@ function verHistorialLicencia(elClickeado, agNombre, tipoLic) {
     if (parent2) parent2.appendChild(panel); else { console.warn('verHistorialLicencia: no se encontro contenedor'); return; }
   }
   db.from('licencias')
-    .select('fecha_desde,fecha_hasta,dias,tipo,tipo_licencia,observaciones,archivo,registrado_por,created_at')
+    .select('fecha_desde,fecha_hasta,dias,tipo,observaciones,archivo,registrado_por,created_at')
     .eq('agente', agNombre)
     .eq('tipo', tipoLic)
     .order('fecha_desde', { ascending: false })
