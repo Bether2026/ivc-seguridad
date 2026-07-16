@@ -5090,7 +5090,7 @@ function renderAgenteCard(a) {
       : (dias > 0 ? 'var(--accent2)' : 'var(--text3)');
     var _aid = a.id.toString().replace(/-/g,'');
     var _anom = a.nombre.replace(/["<>]/g,'');
-    h += '<div onclick="verHistorialLicencia(\''+_aid+'\',\''+_anom+'\',\''+lic.tipoLic+'\')" style="text-align:center;background:var(--bg2);border-radius:6px;padding:6px 4px;cursor:pointer;transition:background .15s" onmouseover="this.style.background=\'var(--bg3)\'" onmouseout="this.style.background=\'var(--bg2)\'">';
+    h += '<div onclick="verHistorialLicencia(this,\''+_anom+'\',\''+lic.tipoLic+'\')" style="text-align:center;background:var(--bg2);border-radius:6px;padding:6px 4px;cursor:pointer;transition:background .15s" onmouseover="this.style.background=\'var(--bg3)\'" onmouseout="this.style.background=\'var(--bg2)\'">';
     h += '<div style="font-size:18px;font-weight:900;color:' + color + '">' + dias + '</div>';
     h += '<div style="font-size:9px;color:var(--text3);line-height:1.2">' + lic.label + '</div>';
     h += '<div style="font-size:8px;color:var(--text3);margin-top:1px">' + (esDescuento ? '&#x1F4C9; descuenta' : '&#x1F4C8; acumula') + '</div>';
@@ -18106,37 +18106,25 @@ function isLicActive(lic) {
 var LIC_AGENTES_CACHE = [];
 
 // Muestra historial real de licencias de un tipo para un agente
-function verHistorialLicencia(agId, agNombre, tipoLic) {
-  // Reutilizar overlay de historial existente o crear uno temporal
-  var panelId = 'lic-hist-panel-' + agId;
+// Muestra historial real de licencias de un tipo para un agente
+function verHistorialLicencia(elClickeado, agNombre, tipoLic) {
+  var gridSaldos = elClickeado.parentNode;
+  var contenedorSaldos = gridSaldos ? gridSaldos.parentNode : null;
+  var insertarEn = contenedorSaldos ? contenedorSaldos.parentNode : null;
+  var panelId = 'lhp-' + agNombre.replace(/[^a-zA-Z0-9]/g,'').substring(0,12) + '-' + tipoLic.replace(/[^a-zA-Z0-9]/g,'').substring(0,8);
   var existing = document.getElementById(panelId);
-  if (existing) {
-    existing.style.display = existing.style.display === 'none' ? 'block' : 'none';
-    return;
-  }
-  // Buscar el contenedor del agente en el DOM
-  var agCard = document.querySelector('[data-aid="' + agId + '"]');
-  var container = agCard ? agCard.closest('.ag-card, [data-agente-card]') : null;
-  // Si no encontramos el contenedor, buscar por proximidad
-  if (!container) {
-    agCard = document.querySelector('[data-hid="hist-' + agId + '"]');
-    container = agCard ? agCard.parentNode : null;
-  }
-  // Crear panel debajo del agente
+  if (existing) { existing.style.display = existing.style.display === 'none' ? 'block' : 'none'; return; }
   var panel = document.createElement('div');
   panel.id = panelId;
-  panel.style.cssText = 'background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:14px;margin-top:10px';
-  panel.innerHTML = '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:10px">&#x1F4C4; Historial — ' + tipoLic + ' — ' + agNombre + '</div>'
-    + '<div style="font-size:12px;color:var(--text3)">Cargando...</div>';
-
-  if (container) {
-    container.appendChild(panel);
+  panel.style.cssText = 'background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:14px;margin-top:8px';
+  panel.innerHTML = '<div style="font-size:11px;color:var(--text3)">Cargando historial...</div>';
+  if (insertarEn && contenedorSaldos) {
+    var next = contenedorSaldos.nextSibling;
+    if (next) insertarEn.insertBefore(panel, next); else insertarEn.appendChild(panel);
   } else {
-    // Fallback: insertar después del botón "Ajustar licencia"
-    var btnAjuste = document.querySelector('[data-aid="' + agId + '"]');
-    if (btnAjuste && btnAjuste.parentNode) btnAjuste.parentNode.insertAdjacentElement('afterend', panel);
+    var parent2 = gridSaldos ? gridSaldos.parentNode : null;
+    if (parent2) parent2.appendChild(panel); else { console.warn('verHistorialLicencia: no se encontro contenedor'); return; }
   }
-
   db.from('licencias')
     .select('fecha_desde,fecha_hasta,dias,tipo,tipo_licencia,observaciones,archivo,registrado_por,created_at')
     .eq('agente', agNombre)
@@ -18144,32 +18132,31 @@ function verHistorialLicencia(agId, agNombre, tipoLic) {
     .order('fecha_desde', { ascending: false })
     .limit(50)
     .then(function(r) {
-      if (r.error || !r.data || !r.data.length) {
-        panel.innerHTML = '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:6px">&#x1F4C4; Historial — ' + tipoLic + '</div>'
-          + '<div style="font-size:12px;color:var(--text3);padding:10px 0">Sin registros de este tipo de licencia</div>'
-          + '<button onclick="this.parentNode.style.display=\'none\'" style="margin-top:4px;padding:4px 10px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text3);font-size:11px;cursor:pointer;font-family:var(--font)">Cerrar</button>';
-        return;
-      }
-      var totalDias = 0;
+      if (r.error) { panel.innerHTML = '<div style="font-size:12px;color:var(--red)">Error: ' + r.error.message + '</div>'; return; }
+      var lista = r.data || [];
       var html = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
-        + '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase">&#x1F4C4; Historial — ' + tipoLic + '</div>'
+        + '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase">&#x1F4C4; ' + tipoLic + ' \u2014 ' + agNombre + '</div>'
         + '<button onclick="document.getElementById(\'' + panelId + '\').style.display=\'none\'" style="padding:3px 10px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text3);font-size:11px;cursor:pointer;font-family:var(--font)">&#x2715; Cerrar</button>'
         + '</div>';
-      r.data.forEach(function(l) {
-        var d = l.dias || 0;
-        totalDias += d;
-        var desde = l.fecha_desde ? l.fecha_desde.split('T')[0].split('-').reverse().join('/') : '—';
-        var hasta = l.fecha_hasta ? l.fecha_hasta.split('T')[0].split('-').reverse().join('/') : '—';
+      if (!lista.length) {
+        html += '<div style="font-size:12px;color:var(--text3);padding:8px 0">Sin registros de este tipo de licencia.</div>';
+        panel.innerHTML = html; return;
+      }
+      var totalDias = 0;
+      lista.forEach(function(l) {
+        var d = l.dias || 0; totalDias += d;
+        var desde = (l.fecha_desde || '').split('T')[0].split('-').reverse().join('/');
+        var hasta  = (l.fecha_hasta  || '').split('T')[0].split('-').reverse().join('/');
         html += '<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">';
         html += '<div style="flex-shrink:0;width:36px;height:36px;border-radius:8px;background:rgba(167,139,250,0.12);border:1px solid rgba(167,139,250,0.25);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:var(--accent3)">' + d + '</div>';
         html += '<div style="flex:1;min-width:0">';
-        html += '<div style="font-size:12px;font-weight:700;color:var(--text)">' + desde + ' → ' + hasta + '</div>';
+        html += '<div style="font-size:12px;font-weight:700;color:var(--text)">' + desde + ' al ' + hasta + '</div>';
         if (l.observaciones) html += '<div style="font-size:11px;color:var(--text3);margin-top:2px">' + l.observaciones + '</div>';
-        if (l.archivo) html += '<a href="' + l.archivo + '" target="_blank" style="display:inline-flex;align-items:center;gap:4px;margin-top:4px;font-size:10px;color:var(--accent3);text-decoration:none">&#x1F4CE; Ver certificado/planilla</a>';
-        html += '<div style="font-size:10px;color:var(--text3);margin-top:2px">Registrado por: ' + (l.registrado_por || '—') + '</div>';
+        if (l.archivo) html += '<a href="' + l.archivo + '" target="_blank" style="display:inline-flex;align-items:center;gap:4px;margin-top:4px;font-size:10px;color:var(--accent3);text-decoration:none">&#x1F4CE; Ver certificado / planilla</a>';
+        html += '<div style="font-size:10px;color:var(--text3);margin-top:2px">Registrado por: ' + (l.registrado_por || '\u2014') + '</div>';
         html += '</div></div>';
       });
-      html += '<div style="margin-top:10px;font-size:12px;font-weight:700;color:var(--text2)">Total registrado: ' + totalDias + ' día(s)</div>';
+      html += '<div style="margin-top:10px;font-size:12px;font-weight:700;color:var(--text2)">Total registrado: ' + totalDias + ' d\xEDa(s)</div>';
       panel.innerHTML = html;
     });
 }
