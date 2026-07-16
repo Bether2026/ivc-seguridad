@@ -2065,6 +2065,9 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
         </div>
         <div class="card">
           <div class="card-head"><span class="card-lbl">Historial de licencias</span></div>
+          <div style="padding:8px 0 4px">
+            <input class="form-input" id="lic-hist-search" placeholder="&#x1F50D; Buscar por apellido o nombre..." oninput="filtrarHistorialLicencias()" style="font-size:13px"/>
+          </div>
           <div id="lic-historial-list"></div>
         </div>
       </div>
@@ -4385,6 +4388,8 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
         <option value="Franco autorizado">Franco autorizado</option>
         <option value="Familiar enfermo">Familiar enfermo</option>
         <option value="Duelo">Duelo</option>
+        <option value="No asiste autorizado">No asiste autorizado</option>
+        <option value="Franco compensatorio">Franco compensatorio</option>
         <option value="Paternidad/Maternidad">Paternidad / Maternidad</option>
         <option value="Fuerza mayor">Fuerza mayor</option>
       </select>
@@ -4957,7 +4962,7 @@ function recalcularSaldosDesdeHistorial() {
   // Tipos que DESCUENTAN del saldo inicial
   var tiposDesc = { 'Licencia ordinaria': 'lic_ordinaria', 'Dia particular': 'lic_particular', 'Día particular': 'lic_particular', 'Franco autorizado': 'lic_franco' };
   // Tipos que ACUMULAN desde 0
-  var tiposAcum = { 'Enfermedad': 'lic_enfermedad', 'Familiar enfermo': 'lic_familiar', 'Duelo': 'lic_duelo' };
+  var tiposAcum = { 'Enfermedad': 'lic_enfermedad', 'Familiar enfermo': 'lic_familiar', 'Duelo': 'lic_duelo', 'No asiste autorizado': 'lic_no_asiste', 'Franco compensatorio': 'lic_franco_comp' };
   // Saldos iniciales por tipo de condición
   var saldosIniciales = {
     'CH': { lic_ordinaria: 15, lic_franco: 4,  lic_particular: 0 },
@@ -5149,7 +5154,9 @@ function renderAgenteCard(a) {
     { key: 'lic_particular', label: 'Particular',   tipoLic: 'Dia particular',     show: _esPlanta },
     { key: 'lic_franco',     label: 'Franco aut.',  tipoLic: 'Franco autorizado',  show: _esContrato },
     { key: 'lic_familiar',   label: 'Fam. enfermo', tipoLic: 'Familiar enfermo',   show: true },
-    { key: 'lic_duelo',      label: 'Duelo',        tipoLic: 'Duelo',              show: true }
+    { key: 'lic_duelo',      label: 'Duelo',        tipoLic: 'Duelo',              show: true },
+    { key: 'lic_no_asiste',  label: 'No asiste aut.',tipoLic: 'No asiste autorizado', show: true },
+    { key: 'lic_franco_comp',label: 'Franco comp.', tipoLic: 'Franco compensatorio', show: true }
   ];
   var _licVisible = lics.filter(function(l) { return l.show; });
   h += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">';
@@ -18306,7 +18313,9 @@ function _actualizarSaldoLicencia(nombreAgente, tipoLicencia, diasCorridos) {
     'Franco autorizado':  'lic_franco',
     'Enfermedad':         'lic_enfermedad',
     'Familiar enfermo':   'lic_familiar',
-    'Duelo':              'lic_duelo'
+    'Duelo':              'lic_duelo',
+    'No asiste autorizado': 'lic_no_asiste',
+    'Franco compensatorio': 'lic_franco_comp'
   };
   var key = keyMap[tipoLicencia];
   if (!key) return; // tipo no mapeado, no tocar
@@ -18321,6 +18330,23 @@ function _actualizarSaldoLicencia(nombreAgente, tipoLicencia, diasCorridos) {
     ag[key] = nuevoSaldo;
     console.log('[Licencias] Saldo ' + key + ' → ' + nuevoSaldo + ' para ' + ag.nombre);
   });
+}
+
+var LIC_HISTORIAL_CACHE = [];
+
+function _renderHistorialLicencias(lista) {
+  var el = document.getElementById('lic-historial-list');
+  if (!el) return;
+  el.innerHTML = lista.length ? lista.map(function(l) { return renderLic(l, false); }).join('') : '<div style="font-size:12px;color:var(--text3);padding:8px 0">Sin historial de licencias</div>';
+}
+
+function filtrarHistorialLicencias() {
+  var q = ((document.getElementById('lic-hist-search') || {}).value || '').toLowerCase().trim();
+  if (!q) { _renderHistorialLicencias(LIC_HISTORIAL_CACHE); return; }
+  var filtrado = LIC_HISTORIAL_CACHE.filter(function(l) {
+    return (l.agente || '').toLowerCase().indexOf(q) !== -1;
+  });
+  _renderHistorialLicencias(filtrado);
 }
 
 function loadLicencias() {
@@ -18347,14 +18373,13 @@ function _loadLicencias() {
           historial = list.filter(function (l) {
             return !isLicActive(l);
           });
+          LIC_HISTORIAL_CACHE = historial;
           $('lic-count-badge').textContent = activas.length;
           $('lic-count-badge').className = 'badge ' + (activas.length > 0 ? 'b-yellow' : 'b-gray');
           $('lic-activas-list').innerHTML = activas.length ? activas.map(function (l) {
             return renderLic(l, true);
           }).join('') : '<div style="font-size:12px;color:var(--text3);padding:8px 0">Sin licencias activas hoy</div>';
-          $('lic-historial-list').innerHTML = historial.length ? historial.map(function (l) {
-            return renderLic(l, false);
-          }).join('') : '<div style="font-size:12px;color:var(--text3);padding:8px 0">Sin historial de licencias</div>';
+          _renderHistorialLicencias(historial);
         case 2:
           return _context69.a(2);
       }
@@ -18428,10 +18453,29 @@ function renderLic(l, activa) {
     } else {
       html += '<a href="' + l.archivo + '" target="_blank"><img src="' + l.archivo + '" style="width:100%;max-height:140px;object-fit:cover;border-radius:8px;border:1px solid var(--border2)" loading="lazy"></a>';
     }
+    html += '<br><label style="display:inline-flex;align-items:center;gap:6px;margin-top:6px;padding:5px 10px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.25);border-radius:6px;cursor:pointer;font-size:11px;color:#fbbf24;font-weight:600"><input type="file" accept="image/*,.pdf" style="display:none" onchange="adjuntarCertLicencia(this,\'' + l.id + '\')">&#x1F4CE; Reemplazar archivo</label>';
+  } else {
+    html += '<label style="display:inline-flex;align-items:center;gap:6px;margin-top:4px;padding:6px 12px;background:rgba(167,139,250,0.08);border:1px solid rgba(167,139,250,0.25);border-radius:6px;cursor:pointer;font-size:11px;color:var(--accent3);font-weight:600"><input type="file" accept="image/*,.pdf" style="display:none" onchange="adjuntarCertLicencia(this,\'' + l.id + '\')">&#x1F4CE; Adjuntar certificado / planilla</label>';
   }
   html += '</div>';
   return html;
 }
+function adjuntarCertLicencia(input, licId) {
+  var file = input.files && input.files[0];
+  if (!file) return;
+  var label = input.parentNode;
+  var textoOrig = label.textContent;
+  label.textContent = 'Subiendo...';
+  uploadToR2Comprimido(file, 'licencias').then(function(url) {
+    if (!url) { label.textContent = textoOrig; toast('Error al subir el archivo', 'err'); return; }
+    db.from('licencias').update({ archivo: url }).eq('id', licId).then(function(r) {
+      if (r.error) { label.textContent = textoOrig; toast('Error: ' + r.error.message, 'err'); return; }
+      toast('Archivo adjuntado correctamente');
+      loadLicencias();
+    });
+  }).catch(function() { label.textContent = textoOrig; toast('Error al subir el archivo', 'err'); });
+}
+
 function saveLicencia() {
   return _saveLicencia.apply(this, arguments);
 }
@@ -20968,7 +21012,7 @@ function actualizarKpisTurnos() {
   // Contar quién fichó hoy — usando T03:00:00Z (medianoche AR) y T27:00:00Z no existe,
   // así que usamos el día siguiente T03:00:00Z como límite superior
   var _hoySig1 = new Date(new Date(hoy + 'T03:00:00.000Z').getTime() + 86400000).toISOString();
-  db.from('fichajes').select('nombre', { count: 'exact' })
+  db.from('fichajes').select('agente', { count: 'exact' })
     .eq('activo', false)
     .gte('entrada', hoy + 'T03:00:00.000Z')
     .lt('entrada', _hoySig1)
@@ -21110,7 +21154,7 @@ function ejecutarMonitorTurnos() {
 
       // Cargar fichajes de hoy — T03:00:00Z = medianoche Argentina
       var _hoySig2 = new Date(new Date(hoy + 'T03:00:00.000Z').getTime() + 86400000).toISOString();
-      db.from('fichajes').select('nombre, puesto, entrada, salida, activo')
+      db.from('fichajes').select('agente, puesto, entrada, salida, activo')
         .gte('entrada', hoy + 'T03:00:00.000Z')
         .lt('entrada', _hoySig2)
         .then(function(rFich) {
@@ -22650,7 +22694,7 @@ function buscarHistorialFichajes() {
   if (!lista) return;
   lista.innerHTML = '<div class="empty"><div class="icon"><span class="spinner"></span></div></div>';
 
-  var query = db.from('fichajes').select('id,agente,nombre,entrada,salida,puesto,activo,cierre_admin,observaciones').order('entrada', { ascending: false });
+  var query = db.from('fichajes').select('id,agente,entrada,salida,puesto,activo,cierre_admin,observaciones').order('entrada', { ascending: false });
 
   // Regla simple: las fechas mandan.
   // - Si hay AMBAS fechas → filtra por ese rango.
