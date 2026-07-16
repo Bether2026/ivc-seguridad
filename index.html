@@ -18128,7 +18128,7 @@ function verHistorialLicencia(elClickeado, agNombre, tipoLic) {
   db.from('licencias')
     .select('fecha_desde,fecha_hasta,dias,tipo,tipo_licencia,observaciones,archivo,registrado_por,created_at')
     .eq('agente', agNombre)
-    .or('tipo.eq.' + tipoLic + ',tipo_licencia.eq.' + tipoLic)
+    .eq('tipo', tipoLic)
     .order('fecha_desde', { ascending: false })
     .limit(50)
     .then(function(r) {
