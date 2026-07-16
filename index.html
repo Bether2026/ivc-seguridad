@@ -4358,58 +4358,8 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
     <div class="modal-head"><span class="modal-title">📋 Nueva Licencia</span><button class="btn-close" onclick="closeOv('ov-licencia')">×</button></div>
     <div class="form-group">
       <label class="form-label">Agente</label>
-      <select class="form-select" id="lic-agente">
-        <option value="">— Seleccionar agente —</option>
-        <option>ACOSTA PAMELA</option>
-<option>ACUÑA EMANUEL FABIAN</option>
-<option>ACUÑA JUAN FEDERICO</option>
-<option>ACUÑA LUCAS OCTAVIO</option>
-<option>AGUIRRE CARLA FLORENCIA</option>
-<option>ALMEIDA ENRIQUE ROBERTO</option>
-<option>ALVAREZ OZON NICOLAS MARCELO</option>
-<option>APAZA ABRAHAM ESTEBAN</option>
-<option>APUD MIGUEL OSCAR</option>
-<option>ARMOA SANDRA ELIZABETH</option>
-<option>ARROYO LAURA</option>
-<option>BASTIAS EMANUEL DE DIOS</option>
-<option>BRITOS JUAN ALBERTO</option>
-<option>CAMARA MARIA CELESTE</option>
-<option>CAMPOS ROXANA RUT</option>
-<option>CARDOZO VERONICA MARIEL</option>
-<option>CASTILLO ANGEL HERNAN</option>
-<option>CASTILLO LUIS ANGEL</option>
-<option>CASTRO CLAUDIO DAMIAN</option>
-<option>CASTRO VICTOR HUGO</option>
-<option>CONTE LUCAS EZEQUIEL</option>
-<option>DE MARCO LEANDRO DANIEL</option>
-<option>DEL COLLE DAMIAN EZEQUIEL</option>
-<option>DEL COLLE GONZALO MARTIN</option>
-<option>ELIAS GABRIEL</option>
-<option>GIMENEZ GREGORIO</option>
-<option>GODOY MARTIN TOMAS</option>
-<option>GOMEZ ANTONIO</option>
-<option>LANDAETA VIELMA CARMENCITA</option>
-<option>LOBOS RAFAEL ALEJANDRO</option>
-<option>LUACES JONATHAN RICARDO</option>
-<option>MARTINEZ NOEMI KARINA</option>
-<option>MEDINA RODRIGO SEBASTIAN</option>
-<option>MIRANDA MIGUEL ALBERTO</option>
-<option>NUÑEZ ALEXIS URIEL</option>
-<option>ORENDE BRIAN NICOLAS</option>
-<option>PANDOLLO CAROLINA</option>
-<option>PEÑA OSCAR RAUL</option>
-<option>PEÑA SERGIO ADRIAN</option>
-<option>PEREIRA MIGUEL RAFAEL</option>
-<option>RESCHIGNA THIAGO</option>
-<option>RIVEROS VEGA LEANDRO</option>
-<option>SANTILLAN HUMBERTO</option>
-<option>SOSA FACUNDO URIEL</option>
-<option>TOKAYUK CHRISTIAN PABLO</option>
-<option>VALDEZ JORGE ALBERTO</option>
-<option>VALDEZ NADIA SABRINA</option>
-<option>VIEIRA HECTOR AUGUSTO</option>
-<option>YALEVA CARLOS</option>
-      </select>
+      <input class="form-input" id="lic-agente" list="lic-agente-list" placeholder="Escribir nombre del agente..." autocomplete="off" oninput="onLicAgenteInput(this.value)"/>
+      <datalist id="lic-agente-list"></datalist>
     </div>
     <div class="form-group">
       <label class="form-label">Puesto</label>
@@ -5115,33 +5065,35 @@ function renderAgenteCard(a) {
   // Saldo de licencias
   h += '<div style="background:var(--bg3);border-radius:8px;padding:10px;margin-bottom:10px">';
   h += '<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">Saldo de licencias disponibles</div>';
+  var _tipoAg = (a.tipo || 'CH').toUpperCase();
+  var _esContrato = (_tipoAg === 'CH' || _tipoAg === 'CI');
+  var _esPlanta   = (_tipoAg === 'PH' || _tipoAg === 'PI');
+  // Tipos que DESCUENTAN saldo
+  var _tiposDesc = {'lic_ordinaria': true, 'lic_particular': true, 'lic_franco': true};
+  var lics = [
+    { key: 'lic_ordinaria',  label: 'Ordinaria',    tipoLic: 'Licencia ordinaria', show: true },
+    { key: 'lic_enfermedad', label: 'Enfermedad',   tipoLic: 'Enfermedad',         show: true },
+    { key: 'lic_particular', label: 'Particular',   tipoLic: 'Dia particular',     show: _esPlanta },
+    { key: 'lic_franco',     label: 'Franco aut.',  tipoLic: 'Franco autorizado',  show: _esContrato },
+    { key: 'lic_familiar',   label: 'Fam. enfermo', tipoLic: 'Familiar enfermo',   show: true },
+    { key: 'lic_duelo',      label: 'Duelo',        tipoLic: 'Duelo',              show: true }
+  ];
+  var _licVisible = lics.filter(function(l) { return l.show; });
   h += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">';
-  var lics = [{
-    key: 'lic_ordinaria',
-    label: 'Ordinaria'
-  }, {
-    key: 'lic_enfermedad',
-    label: 'Enfermedad'
-  }, {
-    key: 'lic_particular',
-    label: 'Particular'
-  }, {
-    key: 'lic_franco',
-    label: 'Franco'
-  }, {
-    key: 'lic_familiar',
-    label: 'Fam. enfermo'
-  }, {
-    key: 'lic_duelo',
-    label: 'Duelo'
-  }];
-  for (var li = 0; li < lics.length; li++) {
-    var lic = lics[li];
-    var dias = a[lic.key] !== undefined && a[lic.key] !== null ? a[lic.key] : '—';
-    var color = dias === 0 ? 'var(--red)' : dias !== '—' && dias <= 2 ? 'var(--yellow)' : 'var(--green)';
-    h += '<div style="text-align:center;background:var(--bg2);border-radius:6px;padding:6px 4px">';
+  for (var li = 0; li < _licVisible.length; li++) {
+    var lic = _licVisible[li];
+    var dias = a[lic.key] !== undefined && a[lic.key] !== null ? a[lic.key] : 0;
+    var esDescuento = _tiposDesc[lic.key];
+    // Color: descuento → semáforo por saldo; acumulación → siempre neutral/verde
+    var color = esDescuento
+      ? (dias === 0 ? 'var(--red)' : dias <= 2 ? 'var(--yellow)' : 'var(--green)')
+      : (dias > 0 ? 'var(--accent2)' : 'var(--text3)');
+    var _aid = a.id.toString().replace(/-/g,'');
+    var _anom = a.nombre.replace(/["<>]/g,'');
+    h += '<div onclick="verHistorialLicencia(\''+_aid+'\',\''+_anom+'\',\''+lic.tipoLic+'\')" style="text-align:center;background:var(--bg2);border-radius:6px;padding:6px 4px;cursor:pointer;transition:background .15s" onmouseover="this.style.background=\'var(--bg3)\'" onmouseout="this.style.background=\'var(--bg2)\'">';
     h += '<div style="font-size:18px;font-weight:900;color:' + color + '">' + dias + '</div>';
     h += '<div style="font-size:9px;color:var(--text3);line-height:1.2">' + lic.label + '</div>';
+    h += '<div style="font-size:8px;color:var(--text3);margin-top:1px">' + (esDescuento ? '&#x1F4C9; descuenta' : '&#x1F4C8; acumula') + '</div>';
     h += '</div>';
   }
   h += '</div>';
@@ -16077,7 +16029,7 @@ function fabClick() {
     } else { abrirIniciarRecorrido(); }
   }
   else if (CUR_VIEW === 'fichaje') {
-    if (CUR_FICH_TAB === 'licencias') openOv('ov-licencia');else openOv('ov-nov');
+    if (CUR_FICH_TAB === 'licencias') { cargarDatalistAgentesLic(); openOv('ov-licencia'); } else openOv('ov-nov');
   } else if (CUR_VIEW === 'agenda') {
     var isAdminAgenda = ['Administraci\xF3n', 'Administrador', 'Gerencia', 'Jefe de departamento'].includes(USER ? USER.puesto : '');
     if (isAdminAgenda) {
@@ -18109,6 +18061,167 @@ function isLicActive(lic) {
   var hasta = new Date(lic.fecha_hasta + 'T00:00:00');
   return desde <= today && today <= hasta;
 }
+// Cache de agentes para licencias (nombre → tipo)
+var LIC_AGENTES_CACHE = [];
+
+// Muestra historial real de licencias de un tipo para un agente
+function verHistorialLicencia(agId, agNombre, tipoLic) {
+  // Reutilizar overlay de historial existente o crear uno temporal
+  var panelId = 'lic-hist-panel-' + agId;
+  var existing = document.getElementById(panelId);
+  if (existing) {
+    existing.style.display = existing.style.display === 'none' ? 'block' : 'none';
+    return;
+  }
+  // Buscar el contenedor del agente en el DOM
+  var agCard = document.querySelector('[data-aid="' + agId + '"]');
+  var container = agCard ? agCard.closest('.ag-card, [data-agente-card]') : null;
+  // Si no encontramos el contenedor, buscar por proximidad
+  if (!container) {
+    agCard = document.querySelector('[data-hid="hist-' + agId + '"]');
+    container = agCard ? agCard.parentNode : null;
+  }
+  // Crear panel debajo del agente
+  var panel = document.createElement('div');
+  panel.id = panelId;
+  panel.style.cssText = 'background:var(--bg2);border:1px solid var(--border2);border-radius:10px;padding:14px;margin-top:10px';
+  panel.innerHTML = '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:10px">&#x1F4C4; Historial — ' + tipoLic + ' — ' + agNombre + '</div>'
+    + '<div style="font-size:12px;color:var(--text3)">Cargando...</div>';
+
+  if (container) {
+    container.appendChild(panel);
+  } else {
+    // Fallback: insertar después del botón "Ajustar licencia"
+    var btnAjuste = document.querySelector('[data-aid="' + agId + '"]');
+    if (btnAjuste && btnAjuste.parentNode) btnAjuste.parentNode.insertAdjacentElement('afterend', panel);
+  }
+
+  db.from('licencias')
+    .select('fecha_desde,fecha_hasta,dias,tipo,tipo_licencia,observaciones,archivo,registrado_por,created_at')
+    .eq('agente', agNombre)
+    .or('tipo.eq.' + tipoLic + ',tipo_licencia.eq.' + tipoLic)
+    .order('fecha_desde', { ascending: false })
+    .limit(50)
+    .then(function(r) {
+      if (r.error || !r.data || !r.data.length) {
+        panel.innerHTML = '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:6px">&#x1F4C4; Historial — ' + tipoLic + '</div>'
+          + '<div style="font-size:12px;color:var(--text3);padding:10px 0">Sin registros de este tipo de licencia</div>'
+          + '<button onclick="this.parentNode.style.display=\'none\'" style="margin-top:4px;padding:4px 10px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text3);font-size:11px;cursor:pointer;font-family:var(--font)">Cerrar</button>';
+        return;
+      }
+      var totalDias = 0;
+      var html = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'
+        + '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase">&#x1F4C4; Historial — ' + tipoLic + '</div>'
+        + '<button onclick="document.getElementById(\'' + panelId + '\').style.display=\'none\'" style="padding:3px 10px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text3);font-size:11px;cursor:pointer;font-family:var(--font)">&#x2715; Cerrar</button>'
+        + '</div>';
+      r.data.forEach(function(l) {
+        var d = l.dias || 0;
+        totalDias += d;
+        var desde = l.fecha_desde ? l.fecha_desde.split('T')[0].split('-').reverse().join('/') : '—';
+        var hasta = l.fecha_hasta ? l.fecha_hasta.split('T')[0].split('-').reverse().join('/') : '—';
+        html += '<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">';
+        html += '<div style="flex-shrink:0;width:36px;height:36px;border-radius:8px;background:rgba(167,139,250,0.12);border:1px solid rgba(167,139,250,0.25);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:var(--accent3)">' + d + '</div>';
+        html += '<div style="flex:1;min-width:0">';
+        html += '<div style="font-size:12px;font-weight:700;color:var(--text)">' + desde + ' → ' + hasta + '</div>';
+        if (l.observaciones) html += '<div style="font-size:11px;color:var(--text3);margin-top:2px">' + l.observaciones + '</div>';
+        if (l.archivo) html += '<a href="' + l.archivo + '" target="_blank" style="display:inline-flex;align-items:center;gap:4px;margin-top:4px;font-size:10px;color:var(--accent3);text-decoration:none">&#x1F4CE; Ver certificado/planilla</a>';
+        html += '<div style="font-size:10px;color:var(--text3);margin-top:2px">Registrado por: ' + (l.registrado_por || '—') + '</div>';
+        html += '</div></div>';
+      });
+      html += '<div style="margin-top:10px;font-size:12px;font-weight:700;color:var(--text2)">Total registrado: ' + totalDias + ' día(s)</div>';
+      panel.innerHTML = html;
+    });
+}
+
+function cargarDatalistAgentesLic() {
+  var dl = document.getElementById('lic-agente-list');
+  if (!dl) return;
+  // Si ya está cargado no volver a pedir
+  if (LIC_AGENTES_CACHE.length) {
+    _rellenarDatalistLic(LIC_AGENTES_CACHE);
+    return;
+  }
+  db.from('agentes').select('nombre,tipo,lic_ordinaria,lic_enfermedad,lic_particular,lic_franco,lic_familiar,lic_duelo').order('nombre').then(function(r) {
+    if (r.error || !r.data) return;
+    LIC_AGENTES_CACHE = r.data;
+    _rellenarDatalistLic(r.data);
+  });
+}
+
+function _rellenarDatalistLic(lista) {
+  var dl = document.getElementById('lic-agente-list');
+  if (!dl) return;
+  dl.innerHTML = '';
+  lista.forEach(function(a) {
+    if (!a.nombre) return;
+    var opt = document.createElement('option');
+    opt.value = a.nombre;
+    dl.appendChild(opt);
+  });
+}
+
+// Devuelve el objeto agente del cache por nombre exacto
+function _getAgenteFromCache(nombre) {
+  var n = (nombre || '').trim().toUpperCase();
+  for (var i = 0; i < LIC_AGENTES_CACHE.length; i++) {
+    if ((LIC_AGENTES_CACHE[i].nombre || '').trim().toUpperCase() === n) return LIC_AGENTES_CACHE[i];
+  }
+  return null;
+}
+
+// Al escribir el nombre del agente, adaptar tipos de licencia según su condición
+function onLicAgenteInput(val) {
+  var ag = _getAgenteFromCache(val);
+  if (!ag) return;
+  var tipo = (ag.tipo || 'CH').toUpperCase();
+  var tipoEl = document.getElementById('lic-tipo');
+  if (!tipoEl) return;
+  // Ajustar opciones según tipo: contratos no tienen particular, plantas no tienen franco
+  var esContrato = (tipo === 'CH' || tipo === 'CI');
+  var esPlanta   = (tipo === 'PH' || tipo === 'PI');
+  Array.prototype.forEach.call(tipoEl.options, function(opt) {
+    var v = opt.value || opt.text;
+    if (v === 'Dia particular' || v === 'Día particular') {
+      opt.disabled = esContrato;
+      opt.style.display = esContrato ? 'none' : '';
+    }
+    if (v === 'Franco autorizado') {
+      opt.disabled = esPlanta;
+      opt.style.display = esPlanta ? 'none' : '';
+    }
+  });
+}
+
+// Descuenta o suma saldo según tipo de licencia al registrar
+// Tipos que DESCUENTAN: Licencia ordinaria, Dia particular, Franco autorizado
+// Tipos que SUMAN (acumulan): todos los demás
+function _actualizarSaldoLicencia(nombreAgente, tipoLicencia, diasCorridos) {
+  var ag = _getAgenteFromCache(nombreAgente);
+  if (!ag || !ag.nombre) return; // si no está en cache, no actualizar
+  var keyMap = {
+    'Licencia ordinaria': 'lic_ordinaria',
+    'Dia particular':     'lic_particular',
+    'Día particular':     'lic_particular',
+    'Franco autorizado':  'lic_franco',
+    'Enfermedad':         'lic_enfermedad',
+    'Familiar enfermo':   'lic_familiar',
+    'Duelo':              'lic_duelo'
+  };
+  var key = keyMap[tipoLicencia];
+  if (!key) return; // tipo no mapeado, no tocar
+  var descuenta = (tipoLicencia === 'Licencia ordinaria' || tipoLicencia === 'Dia particular' || tipoLicencia === 'Día particular' || tipoLicencia === 'Franco autorizado');
+  var saldoActual = ag[key] !== null && ag[key] !== undefined ? ag[key] : 0;
+  var nuevoSaldo = descuenta ? Math.max(0, saldoActual - diasCorridos) : saldoActual + diasCorridos;
+  var patch = {};
+  patch[key] = nuevoSaldo;
+  db.from('agentes').update(patch).eq('nombre', ag.nombre).then(function(r) {
+    if (r.error) { console.error('Error actualizando saldo licencia:', r.error.message); return; }
+    // Actualizar cache local
+    ag[key] = nuevoSaldo;
+    console.log('[Licencias] Saldo ' + key + ' → ' + nuevoSaldo + ' para ' + ag.nombre);
+  });
+}
+
 function loadLicencias() {
   return _loadLicencias.apply(this, arguments);
 }
@@ -18307,6 +18420,8 @@ function _saveLicencia() {
         case 11:
           setLoading('btn-save-lic', false);
           closeOv('ov-licencia');
+          // Actualizar saldo del agente según tipo de licencia
+          _actualizarSaldoLicencia(agente, tipo, calcDias(desde, hasta));
           toast("[Doc] Licencia registrada \u2014 ".concat(calcDias(desde, hasta), " d\xEDa(s)"));
           ['lic-agente', 'lic-puesto', 'lic-obs'].forEach(function (id) {
             return $(id) && ($(id).value = '');
