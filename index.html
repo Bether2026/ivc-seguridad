@@ -18048,11 +18048,52 @@ function formatDate(dateStr) {
     month: '2-digit',
     year: 'numeric', timeZone: 'America/Argentina/Buenos_Aires'});
 }
+// Feriados nacionales Argentina (YYYY-MM-DD)
+// Inamovibles fijos + trasladables 2025-2026
+var FERIADOS_AR = (function() {
+  var f = {};
+  // Feriados inamovibles (todos los años)
+  var inamovibles = ['01-01','03-24','04-02','05-01','05-25','06-20','07-09','12-08','12-25'];
+  // Feriados trasladables y puentes 2025
+  var esp2025 = ['2025-02-03','2025-02-04','2025-03-03','2025-03-04','2025-04-17','2025-04-18',
+    '2025-04-21','2025-06-16','2025-06-17','2025-07-08','2025-08-18','2025-10-13',
+    '2025-11-21','2025-11-22','2026-11-24'];
+  // Feriados trasladables y puentes 2026
+  var esp2026 = ['2026-02-16','2026-02-17','2026-04-02','2026-04-03','2026-04-06',
+    '2026-05-25','2026-06-15','2026-06-19','2026-07-10','2026-08-17',
+    '2026-10-12','2026-11-23','2026-11-27'];
+  // Agregar inamovibles para 2025 y 2026
+  [2025, 2026].forEach(function(anio) {
+    inamovibles.forEach(function(dm) {
+      f[anio + '-' + dm] = true;
+    });
+  });
+  esp2025.forEach(function(d) { f[d] = true; });
+  esp2026.forEach(function(d) { f[d] = true; });
+  return f;
+})();
+
+function esFeriadoAR(fecha) {
+  // fecha: Date object
+  var mm = String(fecha.getMonth() + 1).padStart(2, '0');
+  var dd = String(fecha.getDate()).padStart(2, '0');
+  var yyyy = fecha.getFullYear();
+  return !!FERIADOS_AR[yyyy + '-' + mm + '-' + dd];
+}
+
 function calcDias(desde, hasta) {
   if (!desde || !hasta) return 1;
-  var d1 = new Date(desde),
-    d2 = new Date(hasta);
-  return Math.max(1, Math.round((d2 - d1) / (1000 * 60 * 60 * 24)) + 1);
+  var d1 = new Date(desde + 'T00:00:00');
+  var d2 = new Date(hasta + 'T00:00:00');
+  if (d1 > d2) return 1;
+  var count = 0;
+  var cur = new Date(d1);
+  while (cur <= d2) {
+    var dow = cur.getDay(); // 0=Dom, 6=Sab
+    if (dow !== 0 && dow !== 6 && !esFeriadoAR(cur)) count++;
+    cur.setDate(cur.getDate() + 1);
+  }
+  return Math.max(1, count);
 }
 function isLicActive(lic) {
   var today = new Date();
