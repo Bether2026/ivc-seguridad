@@ -14674,9 +14674,8 @@ function abrirFotoLightbox(url) {
   img.src = url;
   ov.style.display = 'flex';
   document.body.style.overflow = 'hidden';
-  history.pushState({ overlay: 'ov-lightbox' }, '');
-
-  // Set download — fetch as blob to bypass CORS/Content-Disposition issues
+  // NO hacemos history.pushState — evita que el botón Atrás de Android
+  // dispare el popstate y cierre el overlay del recorrido que hay debajo.
   if (dl) {
     dl.href = url;
     dl.download = 'foto_ivc_' + Date.now() + '.jpg';
@@ -14695,10 +14694,7 @@ function abrirFotoLightbox(url) {
           document.body.removeChild(a);
           setTimeout(function() { URL.revokeObjectURL(blobUrl); }, 1000);
         })
-        .catch(function() {
-          // Fallback: open in new tab
-          window.open(url, '_blank');
-        });
+        .catch(function() { window.open(url, '_blank'); });
     };
   }
 }
@@ -14732,7 +14728,7 @@ function buscarEnRecorridos() {
 
   Object.keys(cache).forEach(function(id) {
     var obj = cache[id];
-    var puntos = obj.actualizaciones || [];
+    var puntos = _sortPuntosRecorrido(obj.actualizaciones || [], obj.inicio ? obj.inicio.slice(11,16) : '');
     puntos.forEach(function(p, idx) {
       var lugar = (p.lugar || '').toLowerCase();
       var obs   = (p.obs   || '').toLowerCase();
@@ -14968,6 +14964,29 @@ async function finObj(id) {
   }, 'Finalizar', 'var(--green)');
 }
 
+
+// Ordena puntos de recorrido considerando turnos que cruzan la medianoche.
+// Si la hora de un punto es menor a la hora de inicio del recorrido,
+// se asume que pertenece al día siguiente (le suma 24h para el sort).
+function _sortPuntosRecorrido(puntos, horaInicio) {
+  var hiMin = 0;
+  if (horaInicio) {
+    var hiParts = horaInicio.split(':');
+    hiMin = parseInt(hiParts[0] || 0, 10) * 60 + parseInt(hiParts[1] || 0, 10);
+  }
+  return puntos.slice().sort(function(a, b) {
+    function toMin(h) {
+      if (!h) return 0;
+      var p = h.split(':');
+      var m = parseInt(p[0] || 0, 10) * 60 + parseInt(p[1] || 0, 10);
+      // Si la hora es menor a la hora de inicio, es del día siguiente
+      if (hiMin > 0 && m < hiMin) m += 1440;
+      return m;
+    }
+    return toMin(a.hora) - toMin(b.hora);
+  });
+}
+
 function loadObjetivos() {
   return _loadObjetivos.apply(this, arguments);
 }
@@ -15108,7 +15127,7 @@ function _loadObjetivos() {
                 o = puestosItems[oi];
                 window.OBJ_CACHE[o.id] = o;
                 isAct = o.estado === 'activo';
-                var puntos = (o.actualizaciones && o.actualizaciones.length) ? o.actualizaciones : [];
+                var puntos = _sortPuntosRecorrido((o.actualizaciones && o.actualizaciones.length) ? o.actualizaciones : [], o.inicio ? o.inicio.slice(11,16) : '');
                 var conInc = puntos.filter(function(p) { return p.incidencia; }).length;
                 var sinInc = puntos.length - conInc;
                 var prog = Math.min(100, puntos.length * 10);
