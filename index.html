@@ -14732,7 +14732,10 @@ function buscarEnRecorridos() {
 
   Object.keys(cache).forEach(function(id) {
     var obj = cache[id];
-    var puntos = _sortPuntosRecorrido(obj.actualizaciones || [], obj.inicio ? obj.inicio.slice(11,16) : '');
+    var _inicioStr = obj.inicio || obj.created_at || '';
+    var _horaInicioB = '';
+    if (_inicioStr) { var _dB = new Date(new Date(_inicioStr).getTime() - 3*3600000); _horaInicioB = String(_dB.getUTCHours()).padStart(2,'0') + ':' + String(_dB.getUTCMinutes()).padStart(2,'0'); }
+    var puntos = _sortPuntosRecorrido(obj.actualizaciones || [], _horaInicioB);
     puntos.forEach(function(p, idx) {
       var lugar = (p.lugar || '').toLowerCase();
       var obs   = (p.obs   || '').toLowerCase();
@@ -15131,7 +15134,8 @@ function _loadObjetivos() {
                 o = puestosItems[oi];
                 window.OBJ_CACHE[o.id] = o;
                 isAct = o.estado === 'activo';
-                var _horaInicioObj = (o.inicio || o.created_at || ''); var _horaInicioStr = _horaInicioObj.length >= 16 ? _horaInicioObj.slice(11,16) : '';
+                var _horaInicioObj = (o.inicio || o.created_at || ''); var _horaInicioStr = '';
+                if (_horaInicioObj) { var _diAR = new Date(new Date(_horaInicioObj).getTime() - 3*3600000); _horaInicioStr = String(_diAR.getUTCHours()).padStart(2,'0') + ':' + String(_diAR.getUTCMinutes()).padStart(2,'0'); }
                 var puntos = _sortPuntosRecorrido((o.actualizaciones && o.actualizaciones.length) ? o.actualizaciones : [], _horaInicioStr);
                 var conInc = puntos.filter(function(p) { return p.incidencia; }).length;
                 var sinInc = puntos.length - conInc;
