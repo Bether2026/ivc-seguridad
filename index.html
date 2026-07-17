@@ -12951,56 +12951,137 @@ function guardarAgentesAcompanaron(id, valor, fecha) {
 }
 function exportarAgendaPDF() {
   var tab = CUR_AGENDA_TAB;
-  if (tab !== 'semana' && tab !== 'proxima') { toast('Seleccioná "Esta semana" o "Próxima semana" para exportar', 'err'); return; }
-  var contenido = document.getElementById('agenda-list');
-  if (!contenido) return;
-  var tabLabel = tab === 'semana' ? 'Esta semana' : 'Próxima semana';
+  if (tab !== 'semana' && tab !== 'proxima') { toast('Selecciona "Esta semana" o "Proxima semana" para exportar', 'err'); return; }
+  var tabLabel = tab === 'semana' ? 'Esta semana' : 'Proxima semana';
   var hoy = new Date();
-  var fechaExp = hoy.toLocaleDateString('es-AR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric', timeZone: 'America/Argentina/Buenos_Aires' });
-  var ventana = window.open('', '_blank');
-  if (!ventana) { toast('Habilitá las ventanas emergentes para exportar', 'err'); return; }
-  var innerHtml = contenido.innerHTML;
-  // Limpiar botones de acciones del HTML exportado
-  var parser = ventana.document.createElement('div');
-  parser.innerHTML = innerHtml;
-  // Quitar todos los botones y inputs del export
-  var botonesAEliminar = parser.querySelectorAll('button, input[type="text"]');
-  for (var bi = 0; bi < botonesAEliminar.length; bi++) {
-    botonesAEliminar[bi].parentNode.removeChild(botonesAEliminar[bi]);
-  }
-  var htmlLimpio = parser.innerHTML;
-  ventana.document.write(
-    '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">' +
-    '<title>Agenda de Operativos — ' + tabLabel + '</title>' +
-    '<style>' +
-    'body{margin:0;padding:20px 28px;font-family:Arial,sans-serif;background:#fff;color:#111}' +
-    '.encabezado{border-bottom:3px solid #1e3a5f;padding-bottom:14px;margin-bottom:20px}' +
-    '.encabezado h1{margin:0 0 4px;font-size:22px;color:#1e3a5f}' +
-    '.encabezado p{margin:0;font-size:12px;color:#666}' +
-    '.sep-dia{display:flex;align-items:center;gap:10px;margin:18px 0 10px}' +
-    '.sep-dia hr{flex:1;border:none;border-top:1px solid #ccc}' +
-    '.sep-dia span{font-size:12px;font-weight:800;padding:4px 14px;border-radius:20px;background:#1e3a5f;color:#fff;white-space:nowrap}' +
-    '.sep-dia.hoy span{background:#b45309;color:#fff}' +
-    '.op-card{border:1px solid #ddd;border-left:4px solid #1e3a5f;border-radius:8px;padding:12px 14px;margin-bottom:8px;page-break-inside:avoid}' +
-    '.op-titulo{font-size:15px;font-weight:800;margin-bottom:5px;color:#111}' +
-    '.op-info{font-size:12px;color:#444;line-height:1.7}' +
-    '.op-detalle{font-size:11px;color:#666;border-top:1px solid #eee;padding-top:7px;margin-top:7px;line-height:1.6}' +
-    '.op-estado{display:inline-block;font-size:10px;font-weight:800;padding:2px 8px;border-radius:12px;margin-top:6px}' +
-    '.op-estado.realizado{background:#d1fae5;color:#065f46}' +
-    '.op-estado.no_realizado{background:#fee2e2;color:#991b1b}' +
-    '.op-estado.pendiente{background:#fef3c7;color:#92400e}' +
-    '@media print{body{padding:10px 16px}@page{margin:1.5cm}}' +
-    '</style></head><body>' +
-    '<div class="encabezado">' +
-    '<h1>📅 Agenda de Operativos — ' + tabLabel + '</h1>' +
-    '<p>Exportado el ' + fechaExp + ' · IVC Seguridad y Emergencias</p>' +
-    '</div>'
-  );
-  // Reescribir el contenido limpio con estilos de impresión
-  ventana.document.write('<div>' + htmlLimpio + '</div>');
-  ventana.document.write('</body></html>');
-  ventana.document.close();
-  setTimeout(function() { ventana.focus(); ventana.print(); }, 600);
+  var fechaExp = hoy.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Argentina/Buenos_Aires' });
+  var DIAS_PDF = ['Domingo','Lunes','Martes','Miercoles','Jueves','Viernes','Sabado'];
+  var MESES_PDF = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+  // Calcular rango
+  var hoyStr = fechaHoyAR();
+  var hoyParts = hoyStr.split('-');
+  var ahora = new Date(parseInt(hoyParts[0]), parseInt(hoyParts[1])-1, parseInt(hoyParts[2]));
+  var diaSemana = ahora.getDay();
+  var inicioSemana = new Date(ahora);
+  inicioSemana.setDate(ahora.getDate() - diaSemana);
+  if (tab === 'proxima') inicioSemana.setDate(inicioSemana.getDate() + 7);
+  var finSemana = new Date(inicioSemana);
+  finSemana.setDate(inicioSemana.getDate() + 6);
+  var rIni = inicioSemana.getFullYear() + '-' + String(inicioSemana.getMonth()+1).padStart(2,'0') + '-' + String(inicioSemana.getDate()).padStart(2,'0');
+  var rFin = finSemana.getFullYear() + '-' + String(finSemana.getMonth()+1).padStart(2,'0') + '-' + String(finSemana.getDate()).padStart(2,'0');
+  var mesLabel = MESES_PDF[inicioSemana.getMonth()] + ' ' + inicioSemana.getFullYear();
+  // Buscar datos frescos de Supabase
+  db.from('agenda_operativos').select('*').then(function(res) {
+    if (res.error) { toast('Error al obtener datos', 'err'); return; }
+    var todos = res.data || [];
+    // Construir mapa dia -> operativos
+    var porDia = {};
+    for (var i = 0; i < todos.length; i++) {
+      var op = todos[i];
+      var fechas = op.fechas || [];
+      for (var fi = 0; fi < fechas.length; fi++) {
+        var f = fechas[fi];
+        if (f >= rIni && f <= rFin) {
+          if (!porDia[f]) porDia[f] = [];
+          porDia[f].push(op);
+        }
+      }
+    }
+    var diasOrdenados = Object.keys(porDia).sort();
+    if (!diasOrdenados.length) { toast('Sin operativos para exportar', 'err'); return; }
+    // Construir HTML del PDF
+    var cuerpo = '';
+    var contadorGlobal = 0;
+    for (var di = 0; di < diasOrdenados.length; di++) {
+      var fecha = diasOrdenados[di];
+      var dObj = new Date(fecha + 'T12:00:00');
+      var esHoyPdf = fecha === hoyStr;
+      var dNombre = DIAS_PDF[dObj.getDay()].toUpperCase();
+      var dNumero = dObj.getDate() + '/' + (dObj.getMonth()+1);
+      cuerpo += '<div class="bloque-dia' + (esHoyPdf ? ' hoy' : '') + '">';
+      cuerpo += '<div class="dia-header"><span class="dia-nombre">' + dNombre + '</span><span class="dia-fecha">' + dNumero + '</span>' + (esHoyPdf ? '<span class="hoy-badge">HOY</span>' : '') + '</div>';
+      var ops = porDia[fecha];
+      // Ordenar por horario
+      ops.sort(function(a,b){ return (a.horario||'').localeCompare(b.horario||''); });
+      for (var oi = 0; oi < ops.length; oi++) {
+        contadorGlobal++;
+        var op2 = ops[oi];
+        var estadosPf = op2.estados_por_fecha || {};
+        var est = estadosPf[fecha] || op2.estado || 'pendiente';
+        var estLabel = est === 'realizado' ? 'REALIZADO' : est === 'no_realizado' ? 'NO REALIZADO' : 'PENDIENTE';
+        var estClass = est === 'realizado' ? 'est-ok' : est === 'no_realizado' ? 'est-no' : 'est-pend';
+        cuerpo += '<div class="op-row">';
+        cuerpo += '<span class="op-num">' + contadorGlobal + '</span>';
+        cuerpo += '<div class="op-body">';
+        cuerpo += '<div class="op-titulo">' + (op2.asunto || 'Sin titulo').toUpperCase() + '</div>';
+        var meta = [];
+        if (op2.barrio) meta.push('<span class="meta-item">&#128205; ' + op2.barrio + '</span>');
+        if (op2.horario) meta.push('<span class="meta-item meta-hora">&#128336; ' + op2.horario + ' Hs.</span>');
+        if (op2.solicitante) meta.push('<span class="meta-item">&#128100; ' + op2.solicitante + '</span>');
+        if (op2.telefono) meta.push('<span class="meta-item">&#128222; ' + op2.telefono + '</span>');
+        if (meta.length) cuerpo += '<div class="op-meta">' + meta.join('') + '</div>';
+        if (op2.detalle) cuerpo += '<div class="op-detalle">' + op2.detalle + '</div>';
+        cuerpo += '</div>';
+        cuerpo += '<span class="op-estado ' + estClass + '">' + estLabel + '</span>';
+        cuerpo += '</div>';
+      }
+      cuerpo += '</div>';
+    }
+    var ventana = window.open('', '_blank');
+    if (!ventana) { toast('Habilita las ventanas emergentes para exportar', 'err'); return; }
+    ventana.document.write(
+      '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">' +
+      '<title>Agenda ' + tabLabel + '</title>' +
+      '<style>' +
+      '*{box-sizing:border-box;margin:0;padding:0}' +
+      'body{font-family:Arial,Helvetica,sans-serif;font-size:11px;color:#111;background:#fff;padding:18px 22px}' +
+      /* Encabezado */
+      '.header{display:flex;align-items:flex-end;justify-content:space-between;border-bottom:2.5px solid #1a2e4a;padding-bottom:8px;margin-bottom:14px}' +
+      '.header-left{}' +
+      '.header-logo{font-size:16px;font-weight:900;color:#1a2e4a;letter-spacing:.03em;text-transform:uppercase}' +
+      '.header-sub{font-size:9px;color:#888;margin-top:2px;letter-spacing:.05em;text-transform:uppercase}' +
+      '.header-right{text-align:right}' +
+      '.header-semana{font-size:13px;font-weight:800;color:#1a2e4a}' +
+      '.header-mes{font-size:9px;color:#888;text-transform:uppercase;letter-spacing:.06em}' +
+      /* Bloques de día */
+      '.bloque-dia{margin-bottom:10px;page-break-inside:avoid}' +
+      '.dia-header{display:flex;align-items:center;gap:6px;margin-bottom:4px;padding-bottom:3px;border-bottom:1px solid #e0e0e0}' +
+      '.dia-nombre{font-size:10px;font-weight:900;color:#1a2e4a;letter-spacing:.08em;text-transform:uppercase}' +
+      '.dia-fecha{font-size:10px;font-weight:700;color:#888}' +
+      '.hoy .dia-nombre{color:#b45309}' +
+      '.hoy .dia-fecha{color:#b45309}' +
+      '.hoy-badge{font-size:7px;font-weight:900;background:#b45309;color:#fff;padding:1px 5px;border-radius:3px;text-transform:uppercase;letter-spacing:.05em}' +
+      /* Filas de operativo */
+      '.op-row{display:flex;align-items:flex-start;gap:7px;padding:5px 6px;border-radius:4px;margin-bottom:3px;border-left:3px solid #1a2e4a;background:#f8f9fb}' +
+      '.hoy .op-row{border-left-color:#b45309;background:#fffbf5}' +
+      '.op-num{font-size:10px;font-weight:900;color:#1a2e4a;min-width:14px;padding-top:1px}' +
+      '.hoy .op-num{color:#b45309}' +
+      '.op-body{flex:1;min-width:0}' +
+      '.op-titulo{font-size:11px;font-weight:800;color:#111;margin-bottom:2px}' +
+      '.op-meta{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:2px}' +
+      '.meta-item{font-size:9.5px;color:#555}' +
+      '.meta-hora{font-weight:800;color:#b45309}' +
+      '.op-detalle{font-size:9px;color:#777;font-style:italic;margin-top:2px;line-height:1.4}' +
+      '.op-estado{font-size:7.5px;font-weight:900;padding:2px 6px;border-radius:3px;letter-spacing:.05em;white-space:nowrap;align-self:flex-start;margin-top:2px}' +
+      '.est-ok{background:#d1fae5;color:#065f46}' +
+      '.est-no{background:#fee2e2;color:#991b1b}' +
+      '.est-pend{background:#fef3c7;color:#92400e}' +
+      /* Footer */
+      '.footer{border-top:1px solid #e0e0e0;padding-top:6px;margin-top:14px;display:flex;justify-content:space-between;font-size:8px;color:#aaa}' +
+      '@page{size:A4;margin:1cm}' +
+      '@media print{body{padding:0}}' +
+      '</style></head><body>' +
+      '<div class="header">' +
+      '<div class="header-left"><div class="header-logo">IVC Seguridad y Emergencias</div><div class="header-sub">Agenda de Operativos</div></div>' +
+      '<div class="header-right"><div class="header-semana">' + tabLabel + '</div><div class="header-mes">' + mesLabel + '</div></div>' +
+      '</div>' +
+      cuerpo +
+      '<div class="footer"><span>IVC Seguridad y Emergencias</span><span>Generado el ' + fechaExp + '</span></div>' +
+      '</body></html>'
+    );
+    ventana.document.close();
+    setTimeout(function() { ventana.focus(); ventana.print(); }, 500);
+  });
 }
 function suprimirAgenda(id, asunto) {
   if (!_puedeGestionAgenda()) { toast('Sin permiso', 'err'); return; }
