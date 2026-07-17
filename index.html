@@ -13919,8 +13919,19 @@ function _getAddress() {
   }));
   return _getAddress.apply(this, arguments);
 }
+var _FICHAJE_EN_CURSO = false;
 function doEntrada() {
-  return _doEntrada.apply(this, arguments);
+  // Lock síncrono: si ya hay un fichaje en proceso, ignorar el tap adicional
+  if (_FICHAJE_EN_CURSO) { toast('Procesando fichaje, esperá un momento...', 'err'); return; }
+  _FICHAJE_EN_CURSO = true;
+  var _p = _doEntrada.apply(this, arguments);
+  if (_p && typeof _p.finally === 'function') {
+    _p.finally(function() { _FICHAJE_EN_CURSO = false; });
+  } else {
+    // Fallback: liberar el lock después de 5 segundos
+    setTimeout(function() { _FICHAJE_EN_CURSO = false; }, 5000);
+  }
+  return _p;
 }
 function _doEntrada() {
   _doEntrada = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee35() {
@@ -13928,12 +13939,12 @@ function _doEntrada() {
     return _regenerator().w(function (_context35) {
       while (1) switch (_context35.n) {
         case 0:
-          if (typeof IVC_OFFLINE !== 'undefined' && IVC_OFFLINE) { ivcCheckOnlineParaEscritura('Fichar entrada'); return _context35.a(2); }
+          if (typeof IVC_OFFLINE !== 'undefined' && IVC_OFFLINE) { _FICHAJE_EN_CURSO = false; ivcCheckOnlineParaEscritura('Fichar entrada'); return _context35.a(2); }
           if (SEL_AGENT) {
             _context35.n = 1;
             break;
           }
-          toast('Seleccioná un agente primero', 'err');
+          toast('Seleccioná un agente primero', 'err'); _FICHAJE_EN_CURSO = false;
           return _context35.a(2);
         case 1:
           setLoading('btn-entrada', true);
@@ -13969,11 +13980,17 @@ function _doEntrada() {
           return db.from('fichajes').select('id').eq('agente', SEL_AGENT).eq('activo', true).limit(1);
         case 5:
           var _checkFich = _context35.v;
-          if (!_checkFich.data || !_checkFich.data.length) {
+          // Si hay error en el check O si ya existe un fichaje activo → bloquear
+          if (_checkFich.error) {
+            setLoading('btn-entrada', false); _FICHAJE_EN_CURSO = false;
+            toast('Error al verificar fichaje: ' + _checkFich.error.message, 'err');
+            return _context35.a(2);
+          }
+          if (_checkFich.data && _checkFich.data.length) {
             _context35.n = 6;
             break;
           }
-          setLoading('btn-entrada', false);
+          setLoading('btn-entrada', false); _FICHAJE_EN_CURSO = false;
           toast(SEL_AGENT + ' ya tiene un fichaje activo', 'err');
           return _context35.a(2);
         case 6:
@@ -13992,7 +14009,7 @@ function _doEntrada() {
         case 7:
           _yield$db$from$insert = _context35.v;
           error = _yield$db$from$insert.error;
-          setLoading('btn-entrada', false);
+          setLoading('btn-entrada', false); _FICHAJE_EN_CURSO = false;
           if (!error) {
             _context35.n = 6;
             break;
@@ -14990,7 +15007,7 @@ function _sortPuntosRecorrido(puntos, horaInicio) {
       if (hiMin > 0 && m < hiMin) m += 1440;
       return m;
     }
-    return toMin(a.hora) - toMin(b.hora);
+    return toMin(b.hora) - toMin(a.hora); // descendente: más reciente arriba
   });
 }
 
