@@ -5962,19 +5962,50 @@ function _guardarActualizacionNovedad() {
 }
 var AUTO_REFRESH_INTERVAL = null;
 var LAST_ACTIVE_SECTION = 'dashboard';
+// ── Refresh inteligente: fingerprint por tabla para evitar recargas innecesarias ──
+// Guarda "count|ultimo_created_at" por tabla. Si no cambio, no se recarga la vista.
+var AR_FINGERPRINTS = {};
+var AR_CICLOS = 0;
+var AR_FORZAR_CADA = 5; // cada 5 ciclos (5 min) refresco completo para captar ediciones
+function _arCheckYRecargar(tabla, filtroFn, loadFn) {
+  // filtroFn: funcion que aplica filtros extra a la query de fingerprint (o null)
+  var q = db.from(tabla).select('created_at', { count: 'exact' }).order('created_at', { ascending: false }).limit(1);
+  if (filtroFn) q = filtroFn(q);
+  q.then(function(r) {
+    if (r.error) { loadFn(); return; } // ante error, recargar normal (no perder datos)
+    var ultimo = (r.data && r.data[0]) ? r.data[0].created_at : '';
+    var fp = (r.count || 0) + '|' + ultimo;
+    if (AR_FINGERPRINTS[tabla] !== fp) {
+      AR_FINGERPRINTS[tabla] = fp;
+      loadFn();
+    }
+  });
+}
 function startAutoRefresh() {
   stopAutoRefresh();
+  AR_CICLOS = 0;
   AUTO_REFRESH_INTERVAL = setInterval(function () {
     if (!USER) return;
+    AR_CICLOS++;
+    var forzar = (AR_CICLOS % AR_FORZAR_CADA === 0);
     // Solo refrescar la seccion activa
     var name = LAST_ACTIVE_SECTION;
     if (name === 'dashboard') {
       loadDash();
       if (typeof loadNoticias === 'function') loadNoticias();
-    } else if (name === 'fichaje') loadFichajes();else if (name === 'novedades') loadNovedades();else if (name === 'objetivos') loadObjetivos();else if (name === 'choferes') loadChoferes();else if (name === 'llaves') {
+    } else if (name === 'fichaje') {
+      if (forzar) { loadFichajes(); }
+      else { _arCheckYRecargar('fichajes', function(q){ return q.eq('activo', true); }, loadFichajes); }
+    } else if (name === 'novedades') {
+      if (forzar) { loadNovedades(); }
+      else { _arCheckYRecargar('novedades', null, loadNovedades); }
+    } else if (name === 'objetivos') {
+      if (forzar) { loadObjetivos(); }
+      else { _arCheckYRecargar('objetivos', null, loadObjetivos); }
+    } else if (name === 'choferes') loadChoferes();else if (name === 'llaves') {
       if (typeof loadLlaves === 'function') loadLlaves();
     }
-  }, 30000);
+  }, 60000);
 }
 function stopAutoRefresh() {
   if (AUTO_REFRESH_INTERVAL) {
