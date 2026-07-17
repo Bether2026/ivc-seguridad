@@ -13987,12 +13987,10 @@ function _doEntrada() {
             return _context35.a(2);
           }
           if (_checkFich.data && _checkFich.data.length) {
-            _context35.n = 6;
-            break;
+            setLoading('btn-entrada', false); _FICHAJE_EN_CURSO = false;
+            toast(SEL_AGENT + ' ya tiene un fichaje activo', 'err');
+            return _context35.a(2);
           }
-          setLoading('btn-entrada', false); _FICHAJE_EN_CURSO = false;
-          toast(SEL_AGENT + ' ya tiene un fichaje activo', 'err');
-          return _context35.a(2);
         case 6:
           // Hora override: solo admin sistema puede modificarla
           if (USER.rol === 'ADMIN') {
