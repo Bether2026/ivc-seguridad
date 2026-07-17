@@ -4652,12 +4652,12 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
 </div>
 
 <!-- LIGHTBOX FOTOS -->
-<div id="ov-lightbox" onclick="cerrarFotoLightbox()" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.92);align-items:center;justify-content:center;cursor:zoom-out">
+<div id="ov-lightbox" onclick="event.stopPropagation();cerrarFotoLightbox()" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.92);align-items:center;justify-content:center;cursor:zoom-out">
   <div style="position:relative;max-width:95vw;max-height:90vh" onclick="event.stopPropagation()">
     <img id="lightbox-img" src="" style="max-width:95vw;max-height:82vh;object-fit:contain;border-radius:8px;display:block;box-shadow:0 8px 40px rgba(0,0,0,0.6)">
     <div style="display:flex;justify-content:center;gap:10px;margin-top:10px">
       <a id="lightbox-download" href="" download="foto_ivc.jpg" onclick="event.stopPropagation()" style="display:flex;align-items:center;gap:6px;padding:8px 20px;background:rgba(37,99,235,0.85);border:1px solid rgba(96,165,250,0.4);border-radius:8px;color:#fff;font-size:13px;font-weight:700;text-decoration:none;cursor:pointer">⬇ Descargar</a>
-      <button onclick="cerrarFotoLightbox()" style="padding:8px 20px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.1);color:white;font-size:13px;font-weight:700;cursor:pointer">✕ Cerrar</button>
+      <button onclick="event.stopPropagation();cerrarFotoLightbox()" style="padding:8px 20px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.1);color:white;font-size:13px;font-weight:700;cursor:pointer">✕ Cerrar</button>
     </div>
   </div>
 </div>
@@ -14699,10 +14699,14 @@ function abrirFotoLightbox(url) {
   }
 }
 
-function cerrarFotoLightbox() {
+function cerrarFotoLightbox(e) {
+  if (e) e.stopPropagation();
   var ov = document.getElementById('ov-lightbox');
-  if (ov) ov.style.display = 'none';
-  document.body.style.overflow = '';
+  if (ov) {
+    ov.style.display = 'none';
+    // Pequeño delay para que el evento de click no caiga en el overlay de abajo
+    setTimeout(function() { document.body.style.overflow = ''; }, 50);
+  }
 }
 
 function buscarEnRecorridos() {
@@ -15127,7 +15131,8 @@ function _loadObjetivos() {
                 o = puestosItems[oi];
                 window.OBJ_CACHE[o.id] = o;
                 isAct = o.estado === 'activo';
-                var puntos = _sortPuntosRecorrido((o.actualizaciones && o.actualizaciones.length) ? o.actualizaciones : [], o.inicio ? o.inicio.slice(11,16) : '');
+                var _horaInicioObj = (o.inicio || o.created_at || ''); var _horaInicioStr = _horaInicioObj.length >= 16 ? _horaInicioObj.slice(11,16) : '';
+                var puntos = _sortPuntosRecorrido((o.actualizaciones && o.actualizaciones.length) ? o.actualizaciones : [], _horaInicioStr);
                 var conInc = puntos.filter(function(p) { return p.incidencia; }).length;
                 var sinInc = puntos.length - conInc;
                 var prog = Math.min(100, puntos.length * 10);
