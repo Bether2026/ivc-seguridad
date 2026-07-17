@@ -2993,10 +2993,14 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
         <h2><span style="color:#fde68a;margin-right:8px;text-shadow:0 0 12px rgba(253,230,138,0.5)">📅</span>Agenda de Operativo</h2>
         <p>Planificación de operativos solicitados</p>
       </div>
-      <div class="tabs" style="margin-bottom:14px">
-        <button class="tab active" onclick="agendaTab('hoy',this)">📅 Hoy</button>
-        <button class="tab" onclick="agendaTab('semana',this)">📆 Esta semana</button>
-        <button class="tab" onclick="agendaTab('todos',this)">📋 Todos</button>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+        <div class="tabs" style="flex:1;min-width:0">
+          <button class="tab active" onclick="agendaTab('hoy',this)">📅 Hoy</button>
+          <button class="tab" onclick="agendaTab('semana',this)">📆 Esta semana</button>
+          <button class="tab" onclick="agendaTab('proxima',this)">📆 Próxima semana</button>
+          <button class="tab" onclick="agendaTab('todos',this)">📋 Todos</button>
+        </div>
+        <button id="btn-export-agenda-pdf" onclick="exportarAgendaPDF()" style="display:none;padding:7px 14px;border-radius:8px;border:1px solid rgba(253,230,138,0.4);background:rgba(253,230,138,0.08);color:#fde68a;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">⬇ Exportar PDF</button>
       </div>
       <div id="agenda-list"><div class="empty"><div class="icon">📅</div><p>Sin operativos registrados</p></div></div>
     </div>
@@ -8206,6 +8210,8 @@ function agendaTab(tab, btn) {
     b.classList.remove('active');
   });
   btn.classList.add('active');
+  var btnPdf = document.getElementById('btn-export-agenda-pdf');
+  if (btnPdf) btnPdf.style.display = (tab === 'semana' || tab === 'proxima') ? 'inline-flex' : 'none';
   loadAgenda();
 }
 function agregarFechaAgenda() {
@@ -12873,47 +12879,128 @@ function loadAgenda() {
 function _puedeGestionAgenda() {
   return ['Administración', 'Administrador'].indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN';
 }
-function _agendaAccionesHTML(op) {
+function _agendaAccionesHTML(op, fecha) {
+  // fecha: string 'YYYY-MM-DD' cuando se llama desde vista semanal/proxima (estado por fecha)
+  // Si no se pasa fecha, usa el campo estado global (vista hoy/todos)
+  var esPorFecha = !!fecha;
+  var estados = (esPorFecha && op.estados_por_fecha) ? op.estados_por_fecha : {};
+  var agentesMap = (esPorFecha && op.agentes_por_fecha) ? op.agentes_por_fecha : {};
+  var est = esPorFecha ? (estados[fecha] || 'pendiente') : (op.estado || 'pendiente');
+  var agentesVal = esPorFecha ? (agentesMap[fecha] || '') : (op.agentes_acompanaron || '');
+  var fechaParam = esPorFecha ? (',\'' + fecha + '\'') : ',null';
   if (!_puedeGestionAgenda()) {
-    // Los demás solo ven el estado, sin poder cambiarlo
-    if (op.estado === 'realizado') return '<div style="margin-top:8px;font-size:11px;font-weight:700;color:#6ee7b7">✓ Se realizó' + (op.agentes_acompanaron ? ' — 👥 ' + op.agentes_acompanaron : '') + '</div>';
-    if (op.estado === 'no_realizado') return '<div style="margin-top:8px;font-size:11px;font-weight:700;color:#fca5a5">✕ No se realizó</div>';
+    if (est === 'realizado') return '<div style="margin-top:8px;font-size:11px;font-weight:700;color:#6ee7b7">✓ Se realizó' + (agentesVal ? ' — 👥 ' + agentesVal : '') + '</div>';
+    if (est === 'no_realizado') return '<div style="margin-top:8px;font-size:11px;font-weight:700;color:#fca5a5">✕ No se realizó</div>';
     return '';
   }
   var h = '<div style="margin-top:10px;border-top:1px solid var(--border);padding-top:8px">';
-  // Estado actual
-  var est = op.estado || 'pendiente';
-  h += '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">';
-  h += '<button onclick="marcarEstadoAgenda(\'' + op.id + '\',\'realizado\')" style="flex:1;min-width:90px;padding:6px 8px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font);border:1px solid rgba(16,185,129,.4);' + (est === 'realizado' ? 'background:rgba(16,185,129,.25);color:#6ee7b7' : 'background:transparent;color:#6ee7b7') + '">✓ Se realizó</button>';
-  h += '<button onclick="marcarEstadoAgenda(\'' + op.id + '\',\'no_realizado\')" style="flex:1;min-width:90px;padding:6px 8px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font);border:1px solid rgba(239,68,68,.4);' + (est === 'no_realizado' ? 'background:rgba(239,68,68,.25);color:#fca5a5' : 'background:transparent;color:#fca5a5') + '">✕ No se realizó</button>';
+  var btnBase = 'padding:5px 10px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font);white-space:nowrap;';
+  h += '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:6px">';
+  h += '<button onclick="marcarEstadoAgenda(\'' + op.id + '\',\'realizado\'' + fechaParam + ')" style="' + btnBase + 'border:1px solid rgba(16,185,129,.4);' + (est === 'realizado' ? 'background:rgba(16,185,129,.25);color:#6ee7b7' : 'background:transparent;color:#6ee7b7') + '">✓ Se realizó</button>';
+  h += '<button onclick="marcarEstadoAgenda(\'' + op.id + '\',\'no_realizado\'' + fechaParam + ')" style="' + btnBase + 'border:1px solid rgba(239,68,68,.4);' + (est === 'no_realizado' ? 'background:rgba(239,68,68,.25);color:#fca5a5' : 'background:transparent;color:#fca5a5') + '">✕ No se realizó</button>';
+  h += '<button onclick="editarAgenda(\'' + op.id + '\')" style="' + btnBase + 'border:1px solid rgba(96,165,250,.4);background:transparent;color:#93c5fd">✏ Editar</button>';
+  h += '<button onclick="suprimirAgenda(\'' + op.id + '\',\'' + (op.asunto||'').replace(/'/g,'').replace(/"/g,'') + '\')" style="' + btnBase + 'border:1px solid rgba(239,68,68,.4);background:transparent;color:#f87171">🗑 Suprimir</button>';
   h += '</div>';
-  // Agentes que acompañaron (solo si está realizado)
   if (est === 'realizado') {
-    h += '<div style="margin-bottom:8px">';
-    h += '<input type="text" value="' + (op.agentes_acompanaron || '').replace(/"/g,'&quot;') + '" placeholder="👥 Agentes que acompañaron..." onblur="guardarAgentesAcompanaron(\'' + op.id + '\',this.value)" style="width:100%;padding:7px 10px;border-radius:7px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font-family:var(--font);font-size:12px;box-sizing:border-box">';
+    h += '<div style="margin-bottom:4px">';
+    h += '<input type="text" value="' + agentesVal.replace(/"/g,'&quot;') + '" placeholder="👥 Agentes que acompañaron..." onblur="guardarAgentesAcompanaron(\'' + op.id + '\',this.value' + (esPorFecha ? ',\'' + fecha + '\'': ',null') + ')" style="width:100%;padding:7px 10px;border-radius:7px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font-family:var(--font);font-size:12px;box-sizing:border-box">';
     h += '</div>';
   }
-  // Editar / Suprimir
-  h += '<div style="display:flex;gap:6px">';
-  h += '<button onclick="editarAgenda(\'' + op.id + '\')" style="flex:1;padding:6px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font);border:1px solid rgba(96,165,250,.4);background:transparent;color:#93c5fd">✏ Editar</button>';
-  h += '<button onclick="suprimirAgenda(\'' + op.id + '\',\'' + (op.asunto||'').replace(/'/g,'').replace(/"/g,'') + '\')" style="flex:1;padding:6px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font);border:1px solid rgba(239,68,68,.4);background:transparent;color:#f87171">🗑 Suprimir</button>';
-  h += '</div>';
   h += '</div>';
   return h;
 }
-function marcarEstadoAgenda(id, estado) {
+function marcarEstadoAgenda(id, estado, fecha) {
   if (!_puedeGestionAgenda()) { toast('Sin permiso', 'err'); return; }
-  db.from('agenda_operativos').update({ estado: estado }).eq('id', id).then(function(r) {
-    if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
-    toast(estado === 'realizado' ? '✓ Marcado como realizado' : '✕ Marcado como no realizado');
-    loadAgenda();
-  });
+  if (fecha) {
+    // Estado por fecha: hacer merge del jsonb en cliente y guardar
+    db.from('agenda_operativos').select('estados_por_fecha').eq('id', id).single().then(function(r2) {
+      if (r2.error) { toast('Error: ' + r2.error.message, 'err'); return; }
+      var mapa = (r2.data && r2.data.estados_por_fecha) ? r2.data.estados_por_fecha : {};
+      mapa[fecha] = estado;
+      db.from('agenda_operativos').update({ estados_por_fecha: mapa }).eq('id', id).then(function(r) {
+        if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+        toast(estado === 'realizado' ? '✓ Marcado como realizado' : '✕ Marcado como no realizado');
+        loadAgenda();
+      });
+    });
+  } else {
+    // Estado global (vista hoy/todos)
+    db.from('agenda_operativos').update({ estado: estado }).eq('id', id).then(function(r) {
+      if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+      toast(estado === 'realizado' ? '✓ Marcado como realizado' : '✕ Marcado como no realizado');
+      loadAgenda();
+    });
+  }
 }
-function guardarAgentesAcompanaron(id, valor) {
+function guardarAgentesAcompanaron(id, valor, fecha) {
   if (!_puedeGestionAgenda()) return;
-  db.from('agenda_operativos').update({ agentes_acompanaron: valor.trim() || null }).eq('id', id).then(function(r) {
-    if (!r.error) toast('Agentes guardados');
-  });
+  if (fecha) {
+    db.from('agenda_operativos').select('agentes_por_fecha').eq('id', id).single().then(function(r2) {
+      if (r2.error) return;
+      var mapa = (r2.data && r2.data.agentes_por_fecha) ? r2.data.agentes_por_fecha : {};
+      if (valor.trim()) { mapa[fecha] = valor.trim(); } else { delete mapa[fecha]; }
+      db.from('agenda_operativos').update({ agentes_por_fecha: mapa }).eq('id', id).then(function(r) {
+        if (!r.error) toast('Agentes guardados');
+      });
+    });
+  } else {
+    db.from('agenda_operativos').update({ agentes_acompanaron: valor.trim() || null }).eq('id', id).then(function(r) {
+      if (!r.error) toast('Agentes guardados');
+    });
+  }
+}
+function exportarAgendaPDF() {
+  var tab = CUR_AGENDA_TAB;
+  if (tab !== 'semana' && tab !== 'proxima') { toast('Seleccioná "Esta semana" o "Próxima semana" para exportar', 'err'); return; }
+  var contenido = document.getElementById('agenda-list');
+  if (!contenido) return;
+  var tabLabel = tab === 'semana' ? 'Esta semana' : 'Próxima semana';
+  var hoy = new Date();
+  var fechaExp = hoy.toLocaleDateString('es-AR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric', timeZone: 'America/Argentina/Buenos_Aires' });
+  var ventana = window.open('', '_blank');
+  if (!ventana) { toast('Habilitá las ventanas emergentes para exportar', 'err'); return; }
+  var innerHtml = contenido.innerHTML;
+  // Limpiar botones de acciones del HTML exportado
+  var parser = ventana.document.createElement('div');
+  parser.innerHTML = innerHtml;
+  // Quitar todos los botones y inputs del export
+  var botonesAEliminar = parser.querySelectorAll('button, input[type="text"]');
+  for (var bi = 0; bi < botonesAEliminar.length; bi++) {
+    botonesAEliminar[bi].parentNode.removeChild(botonesAEliminar[bi]);
+  }
+  var htmlLimpio = parser.innerHTML;
+  ventana.document.write(
+    '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">' +
+    '<title>Agenda de Operativos — ' + tabLabel + '</title>' +
+    '<style>' +
+    'body{margin:0;padding:20px 28px;font-family:Arial,sans-serif;background:#fff;color:#111}' +
+    '.encabezado{border-bottom:3px solid #1e3a5f;padding-bottom:14px;margin-bottom:20px}' +
+    '.encabezado h1{margin:0 0 4px;font-size:22px;color:#1e3a5f}' +
+    '.encabezado p{margin:0;font-size:12px;color:#666}' +
+    '.sep-dia{display:flex;align-items:center;gap:10px;margin:18px 0 10px}' +
+    '.sep-dia hr{flex:1;border:none;border-top:1px solid #ccc}' +
+    '.sep-dia span{font-size:12px;font-weight:800;padding:4px 14px;border-radius:20px;background:#1e3a5f;color:#fff;white-space:nowrap}' +
+    '.sep-dia.hoy span{background:#b45309;color:#fff}' +
+    '.op-card{border:1px solid #ddd;border-left:4px solid #1e3a5f;border-radius:8px;padding:12px 14px;margin-bottom:8px;page-break-inside:avoid}' +
+    '.op-titulo{font-size:15px;font-weight:800;margin-bottom:5px;color:#111}' +
+    '.op-info{font-size:12px;color:#444;line-height:1.7}' +
+    '.op-detalle{font-size:11px;color:#666;border-top:1px solid #eee;padding-top:7px;margin-top:7px;line-height:1.6}' +
+    '.op-estado{display:inline-block;font-size:10px;font-weight:800;padding:2px 8px;border-radius:12px;margin-top:6px}' +
+    '.op-estado.realizado{background:#d1fae5;color:#065f46}' +
+    '.op-estado.no_realizado{background:#fee2e2;color:#991b1b}' +
+    '.op-estado.pendiente{background:#fef3c7;color:#92400e}' +
+    '@media print{body{padding:10px 16px}@page{margin:1.5cm}}' +
+    '</style></head><body>' +
+    '<div class="encabezado">' +
+    '<h1>📅 Agenda de Operativos — ' + tabLabel + '</h1>' +
+    '<p>Exportado el ' + fechaExp + ' · IVC Seguridad y Emergencias</p>' +
+    '</div>'
+  );
+  // Reescribir el contenido limpio con estilos de impresión
+  ventana.document.write('<div>' + htmlLimpio + '</div>');
+  ventana.document.write('</body></html>');
+  ventana.document.close();
+  setTimeout(function() { ventana.focus(); ventana.print(); }, 600);
 }
 function suprimirAgenda(id, asunto) {
   if (!_puedeGestionAgenda()) { toast('Sin permiso', 'err'); return; }
@@ -12986,11 +13073,21 @@ function _loadAgenda() {
           finSemana.setDate(inicioSemana.getDate() + 6);
           semIni = inicioSemana.getFullYear() + '-' + String(inicioSemana.getMonth()+1).padStart(2,'0') + '-' + String(inicioSemana.getDate()).padStart(2,'0');
           semFin = finSemana.getFullYear() + '-' + String(finSemana.getMonth()+1).padStart(2,'0') + '-' + String(finSemana.getDate()).padStart(2,'0');
+          // Próxima semana
+          var inicioProxima = new Date(inicioSemana);
+          inicioProxima.setDate(inicioSemana.getDate() + 7);
+          var finProxima = new Date(inicioProxima);
+          finProxima.setDate(inicioProxima.getDate() + 6);
+          var proxIni = inicioProxima.getFullYear() + '-' + String(inicioProxima.getMonth()+1).padStart(2,'0') + '-' + String(inicioProxima.getDate()).padStart(2,'0');
+          var proxFin = finProxima.getFullYear() + '-' + String(finProxima.getMonth()+1).padStart(2,'0') + '-' + String(finProxima.getDate()).padStart(2,'0');
           lista = todos.filter(function (op) {
             if (!op.fechas) return false;
             if (CUR_AGENDA_TAB === 'hoy') return op.fechas.indexOf(hoyStr) !== -1;
             if (CUR_AGENDA_TAB === 'semana') return op.fechas.some(function (f) {
               return f >= semIni && f <= semFin;
+            });
+            if (CUR_AGENDA_TAB === 'proxima') return op.fechas.some(function (f) {
+              return f >= proxIni && f <= proxFin;
             });
             return true;
           });
@@ -12998,14 +13095,16 @@ function _loadAgenda() {
             _context28.n = 4;
             break;
           }
-          cont.innerHTML = '<div class="empty"><div class="icon">📅</div><p>Sin operativos para ' + (CUR_AGENDA_TAB === 'hoy' ? 'hoy' : CUR_AGENDA_TAB === 'semana' ? 'esta semana' : 'mostrar') + '</p></div>';
+          cont.innerHTML = '<div class="empty"><div class="icon">📅</div><p>Sin operativos para ' + (CUR_AGENDA_TAB === 'hoy' ? 'hoy' : CUR_AGENDA_TAB === 'semana' ? 'esta semana' : CUR_AGENDA_TAB === 'proxima' ? 'la próxima semana' : 'mostrar') + '</p></div>';
           return _context28.a(2);
         case 4:
           h = '';
 
-          if (CUR_AGENDA_TAB === 'semana') {
-            // ── VISTA SEMANAL: agrupar por día ──
+          if (CUR_AGENDA_TAB === 'semana' || CUR_AGENDA_TAB === 'proxima') {
+            // ── VISTA SEMANAL / PRÓXIMA SEMANA: agrupar por día ──
             var DIAS = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+            var rangoIni = CUR_AGENDA_TAB === 'proxima' ? proxIni : semIni;
+            var rangoFin = CUR_AGENDA_TAB === 'proxima' ? proxFin : semFin;
             // Construir mapa fecha → operativos
             var porDia = {};
             for (i = 0; i < lista.length; i++) {
@@ -13013,7 +13112,7 @@ function _loadAgenda() {
               var fechasOp = op.fechas || [];
               for (fi = 0; fi < fechasOp.length; fi++) {
                 var fd2 = fechasOp[fi];
-                if (fd2 >= semIni && fd2 <= semFin) {
+                if (fd2 >= rangoIni && fd2 <= rangoFin) {
                   if (!porDia[fd2]) porDia[fd2] = [];
                   porDia[fd2].push(op);
                 }
@@ -13022,7 +13121,7 @@ function _loadAgenda() {
             // Ordenar fechas
             var fechasConOps = Object.keys(porDia).sort();
             if (!fechasConOps.length) {
-              cont.innerHTML = '<div class="empty"><div class="icon">📅</div><p>Sin operativos esta semana</p></div>';
+              cont.innerHTML = '<div class="empty"><div class="icon">📅</div><p>Sin operativos ' + (CUR_AGENDA_TAB === 'proxima' ? 'la pr\u00f3xima semana' : 'esta semana') + '</p></div>';
               return _context28.a(2);
             }
             for (var di = 0; di < fechasConOps.length; di++) {
@@ -13054,7 +13153,7 @@ function _loadAgenda() {
                 if (op.telefono) h += '<div style="font-size:12px;color:var(--text2)">📞 ' + op.telefono + '</div>';
                 h += '</div>';
                 if (op.detalle) h += '<div style="font-size:11px;color:var(--text3);line-height:1.55;border-top:1px solid var(--border);padding-top:6px">' + op.detalle + '</div>';
-                h += _agendaAccionesHTML(op);
+                h += _agendaAccionesHTML(op, fechaDia);
                 h += '</div>';
               }
             }
