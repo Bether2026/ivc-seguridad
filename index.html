@@ -13993,12 +13993,12 @@ function _doEntrada() {
           error = _yield$db$from$insert.error;
           setLoading('btn-entrada', false); _FICHAJE_EN_CURSO = false;
           if (!error) {
-            _context35.n = 6;
+            _context35.n = 8;
             break;
           }
           toast('Error al registrar: ' + error.message, 'err');
           return _context35.a(2);
-        case 6:
+        case 8:
           toast("OK Entrada registrada \u2014 ".concat(SEL_AGENT));
           // Abrir recorrido automático para Rodrigo Bueno, Papa Francisco y Fraga
           // IMPORTANTE: usar fichPuesto (el puesto real donde se ficha), no USER.puesto
@@ -14025,7 +14025,7 @@ function _doEntrada() {
           }
           loadFichajes();
           loadDash();
-        case 7:
+        case 9:
           return _context35.a(2);
       }
     }, _callee35);
