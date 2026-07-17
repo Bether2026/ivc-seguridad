@@ -13006,10 +13006,6 @@ function exportarAgendaPDF() {
       for (var oi = 0; oi < ops.length; oi++) {
         contadorGlobal++;
         var op2 = ops[oi];
-        var estadosPf = op2.estados_por_fecha || {};
-        var est = estadosPf[fecha] || op2.estado || 'pendiente';
-        var estLabel = est === 'realizado' ? 'REALIZADO' : est === 'no_realizado' ? 'NO REALIZADO' : 'PENDIENTE';
-        var estClass = est === 'realizado' ? 'est-ok' : est === 'no_realizado' ? 'est-no' : 'est-pend';
         cuerpo += '<div class="op-row">';
         cuerpo += '<span class="op-num">' + contadorGlobal + '</span>';
         cuerpo += '<div class="op-body">';
@@ -13022,7 +13018,6 @@ function exportarAgendaPDF() {
         if (meta.length) cuerpo += '<div class="op-meta">' + meta.join('') + '</div>';
         if (op2.detalle) cuerpo += '<div class="op-detalle">' + op2.detalle + '</div>';
         cuerpo += '</div>';
-        cuerpo += '<span class="op-estado ' + estClass + '">' + estLabel + '</span>';
         cuerpo += '</div>';
       }
       cuerpo += '</div>';
