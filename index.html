@@ -22197,8 +22197,8 @@ function notificarGPSalSW(lat, lng, movil, chofer) {
     var accessToken = (sres && sres.data && sres.data.session) ? sres.data.session.access_token : null;
     navigator.serviceWorker.controller.postMessage({
       tipo: 'GPS_CONFIG',
-      supaUrl: 'https://cuwvmvmrmxprqozfnlva.supabase.co',
-      supaKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1d3Ztdm1ybXhwcnFvemZubHZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5OTUyODYsImV4cCI6MjA5MjU3MTI4Nn0.l-k8ev4zdQBVCyBaEfe7VeFczshIc',
+      supaUrl: SUPA_URL,
+      supaKey: SUPA_KEY,
       accessToken: accessToken,
       movil: movil, chofer: chofer
     });
@@ -24866,9 +24866,9 @@ function ivcEntrarOffline() {
   if (IVC_RECONECT_TIMER) clearInterval(IVC_RECONECT_TIMER);
   IVC_RECONECT_TIMER = setInterval(function() {
     // Ping liviano a Supabase para detectar reconexion
-    fetch('https://cuwvmvmrmxprqozfnlva.supabase.co/rest/v1/', {
+    fetch(SUPA_URL + '/rest/v1/', {
       method: 'HEAD',
-      headers: { 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1d3Ztdm1ybXhwcnFvemZubHZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5OTUyODYsImV4cCI6MjA5MjU3MTI4Nn0.l-k8ev4zdQBVCyBaEfe7KHCkl5DtUJMsyWHIqBZiNtw' }
+      headers: { 'apikey': SUPA_KEY }
     }).then(function() {
       ivcVolverOnline();
     }).catch(function() {});
