@@ -5966,7 +5966,7 @@ var LAST_ACTIVE_SECTION = 'dashboard';
 // Guarda "count|ultimo_created_at" por tabla. Si no cambio, no se recarga la vista.
 var AR_FINGERPRINTS = {};
 var AR_CICLOS = 0;
-var AR_FORZAR_CADA = 5; // cada 5 ciclos (5 min) refresco completo para captar ediciones
+var AR_FORZAR_CADA = 10; // cada 10 ciclos (10 min) refresco completo para captar ediciones
 function _arCheckYRecargar(tabla, filtroFn, loadFn) {
   // filtroFn: funcion que aplica filtros extra a la query de fingerprint (o null)
   var q = db.from(tabla).select('created_at', { count: 'exact' }).order('created_at', { ascending: false }).limit(1);
@@ -5986,6 +5986,7 @@ function startAutoRefresh() {
   AR_CICLOS = 0;
   AUTO_REFRESH_INTERVAL = setInterval(function () {
     if (!USER) return;
+    if (document.hidden) return; // pestaña oculta: no consumir egress
     AR_CICLOS++;
     var forzar = (AR_CICLOS % AR_FORZAR_CADA === 0);
     // Solo refrescar la seccion activa
@@ -6013,6 +6014,20 @@ function stopAutoRefresh() {
     AUTO_REFRESH_INTERVAL = null;
   }
 }
+// Al volver a la pestaña, refrescar la seccion activa de inmediato
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState !== 'visible') return;
+  if (typeof USER === 'undefined' || !USER) return;
+  try {
+    var s = LAST_ACTIVE_SECTION;
+    if (s === 'dashboard') { if (typeof loadDash === 'function') loadDash(); if (typeof loadNoticias === 'function') loadNoticias(); }
+    else if (s === 'fichaje'   && typeof loadFichajes  === 'function') loadFichajes();
+    else if (s === 'novedades' && typeof loadNovedades === 'function') loadNovedades();
+    else if (s === 'objetivos' && typeof loadObjetivos === 'function') loadObjetivos();
+    else if (s === 'choferes'  && typeof loadChoferes  === 'function') loadChoferes();
+    else if (s === 'llaves'    && typeof loadLlaves    === 'function') loadLlaves();
+  } catch(e) {}
+});
 function toggleNovedad(id, clickedEl) {
   var el = document.getElementById('nov-' + id);
   var arr = document.getElementById('arr-' + id);
@@ -8056,7 +8071,7 @@ var POLLING_INICIADO = false;
 
 function iniciarPolling() {
   if (POLLING_TIMER) return;
-  console.log('[Polling] iniciado cada 15s');
+  console.log('[Polling] iniciado cada 60s (respaldo de Realtime)');
 
   // Primera corrida: solo inicializar IDs sin disparar updates
   db.from('novedades').select('id').order('created_at', {ascending: false}).limit(1)
@@ -8071,6 +8086,7 @@ function iniciarPolling() {
     POLLING_INICIADO = true;
     POLLING_TIMER = setInterval(function() {
       if (!USER) { clearInterval(POLLING_TIMER); POLLING_TIMER = null; POLLING_INICIADO = false; return; }
+      if (document.hidden) return; // pestaña oculta: no consultar
 
       // Check novedades
       db.from('novedades').select('id, relevancia, asunto, puesto, cargado_por')
@@ -8125,7 +8141,7 @@ function iniciarPolling() {
           POLLING_ULTIMAS.objetivos = last;
         });
 
-    }, 15000);
+    }, 60000); // 60s: respaldo del canal Realtime, que notifica cambios al instante
   }, 5000);
 }
 // ─── TOGGLE ÚLTIMAS NOVEDADES INLINE ───
@@ -17886,9 +17902,10 @@ var GPS_TRACKING = false;
 var GPS_REFRESH_INTERVAL = null;
 
 function loadGPS() {
-  // Capa de seguridad: solo Gerencia y Administrador
-  if (!USER || ['Gerencia', 'Administrador'].indexOf(USER.puesto) < 0) return;
-  return _loadGPS.apply(this, arguments);
+  // GPS desactivado — sin consultas a gps_moviles ni gps_track
+  var f = document.getElementById('gps-map-frame');
+  if (f) f.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:320px;color:var(--text3);font-size:13px">\ud83d\udce1 Seguimiento GPS desactivado</div>';
+  return Promise.resolve();
 }
 function _loadGPS() {
   _loadGPS = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee65() {
@@ -18163,7 +18180,9 @@ function _dibujarMapa(list) {
 }
 
 function verRecorridoGPS(rutaId, movil, chofer, inicio, fin) {
-  // Capa de seguridad: solo Gerencia y Administrador
+  // Historial GPS desactivado
+  if (typeof toast === 'function') toast('Historial GPS desactivado', 'err');
+  return;
   if (!USER || ['Gerencia', 'Administrador'].indexOf(USER.puesto) < 0) return;
   // Crear overlay dinamico si no existe
   var ovId = 'ov-gps-historial';
@@ -18302,7 +18321,9 @@ function _fallbackIframe(list) {
   frame.innerHTML = '<iframe src="https://www.openstreetmap.org/export/embed.html?bbox=' + (p.lng-0.005) + ',' + (p.lat-0.005) + ',' + (p.lng+0.005) + ',' + (p.lat+0.005) + '&layer=mapnik&marker=' + p.lat + ',' + p.lng + '" style="width:100%;height:320px;border:none;border-radius:10px" loading="lazy"></iframe>';
 }
 function startGPSTransmission(_x24, _x25) {
-  return _startGPSTransmission.apply(this, arguments);
+  // GPS de recorrido desactivado — no transmite posicion ni consulta rutas
+  console.log('[GPS] Transmision desactivada por configuracion');
+  return Promise.resolve();
 }
 function _startGPSTransmission() {
   _startGPSTransmission = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee67(chofer, movil) {
@@ -21968,6 +21989,7 @@ function iniciarMonitorTurnos() {
 }
 
 function ejecutarMonitorTurnos() {
+  if (document.hidden) return; // pestaña oculta: pausar monitor
   var hoy = fechaHoyAR();
   var horaAR = horaActualAR();
 
@@ -22191,6 +22213,7 @@ if ('serviceWorker' in navigator) {
 }
 
 function notificarGPSalSW(lat, lng, movil, chofer) {
+  return; // GPS desactivado — el Service Worker no recibe config ni coordenadas
   if (!navigator.serviceWorker || !navigator.serviceWorker.controller) return;
   // Obtener el access token de la sesion actual para que el SW pueda escribir con RLS
   db.auth.getSession().then(function(sres) {
@@ -22360,6 +22383,7 @@ function iniciarMonitorDispositivos() {
 
 function _chequearAlertasDispositivos() {
   if (!USER || USER.puesto !== 'Administrador') return;
+  if (document.hidden) return; // pestaña oculta: pausar chequeo
   db.from('alertas_turno').select('id,mensaje,created_at')
     .eq('tipo', 'dispositivo_nuevo')
     .eq('puesto', 'Administrador')
