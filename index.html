@@ -60,7 +60,8 @@
   -webkit-tap-highlight-color: transparent;
   -webkit-user-select: none; user-select: none;
 }
-input, textarea, select { -webkit-user-select: text !important; user-select: text !important; }
+input, textarea, select, p, span, div { -webkit-user-select: text; user-select: text; }
+button, .sidebar-item, .tab, .badge, [onclick] { -webkit-user-select: none !important; user-select: none !important; }
 html { font-size: 16px; -webkit-text-size-adjust: 100%; }
 body {
   font-family: var(--font);
@@ -6917,10 +6918,7 @@ window.addEventListener('unhandledrejection', function (e) {
   } catch (err) {}
 });
 (function () {
-  document.addEventListener('contextmenu', function (e) {
-    e.preventDefault();
-    return false;
-  });
+  // contextmenu habilitado para permitir copiar texto
   document.addEventListener('keydown', function (e) {
     if (e.keyCode === 123) {
       e.preventDefault();
