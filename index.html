@@ -1242,6 +1242,92 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
   justify-content: center;
   flex-shrink: 0;
 }
+
+/* ── Visual refresh ── */
+.card, .stat-card {
+  backdrop-filter: blur(14px) saturate(160%);
+  -webkit-backdrop-filter: blur(14px) saturate(160%);
+}
+.page-header h2 {
+  background: linear-gradient(130deg, #f0f4ff 0%, #93c5fd 55%, #60a5fa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+@keyframes shimmer-sweep {
+  0%   { transform: translateX(-150%) skewX(-18deg); opacity: 0; }
+  20%  { opacity: 1; }
+  80%  { opacity: 1; }
+  100% { transform: translateX(300%) skewX(-18deg); opacity: 0; }
+}
+.btn-fich::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0;
+  left: 0; width: 40%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.28), transparent);
+  transform: translateX(-150%) skewX(-18deg);
+  animation: shimmer-sweep 3.2s ease-in-out infinite;
+  pointer-events: none;
+}
+.nav-btn.active::after {
+  opacity: .15;
+}
+</style>
+
+<style id="ui-polish-2026">
+/* ── ACTUALIZACIÓN VISUAL — profundidad, brillo y acento cian ── */
+
+/* Fondo con auroras de profundidad: se nota en toda la app */
+body {
+  background:
+    radial-gradient(1000px 560px at 10% -10%, rgba(59,130,246,0.17), transparent 60%),
+    radial-gradient(820px 520px at 110% 8%, rgba(34,211,238,0.11), transparent 55%),
+    radial-gradient(1100px 760px at 50% 120%, rgba(37,99,235,0.13), transparent 62%),
+    var(--bg);
+  background-attachment: fixed;
+}
+
+/* Tarjetas del panel: más relieve, borde luminoso azul→cian */
+.stat-card {
+  background: linear-gradient(180deg, rgba(26,72,120,0.55) 0%, rgba(10,39,71,0.92) 100%);
+  border-color: rgba(124,176,255,0.16);
+  box-shadow: 0 10px 30px rgba(2,10,24,0.45), inset 0 1px 0 rgba(255,255,255,0.06);
+}
+.stat-card::before {
+  height: 2px; left: 10px; right: 10px;
+  background: linear-gradient(90deg, transparent, rgba(96,165,250,0.85), rgba(34,211,238,0.6), transparent);
+}
+.stat-card:hover {
+  box-shadow: 0 14px 40px rgba(2,10,24,0.55), 0 0 24px rgba(59,130,246,0.18), inset 0 1px 0 rgba(255,255,255,0.08);
+}
+
+/* Números del panel con halo suave */
+.stat-val { text-shadow: 0 0 26px rgba(96,165,250,0.28); }
+
+/* Widgets del dashboard con sombra de reposo (antes solo al hover) */
+.dash-widget {
+  box-shadow: 0 8px 24px rgba(2,10,24,0.35), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+
+/* Menú lateral: ítem activo con barra luminosa azul→cian y brillo */
+.sidebar-item { position: relative; }
+.sidebar-item.active {
+  background: linear-gradient(90deg, rgba(59,130,246,0.26), rgba(59,130,246,0.10));
+  border: 1px solid rgba(96,165,250,0.45);
+  box-shadow: 0 6px 18px rgba(37,99,235,0.28), inset 0 1px 0 rgba(255,255,255,0.08);
+}
+.sidebar-item.active::before {
+  content: ''; position: absolute; left: -1px; top: 8px; bottom: 8px; width: 3px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, #60a5fa, #22d3ee);
+  box-shadow: 0 0 10px rgba(96,165,250,0.8);
+}
+
+/* Respeto por usuarios con animaciones reducidas */
+@media (prefers-reduced-motion: reduce) {
+  .stat-card, .dash-widget, .sidebar-item { transition: none; }
+}
 </style>
 </head>
 <body>
@@ -5966,7 +6052,7 @@ var LAST_ACTIVE_SECTION = 'dashboard';
 // Guarda "count|ultimo_created_at" por tabla. Si no cambio, no se recarga la vista.
 var AR_FINGERPRINTS = {};
 var AR_CICLOS = 0;
-var AR_FORZAR_CADA = 5; // cada 5 ciclos (5 min) refresco completo para captar ediciones
+var AR_FORZAR_CADA = 10; // cada 10 ciclos (10 min) refresco completo para captar ediciones
 function _arCheckYRecargar(tabla, filtroFn, loadFn) {
   // filtroFn: funcion que aplica filtros extra a la query de fingerprint (o null)
   var q = db.from(tabla).select('created_at', { count: 'exact' }).order('created_at', { ascending: false }).limit(1);
@@ -5986,6 +6072,7 @@ function startAutoRefresh() {
   AR_CICLOS = 0;
   AUTO_REFRESH_INTERVAL = setInterval(function () {
     if (!USER) return;
+    if (document.hidden) return; // pestaña oculta: no consumir egress
     AR_CICLOS++;
     var forzar = (AR_CICLOS % AR_FORZAR_CADA === 0);
     // Solo refrescar la seccion activa
@@ -6013,6 +6100,20 @@ function stopAutoRefresh() {
     AUTO_REFRESH_INTERVAL = null;
   }
 }
+// Al volver a la pestaña, refrescar la seccion activa de inmediato
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState !== 'visible') return;
+  if (typeof USER === 'undefined' || !USER) return;
+  try {
+    var s = LAST_ACTIVE_SECTION;
+    if (s === 'dashboard') { if (typeof loadDash === 'function') loadDash(); if (typeof loadNoticias === 'function') loadNoticias(); }
+    else if (s === 'fichaje'   && typeof loadFichajes  === 'function') loadFichajes();
+    else if (s === 'novedades' && typeof loadNovedades === 'function') loadNovedades();
+    else if (s === 'objetivos' && typeof loadObjetivos === 'function') loadObjetivos();
+    else if (s === 'choferes'  && typeof loadChoferes  === 'function') loadChoferes();
+    else if (s === 'llaves'    && typeof loadLlaves    === 'function') loadLlaves();
+  } catch(e) {}
+});
 function toggleNovedad(id, clickedEl) {
   var el = document.getElementById('nov-' + id);
   var arr = document.getElementById('arr-' + id);
@@ -6200,8 +6301,8 @@ function renderNovCard(n) {
   // Header — siempre visible, clickeable para expandir
   h += '<div onclick="toggleNovedad(\'' + n.id + '\',this)" style="padding:12px 14px;cursor:pointer;display:flex;align-items:flex-start;justify-content:space-between;gap:10px">';
   h += '<div style="flex:1;min-width:0">';
+  // badges relevancia y actualizada — sin badge de tipo
   h += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">';
-  h += '<span class="badge ' + bc + '">' + (n.tipo || 'Otro') + '</span>';
   if (n.relevancia === 'Urgente') h += '<span class="badge b-red">URGENTE</span>';
   if (n.relevancia === 'Alta') h += '<span class="badge b-yellow">ALTA</span>';
   if (n.actualizaciones && n.actualizaciones.length) {
@@ -6239,8 +6340,8 @@ function renderNovCard(n) {
   if (n.fotos && n.fotos.length) {
     h += '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;margin-bottom:12px">';
     for (var fi = 0; fi < n.fotos.length; fi++) {
-      h += '<a href="' + n.fotos[fi] + '" target="_blank" style="display:block;aspect-ratio:1;border-radius:8px;overflow:hidden;border:2px solid var(--border2)">';
-      h += '<img src="' + n.fotos[fi] + '" style="width:100%;height:100%;object-fit:cover" loading="lazy"></a>';
+      h += '<div onclick="abrirFotoLightbox(\'' + n.fotos[fi] + '\')" style="display:block;aspect-ratio:1;border-radius:8px;overflow:hidden;border:2px solid var(--border2);cursor:zoom-in">';
+      h += '<img src="' + n.fotos[fi] + '" style="width:100%;height:100%;object-fit:cover" loading="lazy"></div>';
     }
     h += '</div>';
   }
@@ -7150,8 +7251,8 @@ function _uploadFotosToSupabase() {
   }));
   return _uploadFotosToSupabase.apply(this, arguments);
 }
-var SUPA_URL = 'https://cuwvmvmrmxprqozfnlva.supabase.co';
-var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1d3Ztdm1ybXhwcnFvemZubHZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5OTUyODYsImV4cCI6MjA5MjU3MTI4Nn0.l-k8ev4zdQBVCyBaEfe7KHCkl5DtUJMsyWHIqBZiNtw';
+var SUPA_URL = 'https://yqwqtvlcgmqbfkibqqqb.supabase.co';
+var SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlxd3F0dmxjZ21xYmZraWJxcXFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1MzAxOTksImV4cCI6MjEwMDEwNjE5OX0.B0r9qHQwVuDZnzj0SHDxx5GQUIj5hc70lH2CLEsTHRE';
 var _supabase = supabase,
   createClient = _supabase.createClient;
 var db = createClient(SUPA_URL, SUPA_KEY, {
@@ -7974,15 +8075,21 @@ function initApp() {
   cargarPermisosDesdeSupabase().then(function() {
     aplicarPermisosAlLogin();
   });
+  var _dashDebounce = null;
+  function loadDashDebounced() {
+    clearTimeout(_dashDebounce);
+    _dashDebounce = setTimeout(loadDash, 1500);
+  }
+
   db.channel('realtime-all').on('postgres_changes', {
     event: '*', schema: 'public', table: 'fichajes'
   }, function() {
-    loadFichajes(); loadDash();
+    loadFichajes(); loadDashDebounced();
     recargarVistaActual('fichaje');
   }).on('postgres_changes', {
     event: '*', schema: 'public', table: 'novedades'
   }, function(payload) {
-    loadNovedades(); loadDash();
+    loadNovedades(); loadDashDebounced();
     recargarVistaActual('novedades');
     var nov = payload && payload.new;
     if (nov && (nov.relevancia === 'Urgente' || nov.relevancia === 'Alta')) {
@@ -8001,7 +8108,7 @@ function initApp() {
   }).on('postgres_changes', {
     event: '*', schema: 'public', table: 'objetivos'
   }, function(payload) {
-    loadObjetivos(); loadDash();
+    loadObjetivos(); loadDashDebounced();
     recargarVistaActual('objetivos');
     var vObj = document.getElementById('view-objetivos');
     if (payload && payload.eventType === 'INSERT' && vObj && vObj.style.display === 'none') {
@@ -8040,14 +8147,13 @@ function initApp() {
     if (status === 'SUBSCRIBED') {
       console.log('[Realtime] ✅ canal conectado — actualizaciones en vivo activas');
       if (indicator) { indicator.style.background = '#34d399'; indicator.title = 'En vivo'; }
+      if (POLLING_TIMER) { clearInterval(POLLING_TIMER); POLLING_TIMER = null; POLLING_INICIADO = false; }
     } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-      console.warn('[Realtime] ❌ fallo:', status, '— usando polling cada 15s');
-      if (indicator) { indicator.style.background = '#f59e0b'; indicator.title = 'Polling 15s'; }
+      console.warn('[Realtime] ❌ fallo:', status, '— usando polling cada 60s');
+      if (indicator) { indicator.style.background = '#f59e0b'; indicator.title = 'Polling 60s'; }
       iniciarPolling();
     }
   });
-  // Polling de respaldo — por si Realtime no conecta
-  iniciarPolling();
 }
 
 var POLLING_TIMER = null;
@@ -8056,7 +8162,7 @@ var POLLING_INICIADO = false;
 
 function iniciarPolling() {
   if (POLLING_TIMER) return;
-  console.log('[Polling] iniciado cada 15s');
+  console.log('[Polling] iniciado cada 60s (respaldo de Realtime)');
 
   // Primera corrida: solo inicializar IDs sin disparar updates
   db.from('novedades').select('id').order('created_at', {ascending: false}).limit(1)
@@ -8071,6 +8177,7 @@ function iniciarPolling() {
     POLLING_INICIADO = true;
     POLLING_TIMER = setInterval(function() {
       if (!USER) { clearInterval(POLLING_TIMER); POLLING_TIMER = null; POLLING_INICIADO = false; return; }
+      if (document.hidden) return; // pestaña oculta: no consultar
 
       // Check novedades
       db.from('novedades').select('id, relevancia, asunto, puesto, cargado_por')
@@ -8125,7 +8232,7 @@ function iniciarPolling() {
           POLLING_ULTIMAS.objetivos = last;
         });
 
-    }, 15000);
+    }, 60000); // 60s: respaldo del canal Realtime, que notifica cambios al instante
   }, 5000);
 }
 // ─── TOGGLE ÚLTIMAS NOVEDADES INLINE ───
@@ -9402,7 +9509,7 @@ function abrirRegistrarControl() {
       }
     });
   } else {
-    if (tituloModal) tituloModal.textContent = '&#x1F4F8; Registrar control';
+    if (tituloModal) tituloModal.textContent = '📸 Registrar control';
     var guardarBtnN = document.getElementById('btn-save-ctrl');
     if (guardarBtnN) guardarBtnN.textContent = '\u2713 Confirmar control';
   }
@@ -15617,16 +15724,6 @@ function _loadChoferes() {
           }
           chtml = '';
           var _ultimaFechaRuta = null; // para agrupar por fecha
-          // Si el usuario es chofer y tiene ruta activa → reactivar GPS y verificar backup
-          if (!GPS_TRACKING) {
-            var rutaActiva = list.find(function(r) { return r.estado === 'activo' && r.chofer === (USER.nombre || USER.puesto); });
-            if (rutaActiva && rutaActiva.movil) {
-              startGPSTransmission(rutaActiva.chofer, rutaActiva.movil);
-            }
-            if (rutaActiva) {
-              verificarYRecuperarBackup(rutaActiva.id, rutaActiva.paradas || []);
-            }
-          }
           for (ci = 0; ci < list.length; ci++) {
             r = list[ci];
             isAct = r.estado === 'activo';
@@ -16020,12 +16117,6 @@ function confirmarFinRuta() {
     liberarObjUrlsRuta('fin'); RUTA_FOTOS.fin = [];
     toast('🏁 Hoja de ruta finalizada');
     // Detener GPS al finalizar — usar movil capturado del campo del formulario
-    var _ridFin = rutaId; // capturar antes de que el overlay se limpie
-    db.from('rutas').select('movil').eq('id', _ridFin).maybeSingle().then(function(rv) {
-      if (rv.data && rv.data.movil) {
-        stopGPSTransmission(rv.data.movil);
-      }
-    });
     loadChoferes();
     loadDash();
   }).catch(function(e) {
@@ -16088,8 +16179,7 @@ function _saveChof() {
           liberarObjUrlsRuta('inicio'); RUTA_FOTOS.inicio = [];
           document.getElementById('c-fotos-preview').innerHTML = '';
           closeOv('ov-chof');
-          toast('🚗 Hoja de ruta iniciada — GPS activado');
-          // ── ACTIVAR GPS AL INICIAR RUTA ──
+          toast('🚗 Hoja de ruta iniciada');
           startGPSTransmission(chofer, movil);
           loadChoferes(); loadDash();
           return _ctx42.a(2);
@@ -17863,449 +17953,20 @@ function _finalizarTaller() {
   return _finalizarTaller.apply(this, arguments);
 }
 var GPS_INTERVAL = null;
-var _WAKE_LOCK = null;
-
-function _adquirirWakeLock() {
-  if (!('wakeLock' in navigator)) return;
-  navigator.wakeLock.request('screen').then(function(wl) {
-    _WAKE_LOCK = wl;
-    console.log('[GPS] Wake Lock activo \u2014 pantalla no se apagar\u00e1');
-    wl.addEventListener('release', function() { _WAKE_LOCK = null; });
-  }).catch(function(e) {
-    console.warn('[GPS] Wake Lock no disponible:', e.message);
-  });
-}
-
-function _liberarWakeLock() {
-  if (_WAKE_LOCK) {
-    try { _WAKE_LOCK.release(); } catch(e) {}
-    _WAKE_LOCK = null;
-  }
-}
 var GPS_TRACKING = false;
 var GPS_REFRESH_INTERVAL = null;
 
 function loadGPS() {
-  // Capa de seguridad: solo Gerencia y Administrador
-  if (!USER || ['Gerencia', 'Administrador'].indexOf(USER.puesto) < 0) return;
-  return _loadGPS.apply(this, arguments);
-}
-function _loadGPS() {
-  _loadGPS = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee65() {
-    var _yield$db$from$select6, positions, list;
-    return _regenerator().w(function (_context65) {
-      while (1) switch (_context65.n) {
-        case 0:
-          _context65.n = 1;
-          return db.from('gps_moviles').select('*').eq('activo', true).order('updated_at', { ascending: false });
-        case 1:
-          _yield$db$from$select6 = _context65.v;
-          positions = _yield$db$from$select6.data;
-          list = positions || [];
-          document.getElementById('gps-count').textContent = list.length + ' activo' + (list.length !== 1 ? 's' : '');
-          if (list.length) {
-            _context65.n = 2;
-            break;
-          }
-          document.getElementById('gps-moviles-list').innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0">Sin m\xF3viles transmitiendo GPS ahora</div>';
-          document.getElementById('gps-map-frame').innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:320px;color:var(--text3);font-size:13px">Sin m\xF3viles activos con GPS</div>';
-          return _context65.a(2);
-        case 2:
-          document.getElementById('gps-moviles-list').innerHTML = list.map(function(p) {
-            return '<div class="agent-row"><div class="agent-av" style="background:var(--greeng);color:var(--green)">M</div><div class="agent-info"><div class="agent-name">' + (p.movil || p.chofer) + '</div><div style="font-size:11px;font-weight:600;color:var(--text2);margin-top:1px">🧑‍✈️ ' + (p.chofer || '') + '</div><div class="agent-sub">' + (p.direccion || 'Ubicando...') + '</div></div><div style="text-align:right"><span class="badge b-green"><span class="pulse"></span> Activo</span><div style="font-size:10px;color:var(--text3);margin-top:3px">' + formatTs(p.updated_at) + '</div></div></div>';
-          }).join('');
-          renderMapaLeaflet(list);
-
-          // Auto-refresh cada 30 segundos para mantener el mapa vivo
-          if (!window._gpsMapRefresh) {
-            window._gpsMapRefresh = setInterval(function() {
-              // Solo refrescar si el panel GPS está visible
-              var panel = document.getElementById('gps-map-frame');
-              if (panel && panel.offsetParent !== null) {
-                loadGPS();
-              }
-            }, 30000);
-          }
-          return _context65.a(2);
-      }
-    }, _callee65);
-  }));
-  return _loadGPS.apply(this, arguments);
+  // GPS desactivado — sin consultas a gps_moviles ni gps_track
+  var f = document.getElementById('gps-map-frame');
+  if (f) f.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:320px;color:var(--text3);font-size:13px">\ud83d\udce1 Seguimiento GPS desactivado</div>';
+  return Promise.resolve();
 }
 
-function renderMapaLeaflet(list) {
-  var frame = document.getElementById('gps-map-frame');
-  if (!frame) return;
+function verRecorridoGPS() { /* GPS desactivado */ }
 
-  // Si Leaflet ya está cargado, renderizar directamente
-  if (window.L) {
-    _dibujarMapa(list);
-    return;
-  }
-
-  // Cargar Leaflet CSS + JS dinámicamente
-  if (!document.getElementById('leaflet-css')) {
-    var css = document.createElement('link');
-    css.id = 'leaflet-css';
-    css.rel = 'stylesheet';
-    css.crossOrigin = 'anonymous';
-    css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-    document.head.appendChild(css);
-  }
-  if (!document.getElementById('leaflet-js')) {
-    var script = document.createElement('script');
-    script.id = 'leaflet-js';
-    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-    script.crossOrigin = 'anonymous';
-    script.onload = function() { _dibujarMapa(list); };
-    script.onerror = function() {
-      console.warn('[GPS] Leaflet no disponible, usando fallback');
-      _fallbackIframe(list);
-    };
-    document.head.appendChild(script);
-  } else {
-    // Script ya insertado pero puede estar cargando — reintentar con backoff
-    var intentos = 0;
-    var esperar = setInterval(function() {
-      intentos++;
-      if (window.L) { clearInterval(esperar); _dibujarMapa(list); }
-      else if (intentos > 8) { clearInterval(esperar); _fallbackIframe(list); }
-    }, 400);
-  }
-}
-
-// ── Animación GPS ──────────────────────────────────────────────
-window._gpsAnimState = window._gpsAnimState || {};
-
-function _animarMarcador(movil, latDest, lngDest) {
-  var s = window._gpsAnimState[movil];
-  if (!s || !s.marker) return;
-  if (s.rafId) { cancelAnimationFrame(s.rafId); s.rafId = null; }
-
-  var latOrig = s.lat;
-  var lngOrig = s.lng;
-
-  // Si el origen y destino son iguales o muy cercanos, no animar
-  if (Math.abs(latDest - latOrig) < 0.00001 && Math.abs(lngDest - lngOrig) < 0.00001) return;
-
-  // Pedir ruta por calles a OSRM (gratuito, sin API key)
-  var osrmUrl = 'https://router.project-osrm.org/route/v1/driving/' +
-    lngOrig + ',' + latOrig + ';' + lngDest + ',' + latDest +
-    '?overview=full&geometries=geojson&steps=false';
-
-  fetch(osrmUrl)
-    .then(function(res) { return res.json(); })
-    .then(function(data) {
-      var puntos;
-      if (data && data.routes && data.routes[0] && data.routes[0].geometry && data.routes[0].geometry.coordinates && data.routes[0].geometry.coordinates.length > 1) {
-        // OSRM devuelve [lng, lat] — invertir a [lat, lng]
-        puntos = data.routes[0].geometry.coordinates.map(function(c) { return [c[1], c[0]]; });
-      } else {
-        // Fallback: linea recta si OSRM falla
-        puntos = [[latOrig, lngOrig], [latDest, lngDest]];
-      }
-      _animarPorPuntos(movil, puntos, latDest, lngDest);
-    })
-    .catch(function() {
-      // Sin internet o error OSRM: animar en linea recta
-      _animarPorPuntos(movil, [[latOrig, lngOrig], [latDest, lngDest]], latDest, lngDest);
-    });
-}
-
-function _animarPorPuntos(movil, puntos, latDestFinal, lngDestFinal) {
-  var s = window._gpsAnimState[movil];
-  if (!s || !s.marker) return;
-  if (s.rafId) { cancelAnimationFrame(s.rafId); s.rafId = null; }
-
-  var duracion = 14000; // 14s para recorrer todos los puntos
-  var inicio = null;
-  var nPuntos = puntos.length;
-
-  function step(ts) {
-    if (!inicio) inicio = ts;
-    var t = Math.min((ts - inicio) / duracion, 1);
-    // Easing suave
-    var e = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
-
-    // Interpolacion a lo largo de los puntos de la ruta
-    var idx = e * (nPuntos - 1);
-    var i = Math.floor(idx);
-    var frac = idx - i;
-    if (i >= nPuntos - 1) { i = nPuntos - 2; frac = 1; }
-
-    var lat = puntos[i][0] + (puntos[i+1][0] - puntos[i][0]) * frac;
-    var lng = puntos[i][1] + (puntos[i+1][1] - puntos[i][1]) * frac;
-
-    try { s.marker.setLatLng([lat, lng]); } catch(err) { return; }
-
-    if (t < 1) {
-      s.rafId = requestAnimationFrame(step);
-    } else {
-      s.lat = latDestFinal;
-      s.lng = lngDestFinal;
-      s.rafId = null;
-    }
-  }
-  s.rafId = requestAnimationFrame(step);
-}
-
-function _dibujarMapa(list) {
-  var frame = document.getElementById('gps-map-frame');
-  if (!frame || !window.L) return;
-
-  var esPrimerRender = !window._leafletMap;
-
-  if (!esPrimerRender) {
-    // Mapa ya existe: solo animar markers a nueva posicion
-    list.forEach(function(p) {
-      if (!p.lat || !p.lng) return;
-      var key = p.movil || p.chofer;
-      var s = window._gpsAnimState[key];
-      if (s && s.marker) {
-        _animarMarcador(key, p.lat, p.lng);
-        // Centrar el mapa suavemente en la nueva posicion del movil
-        if (window._leafletMap) {
-          try { window._leafletMap.panTo([p.lat, p.lng], { animate: true, duration: 1.5 }); } catch(e) {}
-        }
-        s.marker.setPopupContent('<strong>' + (p.movil || p.chofer) + '</strong><br>' + (p.chofer || '') + '<br>' + (p.direccion || '') + '<br><small>' + formatTs(p.updated_at) + '</small>');
-      }
-    });
-    return;
-  }
-
-  // Primera vez: crear mapa completo
-  Object.keys(window._gpsAnimState).forEach(function(k) {
-    var s = window._gpsAnimState[k];
-    if (s && s.rafId) cancelAnimationFrame(s.rafId);
-  });
-  window._gpsAnimState = {};
-
-  if (window._leafletMarkers) {
-    window._leafletMarkers.forEach(function(m) { try { m.remove(); } catch(e) {} });
-    window._leafletMarkers = [];
-  }
-  if (window._leafletMap) {
-    try { window._leafletMap.remove(); } catch(e) {}
-    window._leafletMap = null;
-  }
-
-  frame.innerHTML = '<div id="leaflet-container" style="width:100%;height:320px;border-radius:10px;overflow:hidden"></div>';
-
-  var avgLat = list.reduce(function(s,p) { return s + (p.lat||0); }, 0) / list.length;
-  var avgLng = list.reduce(function(s,p) { return s + (p.lng||0); }, 0) / list.length;
-  var zoom   = list.length === 1 ? 16 : 13;
-
-  var map = L.map('leaflet-container', { zoomControl: true, scrollWheelZoom: false }).setView([avgLat, avgLng], zoom);
-  window._leafletMap = map;
-
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap',
-    maxZoom: 19
-  }).addTo(map);
-
-  // Icono personalizado
-  var icon = L.divIcon({
-    className: '',
-    html: '<div style="width:36px;height:36px;background:#10b981;border-radius:50%;border:3px solid white;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 10px rgba(0,0,0,.4);font-size:16px">&#x1F69A;</div>',
-    iconSize: [36, 36],
-    iconAnchor: [18, 18],
-    popupAnchor: [0, -20]
-  });
-
-  window._leafletMarkers = [];
-  list.forEach(function(p) {
-    if (!p.lat || !p.lng) return;
-    var mk = L.marker([p.lat, p.lng], { icon: icon })
-      .addTo(map)
-      .bindPopup('<strong>' + (p.movil || p.chofer) + '</strong><br>🧑‍✈️ ' + (p.chofer || '') + '<br>' + (p.direccion || '') + '<br><small>' + formatTs(p.updated_at) + '</small>');
-    window._leafletMarkers.push(mk);
-    var key = p.movil || p.chofer;
-    window._gpsAnimState[key] = { marker: mk, lat: p.lat, lng: p.lng, rafId: null };
-  });
-
-  // Si hay huellas GPS, dibujar polyline — usar campo 'movil' (texto) no movil_id
-  if (list.length === 1) {
-    var movNombre = list[0].movil || list[0].chofer;
-    db.from('gps_track').select('lat,lng,ts')
-      .eq('movil', movNombre)
-      .gte('ts', new Date(Date.now() - 8 * 60 * 60 * 1000).toISOString()) // últimas 8hs
-      .order('ts', { ascending: true })
-      .limit(500)
-      .then(function(r) {
-        if (r.data && r.data.length > 1) {
-          // Filtrar puntos GPS con saltos anomalos (>0.008 grados ~ 800m)
-          var puntosRaw = r.data;
-          var puntosFiltrados = [puntosRaw[0]];
-          for (var pi = 1; pi < puntosRaw.length; pi++) {
-            var prev = puntosRaw[pi - 1];
-            var curr = puntosRaw[pi];
-            var dLat = Math.abs(curr.lat - prev.lat);
-            var dLng = Math.abs(curr.lng - prev.lng);
-            if (dLat < 0.008 && dLng < 0.008) {
-              puntosFiltrados.push(curr);
-            }
-          }
-          if (puntosFiltrados.length > 1) {
-            var puntos = puntosFiltrados.map(function(t) { return [t.lat, t.lng]; });
-            L.polyline(puntos, { color: '#10b981', weight: 4, opacity: 0.85, lineJoin: 'round', lineCap: 'round' }).addTo(map);
-            // Marcador de inicio
-            L.circleMarker(puntos[0], { radius: 8, color: '#3b82f6', fillColor: '#3b82f6', fillOpacity: 1, weight: 2 })
-              .addTo(map).bindTooltip('Inicio de recorrido');
-            // Ajustar zoom al recorrido completo
-            try { map.fitBounds(L.polyline(puntos).getBounds(), { padding: [20, 20] }); } catch(e) {}
-          }
-        }
-      });
-  }
-
-  // Fix: Leaflet necesita saber el tamaño real del contenedor
-  setTimeout(function() { if (window._leafletMap) window._leafletMap.invalidateSize(); }, 300);
-}
-
-function verRecorridoGPS(rutaId, movil, chofer, inicio, fin) {
-  // Capa de seguridad: solo Gerencia y Administrador
-  if (!USER || ['Gerencia', 'Administrador'].indexOf(USER.puesto) < 0) return;
-  // Crear overlay dinamico si no existe
-  var ovId = 'ov-gps-historial';
-  var ov = document.getElementById(ovId);
-  if (!ov) {
-    ov = document.createElement('div');
-    ov.id = ovId;
-    ov.className = 'overlay';
-    ov.innerHTML = '<div class="modal" style="max-width:700px;width:95%">' +
-      '<div class="modal-head"><span class="modal-title">📡 Recorrido GPS</span>' +
-      '<button class="btn-close" onclick="closeOv(\'ov-gps-historial\')">×</button></div>' +
-      '<div id="gps-hist-info" style="font-size:12px;color:var(--text3);margin-bottom:10px"></div>' +
-      '<div id="gps-hist-map" style="width:100%;height:400px;border-radius:10px;overflow:hidden;background:var(--bg2)"></div>' +
-      '<div id="gps-hist-stats" style="margin-top:10px;display:flex;gap:10px;flex-wrap:wrap"></div>' +
-      '</div>';
-    document.body.appendChild(ov);
-  }
-
-  // Info del recorrido
-  var infoEl = document.getElementById('gps-hist-info');
-  if (infoEl) infoEl.innerHTML = '🚗 ' + chofer + ' &nbsp;·&nbsp; 🚌 ' + movil +
-    '&nbsp;·&nbsp; Inicio: ' + formatTs(inicio) + (fin ? ' &nbsp;·&nbsp; Fin: ' + formatTs(fin) : '');
-
-  // Limpiar mapa anterior
-  var mapEl = document.getElementById('gps-hist-map');
-  if (mapEl) mapEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text3);font-size:13px">Cargando recorrido...</div>';
-  document.getElementById('gps-hist-stats').innerHTML = '';
-
-  openOv(ovId);
-
-  // Buscar puntos GPS del periodo de la ruta
-  var desde = new Date(inicio).toISOString();
-  var hasta = fin ? new Date(fin).toISOString() : new Date().toISOString();
-
-  db.from('gps_track').select('lat,lng,ts')
-    .eq('movil', movil)
-    .gte('ts', desde)
-    .lte('ts', hasta)
-    .order('ts', { ascending: true })
-    .limit(1000)
-    .then(function(r) {
-      if (!r.data || r.data.length === 0) {
-        if (mapEl) mapEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text3);font-size:13px">Sin datos GPS para este recorrido</div>';
-        return;
-      }
-
-      // Filtrar saltos anomalos
-      var raw = r.data;
-      var pts = [raw[0]];
-      for (var i = 1; i < raw.length; i++) {
-        if (Math.abs(raw[i].lat - raw[i-1].lat) < 0.008 && Math.abs(raw[i].lng - raw[i-1].lng) < 0.008) {
-          pts.push(raw[i]);
-        }
-      }
-
-      // Stats
-      var statsEl = document.getElementById('gps-hist-stats');
-      if (statsEl) {
-        statsEl.innerHTML =
-          '<span style="font-size:11px;padding:4px 10px;border-radius:20px;background:rgba(59,130,246,.1);color:var(--accent3)">📍 ' + pts.length + ' puntos GPS</span>' +
-          '<span style="font-size:11px;padding:4px 10px;border-radius:20px;background:rgba(16,185,129,.1);color:#10b981">⏱️ ' + formatTs(pts[0].ts) + ' → ' + formatTs(pts[pts.length-1].ts) + '</span>';
-      }
-
-      // Dibujar mapa con Leaflet — cargar si no está disponible
-      function _dibujarHistMap() {
-        if (mapEl) mapEl.innerHTML = '<div id="gps-hist-leaflet" style="width:100%;height:400px"></div>';
-        if (window._leafletHistMap) { try { window._leafletHistMap.remove(); } catch(e) {} window._leafletHistMap = null; }
-        setTimeout(function() {
-        var coords = pts.map(function(p) { return [p.lat, p.lng]; });
-        var map = L.map('gps-hist-leaflet', { zoomControl: true, scrollWheelZoom: true });
-        window._leafletHistMap = map;
-
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '&copy; OpenStreetMap', maxZoom: 19
-        }).addTo(map);
-
-        // Linea del recorrido
-        L.polyline(coords, { color: '#10b981', weight: 4, opacity: 0.85, lineJoin: 'round', lineCap: 'round' }).addTo(map);
-
-        // Marcador inicio
-        L.circleMarker(coords[0], { radius: 10, color: '#3b82f6', fillColor: '#3b82f6', fillOpacity: 1, weight: 2 })
-          .addTo(map).bindTooltip('🟢 Inicio: ' + formatTs(pts[0].ts), { permanent: false });
-
-        // Marcador fin
-        var iconFin = L.divIcon({
-          className: '',
-          html: '<div style="width:32px;height:32px;background:#ef4444;border-radius:50%;border:3px solid white;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.4);font-size:14px">🏁</div>',
-          iconSize: [32,32], iconAnchor: [16,16]
-        });
-        L.marker(coords[coords.length-1], { icon: iconFin })
-          .addTo(map).bindTooltip('🏁 Fin: ' + formatTs(pts[pts.length-1].ts), { permanent: false });
-
-        // Ajustar zoom
-        try { map.fitBounds(L.polyline(coords).getBounds(), { padding: [30, 30] }); } catch(e) {}
-        map.invalidateSize();
-        }, 300);
-      }
-
-      if (window.L) {
-        _dibujarHistMap();
-      } else {
-        // Cargar Leaflet si no está disponible
-        if (!document.getElementById('leaflet-css')) {
-          var css = document.createElement('link');
-          css.id = 'leaflet-css'; css.rel = 'stylesheet'; css.crossOrigin = 'anonymous';
-          css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-          document.head.appendChild(css);
-        }
-        if (!document.getElementById('leaflet-js')) {
-          var scr = document.createElement('script');
-          scr.id = 'leaflet-js'; scr.crossOrigin = 'anonymous';
-          scr.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-          scr.onload = _dibujarHistMap;
-          scr.onerror = function() {
-            if (mapEl) mapEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text3);font-size:13px">Error cargando mapa</div>';
-          };
-          document.head.appendChild(scr);
-        } else {
-          // Script insertado pero cargando — esperar
-          var intentos = 0;
-          var espera = setInterval(function() {
-            intentos++;
-            if (window.L) { clearInterval(espera); _dibujarHistMap(); }
-            else if (intentos > 10) { clearInterval(espera); if (mapEl) mapEl.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text3);font-size:13px">Error cargando mapa</div>'; }
-          }, 400);
-        }
-      }
-    });
-}
-
-function _fallbackIframe(list) {
-  // Fallback con OpenStreetMap embed si Leaflet falla
-  var frame = document.getElementById('gps-map-frame');
-  if (!frame || !list.length) return;
-  var p = list[0];
-  frame.innerHTML = '<iframe src="https://www.openstreetmap.org/export/embed.html?bbox=' + (p.lng-0.005) + ',' + (p.lat-0.005) + ',' + (p.lng+0.005) + ',' + (p.lat+0.005) + '&layer=mapnik&marker=' + p.lat + ',' + p.lng + '" style="width:100%;height:320px;border:none;border-radius:10px" loading="lazy"></iframe>';
-}
-function startGPSTransmission(_x24, _x25) {
-  return _startGPSTransmission.apply(this, arguments);
-}
-function _startGPSTransmission() {
-  _startGPSTransmission = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee67(chofer, movil) {
+function startGPSTransmission() { GPS_TRACKING = false; return Promise.resolve(); }
+function _startGPSTransmission_DEAD_START() { /*
     var transmit;
     return _regenerator().w(function (_context67) {
       while (1) switch (_context67.n) {
@@ -18391,49 +18052,9 @@ function _startGPSTransmission() {
         case 3:
           return _context67.a(2);
       }
-    }, _callee67);
-  }));
-  return _startGPSTransmission.apply(this, arguments);
-}
-function stopGPSTransmission(_x26) {
-  return _stopGPSTransmission.apply(this, arguments);
-}
-function _stopGPSTransmission() {
-  _stopGPSTransmission = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee68(movil) {
-    return _regenerator().w(function (_context68) {
-      while (1) switch (_context68.n) {
-        case 0:
-          GPS_TRACKING = false;
-          if (GPS_INTERVAL) {
-            clearInterval(GPS_INTERVAL);
-            GPS_INTERVAL = null;
-          }
-          _liberarWakeLock();
-          _context68.n = 1;
-          return db.from('gps_moviles').delete().eq('movil', movil);
-        case 1:
-          // Forzar recarga inmediata del panel GPS y limpiar mapa
-          window._leafletMap = null;
-          window._gpsAnimState = {};
-          if (window._leafletMarkers) {
-            window._leafletMarkers.forEach(function(m) { try { m.remove(); } catch(e) {} });
-            window._leafletMarkers = [];
-          }
-          var gpsFrame = document.getElementById('gps-map-frame');
-          if (gpsFrame) gpsFrame.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:320px;color:var(--text3);font-size:13px">Sin m\u00f3viles activos con GPS</div>';
-          if (typeof loadGPS === 'function') loadGPS();
-        case 2:
-          return _context68.a(2);
-      }
-    }, _callee68);
-  }));
-  return _stopGPSTransmission.apply(this, arguments);
-}
-function startGPSRefresh() {
-  return setInterval(function () {
-    if (CUR_CHOF_SUBTAB === 'gps') loadGPS();
-  }, 60000);
-}
+*/ }
+function stopGPSTransmission()  { GPS_TRACKING = false; if (GPS_INTERVAL) { clearInterval(GPS_INTERVAL); GPS_INTERVAL = null; } return Promise.resolve(); }
+function startGPSRefresh()      { /* GPS desactivado */ }
 var LIC_FILE = null;
 var CUR_FICH_TAB = 'fichaje';
 function fichTab(tab, btn) {
@@ -21968,6 +21589,7 @@ function iniciarMonitorTurnos() {
 }
 
 function ejecutarMonitorTurnos() {
+  if (document.hidden) return; // pestaña oculta: pausar monitor
   var hoy = fechaHoyAR();
   var horaAR = horaActualAR();
 
@@ -22180,34 +21802,10 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.ready.then(function(reg) {
     window.SW_REGISTRATION = reg;
     reg.update().catch(function() {});
-    if ('periodicSync' in reg) {
-      navigator.permissions.query({ name: 'periodic-background-sync' }).then(function(status) {
-        if (status.state === 'granted') {
-          reg.periodicSync.register('ivc-gps-sync', { minInterval: 30000 }).catch(function() {});
-        }
-      }).catch(function() {});
-    }
   }).catch(function(e) { console.warn('[SW] Error:', e); });
 }
 
-function notificarGPSalSW(lat, lng, movil, chofer) {
-  if (!navigator.serviceWorker || !navigator.serviceWorker.controller) return;
-  // Obtener el access token de la sesion actual para que el SW pueda escribir con RLS
-  db.auth.getSession().then(function(sres) {
-    var accessToken = (sres && sres.data && sres.data.session) ? sres.data.session.access_token : null;
-    navigator.serviceWorker.controller.postMessage({
-      tipo: 'GPS_CONFIG',
-      supaUrl: 'https://cuwvmvmrmxprqozfnlva.supabase.co',
-      supaKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1d3Ztdm1ybXhwcnFvemZubHZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5OTUyODYsImV4cCI6MjA5MjU3MTI4Nn0.l-k8ev4zdQBVCyBaEfe7VeFczshIc',
-      accessToken: accessToken,
-      movil: movil, chofer: chofer
-    });
-    navigator.serviceWorker.controller.postMessage({ tipo: 'GPS_COORDS', lat: lat, lng: lng, ts: new Date().toISOString() });
-  });
-  if (window.SW_REGISTRATION && 'sync' in window.SW_REGISTRATION) {
-    window.SW_REGISTRATION.sync.register('ivc-gps-sync').catch(function() {});
-  }
-}
+function notificarGPSalSW() {}
 
 
 // ══ DISPOSITIVOS AUTORIZADOS ══════════════════════════════════════
@@ -22360,6 +21958,7 @@ function iniciarMonitorDispositivos() {
 
 function _chequearAlertasDispositivos() {
   if (!USER || USER.puesto !== 'Administrador') return;
+  if (document.hidden) return; // pestaña oculta: pausar chequeo
   db.from('alertas_turno').select('id,mensaje,created_at')
     .eq('tipo', 'dispositivo_nuevo')
     .eq('puesto', 'Administrador')
@@ -24866,9 +24465,9 @@ function ivcEntrarOffline() {
   if (IVC_RECONECT_TIMER) clearInterval(IVC_RECONECT_TIMER);
   IVC_RECONECT_TIMER = setInterval(function() {
     // Ping liviano a Supabase para detectar reconexion
-    fetch('https://cuwvmvmrmxprqozfnlva.supabase.co/rest/v1/', {
+    fetch(SUPA_URL + '/rest/v1/', {
       method: 'HEAD',
-      headers: { 'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN1d3Ztdm1ybXhwcnFvemZubHZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5OTUyODYsImV4cCI6MjA5MjU3MTI4Nn0.l-k8ev4zdQBVCyBaEfe7KHCkl5DtUJMsyWHIqBZiNtw' }
+      headers: { 'apikey': SUPA_KEY }
     }).then(function() {
       ivcVolverOnline();
     }).catch(function() {});

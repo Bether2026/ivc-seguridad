@@ -1,7 +1,7 @@
 // IVC Seguridad y Emergencias — Service Worker (ÚNICO — no debe haber otro registrado)
 // IMPORTANT: bump CACHE_NAME on every deploy that changes HTML/CSS/JS,
 // otherwise installed PWA users will keep seeing the old cached version.
-const CACHE_NAME = 'ivc-seg-v4';
+const CACHE_NAME = 'ivc-seg-v9';
 const urlsToCache = ['/'];
 
 self.addEventListener('install', function(event) {
@@ -78,48 +78,8 @@ self.addEventListener('message', function(event) {
     return;
   }
 
-  // GPS en segundo plano (antes vivía en un Service Worker separado registrado
-  // vía Blob — se unificó acá para que haya un único Service Worker en toda
-  // la app, evitando conflictos de control entre dos SW compitiendo)
-  if (event.data.tipo === 'GPS_COORDS') self._lastGeo = event.data;
-  if (event.data.tipo === 'GPS_CONFIG') self._gpsConfig = event.data;
 });
 
-self.addEventListener('sync', function(event) {
-  if (event.tag === 'ivc-gps-sync') event.waitUntil(transmitirGPSdesdeSW());
-});
-
-self.addEventListener('periodicsync', function(event) {
-  if (event.tag === 'ivc-gps-sync') event.waitUntil(transmitirGPSdesdeSW());
-});
-
-async function transmitirGPSdesdeSW() {
-  if (!self._lastGeo || !self._gpsConfig) return;
-  var cfg = self._gpsConfig;
-  var geo = self._lastGeo;
-  try {
-    var ts = new Date().toISOString();
-    var h = {
-      'Content-Type': 'application/json',
-      'apikey': cfg.supaKey,
-      'Authorization': 'Bearer ' + (cfg.accessToken || cfg.supaKey),
-      'Prefer': 'return=minimal'
-    };
-    await fetch(cfg.supaUrl + '/rest/v1/gps_track', {
-      method: 'POST', headers: h,
-      body: JSON.stringify({ movil: cfg.movil, chofer: cfg.chofer, lat: geo.lat, lng: geo.lng, ts: ts, created_at: ts })
-    });
-    await fetch(cfg.supaUrl + '/rest/v1/gps_moviles?movil=eq.' + encodeURIComponent(cfg.movil), {
-      method: 'DELETE', headers: h
-    });
-    await fetch(cfg.supaUrl + '/rest/v1/gps_moviles', {
-      method: 'POST', headers: h,
-      body: JSON.stringify({ movil: cfg.movil, chofer: cfg.chofer, lat: geo.lat, lng: geo.lng, activo: true, updated_at: ts })
-    });
-  } catch (err) {
-    console.warn('[SW GPS]', err);
-  }
-}
 
 // Notificaciones push del servidor
 self.addEventListener('push', function(event) {
