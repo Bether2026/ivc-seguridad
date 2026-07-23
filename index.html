@@ -3656,6 +3656,7 @@ body {
       <div style="display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px">
         <button id="adm-tab-general" onclick="selAdminTab('general')" style="flex-shrink:0;padding:8px 18px;border-radius:8px;border:1px solid rgba(248,113,113,.35);background:rgba(248,113,113,.15);color:#fca5a5;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">⚙️ General</button>
         <button id="adm-tab-horas" onclick="selAdminTab('horas')" style="flex-shrink:0;padding:8px 18px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">📊 Horas Reales</button>
+        <button id="adm-tab-liquidacion" onclick="selAdminTab('liquidacion')" style="flex-shrink:0;padding:8px 18px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">💰 Liquidación</button>
         <button id="adm-tab-personal" onclick="selAdminTab('personal')" style="flex-shrink:0;padding:8px 18px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">👤 Personal</button>
         <button id="adm-tab-informe" onclick="selAdminTab('informe')" style="flex-shrink:0;padding:8px 18px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">📄 Informe Diario</button>
         <button id="adm-tab-metricas" onclick="selAdminTab('metricas')" style="flex-shrink:0;padding:8px 18px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">📈 Métricas</button>
@@ -4109,6 +4110,86 @@ body {
           <div id="pu-lista"><div class="empty"><p>Cargando partes urgentes...</p></div></div>
         </div>
       </div>
+
+      <!-- ══ PANEL LIQUIDACIÓN ══════════════════════════════════════ -->
+      <div id="adm-panel-liquidacion" style="display:none">
+
+        <!-- Sub-tabs Liquidación -->
+        <div style="display:flex;gap:8px;margin-bottom:14px;border-bottom:1px solid var(--border);padding-bottom:12px">
+          <button id="liq-tab-config" onclick="selLiqTab('config')" style="padding:7px 16px;border-radius:8px;border:1px solid rgba(245,158,11,.45);background:rgba(245,158,11,.15);color:#fcd34d;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">⚙️ Configuración</button>
+          <button id="liq-tab-prep" onclick="selLiqTab('prep')" style="padding:7px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">📋 Preparación</button>
+          <button id="liq-tab-export" onclick="selLiqTab('export')" style="padding:7px 16px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">📄 Exportar</button>
+        </div>
+
+        <!-- SUB-TAB: CONFIGURACIÓN -->
+        <div id="liq-panel-config">
+          <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:16px;margin-bottom:14px">
+            <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:14px;display:flex;align-items:center;gap:8px">
+              <span style="color:#fcd34d">⚙️</span> Parámetros de liquidación
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+              <div>
+                <label style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:6px">Valor hora Censal ($)</label>
+                <input id="liq-valor-censal" type="number" min="0" step="0.01" placeholder="0.00"
+                  style="width:100%;padding:10px 12px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:14px;font-weight:600;outline:none"/>
+              </div>
+              <div>
+                <label style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:6px">Valor hora URSES ($)</label>
+                <input id="liq-valor-urses" type="number" min="0" step="0.01" placeholder="0.00"
+                  style="width:100%;padding:10px 12px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:14px;font-weight:600;outline:none"/>
+              </div>
+            </div>
+            <div style="margin-bottom:14px">
+              <label style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:6px">Cupo módulos Censales (máx. por agente)</label>
+              <input id="liq-cupo-censales" type="number" min="0" step="1" placeholder="0"
+                style="width:160px;padding:10px 12px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--mono);font-size:14px;font-weight:600;outline:none"/>
+            </div>
+            <div style="font-size:11px;color:var(--text3);background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.18);border-radius:8px;padding:10px;margin-bottom:14px;line-height:1.7">
+              <strong style="color:#fcd34d">Reglas de cálculo:</strong><br>
+              &bull; 1 módulo Censal = 7 hs &times; valor hora censal<br>
+              &bull; 1 módulo URSES = 2 hs &times; valor hora URSES<br>
+              &bull; Tipos <strong>CH / CI</strong>: solo módulos Censales<br>
+              &bull; Tipos <strong>PH / PI</strong>: módulos Censales + URSES
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button onclick="liqGuardarConfig()" style="padding:10px 20px;border-radius:8px;border:1px solid rgba(245,158,11,.45);background:rgba(245,158,11,.12);color:#fcd34d;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">💾 Guardar config</button>
+              <button onclick="selLiqTab('prep')" style="padding:10px 20px;border-radius:8px;border:1px solid rgba(59,130,246,.35);background:rgba(59,130,246,.1);color:#93c5fd;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">&#x25B6; Ir a Preparación</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- SUB-TAB: PREPARACIÓN -->
+        <div id="liq-panel-prep" style="display:none">
+          <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:14px;margin-bottom:14px">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px">
+              <span style="font-size:12px;font-weight:700;color:var(--text2)">Mes / Año leídos de los selectores de Horas Reales</span>
+              <button onclick="liqCargarPrep()" style="margin-left:auto;padding:8px 16px;border-radius:8px;border:1px solid rgba(59,130,246,.35);background:rgba(59,130,246,.1);color:#93c5fd;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">&#x1F504; Cargar / Recalcular</button>
+              <button onclick="liqGuardarPrep()" style="padding:8px 16px;border-radius:8px;border:1px solid rgba(16,185,129,.35);background:rgba(16,185,129,.1);color:#6ee7b7;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">&#x1F4BE; Guardar</button>
+            </div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:12px">
+              La columna <span style="color:#60a5fa;font-weight:700">"Valor para módulos"</span> es editable. Modificala si necesitás ajustar las horas antes de calcular.
+              Un indicador <span style="color:#fcd34d;font-weight:700">✏️</span> aparece cuando el valor fue modificado manualmente.
+            </div>
+            <div id="liq-prep-tabla" style="overflow-x:auto">
+              <div class="empty"><p>Tocá "Cargar / Recalcular" para comenzar</p></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SUB-TAB: EXPORTAR -->
+        <div id="liq-panel-export" style="display:none">
+          <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:14px;margin-bottom:14px">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+              <span style="font-size:13px;font-weight:700;color:var(--text)">&#x1F4C4; Tablas de exportación</span>
+              <button onclick="liqImprimirExport()" style="margin-left:auto;padding:8px 16px;border-radius:8px;border:1px solid rgba(16,185,129,.35);background:rgba(16,185,129,.1);color:#6ee7b7;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">&#x1F5A8; Imprimir</button>
+            </div>
+            <div id="liq-export-content">
+              <div class="empty"><p>Primero cargá y guardá los datos en la vista Preparación</p></div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /adm-panel-liquidacion -->
 
         </div><!-- /view-admin -->
         <!-- VISTA HORAS REALES — Gerencia (reutiliza adm-panel-horas) -->
@@ -6316,6 +6397,11 @@ function renderNovCard(n) {
   h += '</div>';
   h += '<div style="font-size:14px;font-weight:700;margin-bottom:4px;line-height:1.3">' + (n.asunto || 'Sin titulo') + '</div>';
   h += '<div style="font-size:11px;color:var(--text3)">' + hora + ' &middot; ' + ubic + '</div>';
+  // Badge PD / PU visible en el header (igual que C.Objetivos)
+  if (n.nro_pd || n.nro_pu) {
+    var pdTxt = n.nro_pd ? 'PD N\xB0 ' + n.nro_pd : 'PU N\xB0 ' + n.nro_pu;
+    h += '<span style="display:inline-block;margin-top:5px;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;background:rgba(16,185,129,0.12);color:var(--green);border:1px solid rgba(16,185,129,0.3)">&#x1F4CB; ' + pdTxt + '</span>';
+  }
   h += '</div>';
   h += '<div style="font-size:18px;color:var(--text3);flex-shrink:0;transition:transform .25s;margin-top:2px" id="arr-' + n.id + '">&#9660;</div>';
   h += '</div>';
@@ -24544,6 +24630,412 @@ window.addEventListener('offline', function() { ivcEntrarOffline(); });
   style.textContent = '@keyframes ivc-pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }';
   document.head.appendChild(style);
 })();
+</script>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     MÓDULO LIQUIDACIÓN — IVC Seguridad
+     Patch sobre selAdminTab (igual que Turnos y Dispositivos)
+     ══════════════════════════════════════════════════════════════════ -->
+<script>
+(function() {
+'use strict';
+
+// ── Estado del módulo ─────────────────────────────────────────────
+var LIQ = {
+  config: { valorCensal: 0, valorUrses: 0, cupoCensales: 0 },
+  prep: [],        // [{agente, legajo, tipo, hs_originales, hs_ajustadas, modificado}]
+  configId: null   // id del header en Supabase (si ya existe)
+};
+var LIQ_SUB_ACTIVE = 'config';
+
+// ── Helpers ───────────────────────────────────────────────────────
+function liqMes()  { return parseInt((document.getElementById('hr-mes')  || {}).value  || new Date().getMonth() + 1); }
+function liqAnio() { return parseInt((document.getElementById('hr-anio') || {}).value || new Date().getFullYear()); }
+
+var MESES_ES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+function liqFmt(n) {
+  return typeof n === 'number'
+    ? n.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : '-';
+}
+
+// ── Sub-tab switcher ──────────────────────────────────────────────
+window.selLiqTab = function(tab) {
+  LIQ_SUB_ACTIVE = tab;
+  ['config','prep','export'].forEach(function(t) {
+    var btn   = document.getElementById('liq-tab-' + t);
+    var panel = document.getElementById('liq-panel-' + t);
+    var active = t === tab;
+    if (btn) {
+      btn.style.background  = active ? 'rgba(245,158,11,.15)' : 'transparent';
+      btn.style.color       = active ? '#fcd34d' : 'var(--text3)';
+      btn.style.borderColor = active ? 'rgba(245,158,11,.45)' : 'var(--border)';
+    }
+    if (panel) panel.style.display = active ? 'block' : 'none';
+  });
+  if (tab === 'export') liqRenderExport();
+};
+
+// ── Cargar configuración guardada desde Supabase ──────────────────
+function liqCargarConfig() {
+  if (typeof db === 'undefined') return;
+  var mes = liqMes(), anio = liqAnio();
+  db.from('liquidaciones_header')
+    .select('*')
+    .eq('mes', mes)
+    .eq('anio', anio)
+    .maybeSingle()
+    .then(function(r) {
+      if (r.data) {
+        LIQ.configId = r.data.id;
+        LIQ.config.valorCensal  = parseFloat(r.data.valor_hora_censal) || 0;
+        LIQ.config.valorUrses   = parseFloat(r.data.valor_hora_urses)  || 0;
+        LIQ.config.cupoCensales = parseInt(r.data.cupo_censales)       || 0;
+        var ec = document.getElementById('liq-valor-censal');
+        var eu = document.getElementById('liq-valor-urses');
+        var eq = document.getElementById('liq-cupo-censales');
+        if (ec) ec.value = LIQ.config.valorCensal  || '';
+        if (eu) eu.value = LIQ.config.valorUrses    || '';
+        if (eq) eq.value = LIQ.config.cupoCensales  || '';
+      }
+    }).catch(function() {});
+}
+
+// ── Guardar configuración ─────────────────────────────────────────
+window.liqGuardarConfig = function() {
+  var vc = parseFloat((document.getElementById('liq-valor-censal') || {}).value || 0);
+  var vu = parseFloat((document.getElementById('liq-valor-urses')  || {}).value || 0);
+  var cupo = parseInt((document.getElementById('liq-cupo-censales') || {}).value || 0);
+  if (!vc && !vu) { if (typeof toast === 'function') toast('Ingresá al menos un valor de hora', 'err'); return; }
+  LIQ.config = { valorCensal: vc, valorUrses: vu, cupoCensales: cupo };
+  var mes = liqMes(), anio = liqAnio();
+  var payload = {
+    mes: mes, anio: anio,
+    valor_hora_censal: vc, valor_hora_urses: vu,
+    cupo_censales: cupo,
+    creado_por: (typeof USER !== 'undefined' && USER) ? USER.nombre : 'sistema',
+    fecha_generacion: new Date().toISOString()
+  };
+  var op = LIQ.configId
+    ? db.from('liquidaciones_header').update(payload).eq('id', LIQ.configId)
+    : db.from('liquidaciones_header').upsert(payload, { onConflict: 'mes,anio' }).select();
+  op.then(function(r) {
+    if (r.error) { if (typeof toast === 'function') toast('Error al guardar config: ' + r.error.message, 'err'); return; }
+    if (!LIQ.configId && r.data && r.data[0]) LIQ.configId = r.data[0].id;
+    if (typeof toast === 'function') toast('Configuración guardada ✓', 'ok');
+  }).catch(function(e) {
+    if (typeof toast === 'function') toast('Error: ' + (e.message || ''), 'err');
+  });
+};
+
+// ── Calcular módulos para un agente ──────────────────────────────
+function liqCalcular(hs, tipo) {
+  var t = (tipo || '').toUpperCase();
+  var vc = LIQ.config.valorCensal;
+  var vu = LIQ.config.valorUrses;
+  var cupo = LIQ.config.cupoCensales;
+  // Módulos Censales
+  var modCensal = (hs > 0 && vc > 0) ? Math.floor(hs / 7) : 0;
+  if (cupo > 0) modCensal = Math.min(modCensal, cupo);
+  var importeCensal = modCensal * 7 * vc;
+  // Módulos URSES (solo PH/PI)
+  var modUrses = 0, importeUrses = 0;
+  if ((t === 'PH' || t === 'PI') && vu > 0 && hs > 0) {
+    modUrses = Math.floor(hs / 2);
+    importeUrses = modUrses * 2 * vu;
+  }
+  return {
+    modCensal: modCensal,
+    modUrses: modUrses,
+    importeCensal: importeCensal,
+    importeUrses: importeUrses,
+    importeTotal: importeCensal + importeUrses
+  };
+}
+
+// ── Cargar tabla de Preparación ───────────────────────────────────
+window.liqCargarPrep = function() {
+  var cont = document.getElementById('liq-prep-tabla');
+  if (!cont) return;
+  cont.innerHTML = '<div class="empty"><p>Cargando agentes...</p></div>';
+
+  var mes = liqMes(), anio = liqAnio();
+  if (!LIQ.config.valorCensal && !LIQ.config.valorUrses) {
+    liqCargarConfig();
+  }
+
+  // Traer agentes y detalles guardados previamente
+  Promise.all([
+    db.from('agentes').select('nombre,legajo,tipo,puesto').order('nombre'),
+    LIQ.configId
+      ? db.from('liquidaciones_detalle').select('*').eq('liquidacion_id', LIQ.configId)
+      : Promise.resolve({ data: [] })
+  ]).then(function(res) {
+    var agentes = res[0].data || [];
+    var detsPrev = res[1].data || [];
+    var mapaGuardado = {};
+    detsPrev.forEach(function(d) { mapaGuardado[(d.agente||'').toUpperCase()] = d; });
+
+    // Construir filas desde HR_DATA si está disponible, sino desde agentes
+    var filas = [];
+    if (typeof HR_DATA !== 'undefined' && HR_DATA.length) {
+      HR_DATA.forEach(function(r) {
+        var key = r.nombre.trim().toUpperCase();
+        var ag = agentes.find(function(a) { return (a.nombre||'').trim().toUpperCase() === key; }) || {};
+        var prev = mapaGuardado[key];
+        var hsOrig = parseFloat((r.totalTrabajadas || 0).toFixed(2));
+        filas.push({
+          agente: r.nombre,
+          legajo: ag.legajo || '',
+          tipo: (ag.tipo || r.tipo || 'CH').toUpperCase(),
+          hs_originales: hsOrig,
+          hs_ajustadas: prev ? parseFloat(prev.hs_ajustadas) : hsOrig,
+          modificado: !!prev && parseFloat(prev.hs_ajustadas) !== hsOrig,
+          detId: prev ? prev.id : null
+        });
+      });
+    } else {
+      agentes.forEach(function(ag) {
+        var key = (ag.nombre||'').trim().toUpperCase();
+        var prev = mapaGuardado[key];
+        filas.push({
+          agente: ag.nombre,
+          legajo: ag.legajo || '',
+          tipo: (ag.tipo || 'CH').toUpperCase(),
+          hs_originales: prev ? parseFloat(prev.hs_originales) : 0,
+          hs_ajustadas: prev ? parseFloat(prev.hs_ajustadas) : 0,
+          modificado: false,
+          detId: prev ? prev.id : null
+        });
+      });
+    }
+
+    LIQ.prep = filas;
+    liqRenderPrep();
+  }).catch(function(e) {
+    if (cont) cont.innerHTML = '<div class="empty"><p>Error: ' + (e.message||'') + '</p></div>';
+  });
+};
+
+// ── Render tabla preparación ──────────────────────────────────────
+function liqRenderPrep() {
+  var cont = document.getElementById('liq-prep-tabla');
+  if (!cont || !LIQ.prep.length) {
+    if (cont) cont.innerHTML = '<div class="empty"><p>Sin agentes para mostrar</p></div>';
+    return;
+  }
+  var TH = function(txt, extra) { return '<th style="padding:8px 10px;text-align:' + (extra||'left') + ';font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.07em;white-space:nowrap;background:var(--bg3);border-bottom:1px solid var(--border2)">' + txt + '</th>'; };
+  var html = '<table style="width:100%;border-collapse:collapse;font-size:12px">';
+  html += '<thead><tr>' +
+    TH('Agente') + TH('Leg.') + TH('Tipo','center') +
+    TH('Hs originales','right') +
+    TH('<span style="color:#60a5fa">Valor para módulos</span>','center') +
+    TH('Mód. Censal','right') + TH('Importe Censal','right') +
+    TH('Mód. URSES','right') + TH('Importe URSES','right') +
+    TH('Total','right') +
+  '</tr></thead><tbody>';
+
+  LIQ.prep.forEach(function(f, idx) {
+    var calc = liqCalcular(f.hs_ajustadas, f.tipo);
+    var tipoColor = (f.tipo === 'PH' || f.tipo === 'PI') ? '#a78bfa' : '#60a5fa';
+    var modBadge = f.modificado ? ' <span title="Valor modificado manualmente" style="color:#fcd34d;font-size:11px">✏️</span>' : '';
+    html += '<tr style="border-bottom:1px solid var(--border)">';
+    html += '<td style="padding:8px 10px;color:var(--text)">' + (f.agente||'') + '</td>';
+    html += '<td style="padding:8px 10px;color:var(--text3);font-family:var(--mono)">' + (f.legajo||'—') + '</td>';
+    html += '<td style="padding:8px 10px;text-align:center"><span style="background:rgba(100,100,200,.15);color:' + tipoColor + ';border-radius:4px;padding:2px 7px;font-size:11px;font-weight:700">' + f.tipo + '</span></td>';
+    html += '<td style="padding:8px 10px;text-align:right;color:var(--text2);font-family:var(--mono)">' + f.hs_originales.toFixed(2) + '</td>';
+    // Input editable
+    html += '<td style="padding:4px 8px;text-align:center">' + modBadge +
+      '<input data-idx="' + idx + '" type="number" min="0" step="0.01" value="' + f.hs_ajustadas.toFixed(2) + '" ' +
+      'oninput="liqUpdatePrep(this,' + idx + ')" ' +
+      'style="width:90px;padding:5px 8px;background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.35);border-radius:6px;color:#93c5fd;font-family:var(--mono);font-size:12px;font-weight:600;text-align:right;outline:none"/>' +
+      '</td>';
+    html += '<td style="padding:8px 10px;text-align:right;font-family:var(--mono);color:var(--text2)">' + calc.modCensal + '</td>';
+    html += '<td style="padding:8px 10px;text-align:right;font-family:var(--mono);color:var(--green)">' + liqFmt(calc.importeCensal) + '</td>';
+    html += '<td style="padding:8px 10px;text-align:right;font-family:var(--mono);color:var(--text2)">' + (calc.modUrses > 0 ? calc.modUrses : '—') + '</td>';
+    html += '<td style="padding:8px 10px;text-align:right;font-family:var(--mono);color:' + (calc.importeUrses > 0 ? '#a78bfa' : 'var(--text3)') + '">' + (calc.importeUrses > 0 ? liqFmt(calc.importeUrses) : '—') + '</td>';
+    html += '<td style="padding:8px 10px;text-align:right;font-family:var(--mono);color:var(--text);font-weight:700">' + liqFmt(calc.importeTotal) + '</td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  cont.innerHTML = html;
+}
+
+// ── Update en tiempo real del input de preparación ─────────────────
+window.liqUpdatePrep = function(input, idx) {
+  var val = parseFloat(input.value);
+  if (isNaN(val) || val < 0) return;
+  LIQ.prep[idx].hs_ajustadas = val;
+  LIQ.prep[idx].modificado = (val !== LIQ.prep[idx].hs_originales);
+  // Re-render solo la fila (no toda la tabla para no perder foco)
+  // Actualizar las celdas de cálculo de esa fila
+  var row = input.closest('tr');
+  if (!row) return;
+  var calc = liqCalcular(val, LIQ.prep[idx].tipo);
+  var tds = row.querySelectorAll('td');
+  // índices: 0=agente,1=leg,2=tipo,3=hs_orig,4=input,5=modCensal,6=impCensal,7=modUrses,8=impUrses,9=total
+  if (tds[5]) tds[5].textContent = calc.modCensal;
+  if (tds[6]) { tds[6].textContent = liqFmt(calc.importeCensal); tds[6].style.color = 'var(--green)'; }
+  if (tds[7]) tds[7].textContent = calc.modUrses > 0 ? calc.modUrses : '—';
+  if (tds[8]) { tds[8].textContent = calc.importeUrses > 0 ? liqFmt(calc.importeUrses) : '—'; tds[8].style.color = calc.importeUrses > 0 ? '#a78bfa' : 'var(--text3)'; }
+  if (tds[9]) { tds[9].textContent = liqFmt(calc.importeTotal); }
+};
+
+// ── Guardar preparación en Supabase ───────────────────────────────
+window.liqGuardarPrep = function() {
+  if (!LIQ.prep.length) { if (typeof toast === 'function') toast('Sin datos para guardar', 'err'); return; }
+  if (!LIQ.configId) {
+    if (typeof toast === 'function') toast('Primero guardá la configuración', 'err');
+    selLiqTab('config');
+    return;
+  }
+  var mes = liqMes(), anio = liqAnio();
+  var rows = LIQ.prep.map(function(f) {
+    var calc = liqCalcular(f.hs_ajustadas, f.tipo);
+    return {
+      liquidacion_id: LIQ.configId,
+      agente: f.agente,
+      dni: '',
+      tipo: f.tipo,
+      hs_originales: f.hs_originales,
+      hs_ajustadas: f.hs_ajustadas,
+      ajustes_diarios: null,
+      modulos_censales: calc.modCensal,
+      modulos_urses: calc.modUrses,
+      importe_censal: calc.importeCensal,
+      importe_urses: calc.importeUrses,
+      importe_total: calc.importeTotal,
+      estado: 'sin_revisar'
+    };
+  });
+  db.from('liquidaciones_detalle')
+    .delete()
+    .eq('liquidacion_id', LIQ.configId)
+    .then(function() {
+      return db.from('liquidaciones_detalle').insert(rows);
+    })
+    .then(function(r) {
+      if (r && r.error) { if (typeof toast === 'function') toast('Error: ' + r.error.message, 'err'); return; }
+      if (typeof toast === 'function') toast('Preparación guardada ✓ (' + rows.length + ' agentes)', 'ok');
+    })
+    .catch(function(e) {
+      if (typeof toast === 'function') toast('Error: ' + (e.message||''), 'err');
+    });
+};
+
+// ── Render exportación ────────────────────────────────────────────
+function liqRenderExport() {
+  var cont = document.getElementById('liq-export-content');
+  if (!cont) return;
+  if (!LIQ.prep.length) {
+    cont.innerHTML = '<div class="empty"><p>Primero cargá y guardá los datos en Preparación</p></div>';
+    return;
+  }
+  var mes = liqMes(), anio = liqAnio();
+  var mesNombre = MESES_ES[mes - 1] || '';
+  var censales = LIQ.prep.filter(function(f) { return f.tipo === 'CH' || f.tipo === 'CI'; });
+  var urses    = LIQ.prep.filter(function(f) { return f.tipo === 'PH' || f.tipo === 'PI'; });
+  // CH/CI aparecen en tabla URSES con celdas vacías (según spec)
+  var ursesFila = urses.concat(censales.map(function(f) {
+    return Object.assign({}, f, { _solo_censal_en_urses: true });
+  }));
+
+  function tablaHTML(titulo, filas, mostrarUrses) {
+    var TH = function(txt, al) { return '<th style="padding:7px 10px;text-align:' + (al||'left') + ';font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;background:var(--bg3);border:1px solid var(--border2)">' + txt + '</th>'; };
+    var TD = function(txt, al, color) {
+      return '<td style="padding:7px 10px;text-align:' + (al||'left') + ';' + (color?'color:'+color+';':'') + 'font-family:var(--mono);border:1px solid var(--border);font-size:12px">' + (txt||'—') + '</td>';
+    };
+    var h = '<div style="margin-bottom:20px">';
+    h += '<div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:8px;padding:8px 12px;background:var(--bg3);border-radius:8px;border-left:3px solid #fcd34d">' + titulo + ' — ' + mesNombre + ' ' + anio + '</div>';
+    h += '<table style="width:100%;border-collapse:collapse;font-size:12px">';
+    var encabezado = TH('Agente') + TH('Leg.') + TH('Tipo','center') + TH('Hs','right') + TH('Mód.Cens.','right') + TH('Imp.Censal','right');
+    if (mostrarUrses) encabezado += TH('Mód.URSES','right') + TH('Imp.URSES','right');
+    encabezado += TH('Total','right');
+    h += '<thead><tr>' + encabezado + '</tr></thead><tbody>';
+    var totalCensal = 0, totalUrses = 0, totalGeneral = 0;
+    filas.forEach(function(f) {
+      var calc = liqCalcular(f.hs_ajustadas, f.tipo);
+      var esVacio = mostrarUrses && f._solo_censal_en_urses;
+      totalCensal += calc.importeCensal;
+      if (!esVacio) totalUrses += calc.importeUrses;
+      totalGeneral += calc.importeTotal;
+      var tipoColor = (f.tipo === 'PH' || f.tipo === 'PI') ? '#a78bfa' : '#60a5fa';
+      h += '<tr style="border-bottom:1px solid var(--border)">';
+      h += TD(f.agente, 'left', 'var(--text)');
+      h += TD(f.legajo || '—', 'left', 'var(--text3)');
+      h += '<td style="padding:7px 10px;text-align:center;border:1px solid var(--border)"><span style="color:' + tipoColor + ';font-weight:700;font-size:11px">' + f.tipo + '</span></td>';
+      h += TD(f.hs_ajustadas.toFixed(2), 'right', 'var(--text2)');
+      h += TD(calc.modCensal > 0 ? calc.modCensal : '—', 'right', 'var(--text2)');
+      h += TD(calc.importeCensal > 0 ? liqFmt(calc.importeCensal) : '—', 'right', 'var(--green)');
+      if (mostrarUrses) {
+        h += TD(esVacio ? '' : (calc.modUrses > 0 ? calc.modUrses : '—'), 'right', 'var(--text2)');
+        h += TD(esVacio ? '' : (calc.importeUrses > 0 ? liqFmt(calc.importeUrses) : '—'), 'right', '#a78bfa');
+      }
+      h += TD(liqFmt(calc.importeTotal), 'right', 'var(--text)');
+      h += '</tr>';
+    });
+    // Totales
+    h += '<tr style="background:rgba(245,158,11,.08);font-weight:700"><td colspan="5" style="padding:8px 10px;color:#fcd34d;border:1px solid var(--border2)">TOTAL</td>';
+    h += TD(liqFmt(totalCensal), 'right', '#fcd34d');
+    if (mostrarUrses) {
+      h += '<td style="border:1px solid var(--border2)"></td>';
+      h += TD(liqFmt(totalUrses), 'right', '#fcd34d');
+    }
+    h += TD(liqFmt(totalGeneral), 'right', '#fcd34d');
+    h += '</tr>';
+    h += '</tbody></table></div>';
+    return h;
+  }
+
+  cont.innerHTML =
+    tablaHTML('📋 Censales', censales, false) +
+    tablaHTML('📋 URSES', ursesFila, true);
+}
+
+// ── Imprimir export ────────────────────────────────────────────────
+window.liqImprimirExport = function() {
+  var cont = document.getElementById('liq-export-content');
+  if (!cont || !LIQ.prep.length) { if (typeof toast === 'function') toast('Sin datos para imprimir', 'err'); return; }
+  var w = window.open('', '_blank');
+  w.document.write('<html><head><title>Liquidación</title><style>body{font-family:sans-serif;font-size:12px}table{border-collapse:collapse;width:100%}th,td{border:1px solid #ccc;padding:6px 10px}th{background:#eee}tr:nth-child(even){background:#f9f9f9}</style></head><body>');
+  w.document.write(cont.innerHTML);
+  w.document.write('</body></html>');
+  w.document.close();
+  w.focus();
+  setTimeout(function() { w.print(); }, 400);
+};
+
+// ── Patch de selAdminTab para incluir 'liquidacion' ───────────────
+var _selAdminTabLiq_orig = selAdminTab;
+selAdminTab = function(tab) {
+  var liqBtn   = document.getElementById('adm-tab-liquidacion');
+  var liqPanel = document.getElementById('adm-panel-liquidacion');
+
+  if (liqPanel) liqPanel.style.display = tab === 'liquidacion' ? 'block' : 'none';
+  if (liqBtn) {
+    liqBtn.style.background  = tab === 'liquidacion' ? 'rgba(245,158,11,.15)' : 'transparent';
+    liqBtn.style.color       = tab === 'liquidacion' ? '#fcd34d' : 'var(--text3)';
+    liqBtn.style.borderColor = tab === 'liquidacion' ? 'rgba(245,158,11,.45)' : 'var(--border)';
+  }
+
+  if (tab === 'liquidacion') {
+    // Ocultar todos los otros paneles del admin
+    ['adm-panel-general','adm-panel-horas','adm-panel-personal',
+     'adm-panel-informe','adm-panel-metricas','adm-panel-turnos',
+     'adm-panel-vehiculos','adm-panel-partes','adm-dispositivos'].forEach(function(pid) {
+      var el = document.getElementById(pid);
+      if (el) el.style.display = 'none';
+    });
+    if (typeof scrollAdminTop === 'function') scrollAdminTop();
+    selLiqTab(LIQ_SUB_ACTIVE || 'config');
+    liqCargarConfig();
+  } else {
+    _selAdminTabLiq_orig(tab);
+  }
+};
+
+})(); // fin IIFE
 </script>
 
 </body>
