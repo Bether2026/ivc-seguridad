@@ -3982,33 +3982,58 @@ body {
 
       <!-- ══ PANEL PD / PU ══ -->
       <div id="adm-panel-partes" style="display:none">
-        <!-- Subtabs PD / PU -->
-        <div style="display:flex;gap:8px;margin-bottom:14px">
-          <button id="partes-tab-pd" onclick="selPartesTab('pd')" style="padding:7px 18px;border-radius:8px;border:1px solid rgba(99,102,241,.45);background:rgba(99,102,241,.15);color:#a5b4fc;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">📋 Partes Diarios</button>
-          <button id="partes-tab-pu" onclick="selPartesTab('pu')" style="padding:7px 18px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">🚨 Partes Urgentes</button>
+        <!-- Subtabs -->
+        <div style="display:flex;gap:8px;margin-bottom:14px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px">
+          <button id="partes-tab-48h"  onclick="selPartesTab('48h')"  style="flex-shrink:0;padding:7px 18px;border-radius:8px;border:1px solid rgba(99,102,241,.45);background:rgba(99,102,241,.15);color:#a5b4fc;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">&#x26A1; &#xDA;ltimas 48hs</button>
+          <button id="partes-tab-hist" onclick="selPartesTab('hist')" style="flex-shrink:0;padding:7px 18px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">&#x1F4DA; Historial</button>
+          <button id="partes-tab-imp"  onclick="selPartesTab('imp')"  style="flex-shrink:0;padding:7px 18px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">&#x2B06;&#xFE0F; Importar</button>
         </div>
 
-        <!-- Panel PD -->
-        <div id="partes-panel-pd">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
-            <input id="pd-search" oninput="filtrarPD()" placeholder="🔍 Buscar PD por número, objetivo, responsable..." style="flex:1;min-width:200px;padding:9px 14px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--font);font-size:13px;outline:none"/>
-            <select id="pd-filtro-estado" onchange="filtrarPD()" style="padding:9px 12px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--font);font-size:13px;outline:none">
-              <option value="">Todos</option>
-              <option value="pendiente">Pendientes</option>
-              <option value="cerrado">Cerrados</option>
+        <!-- Vista 48hs -->
+        <div id="partes-panel-48h">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+            <span style="font-size:12px;color:var(--text3)">Partes generados en las &#xFA;ltimas 48 horas</span>
+            <div style="margin-left:auto;display:flex;gap:6px">
+              <button onclick="gpAbrirDesdeAdmin('PD')" style="padding:8px 14px;border-radius:8px;border:1px solid rgba(99,102,241,.45);background:rgba(99,102,241,.15);color:#a5b4fc;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">+ Nuevo PD</button>
+              <button onclick="gpAbrirDesdeAdmin('PU')" style="padding:8px 14px;border-radius:8px;border:1px solid rgba(245,158,11,.45);background:rgba(245,158,11,.12);color:#fcd34d;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">+ Nuevo PU</button>
+            </div>
+          </div>
+          <div id="partes-48h-lista"><div class="empty"><span class="spinner"></span></div></div>
+        </div>
+
+        <!-- Historial -->
+        <div id="partes-panel-hist" style="display:none">
+          <div id="partes-anios-tabs" style="display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px"></div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center">
+            <input id="hist-search" oninput="histFiltrar()" placeholder="&#x1F50D; N&#xB0;, asunto, responsable..." style="flex:1;min-width:160px;padding:8px 12px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--font);font-size:13px;outline:none"/>
+            <select id="hist-filtro-tipo" onchange="histFiltrar()" style="padding:8px 10px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--font);font-size:13px;outline:none">
+              <option value="">PD + PU</option><option value="PD">Solo PD</option><option value="PU">Solo PU</option>
             </select>
-            <button onclick="abrirNuevoPD()" style="flex-shrink:0;padding:9px 16px;border-radius:10px;border:1px solid rgba(99,102,241,.35);background:rgba(99,102,241,.1);color:#a5b4fc;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">+ Nuevo PD</button>
+            <select id="hist-filtro-estado" onchange="histFiltrar()" style="padding:8px 10px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--font);font-size:13px;outline:none">
+              <option value="activo">Activos</option><option value="">Todos</option><option value="anulado">Anulados</option>
+            </select>
           </div>
-          <div id="pd-lista"><div class="empty"><p>Cargando partes diarios...</p></div></div>
+          <div id="hist-resumen" style="font-size:11px;color:var(--text3);margin-bottom:8px"></div>
+          <div id="partes-hist-lista"><div class="empty"><span class="spinner"></span></div></div>
         </div>
 
-        <!-- Panel PU -->
-        <div id="partes-panel-pu" style="display:none">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
-            <input id="pu-search" oninput="filtrarPU()" placeholder="🔍 Buscar PU por número, asunto..." style="flex:1;min-width:200px;padding:9px 14px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--font);font-size:13px;outline:none"/>
-            <button onclick="abrirNuevoPU(null)" style="flex-shrink:0;padding:9px 16px;border-radius:10px;border:1px solid rgba(239,68,68,.35);background:rgba(239,68,68,.1);color:#fca5a5;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">+ Nuevo PU</button>
+        <!-- Importar -->
+        <div id="partes-panel-imp" style="display:none">
+          <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:16px">
+            <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">&#x2B06;&#xFE0F; Importar base Access (.accdb)</div>
+            <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">Importa registros hist&#xF3;ricos de PD desde una base Access anual. Los registros existentes se actualizan sin duplicarse.</div>
+            <div onclick="document.getElementById('imp-file-input').click()" id="imp-drop-zone"
+              style="border:2px dashed var(--border2);border-radius:10px;padding:20px;text-align:center;cursor:pointer;background:var(--bg3)">
+              <div style="font-size:24px;margin-bottom:6px">&#x1F4C2;</div>
+              <div style="font-size:13px;color:var(--text2);font-weight:600" id="imp-file-nombre">Toc&#xE1; para seleccionar el archivo .accdb</div>
+            </div>
+            <input type="file" id="imp-file-input" accept=".accdb,.mdb" style="display:none" onchange="impSeleccionarArchivo(this)"/>
+            <div id="imp-log" style="display:none;background:var(--bg3);border-radius:8px;padding:12px;font-size:11px;font-family:var(--mono);color:var(--text2);max-height:180px;overflow-y:auto;margin-top:12px;line-height:1.7;border:1px solid var(--border2)"></div>
+            <button id="imp-btn-run" onclick="impEjecutar()" disabled
+              style="width:100%;margin-top:12px;padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--bg3);color:var(--text3);font-family:var(--font);font-size:14px;font-weight:700;cursor:not-allowed">
+              &#x2B06;&#xFE0F; Iniciar importaci&#xF3;n
+            </button>
           </div>
-          <div id="pu-lista"><div class="empty"><p>Cargando partes urgentes...</p></div></div>
         </div>
       </div>
 
@@ -4223,99 +4248,144 @@ body {
   </div>
 </div>
 <!-- OVERLAY: Cargar informe — Novedad -->
-<div class="overlay" id="ov-cargar-inf">
-  <div class="modal">
-    <div class="modal-head"><span class="modal-title">&#x1F4CB; Cargar informe</span><button class="btn-close" onclick="closeOv('ov-cargar-inf')">&#xD7;</button></div>
-    <input type="hidden" id="ci-nov-id">
-    <input type="hidden" id="ci-tipo-sel">
+<div class="overlay" id="ov-generar-parte">
+  <div class="modal" style="max-width:640px;max-height:92vh;display:flex;flex-direction:column">
+    <div class="modal-head">
+      <span class="modal-title" id="gp-titulo">📋 Generar Parte</span>
+      <button class="btn-close" onclick="gpCancelar()">×</button>
+    </div>
 
-    <!-- Selector PD / PU -->
-    <div id="ci-selector" style="margin-bottom:14px">
-      <div style="font-size:12px;color:var(--text3);margin-bottom:12px;line-height:1.6">
-        &#xBFEste informe es un Parte Diario (PD) o un Parte de Urgencia (PU)?
+    <!-- Inputs ocultos de estado -->
+    <input type="hidden" id="gp-parte-id"/>
+    <input type="hidden" id="gp-tipo"/>
+    <input type="hidden" id="gp-origen"/>
+    <input type="hidden" id="gp-origen-id"/>
+    <input type="hidden" id="gp-nro"/>
+    <input type="hidden" id="gp-anio"/>
+
+    <div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-right:2px">
+
+      <!-- Paso 1: Seleccionar PD o PU -->
+      <div id="gp-paso-tipo" style="margin-bottom:16px">
+        <div style="font-size:12px;color:var(--text3);margin-bottom:12px">¿Qué tipo de parte querés generar?</div>
+        <div style="display:flex;gap:10px">
+          <button onclick="gpSelTipo('PD')" id="gp-btn-pd"
+            style="flex:1;padding:16px;border-radius:12px;border:2px solid rgba(59,130,246,.4);background:rgba(59,130,246,.08);color:#93c5fd;font-family:var(--font);font-size:15px;font-weight:900;cursor:pointer">
+            📋 PD
+            <div style="font-size:10px;font-weight:400;margin-top:4px;opacity:.7">Parte Diario</div>
+          </button>
+          <button onclick="gpSelTipo('PU')" id="gp-btn-pu"
+            style="flex:1;padding:16px;border-radius:12px;border:2px solid rgba(245,158,11,.4);background:rgba(245,158,11,.08);color:#fbbf24;font-family:var(--font);font-size:15px;font-weight:900;cursor:pointer">
+            ⚠️ PU
+            <div style="font-size:10px;font-weight:400;margin-top:4px;opacity:.7">Parte de Urgencia</div>
+          </button>
+        </div>
       </div>
-      <div style="display:flex;gap:10px">
-        <button onclick="selTipoInforme('PD')" id="ci-btn-pd"
-          style="flex:1;padding:16px;border-radius:12px;border:2px solid rgba(59,130,246,.4);background:rgba(59,130,246,.08);color:#93c5fd;font-family:var(--font);font-size:15px;font-weight:900;cursor:pointer;letter-spacing:.05em">
-          &#x1F4CB; PD
-          <div style="font-size:10px;font-weight:400;margin-top:4px;opacity:.7">Parte Diario</div>
-        </button>
-        <button onclick="selTipoInforme('PU')" id="ci-btn-pu"
-          style="flex:1;padding:16px;border-radius:12px;border:2px solid rgba(245,158,11,.4);background:rgba(245,158,11,.08);color:#fbbf24;font-family:var(--font);font-size:15px;font-weight:900;cursor:pointer;letter-spacing:.05em">
-          &#x26A0; PU
-          <div style="font-size:10px;font-weight:400;margin-top:4px;opacity:.7">Parte de Urgencia</div>
-        </button>
+
+      <!-- Formulario (aparece después de reservar número) -->
+      <div id="gp-form" style="display:none">
+
+        <!-- Badge número reservado -->
+        <div id="gp-nro-badge" style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;background:var(--bg3);border:1px solid var(--border2);margin-bottom:14px">
+          <span style="font-size:11px;color:var(--text3);font-weight:600">N° reservado:</span>
+          <span id="gp-nro-display" style="font-size:18px;font-weight:900;color:#a5b4fc;font-family:var(--mono)"></span>
+          <span style="font-size:10px;color:var(--text3);margin-left:auto">🔒 reservado para esta sesión</span>
+        </div>
+
+        <!-- Texto original (read-only, en gris) -->
+        <div id="gp-textos-originales-wrap" style="display:none;margin-bottom:14px">
+          <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">
+            📄 Novedad original <span style="font-weight:400;text-transform:none">(solo lectura)</span>
+          </div>
+          <div id="gp-textos-originales" style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--text3);line-height:1.7;max-height:160px;overflow-y:auto;user-select:none"></div>
+          <button onclick="gpVincularMas()" style="margin-top:6px;font-size:11px;color:var(--accent3);background:none;border:none;cursor:pointer;font-family:var(--font);text-decoration:underline">+ Vincular otra novedad</button>
+        </div>
+
+        <!-- Asunto -->
+        <div class="form-group">
+          <label class="form-label">Asunto *</label>
+          <input class="form-input" id="gp-asunto" placeholder="Asunto del parte"/>
+        </div>
+
+        <!-- Responsable de turno y Administrativo -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+          <div class="form-group">
+            <label class="form-label">Responsable de turno</label>
+            <select class="form-select" id="gp-responsable">
+              <option value="">— Cargando... —</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Administrativo</label>
+            <select class="form-select" id="gp-administrativo">
+              <option value="">— Cargando... —</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Texto redactado por el admin -->
+        <div class="form-group">
+          <label class="form-label">Texto del parte <span style="font-size:10px;font-weight:400;color:var(--text3)">(redactado por administración)</span></label>
+          <textarea class="form-input" id="gp-texto-admin" rows="5" placeholder="Redactá el parte formal acá..." style="resize:vertical;min-height:100px"></textarea>
+        </div>
+
+        <!-- Observaciones -->
+        <div class="form-group">
+          <label class="form-label">Observaciones</label>
+          <textarea class="form-input" id="gp-observaciones" rows="2" placeholder="Observaciones adicionales..." style="resize:vertical"></textarea>
+        </div>
+
+        <!-- Fotos vinculadas -->
+        <div id="gp-fotos-wrap" style="display:none;margin-bottom:14px">
+          <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">📷 Fotos vinculadas</div>
+          <div id="gp-fotos-grid" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+        </div>
+
+        <!-- Flags -->
+        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px">
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="gp-imagenes"/> Imágenes</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="gp-documentacion"/> Documentación</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="gp-fuerza"/> Fuerza Pública</label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="gp-pendiente" checked/> Pendiente</label>
+        </div>
+
       </div>
     </div>
 
-    <!-- Formulario (aparece después de seleccionar) -->
-    <div id="ci-form" style="display:none">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding:10px 14px;border-radius:8px;background:var(--bg3)">
-        <span id="ci-tipo-label" style="font-size:14px;font-weight:900;color:var(--accent3)"></span>
-        <button onclick="resetSelTipo()" style="font-size:11px;color:var(--text3);background:none;border:none;cursor:pointer;font-family:var(--font);text-decoration:underline">Cambiar</button>
-      </div>
-      <div class="form-group">
-        <label class="form-label" id="ci-nro-label">N&#xB0; de PD</label>
-        <input class="form-input" id="ci-nro" placeholder="Ingres&#xE1; el n&#xFA;mero" type="number"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Texto del informe <span style="font-size:10px;font-weight:400;color:var(--text3)">(peg&#xE1; el texto del Access)</span></label>
-        <textarea class="form-textarea" id="ci-texto" style="min-height:120px;border-color:rgba(59,130,246,.3)" placeholder="Peg&#xE1; ac&#xE1; el texto formal. Si lo dej&#xE1;s vac&#xED;o se usa el texto del agente."></textarea>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Observaciones <span style="font-size:10px;font-weight:400;color:var(--text3)">(aparecen en la columna Observaciones del informe)</span></label>
-        <textarea class="form-textarea" id="ci-obs" style="min-height:70px" placeholder="Observaci&#xF3;n del agente o de Administraci&#xF3;n..."></textarea>
-      </div>
-      <button class="btn-login" id="ci-btn-save" onclick="guardarInformeNovedad()">&#x2713; Guardar informe</button>
+    <!-- Botón guardar -->
+    <div id="gp-footer" style="display:none;padding-top:12px;border-top:1px solid var(--border)">
+      <button id="gp-btn-guardar" onclick="gpGuardar()"
+        style="width:100%;padding:13px;border-radius:10px;border:none;background:linear-gradient(135deg,#2563eb,#4f46e5);color:#fff;font-family:var(--font);font-size:14px;font-weight:800;cursor:pointer;letter-spacing:.03em">
+        💾 Guardar Parte
+      </button>
     </div>
   </div>
 </div>
 
-<!-- OVERLAY: Cargar informe — C.Objetivo -->
-<div class="overlay" id="ov-cargar-inf-obj">
-  <div class="modal">
-    <div class="modal-head"><span class="modal-title">&#x1F4CB; Informe del recorrido</span><button class="btn-close" onclick="closeOv('ov-cargar-inf-obj')">&#xD7;</button></div>
-    <input type="hidden" id="cio-obj-id">
-    <input type="hidden" id="cio-tipo-sel">
-
-    <!-- Selector PD / PU -->
-    <div id="cio-selector" style="margin-bottom:14px">
-      <div style="font-size:12px;color:var(--text3);margin-bottom:12px;line-height:1.6">
-        &#xBFEste informe es un Parte Diario (PD) o un Parte de Urgencia (PU)?
-      </div>
-      <div style="display:flex;gap:10px">
-        <button onclick="selTipoInformeObj('PD')" id="cio-btn-pd"
-          style="flex:1;padding:16px;border-radius:12px;border:2px solid rgba(59,130,246,.4);background:rgba(59,130,246,.08);color:#93c5fd;font-family:var(--font);font-size:15px;font-weight:900;cursor:pointer;letter-spacing:.05em">
-          &#x1F4CB; PD
-          <div style="font-size:10px;font-weight:400;margin-top:4px;opacity:.7">Parte Diario</div>
-        </button>
-        <button onclick="selTipoInformeObj('PU')" id="cio-btn-pu"
-          style="flex:1;padding:16px;border-radius:12px;border:2px solid rgba(245,158,11,.4);background:rgba(245,158,11,.08);color:#fbbf24;font-family:var(--font);font-size:15px;font-weight:900;cursor:pointer;letter-spacing:.05em">
-          &#x26A0; PU
-          <div style="font-size:10px;font-weight:400;margin-top:4px;opacity:.7">Parte de Urgencia</div>
-        </button>
-      </div>
+<!-- MODAL VINCULAR NOVEDAD ADICIONAL -->
+<div class="overlay" id="ov-gp-vincular">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-head">
+      <span class="modal-title">🔗 Vincular novedad</span>
+      <button class="btn-close" onclick="closeOv('ov-gp-vincular')">×</button>
     </div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:10px">Buscá la novedad que corresponde al mismo hecho</div>
+    <input id="gp-vincular-search" oninput="gpBuscarVincular(this.value)" placeholder="🔍 Buscar por asunto, puesto, fecha..." style="width:100%;padding:9px 12px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--font);font-size:13px;outline:none;margin-bottom:10px"/>
+    <div id="gp-vincular-lista" style="max-height:300px;overflow-y:auto"></div>
+  </div>
+</div>
 
-    <!-- Formulario -->
-    <div id="cio-form" style="display:none">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;padding:10px 14px;border-radius:8px;background:var(--bg3)">
-        <span id="cio-tipo-label" style="font-size:14px;font-weight:900;color:var(--accent3)"></span>
-        <button onclick="resetSelTipoObj()" style="font-size:11px;color:var(--text3);background:none;border:none;cursor:pointer;font-family:var(--font);text-decoration:underline">Cambiar</button>
-      </div>
-      <div class="form-group">
-        <label class="form-label" id="cio-nro-label">N&#xB0; de PD</label>
-        <input class="form-input" id="cio-nro" placeholder="Ingres&#xE1; el n&#xFA;mero" type="number"/>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Texto del informe <span style="font-size:10px;font-weight:400;color:var(--text3)">(peg&#xE1; el texto del Access)</span></label>
-        <textarea class="form-textarea" id="cio-texto" style="min-height:120px;border-color:rgba(59,130,246,.3)" placeholder="Peg&#xE1; el texto formal del recorrido..."></textarea>
-      </div>
-      <div class="form-group">
-        <label class="form-label">Observaciones <span style="font-size:10px;font-weight:400;color:var(--text3)">(aparecen en la columna Observaciones del informe)</span></label>
-        <textarea class="form-textarea" id="cio-obs" style="min-height:70px" placeholder="Observaci&#xF3;n del agente o de Administraci&#xF3;n..."></textarea>
-      </div>
-      <button class="btn-login" id="cio-btn-save" onclick="guardarInformeObj()">&#x2713; Guardar informe</button>
+<!-- MODAL DETALLE PARTE -->
+<div class="overlay" id="ov-parte-detalle">
+  <div class="modal" style="max-width:700px;max-height:92vh;display:flex;flex-direction:column">
+    <div class="modal-head">
+      <span class="modal-title" id="pd-detalle-titulo-nuevo">Parte</span>
+      <button class="btn-close" onclick="closeOv('ov-parte-detalle')">×</button>
+    </div>
+    <div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch" id="pd-detalle-body-nuevo"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;padding-top:12px;border-top:1px solid var(--border)">
+      <button onclick="gpEditarParteActual()" style="padding:8px 16px;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">✏️ Editar</button>
+      <button onclick="gpTogglePendiente()" id="btn-toggle-parte-estado" style="padding:8px 16px;border-radius:8px;border:1px solid rgba(34,197,94,.35);background:rgba(34,197,94,.08);color:#4ade80;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">✅ Cerrar parte</button>
     </div>
   </div>
 </div>
@@ -4880,13 +4950,13 @@ body {
       <div class="form-group"><label class="form-label">Fecha *</label><input class="form-input" type="date" id="pd-fecha"/></div>
       <div class="form-group"><label class="form-label">Hora</label><input class="form-input" type="time" id="pd-hora"/></div>
     </div>
-    <div class="form-group"><label class="form-label">Objetivo / Inmueble *</label>
-      <input class="form-input" id="pd-objetivo" list="pd-obj-list" placeholder="Escribir objetivo..." autocomplete="off"/>
+    <div class="form-group"><label class="form-label">Objetivo *</label>
+      <input class="form-input" id="pd-objetivo" list="pd-obj-list" placeholder="Escribir o seleccionar objetivo..." autocomplete="off"/>
       <datalist id="pd-obj-list"></datalist>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <div class="form-group"><label class="form-label">Responsable</label><input class="form-input" id="pd-responsable" placeholder="Agente responsable"/></div>
-      <div class="form-group"><label class="form-label">Administrativo</label><input class="form-input" id="pd-administrativo" placeholder="Nombre administrativo"/></div>
+      <div class="form-group"><label class="form-label">Administrativo</label><input class="form-input" id="pd-administrativo" placeholder="Quién carga el parte"/></div>
     </div>
     <div class="form-group"><label class="form-label">Agentes intervinientes</label><input class="form-input" id="pd-agentes" placeholder="Nombres separados por comas"/></div>
     <div class="form-group"><label class="form-label">Asunto</label><input class="form-input" id="pd-asunto" placeholder="Asunto principal del parte"/></div>
@@ -19988,14 +20058,848 @@ function toggleActivoChofer(id, activo) {
 // Solo visible para Administración, Administrador, Programación
 // ══════════════════════════════════════════════════════════
 
-var PD_CACHE = [];
-var PU_CACHE = [];
-var PD_DETALLE_ACTUAL = null;
-var PD_OBJ_CACHE = []; // lista de objetivos/inmuebles para datalist
+// ═══════════════════════════════════════════════════════════════
+// MÓDULO PD / PU — IVC Seguridad
+// ═══════════════════════════════════════════════════════════════
+var GP_STATE = {
+  parteId:   null,   // uuid del borrador reservado
+  tipo:      null,   // 'PD' | 'PU'
+  nro:       null,
+  anio:      null,
+  origenId:  null,
+  origen:    null,
+  novedadesVinculadas: [],  // [{id, asunto, detalle, fotos, puesto, hora, fuente}]
+};
 
-// ── Subtabs PD/PU ──────────────────────────────────────────
+var HIST_CACHE    = [];
+var HIST_ANIO_ACT = new Date().getFullYear();
+var PARTE_ACTUAL  = null;  // parte abierto en detalle
+
+// ── Permisos ──────────────────────────────────────────────────
+function _esAdminParte() {
+  return USER && (USER.rol === 'ADMIN' || USER.puesto === 'Administración' || USER.puesto === 'Administrador' || USER.puesto === 'Programación');
+}
+function _puedeVerPartes() {
+  return USER && (USER.rol === 'ADMIN' || ['Administración','Administrador','Gerencia','Jefe de departamento','Programación'].includes(USER.puesto));
+}
+
+// ── Sub-tab switcher principal ────────────────────────────────
 function selPartesTab(tab) {
-  var tabs = ['pd', 'pu'];
+  ['48h','hist','imp'].forEach(function(t) {
+    var btn   = document.getElementById('partes-tab-' + t);
+    var panel = document.getElementById('partes-panel-' + t);
+    var active = t === tab;
+    if (btn) {
+      btn.style.background  = active ? 'rgba(99,102,241,.15)' : 'transparent';
+      btn.style.color       = active ? '#a5b4fc' : 'var(--text3)';
+      btn.style.borderColor = active ? 'rgba(99,102,241,.45)' : 'var(--border)';
+    }
+    if (panel) panel.style.display = active ? 'block' : 'none';
+  });
+  if (tab === '48h')  load48hs();
+  if (tab === 'hist') { histCargarAnios(); }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GENERACIÓN DE PARTE — modal unificado
+// ═══════════════════════════════════════════════════════════════
+
+// Abrir desde Novedad
+function abrirGenerarParteNovedad(novId) {
+  if (!_esAdminParte()) { toast('Sin permiso para generar partes', 'err'); return; }
+  db.from('novedades')
+    .select('id,asunto,detalle,texto_informe,observaciones,fotos,puesto,hora_evento,created_at,nro_pd,nro_pu,parte_id')
+    .eq('id', novId).single()
+    .then(function(r) {
+      if (r.error || !r.data) { toast('Error cargando novedad', 'err'); return; }
+      var n = r.data;
+      // Si ya tiene parte vinculado, abrir el detalle
+      if (n.parte_id) {
+        gpVerDetalle(n.parte_id);
+        return;
+      }
+      GP_STATE.novedadesVinculadas = [{
+        id:     n.id,
+        asunto: n.asunto || '',
+        cuerpo: n.texto_informe || n.detalle || '',
+        fotos:  n.fotos || [],
+        puesto: n.puesto || '',
+        hora:   n.hora_evento || '',
+        fuente: 'novedad'
+      }];
+      GP_STATE.origen   = 'novedad';
+      GP_STATE.origenId = novId;
+      _gpAbrirModal();
+    });
+}
+
+// Abrir desde C.Objetivo
+function abrirGenerarParteObjetivo(objId) {
+  if (!_esAdminParte()) { toast('Sin permiso para generar partes', 'err'); return; }
+  db.from('objetivos')
+    .select('id,descripcion,texto_informe,observaciones,actualizaciones,puesto,cargado_por,created_at,nro_pd,nro_pu,parte_id')
+    .eq('id', objId).single()
+    .then(function(r) {
+      if (r.error || !r.data) { toast('Error cargando objetivo', 'err'); return; }
+      var o = r.data;
+      if (o.parte_id) { gpVerDetalle(o.parte_id); return; }
+      GP_STATE.novedadesVinculadas = [{
+        id:     o.id,
+        asunto: o.descripcion || 'Control de objetivo',
+        cuerpo: o.texto_informe || '',
+        fotos:  [],
+        puesto: o.puesto || '',
+        hora:   '',
+        fuente: 'objetivo'
+      }];
+      GP_STATE.origen   = 'objetivo';
+      GP_STATE.origenId = objId;
+      _gpAbrirModal();
+    });
+}
+
+// Abrir desde Inventario
+function abrirGenerarParteInventario(invId) {
+  if (!_esAdminParte()) { toast('Sin permiso para generar partes', 'err'); return; }
+  db.from('inventario').select('id,tipo,puesto,observaciones,fotos,created_at,parte_id').eq('id', invId).single()
+    .then(function(r) {
+      if (r.error || !r.data) { toast('Error cargando movimiento', 'err'); return; }
+      var inv = r.data;
+      if (inv.parte_id) { gpVerDetalle(inv.parte_id); return; }
+      GP_STATE.novedadesVinculadas = [{
+        id: inv.id, asunto: inv.tipo || 'Movimiento de inventario',
+        cuerpo: inv.observaciones || '', fotos: inv.fotos || [],
+        puesto: inv.puesto || '', hora: '', fuente: 'inventario'
+      }];
+      GP_STATE.origen   = 'inventario';
+      GP_STATE.origenId = invId;
+      _gpAbrirModal();
+    });
+}
+
+// Abrir desde Precintos
+function abrirGenerarPartePrecinto(precId) {
+  if (!_esAdminParte()) { toast('Sin permiso para generar partes', 'err'); return; }
+  db.from('precintos').select('id,nro_precinto,asunto,observaciones,puesto,fotos,created_at,parte_id').eq('id', precId).single()
+    .then(function(r) {
+      if (r.error || !r.data) { toast('Error cargando precinto', 'err'); return; }
+      var p = r.data;
+      if (p.parte_id) { gpVerDetalle(p.parte_id); return; }
+      GP_STATE.novedadesVinculadas = [{
+        id: p.id, asunto: 'Precinto N° ' + (p.nro_precinto || ''),
+        cuerpo: p.observaciones || '', fotos: p.fotos || [],
+        puesto: p.puesto || '', hora: '', fuente: 'precinto'
+      }];
+      GP_STATE.origen   = 'precinto';
+      GP_STATE.origenId = precId;
+      _gpAbrirModal();
+    });
+}
+
+// Abrir directo desde admin (sin origen)
+function gpAbrirDesdeAdmin(tipo) {
+  GP_STATE.novedadesVinculadas = [];
+  GP_STATE.origen   = 'manual';
+  GP_STATE.origenId = null;
+  _gpAbrirModal(tipo);
+}
+
+// ── Abrir modal y mostrar paso 1 (selector tipo) ──────────────
+function _gpAbrirModal(tipoForzado) {
+  GP_STATE.parteId = null;
+  GP_STATE.tipo    = null;
+  GP_STATE.nro     = null;
+  GP_STATE.anio    = null;
+
+  // Reset UI
+  document.getElementById('gp-paso-tipo').style.display = 'block';
+  document.getElementById('gp-form').style.display = 'none';
+  document.getElementById('gp-footer').style.display = 'none';
+  document.getElementById('gp-titulo').textContent = '📋 Generar Parte';
+  ['gp-asunto','gp-texto-admin','gp-observaciones'].forEach(function(id) {
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  ['gp-imagenes','gp-documentacion','gp-fuerza'].forEach(function(id) {
+    var el = document.getElementById(id); if (el) el.checked = false;
+  });
+  var pend = document.getElementById('gp-pendiente'); if (pend) pend.checked = true;
+
+  openOv('ov-generar-parte');
+
+  if (tipoForzado) {
+    gpSelTipo(tipoForzado);
+  } else if (GP_STATE.novedadesVinculadas.length) {
+    // Pre-cargar asunto de la primera novedad
+    var primera = GP_STATE.novedadesVinculadas[0];
+    var asuntoEl = document.getElementById('gp-asunto');
+    if (asuntoEl) asuntoEl.value = primera.asunto || '';
+  }
+}
+
+// ── Seleccionar tipo y reservar número ────────────────────────
+function gpSelTipo(tipo) {
+  GP_STATE.tipo = tipo;
+  var anio = new Date().getFullYear();
+  GP_STATE.anio = anio;
+
+  document.getElementById('gp-paso-tipo').style.display = 'none';
+  document.getElementById('gp-titulo').textContent = (tipo === 'PD' ? '📋' : '⚠️') + ' Generar ' + tipo;
+
+  // Mostrar spinner mientras reserva
+  document.getElementById('gp-form').style.display = 'block';
+  document.getElementById('gp-nro-display').textContent = '...';
+  document.getElementById('gp-footer').style.display = 'none';
+
+  // Cargar personal fichado
+  _gpCargarPersonal();
+
+  // Mostrar textos originales
+  _gpRenderTextosOriginales();
+
+  // Reservar número en Supabase
+  db.rpc('reservar_nro_parte', {
+    p_tipo:      tipo,
+    p_anio:      anio,
+    p_origen:    GP_STATE.origen || 'manual',
+    p_origen_id: GP_STATE.origenId || null,
+    p_usuario:   USER ? (USER.nombre || USER.puesto) : null
+  }).then(function(r) {
+    if (r.error || !r.data) {
+      toast('Error reservando número: ' + (r.error ? r.error.message : 'sin datos'), 'err');
+      closeOv('ov-generar-parte');
+      return;
+    }
+    var d = r.data;
+    GP_STATE.parteId = d.id;
+    GP_STATE.nro     = d.nro_pd;
+    GP_STATE.anio    = d.anio;
+    document.getElementById('gp-nro-display').textContent = d.nro_pd + '/' + d.anio;
+    document.getElementById('gp-parte-id').value  = d.id;
+    document.getElementById('gp-nro').value       = d.nro_pd;
+    document.getElementById('gp-anio').value      = d.anio;
+    document.getElementById('gp-tipo').value      = tipo;
+    document.getElementById('gp-footer').style.display = 'block';
+  });
+}
+
+// ── Cargar personal fichado (responsable turno + admin) ───────
+function _gpCargarPersonal() {
+  var selResp = document.getElementById('gp-responsable');
+  var selAdm  = document.getElementById('gp-administrativo');
+
+  Promise.all([
+    db.from('fichajes').select('agente,puesto').eq('activo', true).eq('puesto', 'Responsable de turno'),
+    db.from('fichajes').select('agente,puesto').eq('activo', true).in('puesto', ['Administración','Administrador'])
+  ]).then(function(res) {
+    var resps = (res[0].data || []);
+    var adms  = (res[1].data || []);
+
+    if (selResp) {
+      selResp.innerHTML = '<option value="">— Seleccioná —</option>' +
+        resps.map(function(r) { return '<option>' + r.agente + '</option>'; }).join('');
+      if (resps.length === 1) selResp.value = resps[0].agente;
+    }
+    if (selAdm) {
+      selAdm.innerHTML = '<option value="">— Seleccioná —</option>' +
+        adms.map(function(r) { return '<option>' + r.agente + '</option>'; }).join('');
+      // Pre-seleccionar el usuario logueado si está fichado como admin
+      if (USER && adms.find(function(a) { return a.agente === USER.nombre; })) {
+        selAdm.value = USER.nombre;
+      } else if (adms.length === 1) {
+        selAdm.value = adms[0].agente;
+      }
+    }
+  });
+}
+
+// ── Render textos originales ──────────────────────────────────
+function _gpRenderTextosOriginales() {
+  var wrap = document.getElementById('gp-textos-originales-wrap');
+  var cont = document.getElementById('gp-textos-originales');
+  var fotosWrap = document.getElementById('gp-fotos-wrap');
+  var fotosGrid = document.getElementById('gp-fotos-grid');
+  if (!wrap || !cont) return;
+
+  var novs = GP_STATE.novedadesVinculadas;
+  if (!novs.length) { wrap.style.display = 'none'; return; }
+
+  wrap.style.display = 'block';
+  var html = '';
+  var todasFotos = [];
+
+  novs.forEach(function(n, idx) {
+    if (idx > 0) html += '<div style="border-top:1px dashed var(--border);margin:8px 0;padding-top:8px;font-size:10px;color:var(--text3);font-weight:700">ACTUALIZACIÓN ' + idx + ' — ' + (n.fuente || '') + '</div>';
+    if (n.asunto) html += '<div style="font-weight:700;color:var(--text2);margin-bottom:4px">' + n.asunto + '</div>';
+    if (n.hora)   html += '<div style="font-size:10px;color:var(--text3);margin-bottom:4px">' + n.hora + ' · ' + (n.puesto || '') + '</div>';
+    html += '<div style="white-space:pre-wrap">' + (n.cuerpo || '—') + '</div>';
+    if (n.fotos && n.fotos.length) todasFotos = todasFotos.concat(n.fotos);
+  });
+
+  cont.innerHTML = html;
+
+  // Fotos
+  if (fotosWrap && fotosGrid) {
+    if (todasFotos.length) {
+      fotosWrap.style.display = 'block';
+      fotosGrid.innerHTML = todasFotos.map(function(url) {
+        return '<img src="' + url + '" onclick="abrirLightbox(\'' + url + '\')" ' +
+          'style="width:72px;height:72px;object-fit:cover;border-radius:6px;cursor:pointer;border:2px solid transparent" ' +
+          'title="Click para ver"/>';
+      }).join('');
+    } else {
+      fotosWrap.style.display = 'none';
+    }
+  }
+
+  // Check imagenes si hay fotos
+  var imgCheck = document.getElementById('gp-imagenes');
+  if (imgCheck && todasFotos.length) imgCheck.checked = true;
+}
+
+// ── Vincular otra novedad ─────────────────────────────────────
+function gpVincularMas() {
+  document.getElementById('gp-vincular-search').value = '';
+  document.getElementById('gp-vincular-lista').innerHTML = '<div class="empty"><p>Escribí para buscar</p></div>';
+  openOv('ov-gp-vincular');
+}
+
+var _gpVincularTimer = null;
+function gpBuscarVincular(q) {
+  clearTimeout(_gpVincularTimer);
+  _gpVincularTimer = setTimeout(function() {
+    if (q.length < 2) return;
+    var cont = document.getElementById('gp-vincular-lista');
+    cont.innerHTML = '<div class="empty"><span class="spinner"></span></div>';
+    db.from('novedades')
+      .select('id,asunto,detalle,texto_informe,fotos,puesto,hora_evento,created_at')
+      .ilike('asunto', '%' + q + '%')
+      .order('created_at', { ascending: false })
+      .limit(20)
+      .then(function(r) {
+        var rows = r.data || [];
+        if (!rows.length) { cont.innerHTML = '<div class="empty"><p>Sin resultados</p></div>'; return; }
+        cont.innerHTML = rows.map(function(n) {
+          var yaVinc = GP_STATE.novedadesVinculadas.find(function(v) { return v.id === n.id; });
+          return '<div style="padding:10px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;cursor:' + (yaVinc?'default':'pointer') + '"' +
+            (yaVinc ? '' : ' onclick="gpConfirmarVincular(\'' + n.id + '\')"') + '>' +
+            '<div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--text)">' + (n.asunto||'Sin asunto') + '</div>' +
+            '<div style="font-size:11px;color:var(--text3)">' + (n.puesto||'') + ' · ' + (n.hora_evento||'') + '</div></div>' +
+            (yaVinc ? '<span style="font-size:11px;color:var(--green)">✓ Vinculada</span>' :
+              '<span style="font-size:20px;color:var(--accent3)">+</span>') +
+            '</div>';
+        }).join('');
+      });
+  }, 350);
+}
+
+function gpConfirmarVincular(novId) {
+  db.from('novedades').select('id,asunto,detalle,texto_informe,fotos,puesto,hora_evento').eq('id', novId).single()
+    .then(function(r) {
+      if (!r.data) return;
+      var n = r.data;
+      GP_STATE.novedadesVinculadas.push({
+        id: n.id, asunto: n.asunto || '', cuerpo: n.texto_informe || n.detalle || '',
+        fotos: n.fotos || [], puesto: n.puesto || '', hora: n.hora_evento || '', fuente: 'novedad'
+      });
+      closeOv('ov-gp-vincular');
+      _gpRenderTextosOriginales();
+      toast('Novedad vinculada ✓');
+    });
+}
+
+// ── Cancelar (anular borrador) ────────────────────────────────
+function gpCancelar() {
+  if (GP_STATE.parteId) {
+    db.rpc('anular_borrador', { p_id: GP_STATE.parteId }).then(function() {});
+  }
+  GP_STATE.parteId = null;
+  closeOv('ov-generar-parte');
+}
+
+// ── Guardar parte ─────────────────────────────────────────────
+function gpGuardar() {
+  var parteId = document.getElementById('gp-parte-id').value;
+  var tipo    = document.getElementById('gp-tipo').value;
+  if (!parteId) { toast('Error: número no reservado', 'err'); return; }
+
+  var asunto = (document.getElementById('gp-asunto').value || '').trim();
+  if (!asunto) { toast('El asunto es obligatorio', 'err'); document.getElementById('gp-asunto').focus(); return; }
+
+  var btn = document.getElementById('gp-btn-guardar');
+  if (btn) { btn.disabled = true; btn.textContent = 'Guardando...'; }
+
+  // Construir textos_originales
+  var textosOriginales = GP_STATE.novedadesVinculadas.map(function(n, i) {
+    return { fuente: n.fuente, titulo: n.asunto, cuerpo: n.cuerpo, hora: n.hora, puesto: n.puesto, orden: i };
+  });
+
+  // Unificar fotos
+  var todasFotos = [];
+  GP_STATE.novedadesVinculadas.forEach(function(n) {
+    if (n.fotos && n.fotos.length) todasFotos = todasFotos.concat(n.fotos);
+  });
+
+  // IDs de novedades vinculadas
+  var novIds = GP_STATE.novedadesVinculadas
+    .filter(function(n) { return n.fuente === 'novedad'; })
+    .map(function(n) { return n.id; });
+  var objIds = GP_STATE.novedadesVinculadas
+    .filter(function(n) { return n.fuente === 'objetivo'; })
+    .map(function(n) { return n.id; });
+
+  var payload = {
+    estado:            'activo',
+    tipo:              tipo,
+    asunto:            asunto,
+    texto_admin:       (document.getElementById('gp-texto-admin').value || '').trim() || null,
+    observaciones:     (document.getElementById('gp-observaciones').value || '').trim() || null,
+    responsable_turno: document.getElementById('gp-responsable').value || null,
+    administrativo:    document.getElementById('gp-administrativo').value || null,
+    imagenes:          document.getElementById('gp-imagenes').checked,
+    documentacion:     document.getElementById('gp-documentacion').checked,
+    fuerza_publica:    document.getElementById('gp-fuerza').checked,
+    pendiente:         document.getElementById('gp-pendiente').checked,
+    textos_originales: textosOriginales,
+    novedad_ids:       novIds,
+    objetivo_ids:      objIds,
+    fotos:             todasFotos,
+    origen:            GP_STATE.origen || 'manual',
+    origen_id:         GP_STATE.origenId || null,
+    updated_at:        new Date().toISOString()
+  };
+
+  db.from('partes_diarios').update(payload).eq('id', parteId)
+    .then(function(r) {
+      if (btn) { btn.disabled = false; btn.textContent = '💾 Guardar Parte'; }
+      if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+
+      // Actualizar parte_id en los registros de origen
+      var promises = [];
+      novIds.forEach(function(nid) {
+        promises.push(db.from('novedades').update({ parte_id: parteId }).eq('id', nid));
+      });
+      objIds.forEach(function(oid) {
+        promises.push(db.from('objetivos').update({ parte_id: parteId }).eq('id', oid));
+      });
+      if (GP_STATE.origen === 'inventario' && GP_STATE.origenId) {
+        promises.push(db.from('inventario').update({ parte_id: parteId }).eq('id', GP_STATE.origenId));
+      }
+      if (GP_STATE.origen === 'precinto' && GP_STATE.origenId) {
+        promises.push(db.from('precintos').update({ parte_id: parteId }).eq('id', GP_STATE.origenId));
+      }
+      Promise.all(promises).then(function() {});
+
+      closeOv('ov-generar-parte');
+      GP_STATE.parteId = null;
+      toast((tipo === 'PD' ? '📋' : '⚠️') + ' ' + tipo + ' ' + GP_STATE.nro + '/' + GP_STATE.anio + ' generado ✓', 'ok');
+
+      // Refrescar vistas relevantes
+      if (typeof loadNovedades === 'function') loadNovedades();
+      if (typeof loadObjetivos === 'function') loadObjetivos();
+      load48hs();
+    });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// VISTA 48 HORAS
+// ═══════════════════════════════════════════════════════════════
+function load48hs() {
+  var cont = document.getElementById('partes-48h-lista');
+  if (!cont) return;
+  cont.innerHTML = '<div class="empty"><span class="spinner"></span></div>';
+
+  db.from('partes_diarios')
+    .select('*')
+    .eq('estado', 'activo')
+    .gte('created_at', new Date(Date.now() - 48*3600*1000).toISOString())
+    .order('nro_pd', { ascending: false })
+    .then(function(r) {
+      var rows = r.data || [];
+      if (!rows.length) {
+        cont.innerHTML = '<div class="empty"><div class="icon">📋</div><p>Sin partes en las últimas 48 horas</p></div>';
+        return;
+      }
+      cont.innerHTML = rows.map(function(p) { return _gpCard(p); }).join('');
+    });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// HISTORIAL
+// ═══════════════════════════════════════════════════════════════
+function histCargarAnios() {
+  db.rpc('anios_con_partes').then(function(r) {
+    var anios = r.data || [new Date().getFullYear()];
+    // Agregar año actual si no está
+    if (!anios.includes(new Date().getFullYear())) anios.unshift(new Date().getFullYear());
+    var tabsCont = document.getElementById('partes-anios-tabs');
+    if (!tabsCont) return;
+    tabsCont.innerHTML = anios.map(function(a) {
+      var active = a === HIST_ANIO_ACT;
+      return '<button onclick="histSelAnio(' + a + ')" id="anio-tab-' + a + '" ' +
+        'style="flex-shrink:0;padding:6px 16px;border-radius:8px;border:1px solid ' +
+        (active ? 'rgba(99,102,241,.45)' : 'var(--border)') + ';background:' +
+        (active ? 'rgba(99,102,241,.15)' : 'transparent') + ';color:' +
+        (active ? '#a5b4fc' : 'var(--text3)') + ';font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">' +
+        a + '</button>';
+    }).join('');
+    histSelAnio(HIST_ANIO_ACT);
+  });
+}
+
+function histSelAnio(anio) {
+  HIST_ANIO_ACT = anio;
+  // Actualizar estilos de solapas
+  document.querySelectorAll('[id^="anio-tab-"]').forEach(function(btn) {
+    var a = parseInt(btn.id.replace('anio-tab-',''));
+    var active = a === anio;
+    btn.style.background  = active ? 'rgba(99,102,241,.15)' : 'transparent';
+    btn.style.color       = active ? '#a5b4fc' : 'var(--text3)';
+    btn.style.borderColor = active ? 'rgba(99,102,241,.45)' : 'var(--border)';
+  });
+  histCargar();
+}
+
+function histCargar() {
+  var cont = document.getElementById('partes-hist-lista');
+  if (!cont) return;
+  cont.innerHTML = '<div class="empty"><span class="spinner"></span></div>';
+
+  var estado = (document.getElementById('hist-filtro-estado') || {}).value || 'activo';
+  var tipo   = (document.getElementById('hist-filtro-tipo')   || {}).value || '';
+
+  var q = db.from('partes_diarios')
+    .select('*')
+    .eq('anio', HIST_ANIO_ACT)
+    .order('nro_pd', { ascending: false })
+    .limit(500);
+
+  if (estado) q = q.eq('estado', estado);
+  if (tipo)   q = q.eq('tipo', tipo);
+
+  q.then(function(r) {
+    HIST_CACHE = r.data || [];
+    var res = document.getElementById('hist-resumen');
+    if (res) res.textContent = HIST_CACHE.length + ' registros · ' + HIST_ANIO_ACT;
+    histFiltrar();
+  });
+}
+
+function histFiltrar() {
+  var cont = document.getElementById('partes-hist-lista');
+  if (!cont) return;
+  var q    = ((document.getElementById('hist-search') || {}).value || '').toLowerCase();
+  var tipo = ((document.getElementById('hist-filtro-tipo') || {}).value || '');
+  var est  = ((document.getElementById('hist-filtro-estado') || {}).value || '');
+
+  var rows = HIST_CACHE.filter(function(p) {
+    if (tipo && p.tipo !== tipo) return false;
+    if (est  && p.estado !== est) return false;
+    if (q) {
+      var txt = [p.nro_pd, p.anio, p.asunto, p.responsable_turno, p.administrativo, p.puesto].join(' ').toLowerCase();
+      if (!txt.includes(q)) return false;
+    }
+    return true;
+  });
+
+  if (!rows.length) {
+    cont.innerHTML = '<div class="empty"><p>Sin resultados</p></div>';
+    return;
+  }
+  cont.innerHTML = rows.map(function(p) { return _gpCard(p); }).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// CARD de parte (usada en 48hs y historial)
+// ═══════════════════════════════════════════════════════════════
+function _gpCard(p) {
+  var nroDisplay = p.nro_pd + '/' + p.anio;
+  var esPU = p.tipo === 'PU';
+  var color  = esPU ? '#fbbf24' : '#a5b4fc';
+  var bgBadge = esPU ? 'rgba(245,158,11,.15)' : 'rgba(99,102,241,.15)';
+  var esAnulado = p.estado === 'anulado';
+  var fechaStr = p.fecha ? p.fecha.replace(/-/g,'/').split('/').reverse().join('/') : '';
+
+  return '<div onclick="gpVerDetalle(\'' + p.id + '\')" style="padding:12px 14px;background:var(--bg2);border:1px solid var(--border2);border-radius:12px;margin-bottom:8px;cursor:pointer;' +
+    (esAnulado ? 'opacity:.45;' : '') + '">' +
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">' +
+    '<span style="font-size:12px;font-weight:900;padding:3px 10px;border-radius:20px;background:' + bgBadge + ';color:' + color + ';font-family:var(--mono)">' +
+    (esPU ? '⚠️' : '📋') + ' ' + p.tipo + ' ' + nroDisplay + '</span>' +
+    (p.pendiente && !esAnulado ? '<span style="font-size:10px;padding:2px 7px;border-radius:10px;background:rgba(245,158,11,.12);color:#fcd34d;font-weight:700">PENDIENTE</span>' : '') +
+    (esAnulado ? '<span style="font-size:10px;padding:2px 7px;border-radius:10px;background:rgba(239,68,68,.1);color:#fca5a5;font-weight:700">ANULADO</span>' : '') +
+    '<span style="font-size:11px;color:var(--text3);margin-left:auto">' + fechaStr + (p.hora ? ' ' + p.hora : '') + '</span></div>' +
+    '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">' + (p.asunto || '—') + '</div>' +
+    '<div style="font-size:11px;color:var(--text3);display:flex;gap:12px;flex-wrap:wrap">' +
+    (p.responsable_turno ? '<span>👤 ' + p.responsable_turno + '</span>' : '') +
+    (p.administrativo    ? '<span>🖊️ ' + p.administrativo + '</span>' : '') +
+    (p.fuerza_publica    ? '<span style="color:#f87171">🚔 Fuerza pública</span>' : '') +
+    (p.fotos && p.fotos.length ? '<span>📷 ' + p.fotos.length + '</span>' : '') +
+    '</div></div>';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DETALLE DE PARTE
+// ═══════════════════════════════════════════════════════════════
+function gpVerDetalle(parteId) {
+  db.from('partes_diarios').select('*').eq('id', parteId).single()
+    .then(function(r) {
+      if (r.error || !r.data) { toast('Error cargando parte', 'err'); return; }
+      PARTE_ACTUAL = r.data;
+      _gpRenderDetalle(r.data);
+      openOv('ov-parte-detalle');
+    });
+}
+
+function _gpRenderDetalle(p) {
+  var esPU = p.tipo === 'PU';
+  var nroDisplay = p.nro_pd + '/' + p.anio;
+  var fechaStr = p.fecha ? p.fecha.replace(/-/g,'/').split('/').reverse().join('/') : '—';
+  var titulo = document.getElementById('pd-detalle-titulo-nuevo');
+  var body   = document.getElementById('pd-detalle-body-nuevo');
+  var btnEst = document.getElementById('btn-toggle-parte-estado');
+  if (titulo) titulo.textContent = (esPU ? '⚠️' : '📋') + ' ' + p.tipo + ' ' + nroDisplay;
+  if (btnEst) {
+    btnEst.textContent = p.pendiente ? '✅ Marcar cerrado' : '🔄 Reabrir';
+    btnEst.style.display = p.estado === 'anulado' ? 'none' : 'inline-flex';
+  }
+
+  var h = '';
+
+  // Header info
+  h += '<div style="background:var(--bg3);border-radius:10px;padding:12px 14px;margin-bottom:14px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">';
+  h += '<div><span style="color:var(--text3)">Fecha</span><br><strong>' + fechaStr + (p.hora ? ' ' + p.hora : '') + '</strong></div>';
+  h += '<div><span style="color:var(--text3)">Estado</span><br><strong style="color:' + (p.pendiente?'#fcd34d':'#4ade80') + '">' + (p.pendiente?'Pendiente':'Cerrado') + '</strong></div>';
+  if (p.responsable_turno) h += '<div><span style="color:var(--text3)">Responsable de turno</span><br><strong>' + p.responsable_turno + '</strong></div>';
+  if (p.administrativo)   h += '<div><span style="color:var(--text3)">Administrativo</span><br><strong>' + p.administrativo + '</strong></div>';
+  if (p.puesto)           h += '<div><span style="color:var(--text3)">Puesto</span><br><strong>' + p.puesto + '</strong></div>';
+  h += '</div>';
+
+  // Textos originales (fondo gris, read-only)
+  var textsOrig = p.textos_originales;
+  if (typeof textsOrig === 'string') try { textsOrig = JSON.parse(textsOrig); } catch(e) { textsOrig = []; }
+  if (textsOrig && textsOrig.length) {
+    h += '<div style="margin-bottom:14px">';
+    h += '<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">📄 Novedades originales</div>';
+    textsOrig.forEach(function(t, i) {
+      h += '<div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:6px;font-size:12px;color:var(--text3);line-height:1.7">';
+      if (i > 0) h += '<div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:4px;text-transform:uppercase">Actualización ' + i + '</div>';
+      if (t.titulo) h += '<div style="font-weight:700;color:var(--text2);margin-bottom:4px">' + t.titulo + '</div>';
+      if (t.hora)   h += '<div style="font-size:10px;margin-bottom:4px">' + t.hora + ' · ' + (t.puesto||'') + '</div>';
+      h += '<div style="white-space:pre-wrap">' + (t.cuerpo || '—') + '</div></div>';
+    });
+    h += '</div>';
+  }
+
+  // Texto del administrativo
+  if (p.texto_admin) {
+    h += '<div style="margin-bottom:14px">';
+    h += '<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">📝 Texto del parte</div>';
+    h += '<div style="background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:12px;font-size:13px;color:var(--text);line-height:1.7;white-space:pre-wrap">' + p.texto_admin + '</div>';
+    h += '</div>';
+  }
+
+  // Observaciones
+  if (p.observaciones) {
+    h += '<div style="margin-bottom:14px">';
+    h += '<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">Observaciones</div>';
+    h += '<div style="font-size:12px;color:var(--text2);line-height:1.6">' + p.observaciones + '</div>';
+    h += '</div>';
+  }
+
+  // Flags
+  var flags = [];
+  if (p.fuerza_publica) flags.push('<span style="color:#f87171">🚔 Fuerza pública</span>');
+  if (p.imagenes)       flags.push('<span>📷 Imágenes</span>');
+  if (p.documentacion)  flags.push('<span>📄 Documentación</span>');
+  if (flags.length) h += '<div style="display:flex;gap:12px;flex-wrap:wrap;font-size:12px;margin-bottom:14px">' + flags.join('') + '</div>';
+
+  // Fotos
+  var fotos = p.fotos || [];
+  if (fotos.length) {
+    h += '<div style="margin-bottom:14px">';
+    h += '<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">📷 Fotografías (' + fotos.length + ')</div>';
+    h += '<div style="display:flex;flex-wrap:wrap;gap:6px">';
+    fotos.forEach(function(url) {
+      h += '<img src="' + url + '" onclick="abrirLightbox(\'' + url + '\')" ' +
+        'style="width:80px;height:80px;object-fit:cover;border-radius:8px;cursor:pointer"/>';
+    });
+    h += '</div></div>';
+  }
+
+  if (body) body.innerHTML = h;
+}
+
+// ── Toggle pendiente ──────────────────────────────────────────
+function gpTogglePendiente() {
+  if (!PARTE_ACTUAL) return;
+  var nuevoEstado = !PARTE_ACTUAL.pendiente;
+  db.from('partes_diarios').update({ pendiente: nuevoEstado }).eq('id', PARTE_ACTUAL.id)
+    .then(function(r) {
+      if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+      PARTE_ACTUAL.pendiente = nuevoEstado;
+      _gpRenderDetalle(PARTE_ACTUAL);
+      toast(nuevoEstado ? 'Parte reabierto' : 'Parte cerrado ✓');
+      load48hs();
+    });
+}
+
+// ── Editar parte actual ───────────────────────────────────────
+function gpEditarParteActual() {
+  if (!PARTE_ACTUAL) return;
+  // Reabrir modal en modo edición
+  GP_STATE.parteId = PARTE_ACTUAL.id;
+  GP_STATE.tipo    = PARTE_ACTUAL.tipo;
+  GP_STATE.nro     = PARTE_ACTUAL.nro_pd;
+  GP_STATE.anio    = PARTE_ACTUAL.anio;
+  GP_STATE.origen  = PARTE_ACTUAL.origen;
+  GP_STATE.origenId = PARTE_ACTUAL.origen_id;
+
+  var textsOrig = PARTE_ACTUAL.textos_originales;
+  if (typeof textsOrig === 'string') try { textsOrig = JSON.parse(textsOrig); } catch(e) { textsOrig = []; }
+  GP_STATE.novedadesVinculadas = (textsOrig || []).map(function(t) {
+    return { id: t.id || '', asunto: t.titulo || '', cuerpo: t.cuerpo || '', fotos: [], puesto: t.puesto || '', hora: t.hora || '', fuente: t.fuente || 'novedad' };
+  });
+
+  closeOv('ov-parte-detalle');
+
+  // Llenar modal
+  document.getElementById('gp-titulo').textContent = '✏️ Editar ' + PARTE_ACTUAL.tipo + ' ' + PARTE_ACTUAL.nro_pd + '/' + PARTE_ACTUAL.anio;
+  document.getElementById('gp-paso-tipo').style.display = 'none';
+  document.getElementById('gp-form').style.display = 'block';
+  document.getElementById('gp-footer').style.display = 'block';
+  document.getElementById('gp-parte-id').value = PARTE_ACTUAL.id;
+  document.getElementById('gp-tipo').value     = PARTE_ACTUAL.tipo;
+  document.getElementById('gp-nro').value      = PARTE_ACTUAL.nro_pd;
+  document.getElementById('gp-anio').value     = PARTE_ACTUAL.anio;
+  document.getElementById('gp-nro-display').textContent = PARTE_ACTUAL.nro_pd + '/' + PARTE_ACTUAL.anio;
+  document.getElementById('gp-asunto').value        = PARTE_ACTUAL.asunto || '';
+  document.getElementById('gp-texto-admin').value   = PARTE_ACTUAL.texto_admin || '';
+  document.getElementById('gp-observaciones').value = PARTE_ACTUAL.observaciones || '';
+  document.getElementById('gp-imagenes').checked    = !!PARTE_ACTUAL.imagenes;
+  document.getElementById('gp-documentacion').checked = !!PARTE_ACTUAL.documentacion;
+  document.getElementById('gp-fuerza').checked      = !!PARTE_ACTUAL.fuerza_publica;
+  document.getElementById('gp-pendiente').checked   = !!PARTE_ACTUAL.pendiente;
+
+  _gpCargarPersonal();
+  _gpRenderTextosOriginales();
+
+  setTimeout(function() {
+    var selResp = document.getElementById('gp-responsable');
+    var selAdm  = document.getElementById('gp-administrativo');
+    if (selResp && PARTE_ACTUAL.responsable_turno) selResp.value = PARTE_ACTUAL.responsable_turno;
+    if (selAdm  && PARTE_ACTUAL.administrativo)    selAdm.value  = PARTE_ACTUAL.administrativo;
+  }, 600);
+
+  openOv('ov-generar-parte');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BOTONES EN NOVEDADES, C.OBJETIVO, INVENTARIO, PRECINTOS
+// Patch de las funciones de render para agregar el botón
+// ═══════════════════════════════════════════════════════════════
+
+// El botón se inyecta via las funciones existentes abrirCargarInforme
+// y abrirCargarInformeObj — las redirigimos al nuevo flujo
+window.abrirCargarInforme = function(novId) {
+  abrirGenerarParteNovedad(novId);
+};
+window.abrirCargarInformeObj = function(objId) {
+  abrirGenerarParteObjetivo(objId);
+};
+
+// Compatibilidad con código viejo que llama a estas funciones
+window.selTipoInforme    = function() {};
+window.resetSelTipo      = function() {};
+window.selTipoInformeObj = function() {};
+window.resetSelTipoObj   = function() {};
+window.guardarInformeNovedad = function() {};
+window.guardarInformeObj     = function() {};
+
+// ═══════════════════════════════════════════════════════════════
+// PATCH selAdminTab para cargar 48hs al entrar al tab
+// ═══════════════════════════════════════════════════════════════
+var _selAdminTab_gpOrig = selAdminTab;
+selAdminTab = function(tab) {
+  _selAdminTab_gpOrig(tab);
+  if (tab === 'partes') {
+    selPartesTab('48h');
+  }
+};
+
+// ═══════════════════════════════════════════════════════════════
+// IMPORTAR ACCESS
+// ═══════════════════════════════════════════════════════════════
+var IMP_FILE    = null;
+var IMP_RUNNING = false;
+
+window.impSeleccionarArchivo = function(input) {
+  var file = input.files[0];
+  if (!file) return;
+  IMP_FILE = file;
+  var nombreEl = document.getElementById('imp-file-nombre');
+  var btn  = document.getElementById('imp-btn-run');
+  var zona = document.getElementById('imp-drop-zone');
+  if (nombreEl) nombreEl.textContent = file.name + ' (' + (file.size/1024/1024).toFixed(1) + ' MB)';
+  if (zona) zona.style.borderColor = 'var(--green)';
+  if (btn) {
+    btn.disabled = false;
+    btn.style.background  = 'rgba(99,102,241,.15)';
+    btn.style.borderColor = 'rgba(99,102,241,.45)';
+    btn.style.color       = '#a5b4fc';
+    btn.style.cursor      = 'pointer';
+  }
+  impLog('✓ Archivo seleccionado: ' + file.name, true);
+};
+
+function impLog(msg, reset) {
+  var log = document.getElementById('imp-log');
+  if (!log) return;
+  log.style.display = 'block';
+  if (reset) log.innerHTML = '';
+  var ts = new Date().toLocaleTimeString('es-AR', { hour12: false, timeZone: 'America/Argentina/Buenos_Aires' });
+  log.innerHTML += '<div>[' + ts + '] ' + msg + '</div>';
+  log.scrollTop = log.scrollHeight;
+}
+
+window.impEjecutar = function() {
+  if (!IMP_FILE || IMP_RUNNING) return;
+  IMP_RUNNING = true;
+  var btn = document.getElementById('imp-btn-run');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Importando...'; }
+  impLog('Iniciando importación de ' + IMP_FILE.name, true);
+
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var ab = e.target.result;
+    impLog('Archivo leído (' + (ab.byteLength/1024/1024).toFixed(1) + ' MB). Enviando al servidor...');
+    var fd = new FormData();
+    fd.append('file', new Blob([ab], { type: 'application/octet-stream' }), IMP_FILE.name);
+    fd.append('supabase_url', typeof SUPABASE_URL !== 'undefined' ? SUPABASE_URL : '');
+    fd.append('supabase_key', typeof SUPABASE_KEY !== 'undefined' ? SUPABASE_KEY : '');
+
+    fetch('/api/importar-access', { method: 'POST', body: fd })
+      .then(function(r) { return r.ok ? r.json() : r.text().then(function(t) { throw new Error(t); }); })
+      .then(function(data) {
+        IMP_RUNNING = false;
+        if (btn) { btn.disabled = false; btn.textContent = '⬆️ Iniciar importación'; }
+        if (data.error) { impLog('✗ Error: ' + data.error); return; }
+        impLog('✓ Completado: ' + (data.pd_insertados||0) + ' PD · año ' + (data.anio||'?'));
+        if (data.errores && data.errores.length) data.errores.forEach(function(e) { impLog('⚠ ' + e); });
+        if (typeof toast === 'function') toast('Importación completada ✓', 'ok');
+        histCargar();
+      })
+      .catch(function(err) {
+        IMP_RUNNING = false;
+        if (btn) { btn.disabled = false; btn.textContent = '⬆️ Iniciar importación'; }
+        impLog('✗ Error: ' + err.message);
+      });
+  };
+  reader.onerror = function() { IMP_RUNNING = false; impLog('✗ Error leyendo el archivo'); };
+  reader.readAsArrayBuffer(IMP_FILE);
+};
+
+// ── Subtabs PD/PU/Importar ─────────────────────────────────
+function selPartesTab(tab) {
+  var tabs = ['pd', 'pu', 'imp'];
   tabs.forEach(function(t) {
     var btn   = document.getElementById('partes-tab-' + t);
     var panel = document.getElementById('partes-panel-' + t);
@@ -20007,18 +20911,24 @@ function selPartesTab(tab) {
     }
     if (panel) panel.style.display = active ? 'block' : 'none';
   });
-  if (tab === 'pd') loadPD();
-  if (tab === 'pu') loadPU();
+  if (tab === 'pd')  { loadPD(); _cargarObjDatalistPD(); }
+  if (tab === 'pu')  { loadPU(); _cargarObjDatalistPD(); }
+  if (tab === 'imp') { /* nada que cargar */ }
 }
 
 // ── Carga PD ───────────────────────────────────────────────
 function loadPD() {
   var el = document.getElementById('pd-lista');
-  if (el) el.innerHTML = '<div class="empty"><p>Cargando...</p></div>';
-  db.from('partes_diarios').select('*').order('nro_pd', { ascending: false }).limit(200).then(function(r) {
+  var resEl = document.getElementById('pd-resumen');
+  if (el) el.innerHTML = '<div class="empty"><span class="spinner"></span><p>Cargando...</p></div>';
+  var anio = (document.getElementById('pd-filtro-anio') || {}).value || '';
+  var q = db.from('partes_diarios').select('*').order('nro_pd', { ascending: false }).limit(500);
+  if (anio) q = q.eq('anio', parseInt(anio));
+  q.then(function(r) {
     if (r.error) { if (el) el.innerHTML = '<div class="empty"><p>Error: ' + r.error.message + '</p></div>'; return; }
     PD_CACHE = r.data || [];
-    renderPD(PD_CACHE);
+    if (resEl) resEl.textContent = PD_CACHE.length + ' partes' + (anio ? ' · ' + anio : '');
+    filtrarPD();
   });
 }
 
@@ -20061,11 +20971,16 @@ function filtrarPD() {
 // ── Carga PU ───────────────────────────────────────────────
 function loadPU() {
   var el = document.getElementById('pu-lista');
-  if (el) el.innerHTML = '<div class="empty"><p>Cargando...</p></div>';
-  db.from('partes_urgentes').select('*').order('nro_pu', { ascending: false }).limit(200).then(function(r) {
+  var resEl = document.getElementById('pu-resumen');
+  if (el) el.innerHTML = '<div class="empty"><span class="spinner"></span><p>Cargando...</p></div>';
+  var anio = (document.getElementById('pu-filtro-anio') || {}).value || '';
+  var q = db.from('partes_urgentes').select('*').order('nro_pu', { ascending: false }).limit(200);
+  if (anio) q = q.eq('anio', parseInt(anio));
+  q.then(function(r) {
     if (r.error) { if (el) el.innerHTML = '<div class="empty"><p>Error: ' + r.error.message + '</p></div>'; return; }
     PU_CACHE = r.data || [];
-    renderPU(PU_CACHE);
+    if (resEl) resEl.textContent = PU_CACHE.length + ' partes urgentes' + (anio ? ' · ' + anio : '');
+    filtrarPU();
   });
 }
 
@@ -20101,23 +21016,45 @@ function filtrarPU() {
   renderPU(filtrado);
 }
 
-// ── Numeración correlativa ─────────────────────────────────
-function _siguienteNroPD() {
+// ── Numeración correlativa (desde DB para evitar race conditions) ──
+function _siguienteNroPD(callback) {
   var anio = new Date().getFullYear();
-  var max = 0;
-  PD_CACHE.forEach(function(pd) { if (pd.anio === anio && pd.nro_pd > max) max = pd.nro_pd; });
-  return { nro: max + 1, anio: anio };
+  db.rpc('siguiente_nro_pd', { p_anio: anio }).then(function(r) {
+    callback({ nro: r.data || 1, anio: anio });
+  }).catch(function() {
+    // Fallback: calcular desde cache
+    var max = 0;
+    PD_CACHE.forEach(function(pd) { if (pd.anio === anio && pd.nro_pd > max) max = pd.nro_pd; });
+    callback({ nro: max + 1, anio: anio });
+  });
 }
 
-function _siguienteNroPU() {
+function _siguienteNroPU(callback) {
   var anio = new Date().getFullYear();
-  var max = 0;
-  PU_CACHE.forEach(function(pu) { if (pu.anio === anio && pu.nro_pu > max) max = pu.nro_pu; });
-  return { nro: max + 1, anio: anio };
+  db.rpc('siguiente_nro_pu', { p_anio: anio }).then(function(r) {
+    callback({ nro: r.data || 1, anio: anio });
+  }).catch(function() {
+    var max = 0;
+    PU_CACHE.forEach(function(pu) { if (pu.anio === anio && pu.nro_pu > max) max = pu.nro_pu; });
+    callback({ nro: max + 1, anio: anio });
+  });
 }
 
-// ── Datalist de objetivos para los modales ─────────────────
-function _cargarObjDatalistPD() { /* datalist de inmuebles eliminado */ }
+// ── Datalist de objetivos desde pd_objetivos ───────────────
+function _cargarObjDatalistPD() {
+  if (PD_OBJ_CACHE.length) { _poblarDatalistObj(); return; }
+  db.from('pd_objetivos').select('nombre').eq('activo', true).order('nombre').then(function(r) {
+    PD_OBJ_CACHE = (r.data || []).map(function(o) { return o.nombre; });
+    _poblarDatalistObj();
+  });
+}
+function _poblarDatalistObj() {
+  ['pd-obj-list','pu-obj-list'].forEach(function(dlId) {
+    var dl = document.getElementById(dlId);
+    if (!dl) return;
+    dl.innerHTML = PD_OBJ_CACHE.map(function(n) { return '<option value="' + n + '">'; }).join('');
+  });
+}
 
 // ── Nuevo PD ───────────────────────────────────────────────
 function abrirNuevoPD() {
@@ -20227,15 +21164,24 @@ function savePD() {
   if (editId) {
     db.from('partes_diarios').update(payload).eq('id', editId).then(function(r) {
       if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
-      closeOv('ov-pd'); toast('PD actualizado'); loadPD();
+      closeOv('ov-pd'); toast('PD actualizado ✓'); loadPD();
+      if (PD_DETALLE_ACTUAL && PD_DETALLE_ACTUAL.id === editId) {
+        Object.assign(PD_DETALLE_ACTUAL, payload);
+      }
     });
   } else {
-    var seq = _siguienteNroPD();
-    payload.nro_pd = seq.nro;
-    payload.anio   = seq.anio;
-    db.from('partes_diarios').insert(payload).then(function(r) {
-      if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
-      closeOv('ov-pd'); toast('PD-' + String(seq.nro).padStart(3,'0') + '/' + seq.anio + ' creado'); loadPD();
+    var btnSave = document.querySelector('[onclick="savePD()"]');
+    if (btnSave) { btnSave.disabled = true; btnSave.textContent = 'Guardando...'; }
+    _siguienteNroPD(function(seq) {
+      payload.nro_pd = seq.nro;
+      payload.anio   = seq.anio;
+      db.from('partes_diarios').insert(payload).then(function(r) {
+        if (btnSave) { btnSave.disabled = false; btnSave.textContent = '💾 Guardar Parte Diario'; }
+        if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+        closeOv('ov-pd');
+        toast('PD ' + seq.nro + '/' + seq.anio + ' creado ✓', 'ok');
+        loadPD();
+      });
     });
   }
 }
@@ -20371,16 +21317,22 @@ function savePU() {
   if (editId) {
     db.from('partes_urgentes').update(payload).eq('id', editId).then(function(r) {
       if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
-      closeOv('ov-pu'); toast('PU actualizado'); loadPU();
+      closeOv('ov-pu'); toast('PU actualizado ✓'); loadPU();
     });
   } else {
-    var seq = _siguienteNroPU();
-    payload.nro_pu = seq.nro;
-    payload.anio   = seq.anio;
-    db.from('partes_urgentes').insert(payload).then(function(r) {
-      if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
-      closeOv('ov-pu'); toast('PU-' + String(seq.nro).padStart(3,'0') + '/' + seq.anio + ' creado'); loadPU();
-      if (pdId) loadPD(); // refrescar PD para mostrar el nuevo PU vinculado
+    var btnSavePU = document.querySelector('[onclick="savePU()"]');
+    if (btnSavePU) { btnSavePU.disabled = true; btnSavePU.textContent = 'Guardando...'; }
+    _siguienteNroPU(function(seq) {
+      payload.nro_pu = seq.nro;
+      payload.anio   = seq.anio;
+      db.from('partes_urgentes').insert(payload).then(function(r) {
+        if (btnSavePU) { btnSavePU.disabled = false; btnSavePU.textContent = '💾 Guardar Parte Urgente'; }
+        if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+        closeOv('ov-pu');
+        toast('PU ' + seq.nro + '/' + seq.anio + ' creado ✓', 'ok');
+        loadPU();
+        if (pdId) loadPD();
+      });
     });
   }
 }
@@ -24051,6 +25003,120 @@ window.addEventListener('offline', function() { ivcEntrarOffline(); });
   var style = document.createElement('style');
   style.textContent = '@keyframes ivc-pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }';
   document.head.appendChild(style);
+})();
+</script>
+
+<!-- ══════════════════════════════════════════════════════════════════
+     MÓDULO IMPORTADOR ACCESS → Supabase (cliente)
+     Usa mdbtools en el servidor vía fetch al endpoint de Vercel,
+     o bien importa directamente parseando CSV exportado en memoria.
+     Estrategia: el .accdb se sube al servidor, se procesa con mdbtools
+     via una API route de Vercel, y el resultado se inserta en Supabase.
+     ══════════════════════════════════════════════════════════════════ -->
+<script>
+(function() {
+'use strict';
+
+var IMP_FILE = null;
+var IMP_RUNNING = false;
+
+// ── Seleccionar archivo ───────────────────────────────────
+window.impSeleccionarArchivo = function(input) {
+  var file = input.files[0];
+  if (!file) return;
+  IMP_FILE = file;
+  var nombreEl = document.getElementById('imp-file-nombre');
+  var btn = document.getElementById('imp-btn-run');
+  var zona = document.getElementById('imp-drop-zone');
+  if (nombreEl) nombreEl.textContent = file.name + ' (' + (file.size / 1024 / 1024).toFixed(1) + ' MB)';
+  if (zona) zona.style.borderColor = 'var(--green)';
+  if (btn) {
+    btn.disabled = false;
+    btn.style.background = 'rgba(99,102,241,.15)';
+    btn.style.borderColor = 'rgba(99,102,241,.45)';
+    btn.style.color = '#a5b4fc';
+    btn.style.cursor = 'pointer';
+  }
+  impLog('✓ Archivo seleccionado: ' + file.name, true);
+};
+
+function impLog(msg, reset) {
+  var log = document.getElementById('imp-log');
+  if (!log) return;
+  log.style.display = 'block';
+  if (reset) log.innerHTML = '';
+  var ts = new Date().toLocaleTimeString('es-AR', { hour12: false, timeZone: 'America/Argentina/Buenos_Aires' });
+  log.innerHTML += '<div>[' + ts + '] ' + msg + '</div>';
+  log.scrollTop = log.scrollHeight;
+}
+
+// ── Ejecutar importación ──────────────────────────────────
+window.impEjecutar = function() {
+  if (!IMP_FILE || IMP_RUNNING) return;
+  var optPD  = (document.getElementById('imp-opt-pd')  || {}).checked !== false;
+  var optObj = (document.getElementById('imp-opt-obj') || {}).checked;
+
+  IMP_RUNNING = true;
+  var btn = document.getElementById('imp-btn-run');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Importando...'; }
+
+  impLog('Iniciando importación de ' + IMP_FILE.name, true);
+  impLog('Opciones: PD=' + (optPD?'✓':'✗') + ' Objetivos=' + (optObj?'✓':'✗'));
+
+  // Leer el archivo y enviarlo al endpoint de importación
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var arrayBuffer = e.target.result;
+    impLog('Archivo leído (' + (arrayBuffer.byteLength / 1024 / 1024).toFixed(1) + ' MB). Enviando al servidor...');
+
+    var formData = new FormData();
+    formData.append('file', new Blob([arrayBuffer], { type: 'application/octet-stream' }), IMP_FILE.name);
+    formData.append('opt_pd',  optPD  ? '1' : '0');
+    formData.append('opt_obj', optObj ? '1' : '0');
+    formData.append('supabase_url', typeof SUPABASE_URL !== 'undefined' ? SUPABASE_URL : '');
+    formData.append('supabase_key', typeof SUPABASE_KEY !== 'undefined' ? SUPABASE_KEY : '');
+
+    fetch('/api/importar-access', {
+      method: 'POST',
+      body: formData
+    })
+    .then(function(r) {
+      if (!r.ok) return r.text().then(function(t) { throw new Error('HTTP ' + r.status + ': ' + t); });
+      return r.json();
+    })
+    .then(function(data) {
+      IMP_RUNNING = false;
+      if (btn) { btn.disabled = false; btn.textContent = '⬆️ Iniciar importación'; }
+      if (data.error) {
+        impLog('✗ Error del servidor: ' + data.error);
+        if (typeof toast === 'function') toast('Error en importación', 'err');
+        return;
+      }
+      impLog('✓ Importación completada:');
+      if (data.pd_insertados !== undefined) impLog('  📋 PD insertados/actualizados: ' + data.pd_insertados);
+      if (data.obj_insertados !== undefined) impLog('  📍 Objetivos insertados/actualizados: ' + data.obj_insertados);
+      if (data.anio) impLog('  📅 Año detectado: ' + data.anio);
+      if (data.errores && data.errores.length) {
+        data.errores.forEach(function(e) { impLog('  ⚠ ' + e); });
+      }
+      if (typeof toast === 'function') toast('Importación completada ✓', 'ok');
+      // Refrescar lista PD si está visible
+      if (typeof loadPD === 'function') { PD_OBJ_CACHE = []; loadPD(); }
+    })
+    .catch(function(err) {
+      IMP_RUNNING = false;
+      if (btn) { btn.disabled = false; btn.textContent = '⬆️ Iniciar importación'; }
+      impLog('✗ Error: ' + err.message);
+      if (typeof toast === 'function') toast('Error: ' + err.message.substring(0, 60), 'err');
+    });
+  };
+  reader.onerror = function() {
+    IMP_RUNNING = false;
+    impLog('✗ Error leyendo el archivo');
+  };
+  reader.readAsArrayBuffer(IMP_FILE);
+};
+
 })();
 </script>
 
