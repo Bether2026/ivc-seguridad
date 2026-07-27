@@ -1,7 +1,7 @@
 // IVC Seguridad y Emergencias — Service Worker (ÚNICO — no debe haber otro registrado)
 // IMPORTANT: bump CACHE_NAME on every deploy that changes HTML/CSS/JS,
 // otherwise installed PWA users will keep seeing the old cached version.
-const CACHE_NAME = 'ivc-seg-v10';
+const CACHE_NAME = 'ivc-seg-v11';
 const urlsToCache = ['/'];
 
 self.addEventListener('install', function(event) {
