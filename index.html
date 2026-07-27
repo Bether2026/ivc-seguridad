@@ -3585,7 +3585,7 @@ body {
                 <option value="">PD + PU</option><option value="PD">Solo PD</option><option value="PU">Solo PU</option>
               </select>
               <select id="pdpu-hist-estado" onchange="pdpuHistCargar()" style="padding:8px 10px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--font);font-size:13px;outline:none">
-                <option value="activo">Activos</option><option value="">Todos</option><option value="anulado">Anulados</option>
+                <option value="activo">Activos</option><option value="">Todos</option><option value="anulado">Anulados</option><option value="borrador">Borradores</option>
               </select>
             </div>
             <div id="pdpu-hist-resumen" style="font-size:11px;color:var(--text3);margin-bottom:8px"></div>
@@ -4054,7 +4054,7 @@ body {
               <option value="">PD + PU</option><option value="PD">Solo PD</option><option value="PU">Solo PU</option>
             </select>
             <select id="hist-filtro-estado" onchange="histFiltrar()" style="padding:8px 10px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--font);font-size:13px;outline:none">
-              <option value="activo">Activos</option><option value="">Todos</option><option value="anulado">Anulados</option>
+              <option value="activo">Activos</option><option value="">Todos</option><option value="anulado">Anulados</option><option value="borrador">Borradores</option>
             </select>
           </div>
           <div id="hist-resumen" style="font-size:11px;color:var(--text3);margin-bottom:8px"></div>
@@ -20900,6 +20900,9 @@ function histCargar() {
   var estado = (document.getElementById('hist-filtro-estado') || {}).value || 'activo';
   var tipo   = (document.getElementById('hist-filtro-tipo')   || {}).value || '';
 
+  // Solo el admin de sistema puede ver anulados y borradores
+  if (!_esAdminSistema() && estado !== 'activo') estado = 'activo';
+
   var q = db.from('partes_diarios')
     .select('*')
     .eq('anio', HIST_ANIO_ACT)
@@ -20907,6 +20910,7 @@ function histCargar() {
     .order('nro_pd', { ascending: false });
 
   if (estado) q = q.eq('estado', estado);
+  else if (!_esAdminSistema()) q = q.eq('estado', 'activo'); // "Todos" para no-admin = solo activos
   if (tipo)   q = q.eq('tipo', tipo);
 
   q.then(function(r) {
@@ -21022,15 +21026,17 @@ function _gpCard(p) {
   var color  = esPU ? '#fbbf24' : '#a5b4fc';
   var bgBadge = esPU ? 'rgba(245,158,11,.15)' : 'rgba(99,102,241,.15)';
   var esAnulado = p.estado === 'anulado';
+  var esBorrador = p.estado === 'borrador';
   var fechaStr = p.fecha ? p.fecha.replace(/-/g,'/').split('/').reverse().join('/') : '';
 
   return '<div onclick="gpVerDetalle(\'' + p.id + '\')" style="padding:12px 14px;background:var(--bg2);border:1px solid var(--border2);border-radius:12px;margin-bottom:8px;cursor:pointer;' +
-    (esAnulado ? 'opacity:.45;' : '') + '">' +
+    (esAnulado || esBorrador ? 'opacity:.45;' : '') + '">' +
     '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">' +
     '<span style="font-size:12px;font-weight:900;padding:3px 10px;border-radius:20px;background:' + bgBadge + ';color:' + color + ';font-family:var(--mono)">' +
     (esPU ? '⚠️' : '📋') + ' ' + p.tipo + ' ' + nroDisplay + '</span>' +
-    (p.pendiente && !esAnulado ? '<span style="font-size:10px;padding:2px 7px;border-radius:10px;background:rgba(245,158,11,.12);color:#fcd34d;font-weight:700">PENDIENTE</span>' : '') +
+    (p.pendiente && !esAnulado && !esBorrador ? '<span style="font-size:10px;padding:2px 7px;border-radius:10px;background:rgba(245,158,11,.12);color:#fcd34d;font-weight:700">PENDIENTE</span>' : '') +
     (esAnulado ? '<span style="font-size:10px;padding:2px 7px;border-radius:10px;background:rgba(239,68,68,.1);color:#fca5a5;font-weight:700">ANULADO</span>' : '') +
+    (esBorrador ? '<span style="font-size:10px;padding:2px 7px;border-radius:10px;background:rgba(148,163,184,.12);color:#94a3b8;font-weight:700">BORRADOR</span>' : '') +
     '<span style="font-size:11px;color:var(--text3);margin-left:auto">' + fechaStr + (p.hora ? ' ' + p.hora : '') + '</span></div>' +
     '<div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">' + (p.asunto || '—') + '</div>' +
     '<div style="font-size:11px;color:var(--text3);display:flex;gap:12px;flex-wrap:wrap">' +
@@ -21064,7 +21070,7 @@ function _gpRenderDetalle(p) {
   if (titulo) titulo.textContent = (esPU ? '⚠️' : '📋') + ' ' + p.tipo + ' ' + nroDisplay;
   if (btnEst) {
     btnEst.textContent = p.pendiente ? '✅ Marcar cerrado' : '🔄 Reabrir';
-    btnEst.style.display = p.estado === 'anulado' ? 'none' : 'inline-flex';
+    btnEst.style.display = (p.estado === 'anulado' || p.estado === 'borrador') ? 'none' : 'inline-flex';
   }
   _gpActualizarBotonesAdmin();
 
@@ -21632,12 +21638,15 @@ function pdpuHistCargar() {
   cont.innerHTML = '<div class="empty"><span class="spinner"></span></div>';
   var estado = (document.getElementById('pdpu-hist-estado') || {}).value || 'activo';
   var tipo   = (document.getElementById('pdpu-hist-tipo')   || {}).value || '';
+  // Solo el admin de sistema puede ver anulados y borradores
+  if (!_esAdminSistema() && estado !== 'activo') estado = 'activo';
   var q = db.from('partes_diarios')
     .select('*')
     .eq('anio', PDPU_HIST_ANIO)
     .order('fecha', { ascending: false })
     .order('nro_pd', { ascending: false });
   if (estado) q = q.eq('estado', estado);
+  else if (!_esAdminSistema()) q = q.eq('estado', 'activo');
   if (tipo)   q = q.eq('tipo', tipo);
   q.then(function(r) {
     PDPU_HIST_CACHE = r.data || [];
