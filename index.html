@@ -20335,6 +20335,16 @@ function gpAbrirDesdeAdmin(tipo) {
 
 // ── Abrir modal y mostrar paso 1 (selector tipo) ──────────────
 function _gpAbrirModal(tipoForzado) {
+  // Anular borradores huérfanos previos de este usuario (sesiones cerradas mal)
+  if (typeof db !== 'undefined' && USER) {
+    db.from('partes_diarios')
+      .update({ estado: 'anulado' })
+      .eq('estado', 'borrador')
+      .eq('cargado_por', USER.nombre || USER.puesto)
+      .lt('created_at', new Date(Date.now() - 60000).toISOString()) // más de 1 min de antigüedad
+      .then(function() {});
+  }
+
   GP_STATE.parteId = null;
   GP_STATE.tipo    = null;
   GP_STATE.nro     = null;
@@ -21790,8 +21800,14 @@ window.addEventListener('popstate', function(e) {
   // Cualquier overlay modal abierto
   var abiertos = document.querySelectorAll('.overlay.open');
   if (abiertos.length) {
-    // Cerrar el último abierto (el más reciente)
-    abiertos[abiertos.length - 1].classList.remove('open');
+    var ultimo = abiertos[abiertos.length - 1];
+    // Si es el modal de generar parte, anular el borrador reservado
+    if (ultimo.id === 'ov-generar-parte' && typeof gpCancelar === 'function') {
+      gpCancelar();
+      document.body.style.overflow = '';
+      return;
+    }
+    ultimo.classList.remove('open');
     document.body.style.overflow = '';
     return;
   }
@@ -21811,6 +21827,11 @@ document.addEventListener('keydown', function(e) {
 
   // Cerrar todos los overlays modales abiertos (clase .overlay.open)
   document.querySelectorAll('.overlay.open').forEach(function(ov) {
+    // Modal de generar parte: anular el borrador antes de cerrar
+    if (ov.id === 'ov-generar-parte' && typeof gpCancelar === 'function') {
+      gpCancelar();
+      return;
+    }
     ov.classList.remove('open');
   });
 
@@ -21833,7 +21854,12 @@ document.addEventListener('keypress', resetInactivityTimer, {
 });
 document.querySelectorAll('.overlay').forEach(function (o) {
   o.addEventListener('click', function (e) {
-    if (e.target === o) o.classList.remove('open');
+    if (e.target === o) {
+      // El modal de generar parte NO se cierra al click afuera
+      // (tiene número reservado — solo se cierra con la X que anula el borrador)
+      if (o.id === 'ov-generar-parte') return;
+      o.classList.remove('open');
+    }
   });
 });
 document.getElementById('inp-pass').addEventListener('keydown', function (e) {
