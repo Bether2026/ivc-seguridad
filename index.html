@@ -3567,7 +3567,7 @@ body {
           <!-- 48hs -->
           <div id="pdpu-panel-48h">
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
-              <span style="font-size:12px;color:var(--text3)">Partes de las &#xFA;ltimas 48 horas</span>
+          <span style="font-size:12px;color:var(--text3)">Partes de las &#xFA;ltimas 48 horas</span>
               <div id="pdpu-nuevos-btns" style="margin-left:auto;display:flex;gap:6px;display:none">
                 <button onclick="gpAbrirDesdeAdmin('PD')" style="padding:8px 14px;border-radius:8px;border:1px solid rgba(99,102,241,.45);background:rgba(99,102,241,.15);color:#a5b4fc;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">+ Nuevo PD</button>
                 <button onclick="gpAbrirDesdeAdmin('PU')" style="padding:8px 14px;border-radius:8px;border:1px solid rgba(245,158,11,.45);background:rgba(245,158,11,.12);color:#fcd34d;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">+ Nuevo PU</button>
@@ -4381,12 +4381,25 @@ body {
           <div id="gp-fotos-grid" style="display:flex;flex-wrap:wrap;gap:6px"></div>
         </div>
 
-        <!-- Flags -->
-        <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:16px">
-          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="gp-imagenes"/> Imágenes</label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="gp-documentacion"/> Documentación</label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="gp-fuerza"/> Fuerza Pública</label>
-          <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="gp-pendiente" checked/> Pendiente</label>
+
+        <!-- Flags ocultos (se calculan automáticamente) -->
+        <input type="checkbox" id="gp-imagenes" style="display:none"/>
+        <input type="checkbox" id="gp-documentacion" style="display:none"/>
+        <input type="checkbox" id="gp-fuerza" style="display:none"/>
+        <input type="checkbox" id="gp-pendiente" checked style="display:none"/>
+
+        <!-- Subir fotos desde la computadora -->
+        <div style="margin-bottom:14px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em">📷 Agregar fotos</div>
+            <span style="font-size:10px;color:var(--text3)">(desde la computadora o las novedades vinculadas)</span>
+          </div>
+          <label style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg3);border:1px dashed var(--border2);border-radius:8px;cursor:pointer">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#93c5fd" stroke-width="2" style="width:20px;height:20px;flex-shrink:0"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <span style="font-size:13px;color:#93c5fd;font-weight:600">Seleccionar fotos del dispositivo</span>
+            <input type="file" id="gp-fotos-upload" accept="image/*" multiple style="display:none" onchange="gpSubirFotos(this)"/>
+          </label>
+          <div id="gp-fotos-upload-preview" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"></div>
         </div>
 
       </div>
@@ -4555,7 +4568,18 @@ body {
       </div>
     </div>
 
-    <div style="padding-top:12px;border-top:1px solid var(--border)">
+      <div style="margin-bottom:14px">
+        <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">📷 Agregar fotos al parte</div>
+        <label style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg3);border:1px dashed var(--border2);border-radius:8px;cursor:pointer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#93c5fd" stroke-width="2" style="width:20px;height:20px;flex-shrink:0"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <span style="font-size:13px;color:#93c5fd;font-weight:600">Seleccionar fotos del dispositivo</span>
+          <input type="file" id="pec-fotos-upload" accept="image/*" multiple style="display:none" onchange="pecSubirFotos(this)"/>
+        </label>
+        <div id="pec-fotos-actuales" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"></div>
+        <div id="pec-fotos-nuevas" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px"></div>
+      </div>
+
+      <div style="padding-top:12px;border-top:1px solid var(--border)">
       <button onclick="pecGuardar()" id="pec-btn-guardar"
         style="width:100%;padding:13px;border-radius:10px;border:none;background:linear-gradient(135deg,#d97706,#b45309);color:#fff;font-family:var(--font);font-size:14px;font-weight:800;cursor:pointer">
         💾 Guardar cambios
@@ -20316,6 +20340,7 @@ function _gpAbrirModal(tipoForzado) {
   GP_STATE.nro     = null;
   GP_STATE.anio    = null;
   _gpFotosSeleccionadas = {};
+  _gpResetFotos();
 
   // Reset UI
   document.getElementById('gp-paso-tipo').style.display = 'block';
@@ -20730,36 +20755,44 @@ function gpGuardar() {
     updated_at:        new Date().toISOString()
   };
 
-  db.from('partes_diarios').update(payload).eq('id', parteId)
-    .then(function(r) {
-      if (btn) { btn.disabled = false; btn.textContent = '💾 Guardar Parte'; }
-      if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+  if (btn) { btn.disabled = true; btn.textContent = _gpFotosNuevas.length ? 'Subiendo fotos...' : 'Guardando...'; }
 
-      // Actualizar parte_id en los registros de origen
-      var promises = [];
-      novIds.forEach(function(nid) {
-        promises.push(db.from('novedades').update({ parte_id: parteId }).eq('id', nid));
+  // Subir fotos nuevas si las hay
+  _subirFotosStorage(_gpFotosNuevas, 'pd_' + parteId, function(urlsNuevas) {
+    var fotosFinales = todasFotos.concat(urlsNuevas);
+    if (fotosFinales.length) payload.imagenes = true;
+
+    db.from('partes_diarios').update(payload).eq('id', parteId)
+      .then(function(r) {
+        if (btn) { btn.disabled = false; btn.textContent = '💾 Guardar Parte'; }
+        if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+
+        // Actualizar parte_id en los registros de origen
+        var promises = [];
+        novIds.forEach(function(nid) {
+          promises.push(db.from('novedades').update({ parte_id: parteId }).eq('id', nid));
+        });
+        objIds.forEach(function(oid) {
+          promises.push(db.from('objetivos').update({ parte_id: parteId }).eq('id', oid));
+        });
+        if (GP_STATE.origen === 'inventario' && GP_STATE.origenId) {
+          promises.push(db.from('inventario').update({ parte_id: parteId }).eq('id', GP_STATE.origenId));
+        }
+        if (GP_STATE.origen === 'precinto' && GP_STATE.origenId) {
+          promises.push(db.from('precintos').update({ parte_id: parteId }).eq('id', GP_STATE.origenId));
+        }
+        Promise.all(promises).then(function() {});
+
+        closeOv('ov-generar-parte');
+        GP_STATE.parteId = null;
+        toast((tipo === 'PD' ? '📋' : '⚠️') + ' ' + tipo + ' ' + GP_STATE.nro + '/' + GP_STATE.anio + ' generado ✓', 'ok');
+
+        if (typeof loadNovedades === 'function') loadNovedades();
+        if (typeof loadObjetivos === 'function') loadObjetivos();
+        load48hs();
+        if (typeof pdpu48hCargar === 'function') pdpu48hCargar();
       });
-      objIds.forEach(function(oid) {
-        promises.push(db.from('objetivos').update({ parte_id: parteId }).eq('id', oid));
-      });
-      if (GP_STATE.origen === 'inventario' && GP_STATE.origenId) {
-        promises.push(db.from('inventario').update({ parte_id: parteId }).eq('id', GP_STATE.origenId));
-      }
-      if (GP_STATE.origen === 'precinto' && GP_STATE.origenId) {
-        promises.push(db.from('precintos').update({ parte_id: parteId }).eq('id', GP_STATE.origenId));
-      }
-      Promise.all(promises).then(function() {});
-
-      closeOv('ov-generar-parte');
-      GP_STATE.parteId = null;
-      toast((tipo === 'PD' ? '📋' : '⚠️') + ' ' + tipo + ' ' + GP_STATE.nro + '/' + GP_STATE.anio + ' generado ✓', 'ok');
-
-      // Refrescar vistas relevantes
-      if (typeof loadNovedades === 'function') loadNovedades();
-      if (typeof loadObjetivos === 'function') loadObjetivos();
-      load48hs();
-    });
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -20770,45 +20803,43 @@ function load48hs() {
   if (!cont) return;
   cont.innerHTML = '<div class="empty"><span class="spinner"></span></div>';
 
-  db.from('partes_diarios')
+  var desde = new Date(Date.now() - 48*3600*1000).toISOString().substring(0,10);
+  var q = db.from('partes_diarios')
     .select('*')
-    .eq('estado', 'activo')
-    .gte('fecha', new Date(Date.now() - 48*3600*1000).toISOString().substring(0,10))
+    .gte('fecha', desde)
     .order('fecha', { ascending: false })
-    .order('nro_pd', { ascending: false })
-    .then(function(r) {
-      var rows = r.data || [];
-      if (!rows.length) {
-        cont.innerHTML = '<div class="empty"><div class="icon">📋</div><p>Sin partes en las últimas 48 horas</p></div>';
-        return;
-      }
+    .order('nro_pd', { ascending: false });
 
-      // Agrupar por día
-      var porDia = {};
-      rows.forEach(function(p) {
-        var dia = p.fecha || new Date().toISOString().substring(0,10);
-        if (!porDia[dia]) porDia[dia] = [];
-        porDia[dia].push(p);
-      });
+  // No ADMIN solo ve activos
+  if (!_esAdminSistema()) q = q.eq('estado', 'activo');
 
-      var diasOrdenados = Object.keys(porDia).sort(function(a,b) { return b.localeCompare(a); });
-      var html = '';
-      diasOrdenados.forEach(function(dia) {
-        var diaStr = dia.split('-').reverse().join('/');
-        var partesDia = porDia[dia];
-        // Calcular si es hoy o ayer
-        var hoyStr = new Date().toISOString().substring(0,10);
-        var ayerStr = new Date(Date.now() - 86400000).toISOString().substring(0,10);
-        var label = dia === hoyStr ? 'Hoy' : dia === ayerStr ? 'Ayer' : diaStr;
-        html += '<div style="padding:6px 4px;font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-top:8px;display:flex;align-items:center;gap:8px">';
-        html += '<span>' + label + ' · ' + diaStr + '</span>';
-        html += '<span style="font-size:10px;padding:2px 8px;border-radius:10px;background:rgba(99,102,241,.12);color:#a5b4fc">' + partesDia.length + ' partes</span>';
-        html += '</div>';
-        partesDia.forEach(function(p) { html += _gpCard(p); });
-      });
-      cont.innerHTML = html;
+  q.then(function(r) {
+    var rows = r.data || [];
+    if (!rows.length) {
+      cont.innerHTML = '<div class="empty"><div class="icon">\u{1F4CB}</div><p>Sin partes en las \xFAltimas 48 horas</p></div>';
+      return;
+    }
+    var porDia = {};
+    rows.forEach(function(p) {
+      var dia = p.fecha || new Date().toISOString().substring(0,10);
+      if (!porDia[dia]) porDia[dia] = [];
+      porDia[dia].push(p);
     });
+    var hoyStr  = new Date().toISOString().substring(0,10);
+    var ayerStr = new Date(Date.now() - 86400000).toISOString().substring(0,10);
+    var html = '';
+    Object.keys(porDia).sort(function(a,b){ return b.localeCompare(a); }).forEach(function(dia) {
+      var diaStr = dia.split('-').reverse().join('/');
+      var label  = dia === hoyStr ? 'Hoy' : dia === ayerStr ? 'Ayer' : diaStr;
+      html += '<div style="padding:6px 4px;font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-top:8px;display:flex;align-items:center;gap:8px">';
+      html += '<span>' + label + ' \xB7 ' + diaStr + '</span>';
+      html += '<span style="font-size:10px;padding:2px 8px;border-radius:10px;background:rgba(99,102,241,.12);color:#a5b4fc">' + porDia[dia].length + ' partes</span></div>';
+      porDia[dia].forEach(function(p) { html += _gpCard(p); });
+    });
+    cont.innerHTML = html;
+  });
 }
+
 
 // ═══════════════════════════════════════════════════════════════
 // HISTORIAL
@@ -21187,8 +21218,118 @@ selAdminTab = function(tab) {
   }
 };
 
-// ═══════════════════════════════════════════════════════════════
-// EDICIÓN COMPLETA Y ELIMINACIÓN — SOLO ADMIN SISTEMA
+// ── Fotos nuevas pendientes de subir ──────────────────────────
+var _gpFotosNuevas = []; // {file, dataUrl, nombre}
+var _pecFotosNuevas = [];
+var _pecFotosActuales = []; // URLs ya guardadas
+
+// Subir fotos en modal generar parte
+window.gpSubirFotos = function(input) {
+  var archivos = Array.from(input.files);
+  var prev = document.getElementById('gp-fotos-upload-preview');
+  archivos.forEach(function(file) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var dataUrl = e.target.result;
+      _gpFotosNuevas.push({ file: file, dataUrl: dataUrl });
+      if (prev) {
+        var img = document.createElement('div');
+        img.style.cssText = 'position:relative;width:72px;height:72px';
+        img.innerHTML = '<img src="' + dataUrl + '" style="width:72px;height:72px;object-fit:cover;border-radius:6px;border:2px solid var(--green)"/>' +
+          '<div onclick="gpQuitarFotoNueva(' + (_gpFotosNuevas.length-1) + ',this.parentNode)" style="position:absolute;top:-4px;right:-4px;width:18px;height:18px;border-radius:50%;background:#ef4444;color:#fff;font-size:12px;line-height:18px;text-align:center;cursor:pointer;font-weight:700">×</div>';
+        prev.appendChild(img);
+      }
+    };
+    reader.readAsDataURL(file);
+  });
+  input.value = '';
+};
+
+window.gpQuitarFotoNueva = function(idx, el) {
+  _gpFotosNuevas.splice(idx, 1);
+  if (el && el.parentNode) el.parentNode.removeChild(el);
+};
+
+// Subir fotos en modal edición completa
+window.pecSubirFotos = function(input) {
+  var archivos = Array.from(input.files);
+  var prev = document.getElementById('pec-fotos-nuevas');
+  archivos.forEach(function(file) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var dataUrl = e.target.result;
+      _pecFotosNuevas.push({ file: file, dataUrl: dataUrl });
+      if (prev) {
+        var img = document.createElement('div');
+        img.style.cssText = 'position:relative;width:72px;height:72px';
+        img.innerHTML = '<img src="' + dataUrl + '" style="width:72px;height:72px;object-fit:cover;border-radius:6px;border:2px solid var(--green)"/>' +
+          '<div onclick="pecQuitarFotoNueva(' + (_pecFotosNuevas.length-1) + ',this.parentNode)" style="position:absolute;top:-4px;right:-4px;width:18px;height:18px;border-radius:50%;background:#ef4444;color:#fff;font-size:12px;line-height:18px;text-align:center;cursor:pointer;font-weight:700">×</div>';
+        prev.appendChild(img);
+      }
+    };
+    reader.readAsDataURL(file);
+  });
+  input.value = '';
+};
+
+window.pecQuitarFotoNueva = function(idx, el) {
+  _pecFotosNuevas.splice(idx, 1);
+  if (el && el.parentNode) el.parentNode.removeChild(el);
+};
+
+// Subir fotos a Supabase Storage y devolver URLs
+function _subirFotosStorage(archivos, carpeta, callback) {
+  if (!archivos.length) { callback([]); return; }
+  var urls = [];
+  var pendientes = archivos.length;
+  archivos.forEach(function(item) {
+    var ext  = item.file.name.split('.').pop().toLowerCase();
+    var nombre = carpeta + '/' + Date.now() + '_' + Math.random().toString(36).substring(2,8) + '.' + ext;
+    // Subir a Supabase Storage bucket "partes"
+    db.storage.from('partes').upload(nombre, item.file, { upsert: true })
+      .then(function(r) {
+        if (r.error) { console.error('Error subiendo foto:', r.error); }
+        else {
+          var pub = db.storage.from('partes').getPublicUrl(nombre);
+          if (pub.data && pub.data.publicUrl) urls.push(pub.data.publicUrl);
+        }
+        pendientes--;
+        if (pendientes === 0) callback(urls);
+      });
+  });
+}
+
+// Reset fotos al abrir modal generar
+function _gpResetFotos() {
+  _gpFotosNuevas = [];
+  var prev = document.getElementById('gp-fotos-upload-preview');
+  if (prev) prev.innerHTML = '';
+}
+
+// Reset fotos al abrir edición completa
+function _pecResetFotos(fotosActuales) {
+  _pecFotosNuevas = [];
+  _pecFotasActuales = fotosActuales || [];
+  var prev = document.getElementById('pec-fotos-nuevas');
+  if (prev) prev.innerHTML = '';
+  // Mostrar fotos actuales con opción de quitar
+  var cont = document.getElementById('pec-fotos-actuales');
+  if (!cont) return;
+  if (!fotosActuales || !fotosActuales.length) { cont.innerHTML = ''; return; }
+  cont.innerHTML = '<div style="font-size:10px;color:var(--text3);width:100%;margin-bottom:4px">Fotos existentes:</div>' +
+    fotosActuales.map(function(url, i) {
+      return '<div style="position:relative;width:72px;height:72px">' +
+        '<img src="' + url + '" style="width:72px;height:72px;object-fit:cover;border-radius:6px;border:2px solid var(--border2)"/>' +
+        '<div onclick="pecQuitarFotoActual(' + i + ',this.parentNode)" style="position:absolute;top:-4px;right:-4px;width:18px;height:18px;border-radius:50%;background:#ef4444;color:#fff;font-size:12px;line-height:18px;text-align:center;cursor:pointer;font-weight:700">×</div>' +
+        '</div>';
+    }).join('');
+}
+
+var _pecFotasActuales = [];
+window.pecQuitarFotoActual = function(idx, el) {
+  _pecFotasActuales.splice(idx, 1);
+  if (el && el.parentNode) el.parentNode.removeChild(el);
+};
 // ═══════════════════════════════════════════════════════════════
 
 function _esAdminSistema() {
@@ -21224,6 +21365,7 @@ function gpEditarCompleto() {
 
   document.getElementById('pec-titulo').textContent = '🔧 Editar ' + p.tipo + ' ' + p.nro_pd + '/' + p.anio;
   document.getElementById('pec-nro-status').style.display = 'none';
+  _pecResetFotos(p.fotos || []);
 
   closeOv('ov-parte-detalle');
   openOv('ov-parte-editar-completo');
@@ -21285,36 +21427,39 @@ function pecGuardar() {
   var nroCambio = (nro !== nroOriginal || anio !== anioOriginal);
 
   var ejecutarGuardado = function() {
-    if (btn) { btn.disabled = true; btn.textContent = 'Guardando...'; }
-    var payload = {
-      nro_pd:           nro,
-      anio:             anio,
-      asunto:           document.getElementById('pec-asunto').value.trim() || null,
-      responsable_turno: document.getElementById('pec-responsable').value.trim() || null,
-      administrativo:   document.getElementById('pec-administrativo').value.trim() || null,
-      agentes:          document.getElementById('pec-agentes').value.trim() || null,
-      texto_admin:      document.getElementById('pec-texto').value.trim() || null,
-      observaciones:    document.getElementById('pec-obs').value.trim() || null,
-      imagenes:         document.getElementById('pec-imagenes').checked,
-      documentacion:    document.getElementById('pec-documentacion').checked,
-      fuerza_publica:   document.getElementById('pec-fuerza').checked,
-      pendiente:        document.getElementById('pec-pendiente').checked,
-      updated_at:       new Date().toISOString()
-    };
-    db.from('partes_diarios').update(payload).eq('id', id)
-      .then(function(r) {
-        if (btn) { btn.disabled = false; btn.textContent = '💾 Guardar cambios'; }
-        if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
-        toast('✓ ' + tipo + ' actualizado correctamente', 'ok');
-        closeOv('ov-parte-editar-completo');
-        // Actualizar PARTE_ACTUAL y refrescar vistas
-        Object.assign(PARTE_ACTUAL, payload);
-        load48hs();
-        histCargar();
-        if (typeof pdpu48hCargar === 'function') pdpu48hCargar();
-        if (typeof pdpuHistCargar === 'function') pdpuHistCargar();
-      });
-  };
+    if (btn) { btn.disabled = true; btn.textContent = _pecFotosNuevas.length ? 'Subiendo fotos...' : 'Guardando...'; }
+    _subirFotosStorage(_pecFotosNuevas, 'pd_' + id, function(urlsNuevas) {
+      var fotasFinales = (_pecFotasActuales || []).concat(urlsNuevas);
+      var payload = {
+        nro_pd:           nro,
+        anio:             anio,
+        asunto:           document.getElementById('pec-asunto').value.trim() || null,
+        responsable_turno: document.getElementById('pec-responsable').value.trim() || null,
+        administrativo:   document.getElementById('pec-administrativo').value.trim() || null,
+        agentes:          document.getElementById('pec-agentes').value.trim() || null,
+        texto_admin:      document.getElementById('pec-texto').value.trim() || null,
+        observaciones:    document.getElementById('pec-obs').value.trim() || null,
+        imagenes:         document.getElementById('pec-imagenes').checked || fotasFinales.length > 0,
+        documentacion:    document.getElementById('pec-documentacion').checked,
+        fuerza_publica:   document.getElementById('pec-fuerza').checked,
+        pendiente:        document.getElementById('pec-pendiente').checked,
+        fotos:            fotasFinales,
+        updated_at:       new Date().toISOString()
+      };
+      db.from('partes_diarios').update(payload).eq('id', id)
+        .then(function(r) {
+          if (btn) { btn.disabled = false; btn.textContent = '💾 Guardar cambios'; }
+          if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+          toast('✓ ' + tipo + ' actualizado correctamente', 'ok');
+          closeOv('ov-parte-editar-completo');
+          Object.assign(PARTE_ACTUAL, payload);
+          load48hs();
+          histCargar();
+          if (typeof pdpu48hCargar === 'function') pdpu48hCargar();
+          if (typeof pdpuHistCargar === 'function') pdpuHistCargar();
+        });
+    });
+  }};
 
   if (nroCambio) {
     // Verificar que el número nuevo no esté en uso
