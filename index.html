@@ -4344,7 +4344,10 @@ body {
 
         <!-- Fotos vinculadas -->
         <div id="gp-fotos-wrap" style="display:none;margin-bottom:14px">
-          <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">📷 Fotos vinculadas</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em">📷 Fotos incluidas en el parte</div>
+            <button onclick="gpAbrirSelectorFotos()" style="font-size:11px;padding:3px 10px;border-radius:6px;border:1px solid rgba(59,130,246,.35);background:rgba(59,130,246,.08);color:#93c5fd;font-family:var(--font);cursor:pointer;font-weight:600">✏️ Editar</button>
+          </div>
           <div id="gp-fotos-grid" style="display:flex;flex-wrap:wrap;gap:6px"></div>
         </div>
 
@@ -4371,14 +4374,68 @@ body {
 
 <!-- MODAL VINCULAR NOVEDAD ADICIONAL -->
 <div class="overlay" id="ov-gp-vincular">
-  <div class="modal" style="max-width:500px">
+  <div class="modal" style="max-width:600px;max-height:92vh;display:flex;flex-direction:column">
     <div class="modal-head">
       <span class="modal-title">🔗 Vincular novedad</span>
       <button class="btn-close" onclick="closeOv('ov-gp-vincular')">×</button>
     </div>
-    <div style="font-size:12px;color:var(--text3);margin-bottom:10px">Buscá la novedad que corresponde al mismo hecho</div>
-    <input id="gp-vincular-search" oninput="gpBuscarVincular(this.value)" placeholder="🔍 Buscar por asunto, puesto, fecha..." style="width:100%;padding:9px 12px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--font);font-size:13px;outline:none;margin-bottom:10px"/>
-    <div id="gp-vincular-lista" style="max-height:300px;overflow-y:auto"></div>
+
+    <!-- Buscador -->
+    <input id="gp-vincular-search" oninput="gpBuscarVincular(this.value)"
+      placeholder="🔍 Buscar por asunto, puesto..."
+      style="width:100%;padding:9px 12px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--font);font-size:13px;outline:none;margin-bottom:10px;flex-shrink:0"/>
+
+    <div style="display:flex;gap:8px;flex:1;min-height:0">
+      <!-- Lista de novedades -->
+      <div id="gp-vincular-lista"
+        style="width:55%;overflow-y:auto;border:1px solid var(--border);border-radius:10px;flex-shrink:0">
+        <div class="empty"><p>Escribí para buscar<br>o scrolleá para navegar</p></div>
+      </div>
+
+      <!-- Preview de la novedad seleccionada -->
+      <div id="gp-vincular-preview"
+        style="flex:1;overflow-y:auto;background:var(--bg3);border-radius:10px;border:1px solid var(--border);padding:12px;font-size:12px;color:var(--text3)">
+        <div style="text-align:center;margin-top:40px;opacity:.5">
+          <div style="font-size:24px;margin-bottom:8px">👆</div>
+          Seleccioná una novedad para ver el preview
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer con botón confirmar -->
+    <div id="gp-vincular-footer" style="display:none;padding-top:12px;border-top:1px solid var(--border);margin-top:10px;flex-shrink:0">
+      <button id="gp-vincular-btn-confirm" onclick="gpConfirmarVincularActual()"
+        style="width:100%;padding:11px;border-radius:10px;border:none;background:linear-gradient(135deg,#2563eb,#4f46e5);color:#fff;font-family:var(--font);font-size:14px;font-weight:800;cursor:pointer">
+        ✓ Vincular esta novedad
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL SELECTOR DE FOTOS -->
+<div class="overlay" id="ov-gp-fotos">
+  <div class="modal" style="max-width:640px;max-height:92vh;display:flex;flex-direction:column">
+    <div class="modal-head">
+      <span class="modal-title">📷 Seleccionar fotos</span>
+      <button class="btn-close" onclick="closeOv('ov-gp-fotos')">×</button>
+    </div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:10px;flex-shrink:0">
+      Fotos de las novedades vinculadas. Tildá las que querés incluir en el parte.
+    </div>
+    <div id="gp-fotos-selector-grid"
+      style="flex:1;overflow-y:auto;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:4px">
+      <div class="empty"><p>Vinculá novedades primero para ver sus fotos</p></div>
+    </div>
+    <div style="padding-top:12px;border-top:1px solid var(--border);margin-top:10px;flex-shrink:0;display:flex;gap:8px">
+      <button onclick="gpFotosSelAll(true)"
+        style="padding:8px 14px;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-family:var(--font);font-size:12px;cursor:pointer">Todas</button>
+      <button onclick="gpFotosSelAll(false)"
+        style="padding:8px 14px;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-family:var(--font);font-size:12px;cursor:pointer">Ninguna</button>
+      <button onclick="gpFotosConfirmar()"
+        style="flex:1;padding:10px;border-radius:8px;border:none;background:linear-gradient(135deg,#2563eb,#4f46e5);color:#fff;font-family:var(--font);font-size:13px;font-weight:800;cursor:pointer">
+        ✓ Confirmar selección
+      </button>
+    </div>
   </div>
 </div>
 
@@ -20142,6 +20199,7 @@ function _gpAbrirModal(tipoForzado) {
   GP_STATE.tipo    = null;
   GP_STATE.nro     = null;
   GP_STATE.anio    = null;
+  _gpFotosSeleccionadas = {};
 
   // Reset UI
   document.getElementById('gp-paso-tipo').style.display = 'block';
@@ -20273,7 +20331,12 @@ function _gpRenderTextosOriginales() {
     if (n.asunto) html += '<div style="font-weight:700;color:var(--text2);margin-bottom:4px">' + n.asunto + '</div>';
     if (n.hora)   html += '<div style="font-size:10px;color:var(--text3);margin-bottom:4px">' + n.hora + ' · ' + (n.puesto || '') + '</div>';
     html += '<div style="white-space:pre-wrap">' + (n.cuerpo || '—') + '</div>';
-    if (n.fotos && n.fotos.length) todasFotos = todasFotos.concat(n.fotos);
+    if (n.fotos && n.fotos.length) {
+      n.fotos.forEach(function(url) {
+        if (_gpFotosSeleccionadas[url] === undefined) _gpFotosSeleccionadas[url] = true;
+        if (_gpFotosSeleccionadas[url] !== false) todasFotos.push(url);
+      });
+    }
   });
 
   cont.innerHTML = html;
@@ -20298,54 +20361,191 @@ function _gpRenderTextosOriginales() {
 }
 
 // ── Vincular otra novedad ─────────────────────────────────────
+var _gpVincularSeleccionada = null; // novedad en preview
+
 function gpVincularMas() {
+  _gpVincularSeleccionada = null;
   document.getElementById('gp-vincular-search').value = '';
-  document.getElementById('gp-vincular-lista').innerHTML = '<div class="empty"><p>Escribí para buscar</p></div>';
+  document.getElementById('gp-vincular-footer').style.display = 'none';
+  document.getElementById('gp-vincular-preview').innerHTML =
+    '<div style="text-align:center;margin-top:40px;opacity:.5"><div style="font-size:24px;margin-bottom:8px">👆</div>Seleccioná una novedad para ver el preview</div>';
   openOv('ov-gp-vincular');
+  // Cargar las últimas 40 novedades sin filtro al abrir
+  _gpCargarNovedadesRecientes();
+}
+
+function _gpCargarNovedadesRecientes() {
+  var cont = document.getElementById('gp-vincular-lista');
+  cont.innerHTML = '<div class="empty"><span class="spinner"></span></div>';
+  db.from('novedades')
+    .select('id,asunto,detalle,texto_informe,fotos,puesto,hora_evento,created_at,tipo')
+    .order('created_at', { ascending: false })
+    .limit(60)
+    .then(function(r) { _gpRenderVincularLista(r.data || []); });
 }
 
 var _gpVincularTimer = null;
 function gpBuscarVincular(q) {
   clearTimeout(_gpVincularTimer);
+  if (!q.trim()) { _gpCargarNovedadesRecientes(); return; }
   _gpVincularTimer = setTimeout(function() {
-    if (q.length < 2) return;
     var cont = document.getElementById('gp-vincular-lista');
     cont.innerHTML = '<div class="empty"><span class="spinner"></span></div>';
     db.from('novedades')
-      .select('id,asunto,detalle,texto_informe,fotos,puesto,hora_evento,created_at')
-      .ilike('asunto', '%' + q + '%')
+      .select('id,asunto,detalle,texto_informe,fotos,puesto,hora_evento,created_at,tipo')
+      .or('asunto.ilike.%' + q + '%,puesto.ilike.%' + q + '%,detalle.ilike.%' + q + '%')
       .order('created_at', { ascending: false })
-      .limit(20)
-      .then(function(r) {
-        var rows = r.data || [];
-        if (!rows.length) { cont.innerHTML = '<div class="empty"><p>Sin resultados</p></div>'; return; }
-        cont.innerHTML = rows.map(function(n) {
-          var yaVinc = GP_STATE.novedadesVinculadas.find(function(v) { return v.id === n.id; });
-          return '<div style="padding:10px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;cursor:' + (yaVinc?'default':'pointer') + '"' +
-            (yaVinc ? '' : ' onclick="gpConfirmarVincular(\'' + n.id + '\')"') + '>' +
-            '<div style="flex:1"><div style="font-size:13px;font-weight:600;color:var(--text)">' + (n.asunto||'Sin asunto') + '</div>' +
-            '<div style="font-size:11px;color:var(--text3)">' + (n.puesto||'') + ' · ' + (n.hora_evento||'') + '</div></div>' +
-            (yaVinc ? '<span style="font-size:11px;color:var(--green)">✓ Vinculada</span>' :
-              '<span style="font-size:20px;color:var(--accent3)">+</span>') +
-            '</div>';
-        }).join('');
-      });
+      .limit(40)
+      .then(function(r) { _gpRenderVincularLista(r.data || []); });
   }, 350);
 }
 
-function gpConfirmarVincular(novId) {
-  db.from('novedades').select('id,asunto,detalle,texto_informe,fotos,puesto,hora_evento').eq('id', novId).single()
+function _gpRenderVincularLista(rows) {
+  var cont = document.getElementById('gp-vincular-lista');
+  if (!rows.length) { cont.innerHTML = '<div class="empty"><p>Sin resultados</p></div>'; return; }
+  cont.innerHTML = rows.map(function(n) {
+    var yaVinc = GP_STATE.novedadesVinculadas.find(function(v) { return v.id === n.id; });
+    var fecha = n.created_at ? n.created_at.substring(0,10).split('-').reverse().join('/') : '';
+    return '<div id="vrow-' + n.id + '" onclick="gpPreviewNovedad(\'' + n.id + '\')" ' +
+      'style="padding:10px 12px;border-bottom:1px solid var(--border);cursor:pointer;' +
+      (yaVinc ? 'opacity:.5;' : '') + 'transition:background .15s">' +
+      '<div style="display:flex;align-items:center;gap:6px">' +
+      '<div style="flex:1;min-width:0">' +
+      '<div style="font-size:12px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (n.asunto || 'Sin asunto') + '</div>' +
+      '<div style="font-size:10px;color:var(--text3);margin-top:2px">' + (n.puesto || '') + ' · ' + fecha + '</div>' +
+      '</div>' +
+      (yaVinc ? '<span style="font-size:10px;color:var(--green);font-weight:700;flex-shrink:0">✓ vinculada</span>' :
+        (n.fotos && n.fotos.length ? '<span style="font-size:10px;color:var(--text3);flex-shrink:0">📷' + n.fotos.length + '</span>' : '')) +
+      '</div></div>';
+  }).join('');
+}
+
+function gpPreviewNovedad(novId) {
+  // Highlight fila seleccionada
+  document.querySelectorAll('[id^="vrow-"]').forEach(function(el) {
+    el.style.background = el.id === 'vrow-' + novId ? 'rgba(59,130,246,.1)' : '';
+  });
+
+  db.from('novedades')
+    .select('id,asunto,detalle,texto_informe,fotos,puesto,hora_evento,created_at,tipo,observaciones')
+    .eq('id', novId).single()
     .then(function(r) {
       if (!r.data) return;
       var n = r.data;
-      GP_STATE.novedadesVinculadas.push({
-        id: n.id, asunto: n.asunto || '', cuerpo: n.texto_informe || n.detalle || '',
-        fotos: n.fotos || [], puesto: n.puesto || '', hora: n.hora_evento || '', fuente: 'novedad'
-      });
-      closeOv('ov-gp-vincular');
-      _gpRenderTextosOriginales();
-      toast('Novedad vinculada ✓');
+      _gpVincularSeleccionada = n;
+      var yaVinc = GP_STATE.novedadesVinculadas.find(function(v) { return v.id === n.id; });
+      var prev = document.getElementById('gp-vincular-preview');
+      var footer = document.getElementById('gp-vincular-footer');
+      var btnConf = document.getElementById('gp-vincular-btn-confirm');
+      var fecha = n.created_at ? n.created_at.substring(0,10).split('-').reverse().join('/') : '';
+      var cuerpo = n.texto_informe || n.detalle || '—';
+
+      var h = '';
+      h += '<div style="font-size:13px;font-weight:800;color:var(--text);margin-bottom:6px">' + (n.asunto || 'Sin asunto') + '</div>';
+      h += '<div style="font-size:11px;color:var(--text3);margin-bottom:10px">' + (n.puesto || '') + ' · ' + fecha + (n.hora_evento ? ' · ' + n.hora_evento : '') + '</div>';
+      h += '<div style="font-size:12px;color:var(--text2);line-height:1.7;white-space:pre-wrap;margin-bottom:10px">' + cuerpo + '</div>';
+      if (n.observaciones) h += '<div style="font-size:11px;color:var(--text3);background:var(--bg2);border-radius:6px;padding:8px;margin-bottom:10px">' + n.observaciones + '</div>';
+      if (n.fotos && n.fotos.length) {
+        h += '<div style="font-size:10px;font-weight:700;color:var(--text3);margin-bottom:6px">📷 ' + n.fotos.length + ' foto(s)</div>';
+        h += '<div style="display:flex;flex-wrap:wrap;gap:4px">';
+        n.fotos.forEach(function(url) {
+          h += '<img src="' + url + '" onclick="abrirLightbox(\'' + url + '\')" style="width:56px;height:56px;object-fit:cover;border-radius:6px;cursor:pointer"/>';
+        });
+        h += '</div>';
+      }
+      prev.innerHTML = h;
+
+      // Botón confirmar
+      footer.style.display = 'block';
+      if (yaVinc) {
+        btnConf.textContent = '✓ Ya vinculada';
+        btnConf.disabled = true;
+        btnConf.style.opacity = '.5';
+      } else {
+        btnConf.textContent = '✓ Vincular esta novedad';
+        btnConf.disabled = false;
+        btnConf.style.opacity = '1';
+      }
     });
+}
+
+function gpConfirmarVincularActual() {
+  if (!_gpVincularSeleccionada) return;
+  var n = _gpVincularSeleccionada;
+  var yaVinc = GP_STATE.novedadesVinculadas.find(function(v) { return v.id === n.id; });
+  if (yaVinc) return;
+
+  GP_STATE.novedadesVinculadas.push({
+    id: n.id, asunto: n.asunto || '', cuerpo: n.texto_informe || n.detalle || '',
+    fotos: n.fotos || [], puesto: n.puesto || '', hora: n.hora_evento || '', fuente: 'novedad'
+  });
+  closeOv('ov-gp-vincular');
+  _gpRenderTextosOriginales();
+  gpActualizarSelectorFotos();
+  toast('Novedad vinculada ✓');
+}
+
+// ── Selector de fotos ─────────────────────────────────────────
+var _gpFotosSeleccionadas = {}; // {url: true/false}
+
+function gpAbrirSelectorFotos() {
+  var grid = document.getElementById('gp-fotos-selector-grid');
+  var todasFotos = [];
+  GP_STATE.novedadesVinculadas.forEach(function(n) {
+    if (n.fotos && n.fotos.length) {
+      n.fotos.forEach(function(url) {
+        todasFotos.push({ url: url, fuente: n.asunto || n.puesto || '' });
+      });
+    }
+  });
+
+  if (!todasFotos.length) {
+    toast('Las novedades vinculadas no tienen fotos', 'err');
+    return;
+  }
+
+  grid.innerHTML = todasFotos.map(function(f) {
+    var sel = _gpFotosSeleccionadas[f.url] !== false; // por defecto seleccionada
+    return '<div style="position:relative;cursor:pointer" onclick="gpToggleFoto(\'' + f.url + '\')">' +
+      '<img src="' + f.url + '" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:8px;' +
+      (sel ? 'border:3px solid var(--green)' : 'border:3px solid transparent;opacity:.4') +
+      '" id="foto-sel-' + btoa(f.url).replace(/[^a-zA-Z0-9]/g,'').substring(0,20) + '"/>' +
+      '<div style="position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:' +
+      (sel ? 'var(--green)' : 'rgba(0,0,0,.5)') + ';display:flex;align-items:center;justify-content:center;font-size:12px">' +
+      (sel ? '✓' : '') + '</div>' +
+      '<div style="font-size:9px;color:var(--text3);text-align:center;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + f.fuente + '</div>' +
+      '</div>';
+  }).join('');
+
+  openOv('ov-gp-fotos');
+}
+
+function gpToggleFoto(url) {
+  _gpFotosSeleccionadas[url] = _gpFotosSeleccionadas[url] === false ? true : false;
+  gpAbrirSelectorFotos(); // re-render
+}
+
+function gpFotosSelAll(val) {
+  GP_STATE.novedadesVinculadas.forEach(function(n) {
+    if (n.fotos) n.fotos.forEach(function(url) { _gpFotosSeleccionadas[url] = val; });
+  });
+  gpAbrirSelectorFotos();
+}
+
+function gpFotosConfirmar() {
+  closeOv('ov-gp-fotos');
+  _gpRenderTextosOriginales(); // re-render el preview con fotos actualizadas
+  toast('Selección de fotos guardada ✓');
+}
+
+function gpActualizarSelectorFotos() {
+  // Cuando se vincula una novedad nueva, marcar sus fotos como seleccionadas por defecto
+  var ultima = GP_STATE.novedadesVinculadas[GP_STATE.novedadesVinculadas.length - 1];
+  if (ultima && ultima.fotos) {
+    ultima.fotos.forEach(function(url) {
+      if (_gpFotosSeleccionadas[url] === undefined) _gpFotosSeleccionadas[url] = true;
+    });
+  }
 }
 
 // ── Cancelar (anular borrador) ────────────────────────────────
@@ -20374,10 +20574,14 @@ function gpGuardar() {
     return { fuente: n.fuente, titulo: n.asunto, cuerpo: n.cuerpo, hora: n.hora, puesto: n.puesto, orden: i };
   });
 
-  // Unificar fotos
+  // Unificar fotos (solo las seleccionadas)
   var todasFotos = [];
   GP_STATE.novedadesVinculadas.forEach(function(n) {
-    if (n.fotos && n.fotos.length) todasFotos = todasFotos.concat(n.fotos);
+    if (n.fotos && n.fotos.length) {
+      n.fotos.forEach(function(url) {
+        if (_gpFotosSeleccionadas[url] !== false) todasFotos.push(url);
+      });
+    }
   });
 
   // IDs de novedades vinculadas
@@ -20537,7 +20741,7 @@ function histFiltrar() {
     if (tipo && p.tipo !== tipo) return false;
     if (est  && p.estado !== est) return false;
     if (q) {
-      var txt = [p.nro_pd, p.anio, p.asunto, p.responsable_turno, p.administrativo, p.puesto].join(' ').toLowerCase();
+      var txt = [p.nro_pd, p.anio, p.asunto, p.responsable_turno, p.administrativo, p.puesto, p.agentes].join(' ').toLowerCase();
       if (!txt.includes(q)) return false;
     }
     return true;
@@ -20547,7 +20751,79 @@ function histFiltrar() {
     cont.innerHTML = '<div class="empty"><p>Sin resultados</p></div>';
     return;
   }
-  cont.innerHTML = rows.map(function(p) { return _gpCard(p); }).join('');
+
+  // Si hay búsqueda activa, mostrar plano sin agrupar
+  if (q) {
+    cont.innerHTML = rows.map(function(p) { return _gpCard(p); }).join('');
+    return;
+  }
+
+  // Agrupar por mes
+  var MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  var porMes = {};
+  rows.forEach(function(p) {
+    var fecha = p.fecha || (p.created_at || '').substring(0,10);
+    var mes = fecha ? parseInt(fecha.substring(5,7)) : 0;
+    var key = mes;
+    if (!porMes[key]) porMes[key] = { mes: mes, nombre: MESES[mes-1] || '?', partes: [] };
+    porMes[key].partes.push(p);
+  });
+
+  // Ordenar meses del más reciente al más antiguo
+  var mesesOrdenados = Object.values(porMes).sort(function(a,b) { return b.mes - a.mes; });
+
+  var html = '';
+  mesesOrdenados.forEach(function(m, idx) {
+    var mesId = 'hist-mes-' + m.mes;
+    var abierto = idx === 0; // primer mes abierto por defecto
+    html += '<div style="margin-bottom:8px">';
+    // Header del mes
+    html += '<div onclick="histToggleMes(' + m.mes + ')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg2);border:1px solid var(--border2);border-radius:' + (abierto ? '10px 10px 0 0' : '10px') + ';cursor:pointer;user-select:none">';
+    html += '<div style="display:flex;align-items:center;gap:10px">';
+    html += '<span style="font-size:13px;font-weight:800;color:var(--text)">' + m.nombre + ' ' + HIST_ANIO_ACT + '</span>';
+    html += '<span style="font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(99,102,241,.15);color:#a5b4fc">' + m.partes.length + ' partes</span>';
+    html += '</div>';
+    html += '<span id="arr-mes-' + m.mes + '" style="color:var(--text3);transition:transform .2s;display:inline-block;transform:' + (abierto ? 'rotate(180deg)' : 'rotate(0)') + '">▼</span>';
+    html += '</div>';
+    // Contenido del mes (agrupado por día)
+    html += '<div id="' + mesId + '" style="display:' + (abierto ? 'block' : 'none') + ';border:1px solid var(--border2);border-top:none;border-radius:0 0 10px 10px;overflow:hidden">';
+
+    // Agrupar por día dentro del mes
+    var porDia = {};
+    m.partes.forEach(function(p) {
+      var fecha = p.fecha || (p.created_at || '').substring(0,10);
+      if (!porDia[fecha]) porDia[fecha] = [];
+      porDia[fecha].push(p);
+    });
+    var diasOrdenados = Object.keys(porDia).sort(function(a,b) { return b.localeCompare(a); });
+
+    diasOrdenados.forEach(function(dia) {
+      var partesDia = porDia[dia];
+      var diaStr = dia.split('-').reverse().join('/');
+      html += '<div style="padding:6px 12px;background:rgba(255,255,255,.02);border-bottom:1px solid var(--border);font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em">';
+      html += diaStr + ' — ' + partesDia.length + ' parte' + (partesDia.length !== 1 ? 's' : '');
+      html += '</div>';
+      partesDia.forEach(function(p) {
+        html += _gpCard(p);
+      });
+    });
+
+    html += '</div></div>';
+  });
+
+  cont.innerHTML = html;
+}
+
+function histToggleMes(mes) {
+  var panel = document.getElementById('hist-mes-' + mes);
+  var arr   = document.getElementById('arr-mes-' + mes);
+  if (!panel) return;
+  var abierto = panel.style.display !== 'none';
+  panel.style.display = abierto ? 'none' : 'block';
+  if (arr) arr.style.transform = abierto ? 'rotate(0)' : 'rotate(180deg)';
+  // Actualizar border-radius del header
+  var header = panel.previousElementSibling;
+  if (header) header.style.borderRadius = abierto ? '10px' : '10px 10px 0 0';
 }
 
 // ═══════════════════════════════════════════════════════════════
