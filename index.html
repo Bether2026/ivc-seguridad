@@ -21280,22 +21280,14 @@ window.pecQuitarFotoNueva = function(idx, el) {
 // Subir fotos a Supabase Storage y devolver URLs
 function _subirFotosStorage(archivos, carpeta, callback) {
   if (!archivos.length) { callback([]); return; }
-  var urls = [];
-  var pendientes = archivos.length;
-  archivos.forEach(function(item) {
-    var ext  = item.file.name.split('.').pop().toLowerCase();
-    var nombre = carpeta + '/' + Date.now() + '_' + Math.random().toString(36).substring(2,8) + '.' + ext;
-    // Subir a Supabase Storage bucket "partes"
-    db.storage.from('partes').upload(nombre, item.file, { upsert: true })
-      .then(function(r) {
-        if (r.error) { console.error('Error subiendo foto:', r.error); }
-        else {
-          var pub = db.storage.from('partes').getPublicUrl(nombre);
-          if (pub.data && pub.data.publicUrl) urls.push(pub.data.publicUrl);
-        }
-        pendientes--;
-        if (pendientes === 0) callback(urls);
-      });
+  var promesas = archivos.map(function(item) {
+    return uploadToR2Comprimido(item.file, 'partes').catch(function(e) {
+      console.error('Error subiendo foto al parte:', e);
+      return null;
+    });
+  });
+  Promise.all(promesas).then(function(urls) {
+    callback(urls.filter(Boolean));
   });
 }
 
