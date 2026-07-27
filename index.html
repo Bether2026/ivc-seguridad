@@ -21135,8 +21135,29 @@ function gpTogglePendiente() {
       PARTE_ACTUAL.pendiente = nuevoEstado;
       _gpRenderDetalle(PARTE_ACTUAL);
       toast(nuevoEstado ? 'Parte reabierto' : 'Parte cerrado ✓');
+      // Re-sincronizar número en novedades/objetivos vinculados
+      _gpSincronizarNroOrigen(PARTE_ACTUAL);
       load48hs();
     });
+}
+
+// Sincroniza el nro display en las novedades/objetivos vinculados al parte
+function _gpSincronizarNroOrigen(p) {
+  if (!p || p.estado !== 'activo') return;
+  var nroDisplay = p.nro_pd + '/' + p.anio;
+  var upd = {};
+  if (p.tipo === 'PD') { upd.nro_pd = nroDisplay; upd.nro_pu = null; }
+  else                 { upd.nro_pu = nroDisplay; upd.nro_pd = null; }
+  upd.parte_id = p.id;
+
+  (p.novedad_ids || []).forEach(function(nid) {
+    db.from('novedades').update(upd).eq('id', nid).then(function() {});
+  });
+  (p.objetivo_ids || []).forEach(function(oid) {
+    db.from('objetivos').update(upd).eq('id', oid).then(function() {});
+  });
+  if (typeof loadNovedades === 'function') loadNovedades();
+  if (typeof loadObjetivos === 'function') loadObjetivos();
 }
 
 // ── Editar parte actual ───────────────────────────────────────
