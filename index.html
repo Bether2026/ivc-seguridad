@@ -3986,7 +3986,6 @@ body {
         <div style="display:flex;gap:8px;margin-bottom:14px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px">
           <button id="partes-tab-48h"  onclick="selPartesTab('48h')"  style="flex-shrink:0;padding:7px 18px;border-radius:8px;border:1px solid rgba(99,102,241,.45);background:rgba(99,102,241,.15);color:#a5b4fc;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">&#x26A1; &#xDA;ltimas 48hs</button>
           <button id="partes-tab-hist" onclick="selPartesTab('hist')" style="flex-shrink:0;padding:7px 18px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">&#x1F4DA; Historial</button>
-          <button id="partes-tab-imp"  onclick="selPartesTab('imp')"  style="flex-shrink:0;padding:7px 18px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">&#x2B06;&#xFE0F; Importar</button>
         </div>
 
         <!-- Vista 48hs -->
@@ -4018,23 +4017,6 @@ body {
         </div>
 
         <!-- Importar -->
-        <div id="partes-panel-imp" style="display:none">
-          <div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;padding:16px">
-            <div style="font-size:13px;font-weight:700;color:var(--text);margin-bottom:4px">&#x2B06;&#xFE0F; Importar base Access (.accdb)</div>
-            <div style="font-size:12px;color:var(--text3);margin-bottom:14px;line-height:1.6">Importa registros hist&#xF3;ricos de PD desde una base Access anual. Los registros existentes se actualizan sin duplicarse.</div>
-            <div onclick="document.getElementById('imp-file-input').click()" id="imp-drop-zone"
-              style="border:2px dashed var(--border2);border-radius:10px;padding:20px;text-align:center;cursor:pointer;background:var(--bg3)">
-              <div style="font-size:24px;margin-bottom:6px">&#x1F4C2;</div>
-              <div style="font-size:13px;color:var(--text2);font-weight:600" id="imp-file-nombre">Toc&#xE1; para seleccionar el archivo .accdb</div>
-            </div>
-            <input type="file" id="imp-file-input" accept=".accdb,.mdb" style="display:none" onchange="impSeleccionarArchivo(this)"/>
-            <div id="imp-log" style="display:none;background:var(--bg3);border-radius:8px;padding:12px;font-size:11px;font-family:var(--mono);color:var(--text2);max-height:180px;overflow-y:auto;margin-top:12px;line-height:1.7;border:1px solid var(--border2)"></div>
-            <button id="imp-btn-run" onclick="impEjecutar()" disabled
-              style="width:100%;margin-top:12px;padding:12px;border-radius:10px;border:1px solid var(--border);background:var(--bg3);color:var(--text3);font-family:var(--font);font-size:14px;font-weight:700;cursor:not-allowed">
-              &#x2B06;&#xFE0F; Iniciar importaci&#xF3;n
-            </button>
-          </div>
-        </div>
       </div>
 
       <!-- ══ PANEL LIQUIDACIÓN ══════════════════════════════════════ -->
@@ -20074,7 +20056,7 @@ function _puedeVerPartes() {
 
 // ── Sub-tab switcher principal ────────────────────────────────
 function selPartesTab(tab) {
-  ['48h','hist','imp'].forEach(function(t) {
+  ['48h','hist'].forEach(function(t) {
     var btn   = document.getElementById('partes-tab-' + t);
     var panel = document.getElementById('partes-panel-' + t);
     var active = t === tab;
@@ -20657,7 +20639,8 @@ function load48hs() {
   db.from('partes_diarios')
     .select('*')
     .eq('estado', 'activo')
-    .gte('created_at', new Date(Date.now() - 48*3600*1000).toISOString())
+    .gte('fecha', new Date(Date.now() - 48*3600*1000).toISOString().substring(0,10))
+    .order('fecha', { ascending: false })
     .order('nro_pd', { ascending: false })
     .then(function(r) {
       var rows = r.data || [];
@@ -20665,7 +20648,31 @@ function load48hs() {
         cont.innerHTML = '<div class="empty"><div class="icon">📋</div><p>Sin partes en las últimas 48 horas</p></div>';
         return;
       }
-      cont.innerHTML = rows.map(function(p) { return _gpCard(p); }).join('');
+
+      // Agrupar por día
+      var porDia = {};
+      rows.forEach(function(p) {
+        var dia = p.fecha || new Date().toISOString().substring(0,10);
+        if (!porDia[dia]) porDia[dia] = [];
+        porDia[dia].push(p);
+      });
+
+      var diasOrdenados = Object.keys(porDia).sort(function(a,b) { return b.localeCompare(a); });
+      var html = '';
+      diasOrdenados.forEach(function(dia) {
+        var diaStr = dia.split('-').reverse().join('/');
+        var partesDia = porDia[dia];
+        // Calcular si es hoy o ayer
+        var hoyStr = new Date().toISOString().substring(0,10);
+        var ayerStr = new Date(Date.now() - 86400000).toISOString().substring(0,10);
+        var label = dia === hoyStr ? 'Hoy' : dia === ayerStr ? 'Ayer' : diaStr;
+        html += '<div style="padding:6px 4px;font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-top:8px;display:flex;align-items:center;gap:8px">';
+        html += '<span>' + label + ' · ' + diaStr + '</span>';
+        html += '<span style="font-size:10px;padding:2px 8px;border-radius:10px;background:rgba(99,102,241,.12);color:#a5b4fc">' + partesDia.length + ' partes</span>';
+        html += '</div>';
+        partesDia.forEach(function(p) { html += _gpCard(p); });
+      });
+      cont.innerHTML = html;
     });
 }
 
@@ -20716,8 +20723,9 @@ function histCargar() {
   var q = db.from('partes_diarios')
     .select('*')
     .eq('anio', HIST_ANIO_ACT)
+    .order('fecha', { ascending: false })
     .order('nro_pd', { ascending: false })
-    .limit(500);
+    .limit(2000);
 
   if (estado) q = q.eq('estado', estado);
   if (tipo)   q = q.eq('tipo', tipo);
