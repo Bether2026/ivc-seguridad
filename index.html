@@ -4480,6 +4480,86 @@ body {
     <div style="display:flex;gap:8px;flex-wrap:wrap;padding-top:12px;border-top:1px solid var(--border)">
       <button onclick="gpEditarParteActual()" style="padding:8px 16px;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">✏️ Editar</button>
       <button onclick="gpTogglePendiente()" id="btn-toggle-parte-estado" style="padding:8px 16px;border-radius:8px;border:1px solid rgba(34,197,94,.35);background:rgba(34,197,94,.08);color:#4ade80;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">✅ Cerrar parte</button>
+      <!-- Solo ADMIN sistema -->
+      <div id="btn-admin-parte" style="display:none;margin-left:auto;display:none;gap:6px">
+        <button onclick="gpEditarCompleto()" style="padding:8px 16px;border-radius:8px;border:1px solid rgba(245,158,11,.4);background:rgba(245,158,11,.08);color:#fbbf24;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">🔧 Editar completo</button>
+        <button onclick="gpEliminarParte()" style="padding:8px 16px;border-radius:8px;border:1px solid rgba(239,68,68,.4);background:rgba(239,68,68,.08);color:#f87171;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">🗑 Eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDICIÓN COMPLETA — SOLO ADMIN SISTEMA -->
+<div class="overlay" id="ov-parte-editar-completo">
+  <div class="modal" style="max-width:640px;max-height:92vh;display:flex;flex-direction:column">
+    <div class="modal-head">
+      <span class="modal-title" id="pec-titulo">🔧 Editar Parte</span>
+      <button class="btn-close" onclick="pecCerrar()">×</button>
+    </div>
+    <input type="hidden" id="pec-id"/>
+    <input type="hidden" id="pec-tipo"/>
+
+    <div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-right:2px">
+
+      <!-- Número editable con advertencia -->
+      <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.3);border-radius:10px;padding:12px 14px;margin-bottom:14px">
+        <div style="font-size:11px;font-weight:700;color:#fbbf24;margin-bottom:8px">⚠️ Campo número — Solo Admin Sistema</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px">
+          <div class="form-group" style="margin:0">
+            <label class="form-label">N° PD/PU</label>
+            <input class="form-input" id="pec-nro" type="number" min="1" style="font-family:var(--mono);font-size:16px;font-weight:800"/>
+          </div>
+          <div class="form-group" style="margin:0">
+            <label class="form-label">Año</label>
+            <input class="form-input" id="pec-anio" type="number" min="2020" style="font-family:var(--mono);font-size:16px;font-weight:800"/>
+          </div>
+        </div>
+        <button onclick="pecVerificarNro()" style="width:100%;padding:8px;border-radius:8px;border:1px solid rgba(245,158,11,.4);background:rgba(245,158,11,.1);color:#fbbf24;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">
+          🔍 Verificar si el número está disponible
+        </button>
+        <div id="pec-nro-status" style="font-size:12px;margin-top:8px;display:none"></div>
+      </div>
+
+      <!-- Resto de campos -->
+      <div class="form-group">
+        <label class="form-label">Asunto</label>
+        <input class="form-input" id="pec-asunto" placeholder="Asunto del parte"/>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="form-group">
+          <label class="form-label">Responsable de turno</label>
+          <input class="form-input" id="pec-responsable"/>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Administrativo</label>
+          <input class="form-input" id="pec-administrativo"/>
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Agentes intervinientes</label>
+        <input class="form-input" id="pec-agentes"/>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Texto del parte</label>
+        <textarea class="form-input" id="pec-texto" rows="6" style="resize:vertical"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Observaciones</label>
+        <textarea class="form-input" id="pec-obs" rows="2" style="resize:vertical"></textarea>
+      </div>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:14px">
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="pec-imagenes"/> Imágenes</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="pec-documentacion"/> Documentación</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="pec-fuerza"/> Fuerza Pública</label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="pec-pendiente"/> Pendiente</label>
+      </div>
+    </div>
+
+    <div style="padding-top:12px;border-top:1px solid var(--border)">
+      <button onclick="pecGuardar()" id="pec-btn-guardar"
+        style="width:100%;padding:13px;border-radius:10px;border:none;background:linear-gradient(135deg,#d97706,#b45309);color:#fff;font-family:var(--font);font-size:14px;font-weight:800;cursor:pointer">
+        💾 Guardar cambios
+      </button>
     </div>
   </div>
 </div>
@@ -20940,6 +21020,7 @@ function _gpRenderDetalle(p) {
     btnEst.textContent = p.pendiente ? '✅ Marcar cerrado' : '🔄 Reabrir';
     btnEst.style.display = p.estado === 'anulado' ? 'none' : 'inline-flex';
   }
+  _gpActualizarBotonesAdmin();
 
   var h = '';
 
@@ -21105,6 +21186,183 @@ selAdminTab = function(tab) {
     selPartesTab('48h');
   }
 };
+
+// ═══════════════════════════════════════════════════════════════
+// EDICIÓN COMPLETA Y ELIMINACIÓN — SOLO ADMIN SISTEMA
+// ═══════════════════════════════════════════════════════════════
+
+function _esAdminSistema() {
+  return USER && USER.rol === 'ADMIN';
+}
+
+// Mostrar/ocultar botones admin en el detalle
+function _gpActualizarBotonesAdmin() {
+  var wrap = document.getElementById('btn-admin-parte');
+  if (!wrap) return;
+  wrap.style.display = _esAdminSistema() ? 'flex' : 'none';
+}
+
+// ── Editar completo ───────────────────────────────────────────
+function gpEditarCompleto() {
+  if (!_esAdminSistema() || !PARTE_ACTUAL) return;
+  var p = PARTE_ACTUAL;
+
+  document.getElementById('pec-id').value      = p.id;
+  document.getElementById('pec-tipo').value    = p.tipo;
+  document.getElementById('pec-nro').value     = p.nro_pd;
+  document.getElementById('pec-anio').value    = p.anio;
+  document.getElementById('pec-asunto').value  = p.asunto || '';
+  document.getElementById('pec-responsable').value   = p.responsable_turno || '';
+  document.getElementById('pec-administrativo').value = p.administrativo || '';
+  document.getElementById('pec-agentes').value = p.agentes || '';
+  document.getElementById('pec-texto').value   = p.texto_admin || '';
+  document.getElementById('pec-obs').value     = p.observaciones || '';
+  document.getElementById('pec-imagenes').checked    = !!p.imagenes;
+  document.getElementById('pec-documentacion').checked = !!p.documentacion;
+  document.getElementById('pec-fuerza').checked      = !!p.fuerza_publica;
+  document.getElementById('pec-pendiente').checked   = !!p.pendiente;
+
+  document.getElementById('pec-titulo').textContent = '🔧 Editar ' + p.tipo + ' ' + p.nro_pd + '/' + p.anio;
+  document.getElementById('pec-nro-status').style.display = 'none';
+
+  closeOv('ov-parte-detalle');
+  openOv('ov-parte-editar-completo');
+}
+
+function pecCerrar() {
+  closeOv('ov-parte-editar-completo');
+  if (PARTE_ACTUAL) openOv('ov-parte-detalle');
+}
+
+// Verificar si el número ya está en uso
+function pecVerificarNro() {
+  var nro  = parseInt(document.getElementById('pec-nro').value);
+  var anio = parseInt(document.getElementById('pec-anio').value);
+  var tipo = document.getElementById('pec-tipo').value;
+  var idActual = document.getElementById('pec-id').value;
+  var statusEl = document.getElementById('pec-nro-status');
+
+  if (!nro || !anio) {
+    statusEl.style.display = 'block';
+    statusEl.innerHTML = '<span style="color:#f87171">⚠ Ingresá número y año válidos</span>';
+    return;
+  }
+
+  statusEl.style.display = 'block';
+  statusEl.innerHTML = '<span style="color:var(--text3)">Verificando...</span>';
+
+  db.from('partes_diarios')
+    .select('id, nro_pd, anio, tipo, asunto')
+    .eq('nro_pd', nro)
+    .eq('anio', anio)
+    .eq('tipo', tipo)
+    .neq('id', idActual)  // excluir el parte actual
+    .maybeSingle()
+    .then(function(r) {
+      if (r.data) {
+        statusEl.innerHTML = '<span style="color:#f87171">✗ El ' + tipo + ' ' + nro + '/' + anio + ' ya existe: "<strong>' + (r.data.asunto || '—') + '</strong>". No podés usar ese número.</span>';
+      } else {
+        statusEl.innerHTML = '<span style="color:#4ade80">✓ El número ' + nro + '/' + anio + ' está disponible</span>';
+      }
+    });
+}
+
+// Guardar edición completa
+function pecGuardar() {
+  if (!_esAdminSistema()) return;
+  var id   = document.getElementById('pec-id').value;
+  var tipo = document.getElementById('pec-tipo').value;
+  var nro  = parseInt(document.getElementById('pec-nro').value);
+  var anio = parseInt(document.getElementById('pec-anio').value);
+
+  if (!nro || !anio) { toast('Número y año son obligatorios', 'err'); return; }
+
+  var btn = document.getElementById('pec-btn-guardar');
+
+  // Verificar número antes de guardar si cambió
+  var nroOriginal  = PARTE_ACTUAL ? PARTE_ACTUAL.nro_pd  : null;
+  var anioOriginal = PARTE_ACTUAL ? PARTE_ACTUAL.anio : null;
+  var nroCambio = (nro !== nroOriginal || anio !== anioOriginal);
+
+  var ejecutarGuardado = function() {
+    if (btn) { btn.disabled = true; btn.textContent = 'Guardando...'; }
+    var payload = {
+      nro_pd:           nro,
+      anio:             anio,
+      asunto:           document.getElementById('pec-asunto').value.trim() || null,
+      responsable_turno: document.getElementById('pec-responsable').value.trim() || null,
+      administrativo:   document.getElementById('pec-administrativo').value.trim() || null,
+      agentes:          document.getElementById('pec-agentes').value.trim() || null,
+      texto_admin:      document.getElementById('pec-texto').value.trim() || null,
+      observaciones:    document.getElementById('pec-obs').value.trim() || null,
+      imagenes:         document.getElementById('pec-imagenes').checked,
+      documentacion:    document.getElementById('pec-documentacion').checked,
+      fuerza_publica:   document.getElementById('pec-fuerza').checked,
+      pendiente:        document.getElementById('pec-pendiente').checked,
+      updated_at:       new Date().toISOString()
+    };
+    db.from('partes_diarios').update(payload).eq('id', id)
+      .then(function(r) {
+        if (btn) { btn.disabled = false; btn.textContent = '💾 Guardar cambios'; }
+        if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+        toast('✓ ' + tipo + ' actualizado correctamente', 'ok');
+        closeOv('ov-parte-editar-completo');
+        // Actualizar PARTE_ACTUAL y refrescar vistas
+        Object.assign(PARTE_ACTUAL, payload);
+        load48hs();
+        histCargar();
+        if (typeof pdpu48hCargar === 'function') pdpu48hCargar();
+        if (typeof pdpuHistCargar === 'function') pdpuHistCargar();
+      });
+  };
+
+  if (nroCambio) {
+    // Verificar que el número nuevo no esté en uso
+    db.from('partes_diarios')
+      .select('id')
+      .eq('nro_pd', nro).eq('anio', anio).eq('tipo', tipo).neq('id', id)
+      .maybeSingle()
+      .then(function(r) {
+        if (r.data) {
+          toast('El ' + tipo + ' ' + nro + '/' + anio + ' ya existe. Verificá el número.', 'err');
+          if (btn) { btn.disabled = false; btn.textContent = '💾 Guardar cambios'; }
+          return;
+        }
+        ejecutarGuardado();
+      });
+  } else {
+    ejecutarGuardado();
+  }
+}
+
+// ── Eliminar parte ────────────────────────────────────────────
+function gpEliminarParte() {
+  if (!_esAdminSistema() || !PARTE_ACTUAL) return;
+  var p = PARTE_ACTUAL;
+  var nroDisplay = p.nro_pd + '/' + p.anio;
+
+  // Confirmación explícita
+  if (!confirm('⚠️ ELIMINAR ' + p.tipo + ' ' + nroDisplay + '\n\n"' + (p.asunto || '') + '"\n\nEsta acción es IRREVERSIBLE y borrará el registro definitivamente de la base de datos.\n\n¿Estás seguro?')) return;
+
+  // Segunda confirmación
+  var confirmacion = prompt('Para confirmar, escribí el número del parte (' + nroDisplay + '):');
+  if (confirmacion !== nroDisplay) {
+    toast('Eliminación cancelada — el número no coincide', 'err');
+    return;
+  }
+
+  db.from('partes_diarios').delete().eq('id', p.id)
+    .then(function(r) {
+      if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+      closeOv('ov-parte-detalle');
+      PARTE_ACTUAL = null;
+      toast('🗑 ' + p.tipo + ' ' + nroDisplay + ' eliminado definitivamente', 'ok');
+      load48hs();
+      histCargar();
+      if (typeof pdpu48hCargar === 'function') pdpu48hCargar();
+      if (typeof pdpuHistCargar === 'function') pdpuHistCargar();
+    });
+}
 
 // ═══════════════════════════════════════════════════════════════
 // VISTA PD/PU INDEPENDIENTE (sidebar)
