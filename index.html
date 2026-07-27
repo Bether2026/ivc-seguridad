@@ -20767,13 +20767,18 @@ function gpGuardar() {
         if (btn) { btn.disabled = false; btn.textContent = '💾 Guardar Parte'; }
         if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
 
-        // Actualizar parte_id en los registros de origen
+        // Actualizar parte_id + número visible en los registros de origen
+        var nroDisplay = GP_STATE.nro + '/' + GP_STATE.anio;
+        var updOrigen = { parte_id: parteId };
+        if (tipo === 'PD') { updOrigen.nro_pd = nroDisplay; updOrigen.nro_pu = null; }
+        else               { updOrigen.nro_pu = nroDisplay; updOrigen.nro_pd = null; }
+
         var promises = [];
         novIds.forEach(function(nid) {
-          promises.push(db.from('novedades').update({ parte_id: parteId }).eq('id', nid));
+          promises.push(db.from('novedades').update(updOrigen).eq('id', nid));
         });
         objIds.forEach(function(oid) {
-          promises.push(db.from('objetivos').update({ parte_id: parteId }).eq('id', oid));
+          promises.push(db.from('objetivos').update(updOrigen).eq('id', oid));
         });
         if (GP_STATE.origen === 'inventario' && GP_STATE.origenId) {
           promises.push(db.from('inventario').update({ parte_id: parteId }).eq('id', GP_STATE.origenId));
