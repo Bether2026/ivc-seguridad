@@ -489,6 +489,7 @@ body::after { display: none; }
 #nb-inventario      { --nc: #fb923c; }
 #nb-agenda          { --nc: #fde68a; }
 #nb-admin           { --nc: #f87171; }
+#nb-pdpu            { --nc: #a5b4fc; }
 
 .nav-btn.active {
   color: var(--nc, #60a5fa);
@@ -2005,6 +2006,9 @@ body {
       </button>
       <button class="sidebar-item" onclick="goView('admin')" id="si-admin" style="display:none">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6"/></svg> Admin
+      </button>
+      <button class="sidebar-item" onclick="goView('pdpu')" id="si-pdpu" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg> PD / PU
       </button>
     </nav>
     <div class="sidebar-bottom">
@@ -3548,6 +3552,47 @@ body {
           </div>
         </div>
 
+        <!-- VISTA PD / PU — sección independiente -->
+        <div class="view" id="view-pdpu">
+          <div class="page-header">
+            <h2><span style="color:#a5b4fc;margin-right:8px">📋</span>Partes Diarios y Urgentes</h2>
+            <p>Gestión y consulta de PD / PU</p>
+          </div>
+          <!-- Sub-tabs -->
+          <div style="display:flex;gap:8px;margin-bottom:14px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px">
+            <button id="pdpu-tab-48h"  onclick="selPdpuTab('48h')"  style="flex-shrink:0;padding:7px 18px;border-radius:8px;border:1px solid rgba(99,102,241,.45);background:rgba(99,102,241,.15);color:#a5b4fc;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">&#x26A1; &#xDA;ltimas 48hs</button>
+            <button id="pdpu-tab-hist" onclick="selPdpuTab('hist')" style="flex-shrink:0;padding:7px 18px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">&#x1F4DA; Historial</button>
+          </div>
+
+          <!-- 48hs -->
+          <div id="pdpu-panel-48h">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+              <span style="font-size:12px;color:var(--text3)">Partes de las &#xFA;ltimas 48 horas</span>
+              <div id="pdpu-nuevos-btns" style="margin-left:auto;display:flex;gap:6px;display:none">
+                <button onclick="gpAbrirDesdeAdmin('PD')" style="padding:8px 14px;border-radius:8px;border:1px solid rgba(99,102,241,.45);background:rgba(99,102,241,.15);color:#a5b4fc;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">+ Nuevo PD</button>
+                <button onclick="gpAbrirDesdeAdmin('PU')" style="padding:8px 14px;border-radius:8px;border:1px solid rgba(245,158,11,.45);background:rgba(245,158,11,.12);color:#fcd34d;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">+ Nuevo PU</button>
+              </div>
+            </div>
+            <div id="pdpu-48h-lista"><div class="empty"><span class="spinner"></span></div></div>
+          </div>
+
+          <!-- Historial -->
+          <div id="pdpu-panel-hist" style="display:none">
+            <div id="pdpu-anios-tabs" style="display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px"></div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;align-items:center">
+              <input id="pdpu-hist-search" oninput="pdpuHistFiltrar()" placeholder="&#x1F50D; N&#xB0;, asunto, responsable..." style="flex:1;min-width:160px;padding:8px 12px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--font);font-size:13px;outline:none"/>
+              <select id="pdpu-hist-tipo" onchange="pdpuHistFiltrar()" style="padding:8px 10px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--font);font-size:13px;outline:none">
+                <option value="">PD + PU</option><option value="PD">Solo PD</option><option value="PU">Solo PU</option>
+              </select>
+              <select id="pdpu-hist-estado" onchange="pdpuHistCargar()" style="padding:8px 10px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--font);font-size:13px;outline:none">
+                <option value="activo">Activos</option><option value="">Todos</option><option value="anulado">Anulados</option>
+              </select>
+            </div>
+            <div id="pdpu-hist-resumen" style="font-size:11px;color:var(--text3);margin-bottom:8px"></div>
+            <div id="pdpu-hist-lista"><div class="empty"><span class="spinner"></span></div></div>
+          </div>
+        </div>
+
         <div class="view" id="view-admin">
       <div class="page-header">
         <h2><span style="color:#f87171;margin-right:8px;text-shadow:0 0 12px rgba(248,113,113,0.5)">⚙️</span>Panel de Administración</h2>
@@ -4167,6 +4212,9 @@ body {
     </button>
     <button class="nav-btn" onclick="goView('admin')" id="nb-admin" style="display:none">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6"/><path d="M18 14l2 2 4-4" stroke-width="2"/></svg><span>Admin</span>
+    </button>
+    <button class="nav-btn" onclick="goView('pdpu')" id="nb-pdpu" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/></svg><span>PD/PU</span>
     </button>
   </nav>
       </div><!-- /adm-tabs-content -->
@@ -8049,6 +8097,12 @@ function initApp() {
     var siAdm = document.getElementById('si-admin');
     if (siAdm) siAdm.style.display = 'flex';
   }
+  // PD/PU visible para Administración, Administrador, Programación y Gerencia
+  var _puedePdpu = ['Administración','Administrador','Programación','Gerencia'].includes(USER.puesto) || USER.rol === 'ADMIN';
+  var siPdpu = document.getElementById('si-pdpu');
+  var nbPdpu = document.getElementById('nb-pdpu');
+  if (siPdpu) siPdpu.style.display = _puedePdpu ? 'flex' : 'none';
+  if (nbPdpu) nbPdpu.style.display = _puedePdpu ? 'flex' : 'none';
   // Horas Reales visible solo para Gerencia (lectura completa, sin editar admin)
   var siHoras = document.getElementById('si-horas');
   if (siHoras) siHoras.style.display = (USER.puesto === 'Gerencia') ? 'flex' : 'none';
@@ -19646,7 +19700,7 @@ var NOTIF_SUBSCRIPTION = null;
 
 // ── RECARGA LA VISTA ACTUALMENTE VISIBLE ──
 function recargarVistaActual(origen) {
-  var views = ['dashboard','fichaje','novedades','objetivos','choferes','estadisticas','rrhh','agenda','admin'];
+  var views = ['dashboard','fichaje','novedades','objetivos','choferes','estadisticas','rrhh','agenda','admin','pdpu'];
   for (var vi = 0; vi < views.length; vi++) {
     var el = document.getElementById('view-' + views[vi]);
     if (el && el.style.display !== 'none') {
@@ -20724,8 +20778,7 @@ function histCargar() {
     .select('*')
     .eq('anio', HIST_ANIO_ACT)
     .order('fecha', { ascending: false })
-    .order('nro_pd', { ascending: false })
-    .limit(2000);
+    .order('nro_pd', { ascending: false });
 
   if (estado) q = q.eq('estado', estado);
   if (tipo)   q = q.eq('tipo', tipo);
@@ -21052,6 +21105,182 @@ selAdminTab = function(tab) {
     selPartesTab('48h');
   }
 };
+
+// ═══════════════════════════════════════════════════════════════
+// VISTA PD/PU INDEPENDIENTE (sidebar)
+// ═══════════════════════════════════════════════════════════════
+var PDPU_HIST_CACHE = [];
+var PDPU_HIST_ANIO  = new Date().getFullYear();
+
+function selPdpuTab(tab) {
+  ['48h','hist'].forEach(function(t) {
+    var btn   = document.getElementById('pdpu-tab-' + t);
+    var panel = document.getElementById('pdpu-panel-' + t);
+    var active = t === tab;
+    if (btn) {
+      btn.style.background  = active ? 'rgba(99,102,241,.15)' : 'transparent';
+      btn.style.color       = active ? '#a5b4fc' : 'var(--text3)';
+      btn.style.borderColor = active ? 'rgba(99,102,241,.45)' : 'var(--border)';
+    }
+    if (panel) panel.style.display = active ? 'block' : 'none';
+  });
+  if (tab === '48h')  pdpu48hCargar();
+  if (tab === 'hist') pdpuHistCargarAnios();
+}
+
+function pdpu48hCargar() {
+  var cont = document.getElementById('pdpu-48h-lista');
+  if (!cont) return;
+  cont.innerHTML = '<div class="empty"><span class="spinner"></span></div>';
+  db.from('partes_diarios')
+    .select('*')
+    .eq('estado', 'activo')
+    .gte('fecha', new Date(Date.now() - 48*3600*1000).toISOString().substring(0,10))
+    .order('fecha', { ascending: false })
+    .order('nro_pd', { ascending: false })
+    .then(function(r) {
+      var rows = r.data || [];
+      if (!rows.length) {
+        cont.innerHTML = '<div class="empty"><div class="icon">📋</div><p>Sin partes en las últimas 48 horas</p></div>';
+        return;
+      }
+      var porDia = {};
+      rows.forEach(function(p) {
+        var dia = p.fecha || new Date().toISOString().substring(0,10);
+        if (!porDia[dia]) porDia[dia] = [];
+        porDia[dia].push(p);
+      });
+      var hoyStr  = new Date().toISOString().substring(0,10);
+      var ayerStr = new Date(Date.now() - 86400000).toISOString().substring(0,10);
+      var html = '';
+      Object.keys(porDia).sort(function(a,b){ return b.localeCompare(a); }).forEach(function(dia) {
+        var diaStr = dia.split('-').reverse().join('/');
+        var label  = dia === hoyStr ? 'Hoy' : dia === ayerStr ? 'Ayer' : diaStr;
+        html += '<div style="padding:6px 4px;font-size:11px;font-weight:800;color:var(--text3);text-transform:uppercase;letter-spacing:.1em;margin-top:8px;display:flex;align-items:center;gap:8px">';
+        html += '<span>' + label + ' · ' + diaStr + '</span>';
+        html += '<span style="font-size:10px;padding:2px 8px;border-radius:10px;background:rgba(99,102,241,.12);color:#a5b4fc">' + porDia[dia].length + ' partes</span></div>';
+        porDia[dia].forEach(function(p) { html += _gpCard(p); });
+      });
+      cont.innerHTML = html;
+    });
+}
+
+function pdpuHistCargarAnios() {
+  db.rpc('anios_con_partes').then(function(r) {
+    var anios = r.data || [new Date().getFullYear()];
+    if (!anios.includes(new Date().getFullYear())) anios.unshift(new Date().getFullYear());
+    var tabsCont = document.getElementById('pdpu-anios-tabs');
+    if (!tabsCont) return;
+    tabsCont.innerHTML = anios.map(function(a) {
+      var active = a === PDPU_HIST_ANIO;
+      return '<button onclick="pdpuHistSelAnio(' + a + ')" id="pdpu-anio-' + a + '" ' +
+        'style="flex-shrink:0;padding:6px 16px;border-radius:8px;border:1px solid ' +
+        (active ? 'rgba(99,102,241,.45)' : 'var(--border)') + ';background:' +
+        (active ? 'rgba(99,102,241,.15)' : 'transparent') + ';color:' +
+        (active ? '#a5b4fc' : 'var(--text3)') + ';font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">' + a + '</button>';
+    }).join('');
+    pdpuHistSelAnio(PDPU_HIST_ANIO);
+  });
+}
+
+function pdpuHistSelAnio(anio) {
+  PDPU_HIST_ANIO = anio;
+  document.querySelectorAll('[id^="pdpu-anio-"]').forEach(function(btn) {
+    var a = parseInt(btn.id.replace('pdpu-anio-',''));
+    var active = a === anio;
+    btn.style.background  = active ? 'rgba(99,102,241,.15)' : 'transparent';
+    btn.style.color       = active ? '#a5b4fc' : 'var(--text3)';
+    btn.style.borderColor = active ? 'rgba(99,102,241,.45)' : 'var(--border)';
+  });
+  pdpuHistCargar();
+}
+
+function pdpuHistCargar() {
+  var cont = document.getElementById('pdpu-hist-lista');
+  if (!cont) return;
+  cont.innerHTML = '<div class="empty"><span class="spinner"></span></div>';
+  var estado = (document.getElementById('pdpu-hist-estado') || {}).value || 'activo';
+  var tipo   = (document.getElementById('pdpu-hist-tipo')   || {}).value || '';
+  var q = db.from('partes_diarios')
+    .select('*')
+    .eq('anio', PDPU_HIST_ANIO)
+    .order('fecha', { ascending: false })
+    .order('nro_pd', { ascending: false });
+  if (estado) q = q.eq('estado', estado);
+  if (tipo)   q = q.eq('tipo', tipo);
+  q.then(function(r) {
+    PDPU_HIST_CACHE = r.data || [];
+    var res = document.getElementById('pdpu-hist-resumen');
+    if (res) res.textContent = PDPU_HIST_CACHE.length + ' registros · ' + PDPU_HIST_ANIO;
+    pdpuHistFiltrar();
+  });
+}
+
+function pdpuHistFiltrar() {
+  var cont = document.getElementById('pdpu-hist-lista');
+  if (!cont) return;
+  var q    = ((document.getElementById('pdpu-hist-search') || {}).value || '').toLowerCase();
+  var tipo = ((document.getElementById('pdpu-hist-tipo')   || {}).value || '');
+  var est  = ((document.getElementById('pdpu-hist-estado') || {}).value || '');
+  var MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+  var rows = PDPU_HIST_CACHE.filter(function(p) {
+    if (tipo && p.tipo !== tipo) return false;
+    if (est  && p.estado !== est) return false;
+    if (q) {
+      var txt = [p.nro_pd, p.anio, p.asunto, p.responsable_turno, p.administrativo, p.puesto, p.agentes].join(' ').toLowerCase();
+      if (!txt.includes(q)) return false;
+    }
+    return true;
+  });
+
+  if (!rows.length) { cont.innerHTML = '<div class="empty"><p>Sin resultados</p></div>'; return; }
+  if (q) { cont.innerHTML = rows.map(function(p) { return _gpCard(p); }).join(''); return; }
+
+  var porMes = {};
+  rows.forEach(function(p) {
+    var fecha = p.fecha || (p.created_at || '').substring(0,10);
+    var mes = parseInt(fecha.substring(5,7));
+    if (!porMes[mes]) porMes[mes] = { mes: mes, nombre: MESES[mes-1] || '?', partes: [] };
+    porMes[mes].partes.push(p);
+  });
+
+  var html = '';
+  Object.values(porMes).sort(function(a,b){ return b.mes - a.mes; }).forEach(function(m, idx) {
+    var mesId  = 'pdpu-mes-' + m.mes;
+    var abierto = idx === 0;
+    html += '<div style="margin-bottom:8px">';
+    html += '<div onclick="pdpuToggleMes(' + m.mes + ')" style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--bg2);border:1px solid var(--border2);border-radius:' + (abierto ? '10px 10px 0 0' : '10px') + ';cursor:pointer;user-select:none">';
+    html += '<div style="display:flex;align-items:center;gap:10px"><span style="font-size:13px;font-weight:800;color:var(--text)">' + m.nombre + ' ' + PDPU_HIST_ANIO + '</span>';
+    html += '<span style="font-size:11px;padding:2px 8px;border-radius:10px;background:rgba(99,102,241,.15);color:#a5b4fc">' + m.partes.length + ' partes</span></div>';
+    html += '<span id="pdpu-arr-' + m.mes + '" style="color:var(--text3);transition:transform .2s;display:inline-block;transform:' + (abierto ? 'rotate(180deg)' : 'rotate(0)') + '">&#x25BC;</span></div>';
+    html += '<div id="' + mesId + '" style="display:' + (abierto ? 'block' : 'none') + ';border:1px solid var(--border2);border-top:none;border-radius:0 0 10px 10px;overflow:hidden">';
+    var porDia = {};
+    m.partes.forEach(function(p) {
+      var dia = p.fecha || (p.created_at||'').substring(0,10);
+      if (!porDia[dia]) porDia[dia] = [];
+      porDia[dia].push(p);
+    });
+    Object.keys(porDia).sort(function(a,b){ return b.localeCompare(a); }).forEach(function(dia) {
+      var diaStr = dia.split('-').reverse().join('/');
+      html += '<div style="padding:6px 12px;background:rgba(255,255,255,.02);border-bottom:1px solid var(--border);font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em">' + diaStr + ' — ' + porDia[dia].length + ' parte' + (porDia[dia].length!==1?'s':'') + '</div>';
+      porDia[dia].forEach(function(p) { html += _gpCard(p); });
+    });
+    html += '</div></div>';
+  });
+  cont.innerHTML = html;
+}
+
+function pdpuToggleMes(mes) {
+  var panel = document.getElementById('pdpu-mes-' + mes);
+  var arr   = document.getElementById('pdpu-arr-' + mes);
+  if (!panel) return;
+  var abierto = panel.style.display !== 'none';
+  panel.style.display = abierto ? 'none' : 'block';
+  if (arr) arr.style.transform = abierto ? 'rotate(0)' : 'rotate(180deg)';
+  var header = panel.previousElementSibling;
+  if (header) header.style.borderRadius = abierto ? '10px' : '10px 10px 0 0';
+}
 
 // ═══════════════════════════════════════════════════════════════
 // IMPORTAR ACCESS
