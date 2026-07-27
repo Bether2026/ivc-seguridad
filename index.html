@@ -4323,6 +4323,13 @@ body {
           </div>
         </div>
 
+        <!-- Agentes intervinientes -->
+        <div class="form-group">
+          <label class="form-label">Agentes intervinientes <span style="font-size:10px;font-weight:400;color:var(--text3)">(quién lo realizó en el puesto)</span></label>
+          <input class="form-input" id="gp-agentes" placeholder="Ej: GARC&#xCD;A Juan, L&#xD3;PEZ Mar&#xED;a..." list="gp-agentes-list" autocomplete="off"/>
+          <datalist id="gp-agentes-list"></datalist>
+        </div>
+
         <!-- Texto redactado por el admin -->
         <div class="form-group">
           <label class="form-label">Texto del parte <span style="font-size:10px;font-weight:400;color:var(--text3)">(redactado por administración)</span></label>
@@ -20216,7 +20223,7 @@ function _gpAbrirModal(tipoForzado) {
   document.getElementById('gp-form').style.display = 'none';
   document.getElementById('gp-footer').style.display = 'none';
   document.getElementById('gp-titulo').textContent = '📋 Generar Parte';
-  ['gp-asunto','gp-texto-admin','gp-observaciones'].forEach(function(id) {
+  ['gp-asunto','gp-texto-admin','gp-observaciones','gp-agentes'].forEach(function(id) {
     var el = document.getElementById(id); if (el) el.value = '';
   });
   ['gp-imagenes','gp-documentacion','gp-fuerza'].forEach(function(id) {
@@ -20289,10 +20296,12 @@ function _gpCargarPersonal() {
 
   Promise.all([
     db.from('fichajes').select('agente,puesto').eq('activo', true).eq('puesto', 'Responsable de turno'),
-    db.from('fichajes').select('agente,puesto').eq('activo', true).in('puesto', ['Administración','Administrador'])
+    db.from('fichajes').select('agente,puesto').eq('activo', true).in('puesto', ['Administración','Administrador']),
+    db.from('fichajes').select('agente,puesto').eq('activo', true)
   ]).then(function(res) {
     var resps = (res[0].data || []);
     var adms  = (res[1].data || []);
+    var todos = (res[2].data || []);
 
     if (selResp) {
       selResp.innerHTML = '<option value="">— Seleccioná —</option>' +
@@ -20302,12 +20311,19 @@ function _gpCargarPersonal() {
     if (selAdm) {
       selAdm.innerHTML = '<option value="">— Seleccioná —</option>' +
         adms.map(function(r) { return '<option>' + r.agente + '</option>'; }).join('');
-      // Pre-seleccionar el usuario logueado si está fichado como admin
       if (USER && adms.find(function(a) { return a.agente === USER.nombre; })) {
         selAdm.value = USER.nombre;
       } else if (adms.length === 1) {
         selAdm.value = adms[0].agente;
       }
+    }
+
+    // Datalist agentes intervinientes — todos los fichados
+    var dl = document.getElementById('gp-agentes-list');
+    if (dl) {
+      dl.innerHTML = todos.map(function(a) {
+        return '<option value="' + a.agente + '">' + a.puesto + '</option>';
+      }).join('');
     }
   });
 }
@@ -20455,6 +20471,7 @@ function gpGuardar() {
     observaciones:     (document.getElementById('gp-observaciones').value || '').trim() || null,
     responsable_turno: document.getElementById('gp-responsable').value || null,
     administrativo:    document.getElementById('gp-administrativo').value || null,
+    agentes:           (document.getElementById('gp-agentes') || {}).value || null,
     imagenes:          document.getElementById('gp-imagenes').checked,
     documentacion:     document.getElementById('gp-documentacion').checked,
     fuerza_publica:    document.getElementById('gp-fuerza').checked,
@@ -20670,6 +20687,7 @@ function _gpRenderDetalle(p) {
   h += '<div><span style="color:var(--text3)">Estado</span><br><strong style="color:' + (p.pendiente?'#fcd34d':'#4ade80') + '">' + (p.pendiente?'Pendiente':'Cerrado') + '</strong></div>';
   if (p.responsable_turno) h += '<div><span style="color:var(--text3)">Responsable de turno</span><br><strong>' + p.responsable_turno + '</strong></div>';
   if (p.administrativo)   h += '<div><span style="color:var(--text3)">Administrativo</span><br><strong>' + p.administrativo + '</strong></div>';
+  if (p.agentes)          h += '<div style="grid-column:1/-1"><span style="color:var(--text3)">Agentes intervinientes</span><br><strong>' + p.agentes + '</strong></div>';
   if (p.puesto)           h += '<div><span style="color:var(--text3)">Puesto</span><br><strong>' + p.puesto + '</strong></div>';
   h += '</div>';
 
@@ -20774,6 +20792,7 @@ function gpEditarParteActual() {
   document.getElementById('gp-asunto').value        = PARTE_ACTUAL.asunto || '';
   document.getElementById('gp-texto-admin').value   = PARTE_ACTUAL.texto_admin || '';
   document.getElementById('gp-observaciones').value = PARTE_ACTUAL.observaciones || '';
+  var gpAgEl = document.getElementById('gp-agentes'); if (gpAgEl) gpAgEl.value = PARTE_ACTUAL.agentes || '';
   document.getElementById('gp-imagenes').checked    = !!PARTE_ACTUAL.imagenes;
   document.getElementById('gp-documentacion').checked = !!PARTE_ACTUAL.documentacion;
   document.getElementById('gp-fuerza').checked      = !!PARTE_ACTUAL.fuerza_publica;
