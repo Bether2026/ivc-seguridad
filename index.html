@@ -11080,130 +11080,132 @@ function generarPreviewInforme() {
   var desdeUTC = desdeVal ? arToUTC(desdeVal, horaDesde) : '2020-01-01T00:00:00.000Z';
   var hastaUTC = hastaVal ? arToUTC(hastaVal, horaHasta) : arToUTC(desdeVal, horaHasta);
 
-  // Cargar en paralelo: novedades Y objetivos del período
+  // Cargar en paralelo: novedades Y objetivos del período (solo las que tienen parte_id)
   Promise.all([
-    db.from('novedades').select('id,puesto,tipo,asunto,detalle,cargado_por,fotos,nro_pd,nro_pu,texto_informe,observaciones,fuerza_publica,pendiente,hora_evento,created_at').gte('created_at', desdeUTC).lte('created_at', hastaUTC).order('created_at', { ascending: true }),
-    db.from('objetivos').select('id,puesto,descripcion,tipo,agente,cargado_por,observaciones,texto_informe,nro_pd,nro_pu,actualizaciones,created_at').gte('created_at', desdeUTC).lte('created_at', hastaUTC).order('created_at', { ascending: true })
+    db.from('novedades').select('id,puesto,tipo,asunto,cargado_por,hora_evento,created_at,parte_id,nro_pd,nro_pu,fuerza_publica').gte('created_at', desdeUTC).lte('created_at', hastaUTC).not('parte_id', 'is', null).order('created_at', { ascending: true }),
+    db.from('objetivos').select('id,puesto,descripcion,cargado_por,created_at,parte_id,nro_pd,nro_pu').gte('created_at', desdeUTC).lte('created_at', hastaUTC).not('parte_id', 'is', null).order('created_at', { ascending: true })
   ]).then(function(results) {
     var todasNovedades = results[0].data || [];
     var todosObjetivos = results[1].data || [];
 
-    // Filtrar: solo las que tienen texto_informe O nro_pd O nro_pu
-    var novedadesInforme = todasNovedades.filter(function(n) {
-      return n.texto_informe || n.nro_pd || n.nro_pu;
-    });
-
-    // De objetivos: los que tienen texto_informe/nro_pd/nro_pu directamente en el objetivo
-    var puntosInforme = [];
-    todosObjetivos.forEach(function(obj) {
-      // Extraer fotos del array de actualizaciones (campo foto o fotos[0])
-      var actsArr = obj.actualizaciones || [];
-      var fotosObj = [];
-      actsArr.forEach(function(a) {
-        if (a.fotos && a.fotos.length) {
-          a.fotos.forEach(function(f) { if (f) fotosObj.push(f); });
-        } else if (a.foto) {
-          fotosObj.push(a.foto);
-        }
-      });
-      var primeraFoto = fotosObj.length ? fotosObj[0] : null;
-
-      // Informe cargado directamente en el objetivo
-      if (obj.texto_informe || obj.nro_pd || obj.nro_pu) {
-        puntosInforme.push({
-          id:            obj.id,
-          _src:          'obj',
-          puesto:        obj.puesto || USER.puesto,
-          tipo:          'Control de Objetivo',
-          asunto:        obj.descripcion || obj.tipo || 'Recorrido',
-          detalle:       obj.observaciones || '',
-          texto_informe: obj.texto_informe || null,
-          nro_pd:        obj.nro_pd || null,
-          nro_pu:        obj.nro_pu || null,
-          agente:        obj.cargado_por || '',
-          observaciones: obj.texto_informe ? (obj.observaciones || null) : null,
-          foto_url:      primeraFoto,
-          fotos:         fotosObj,
-          fuerza_publica: false,
-          created_at:    obj.created_at
-        });
+    // Recolectar todos los parte_id únicos
+    var parteIds = [];
+    var parteIdSet = {};
+    todasNovedades.concat(todosObjetivos).forEach(function(r) {
+      if (r.parte_id && !parteIdSet[r.parte_id]) {
+        parteIdSet[r.parte_id] = true;
+        parteIds.push(r.parte_id);
       }
-      // También buscar en actualizaciones que tengan informe individual
-      var acts = obj.actualizaciones || [];
-      acts.forEach(function(a) {
-        if (a.texto_informe || a.nro_pd || a.nro_pu) {
-          puntosInforme.push({
-            id:            obj.id + '_' + (a.nro_pd || a.nro_pu || Math.random()),
-            _src:          'act',
-            puesto:        obj.puesto || USER.puesto,
-            tipo:          'Control de Objetivo',
-            asunto:        'Punto: ' + (a.lugar || a.asunto || obj.descripcion || obj.tipo || 'Recorrido'),
-            detalle:       a.obs || a.detalle || a.descripcion || '',
-            texto_informe: a.texto_informe || null,
-            nro_pd:        a.nro_pd || null,
-            nro_pu:        a.nro_pu || null,
-            agente:        obj.cargado_por || '',
-            observaciones: null,
-            foto_url:      a.foto || null,
-            fuerza_publica: false,
-            created_at:    a.fecha || obj.created_at
-          });
-        }
-      });
     });
 
-    // Unir todo y ordenar por hora
-    var todos = novedadesInforme.concat(puntosInforme);
-    todos.sort(function(a, b) { return new Date(a.created_at) - new Date(b.created_at); });
-
-    if (!todos.length) {
+    if (!parteIds.length) {
       if (statusEl) statusEl.style.display = 'none';
-      toast('Sin informes administrativos para el período. Verificá que las novedades tengan texto de informe o N° de PD/PU.', 'err');
+      toast('Sin PD/PU generados para el período.', 'err');
       return;
     }
 
-    if (statusTxt) statusTxt.textContent = 'Encontrados ' + todos.length + ' informes. Cargando fotos...';
+    if (statusTxt) statusTxt.textContent = 'Cargando datos de ' + parteIds.length + ' partes...';
 
-    // Agrupar por puesto
-    var porPuesto = {};
-    todos.forEach(function(n) {
-      var p = n.puesto || 'Sin barrio';
-      if (!porPuesto[p]) porPuesto[p] = [];
-      porPuesto[p].push(n);
-    });
+    // Traer los partes_diarios correspondientes
+    db.from('partes_diarios')
+      .select('id,nro_pd,anio,tipo,estado,asunto,texto_admin,observaciones,agentes,responsable_turno,administrativo,fotos,fuerza_publica,pendiente,fecha,hora,puesto')
+      .in('id', parteIds)
+      .eq('estado', 'activo')
+      .order('fecha', { ascending: true })
+      .order('hora', { ascending: true })
+    .then(function(rPartes) {
+      var partes = rPartes.data || [];
 
-    // Fecha display
-    var fechaDisplay = '';
-    if (desdeVal && hastaVal && desdeVal !== hastaVal) {
-      fechaDisplay = desdeVal.split('-').reverse().join('/') + ' al ' + hastaVal.split('-').reverse().join('/');
-    } else {
-      var fp = (desdeVal || hastaVal).split('-');
-      fechaDisplay = fp[2] + '/' + fp[1] + '/' + fp[0];
-    }
-    var diasNom = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
-    var diaNom = (desdeVal && desdeVal === hastaVal) ? diasNom[new Date(desdeVal + 'T12:00:00').getDay()] : '';
+      if (!partes.length) {
+        if (statusEl) statusEl.style.display = 'none';
+        toast('Sin partes activos para el período.', 'err');
+        return;
+      }
 
-    // Cargar fotos — usar URLs directamente (R2 sirve las imágenes con CORS abierto)
-    var fotosMap = {};
-    todos.forEach(function(n) {
-      var fotos = [];
-      if (n.foto_url)  fotos.push(n.foto_url);
-      if (n.foto_url2) fotos.push(n.foto_url2);
-      if (n.foto_url3) fotos.push(n.foto_url3);
-      if (n.fotos && Array.isArray(n.fotos)) fotos = fotos.concat(n.fotos);
-      fotos.filter(Boolean).forEach(function(url) {
-        fotosMap[url] = url; // usar URL directa en vez de base64
+      // Mapa parte_id → parte
+      var parteMap = {};
+      partes.forEach(function(p) { parteMap[p.id] = p; });
+
+      // Mapa parte_id → origen (novedad u objetivo)
+      var origenMap = {};
+      todasNovedades.forEach(function(n) {
+        if (n.parte_id) origenMap[n.parte_id] = { _src: 'novedad', asunto: n.asunto, tipo: n.tipo, cargado_por: n.cargado_por, created_at: n.created_at, puesto: n.puesto };
       });
-    });
+      todosObjetivos.forEach(function(o) {
+        if (o.parte_id && !origenMap[o.parte_id]) origenMap[o.parte_id] = { _src: 'objetivo', asunto: o.descripcion, tipo: 'Control de Objetivo', cargado_por: o.cargado_por, created_at: o.created_at, puesto: o.puesto };
+      });
 
-    if (statusTxt) statusTxt.textContent = 'Generando informe...';
-    Promise.resolve().then(function() {
+      // Construir array de items para el informe, uno por parte activo
+      var todos = partes.map(function(p) {
+        var origen = origenMap[p.id] || {};
+        var nroDisplay = p.tipo + ' N\xB0 ' + p.nro_pd + '/' + p.anio;
+        return {
+          id:             p.id,
+          _src:           'parte',
+          puesto:         p.puesto || origen.puesto || 'Sin barrio',
+          tipo:           origen.tipo || p.tipo || 'Novedad',
+          asunto:         p.asunto || origen.asunto || '',
+          texto_informe:  p.texto_admin || '',
+          observaciones:  p.observaciones || '',
+          agentes:        p.agentes || origen.cargado_por || '',
+          responsable:    p.responsable_turno || '',
+          administrativo: p.administrativo || '',
+          nro_pd:         p.tipo === 'PD' ? (p.nro_pd + '/' + p.anio) : null,
+          nro_pu:         p.tipo === 'PU' ? (p.nro_pd + '/' + p.anio) : null,
+          nro_display:    nroDisplay,
+          fotos:          p.fotos || [],
+          fuerza_publica: p.fuerza_publica || false,
+          pendiente:      p.pendiente || false,
+          fecha:          p.fecha,
+          hora:           p.hora,
+          created_at:     origen.created_at || p.fecha
+        };
+      });
+
+      if (!todos.length) {
+        if (statusEl) statusEl.style.display = 'none';
+        toast('Sin partes activos para el período.', 'err');
+        return;
+      }
+
+      if (statusTxt) statusTxt.textContent = 'Encontrados ' + todos.length + ' partes. Generando informe...';
+
+      // Agrupar por puesto
+      var porPuesto = {};
+      todos.forEach(function(n) {
+        var p = n.puesto || 'Sin barrio';
+        if (!porPuesto[p]) porPuesto[p] = [];
+        porPuesto[p].push(n);
+      });
+
+      // Fecha display
+      var fechaDisplay = '';
+      if (desdeVal && hastaVal && desdeVal !== hastaVal) {
+        fechaDisplay = desdeVal.split('-').reverse().join('/') + ' al ' + hastaVal.split('-').reverse().join('/');
+      } else {
+        var fp = (desdeVal || hastaVal).split('-');
+        fechaDisplay = fp[2] + '/' + fp[1] + '/' + fp[0];
+      }
+      var diasNom = ['domingo','lunes','martes','mi\xE9rcoles','jueves','viernes','s\xE1bado'];
+      var diaNom = (desdeVal && desdeVal === hastaVal) ? diasNom[new Date(desdeVal + 'T12:00:00').getDay()] : '';
+
+      // Mapear fotos (URLs directas desde R2)
+      var fotosMap = {};
+      todos.forEach(function(n) {
+        (n.fotos || []).filter(Boolean).forEach(function(url) { fotosMap[url] = url; });
+      });
+
+      Promise.resolve().then(function() {
+        if (statusEl) statusEl.style.display = 'none';
+        var html = construirHTMLEditablePreview(porPuesto, todos, fotosMap, fechaDisplay, diaNom, autor);
+        if (frame) frame.innerHTML = html;
+        if (container) container.style.display = 'block';
+        iniciarAutoSaveInforme();
+        toast('\u2713 ' + todos.length + ' partes cargados \u2014 edit\xE1 y descarg\xE1');
+      });
+    }).catch(function(e) {
       if (statusEl) statusEl.style.display = 'none';
-      var html = construirHTMLEditablePreview(porPuesto, todos, fotosMap, fechaDisplay, diaNom, autor);
-      if (frame) frame.innerHTML = html;
-      if (container) container.style.display = 'block';
-      iniciarAutoSaveInforme();
-      toast('\u2713 ' + todos.length + ' informes encontrados — edit\xE1 y descarg\xE1');
+      toast('Error cargando partes: ' + e.message, 'err');
     });
   }).catch(function(e) {
     if (statusEl) statusEl.style.display = 'none';
@@ -11301,13 +11303,19 @@ function construirHTMLEditablePreview(porPuesto, novedades, fotosMap, fechaDispl
       html += '<div class="novedad" data-nid="' + escapeHTML(String(n.id)) + '" data-src="' + (n._src || 'nov') + '">\n';
       html += '<button class="btn-del-row" onclick="eliminarFilaInforme(this)" title="Eliminar fila">&times;</button>\n';
       html += '<div class="col1"><div class="c1-tipo" contenteditable="true">' + escapeHTML(n.tipo || n.asunto || 'Novedad') + '</div>';
-      html += '<div class="c1-meta" contenteditable="true"><strong>' + escapeHTML(fechaReal || fechaDisplay) + '</strong><br>' + escapeHTML(horaStr) + ' hs</div>';
-      if (n.nro_pd) html += '<div style="font-size:8pt;font-weight:700;color:#2563eb;margin-top:3px">PD N\xB0 ' + n.nro_pd + '</div>';
-      if (n.nro_pu) html += '<div style="font-size:8pt;font-weight:700;color:#7c3aed;margin-top:2px">PU N\xB0 ' + n.nro_pu + '</div>';
+      // Hora: preferir campo hora del parte (HH:MM), sino calcular de created_at
+      var horaDisplay = n.hora || horaStr;
+      html += '<div class="c1-meta" contenteditable="true"><strong>' + escapeHTML(fechaReal || fechaDisplay) + '</strong><br>' + escapeHTML(horaDisplay) + ' hs</div>';
+      if (n.nro_pd) html += '<div style="font-size:8pt;font-weight:700;color:#2563eb;margin-top:3px">PD N\xB0 ' + escapeHTML(n.nro_pd) + '</div>';
+      if (n.nro_pu) html += '<div style="font-size:8pt;font-weight:700;color:#7c3aed;margin-top:2px">PU N\xB0 ' + escapeHTML(n.nro_pu) + '</div>';
       if (n.fuerza_publica) html += '<span class="badge-fp">Fuerza P&uacute;blica</span>';
+      if (n.pendiente) html += '<span class="badge-fp" style="background:#fef3c7;color:#92400e;border-color:#fcd34d">Pendiente</span>';
       html += '</div>\n';
-      html += '<div class="col2"><div class="nov-txt" contenteditable="true">' + escapeHTML(n.texto_informe || n.detalle || '\u2014') + '</div>';
-      if (n.cargado_por) html += '<div class="nov-ag"><strong>Agente/s:</strong> ' + escapeHTML(n.cargado_por) + '</div>';
+      html += '<div class="col2"><div class="nov-txt" contenteditable="true">' + escapeHTML(n.texto_informe || '\u2014') + '</div>';
+      // Agentes del parte (campo agentes), sino responsable, sino cargado_por
+      var agentesDisplay = n.agentes || n.responsable || '';
+      if (agentesDisplay) html += '<div class="nov-ag"><strong>Agente/s:</strong> ' + escapeHTML(agentesDisplay) + '</div>';
+      if (n.responsable && n.agentes) html += '<div class="nov-ag" style="margin-top:4px"><strong>Resp. turno:</strong> ' + escapeHTML(n.responsable) + '</div>';
       if (fotosB64.length > 0) {
         html += '<div class="fotos-wrap"><div class="fotos-lbl">Im\xE1genes <span class="fotos-hint" style="font-weight:400;text-transform:none;letter-spacing:0">(tild\xE1 las que quer\xE9s incluir en el informe final, clic para agrandar)</span></div><div class="fotos-grid">';
         fotosB64.forEach(function(f, fi){
