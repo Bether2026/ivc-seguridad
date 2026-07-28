@@ -11108,7 +11108,7 @@ function generarPreviewInforme() {
 
     // Traer los partes_diarios correspondientes
     db.from('partes_diarios')
-      .select('id,nro_pd,anio,tipo,estado,asunto,texto_admin,observaciones,agentes,responsable_turno,administrativo,fotos,fuerza_publica,pendiente,fecha,hora,puesto')
+      .select('id,nro_pd,anio,tipo,estado,asunto,texto_admin,observaciones,agentes,responsable_turno,administrativo,fotos,fuerza_publica,pendiente,fecha,hora,hora_evento,puesto')
       .in('id', parteIds)
       .eq('estado', 'activo')
       .order('fecha', { ascending: true })
@@ -11157,7 +11157,7 @@ function generarPreviewInforme() {
           fuerza_publica: p.fuerza_publica || false,
           pendiente:      p.pendiente || false,
           fecha:          p.fecha,
-          hora:           p.hora,
+          hora:           p.hora_evento || p.hora,
           created_at:     origen.created_at || p.fecha
         };
       });
@@ -20280,13 +20280,34 @@ function abrirGenerarParteObjetivo(objId) {
       if (r.error || !r.data) { toast('Error cargando objetivo', 'err'); return; }
       var o = r.data;
       if (o.parte_id) { gpVerDetalle(o.parte_id); return; }
+
+      // Construir texto desde los puntos registrados en actualizaciones
+      var acts = o.actualizaciones || [];
+      var todasFotosObj = [];
+      var cuerpoLineas = [];
+      acts.forEach(function(a, idx) {
+        var linea = '';
+        if (a.lugar) linea += a.lugar;
+        if (a.hora)  linea += (linea ? ' — ' : '') + a.hora + ' hs';
+        if (a.obs)   linea += (linea ? '\n' : '') + a.obs;
+        if (!linea)  linea = 'Punto ' + (idx + 1);
+        cuerpoLineas.push(linea);
+        if (a.fotos && a.fotos.length) {
+          a.fotos.forEach(function(f) { if (f) todasFotosObj.push(f); });
+        } else if (a.foto) {
+          todasFotosObj.push(a.foto);
+        }
+      });
+      var cuerpo = cuerpoLineas.join('\n\n') || (o.texto_informe || '');
+      var horaOrigen = (acts.length && acts[0].hora) ? acts[0].hora : '';
+
       GP_STATE.novedadesVinculadas = [{
         id:     o.id,
         asunto: o.descripcion || 'Control de objetivo',
-        cuerpo: o.texto_informe || '',
-        fotos:  [],
+        cuerpo: cuerpo,
+        fotos:  todasFotosObj,
         puesto: o.puesto || '',
-        hora:   '',
+        hora:   horaOrigen,
         fuente: 'objetivo'
       }];
       GP_STATE.origen   = 'objetivo';
@@ -20751,6 +20772,9 @@ function gpGuardar() {
     .filter(function(n) { return n.fuente === 'objetivo'; })
     .map(function(n) { return n.id; });
 
+  // Hora del evento: tomar del primer vinculado (hora_evento en novedad, hora del primer punto en objetivo)
+  var horaEvento = GP_STATE.novedadesVinculadas.length ? (GP_STATE.novedadesVinculadas[0].hora || null) : null;
+
   var payload = {
     estado:            'activo',
     tipo:              tipo,
@@ -20770,6 +20794,7 @@ function gpGuardar() {
     fotos:             todasFotos,
     origen:            GP_STATE.origen || 'manual',
     origen_id:         GP_STATE.origenId || null,
+    hora_evento:       horaEvento,
     updated_at:        new Date().toISOString()
   };
 
