@@ -14928,7 +14928,7 @@ function novTab(tab, btn) {
     if (listEl) listEl.style.display = 'none';
     if (searchBox && searchBox.parentElement) searchBox.parentElement.style.display = 'none';
     if (histPanel) histPanel.style.display = 'block';
-    _initFiltrosHistNov();
+    if (typeof _initFiltrosHistNov === 'function') _initFiltrosHistNov();
     return;
   } else {
     if (listEl) listEl.style.display = 'block';
@@ -23486,7 +23486,7 @@ function _mostrarDetalleRapidoNov(n) {
     h += '<div style="margin-bottom:12px">';
     h += '<span style="font-size:13px;font-weight:700;padding:5px 14px;border-radius:20px;background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3)">📋 ' + pdTxt + '</span>';
     if (n.parte_id) {
-      h += ' <button onclick="document.getElementById(\'ov-detalle-rapido-nov\').remove();gpVerDetalle('' + n.parte_id + '')" style="margin-left:8px;padding:5px 12px;border-radius:8px;border:1px solid rgba(99,102,241,.35);background:rgba(99,102,241,.08);color:#a5b4fc;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">Ver parte →</button>';
+      h += '<button onclick="document.getElementById(\x27ov-detalle-rapido-nov\x27).remove();gpVerDetalle(\x22' + n.parte_id + '\x22)" style="margin-left:8px;padding:5px 12px;border-radius:8px;border:1px solid rgba(99,102,241,.35);background:rgba(99,102,241,.08);color:#a5b4fc;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">Ver parte →</button>';
     }
     h += '</div>';
   }
