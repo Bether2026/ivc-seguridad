@@ -23421,7 +23421,7 @@ function buscarHistorialNovedades(irAPagina) {
       }
 
       var _colorPuestoHN = _colorParaPuestoHN(n.puesto || 'Sin especificar');
-      html += '<div onclick="abrirDetalleDesdeHistorial(\'' + n.id + '\')" style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-left:4px solid ' + _colorPuestoHN + ';border-radius:10px;padding:12px;margin-bottom:8px;cursor:pointer;transition:background .15s" onmouseover="this.style.background=\'rgba(255,255,255,.04)\'" onmouseout="this.style.background=\'rgba(255,255,255,.025)\'">';
+      html += '<div data-novid="' + n.id + '" class="hn-card-item" style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-left:4px solid ' + _colorPuestoHN + ';border-radius:10px;padding:12px;margin-bottom:8px;cursor:pointer;transition:background .15s" onmouseover="this.style.background=\'rgba(255,255,255,.04)\'" onmouseout="this.style.background=\'rgba(255,255,255,.025)\'">';
       html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:4px">';
       html += '<span style="display:inline-block;font-size:10px;font-weight:800;color:#fff;padding:2px 9px;border-radius:6px;background:' + _colorPuestoHN + '">' + (n.puesto || '—') + '</span>';
       html += '<span style="font-size:10px;color:var(--text3);white-space:nowrap;font-family:var(--mono)">' + fecha + '</span>';
@@ -23439,7 +23439,16 @@ function buscarHistorialNovedades(irAPagina) {
       html += '</div>';
     });
 
-    if (listEl) listEl.innerHTML = html;
+    if (listEl) {
+      listEl.innerHTML = html;
+      // Event delegation para los cards del historial
+      listEl.onclick = function(e) {
+        var card = e.target.closest('.hn-card-item');
+        if (card && card.dataset.novid) {
+          abrirDetalleDesdeHistorial(card.dataset.novid);
+        }
+      };
+    }
     _renderPaginacionHistNov();
   });
 }
