@@ -20746,10 +20746,10 @@ function gpGuardar() {
 
   // IDs de novedades vinculadas
   var novIds = GP_STATE.novedadesVinculadas
-    .filter(function(n) { return n.fuente === 'novedad'; })
+    .filter(function(n) { return n.fuente === 'novedad' && n.id && n.id !== ''; })
     .map(function(n) { return n.id; });
   var objIds = GP_STATE.novedadesVinculadas
-    .filter(function(n) { return n.fuente === 'objetivo'; })
+    .filter(function(n) { return n.fuente === 'objetivo' && n.id && n.id !== ''; })
     .map(function(n) { return n.id; });
 
   var horaEvento = GP_STATE.novedadesVinculadas.length ? (GP_STATE.novedadesVinculadas[0].hora || null) : null;
@@ -21244,7 +21244,7 @@ function gpEditarParteActual() {
   var textsOrig = PARTE_ACTUAL.textos_originales;
   if (typeof textsOrig === 'string') try { textsOrig = JSON.parse(textsOrig); } catch(e) { textsOrig = []; }
   GP_STATE.novedadesVinculadas = (textsOrig || []).map(function(t) {
-    return { id: t.id || '', asunto: t.titulo || '', cuerpo: t.cuerpo || '', fotos: [], puesto: t.puesto || '', hora: t.hora || '', fuente: t.fuente || 'novedad' };
+    return { id: t.id || null, asunto: t.titulo || '', cuerpo: t.cuerpo || '', fotos: [], puesto: t.puesto || '', hora: t.hora || '', fuente: t.fuente || 'novedad' };
   });
 
   closeOv('ov-parte-detalle');
