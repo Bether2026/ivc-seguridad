@@ -23445,6 +23445,17 @@ function buscarHistorialNovedades(irAPagina) {
 }
 
 function abrirDetalleDesdeHistorial(novId) {
+  try {
+    db.from('novedades').select('*').eq('id', novId).single().then(function(r) {
+      if (r.error || !r.data) { toast('Error: ' + (r.error ? r.error.message : 'sin datos'), 'err'); return; }
+      try {
+        _mostrarDetalleRapidoNov(r.data);
+      } catch(e2) { toast('Error modal: ' + e2.message, 'err'); }
+    }).catch(function(e) { toast('Fetch error: ' + e.message, 'err'); });
+  } catch(e) { toast('Error: ' + e.message, 'err'); }
+}
+
+function _abrirDetalleDesdeHistorial_UNUSED(novId) {
   db.from('novedades').select('*').eq('id', novId).single().then(function(r) {
     if (r.error || !r.data) { toast('Error cargando novedad', 'err'); return; }
     var n = r.data;
