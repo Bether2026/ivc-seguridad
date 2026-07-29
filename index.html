@@ -20788,6 +20788,7 @@ function gpGuardar() {
   _subirFotosStorage(_gpFotosNuevas, 'pd_' + parteId, function(urlsNuevas) {
     var fotosFinales = todasFotos.concat(urlsNuevas);
     if (fotosFinales.length) payload.imagenes = true;
+    payload.fotos = fotosFinales; // actualizar con URLs definitivas de R2
 
     db.from('partes_diarios').select('historial_texto,texto_admin').eq('id', parteId).single()
       .then(function(rHist) {
@@ -20827,7 +20828,13 @@ function gpGuardar() {
 
             closeOv('ov-generar-parte');
             GP_STATE.parteId = null;
-            toast((tipo === 'PD' ? '📋' : '⚠️') + ' ' + tipo + ' ' + GP_STATE.nro + '/' + GP_STATE.anio + ' generado ✓', 'ok');
+            // Si era edición de parte existente, actualizar PARTE_ACTUAL y re-renderizar detalle
+            if (PARTE_ACTUAL && PARTE_ACTUAL.id === parteId) {
+              Object.assign(PARTE_ACTUAL, payload);
+              _gpRenderDetalle(PARTE_ACTUAL);
+              openOv('ov-parte-detalle');
+            }
+            toast((tipo === 'PD' ? '📋' : '⚠️') + ' ' + tipo + ' ' + GP_STATE.nro + '/' + GP_STATE.anio + ' guardado ✓', 'ok');
 
             if (typeof loadNovedades === 'function') loadNovedades();
             if (typeof loadObjetivos === 'function') loadObjetivos();
