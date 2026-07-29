@@ -5859,14 +5859,26 @@ function _editarNovedad() {
           detEl = document.getElementById('n-detalle');
           relevEl = document.getElementById('n-relev');
           pendEl = document.getElementById('n-pend');
-          // n-caso removed
+          // Resetear campos que podrían tener datos previos
+          var puestoSel = document.getElementById('n-puesto-sel');
+          var puestoOtro = document.getElementById('n-puesto-otro-txt');
+          var horaEl = document.getElementById('n-hora-evento');
+          var nroPdEl = document.getElementById('n-nro-pd');
+          var nroPuEl = document.getElementById('n-nro-pu');
+          var txtInfEl = document.getElementById('n-texto-informe');
+          if (puestoSel) { puestoSel.value = n.puesto || ''; toggleOtroPuesto(); }
+          if (puestoOtro) puestoOtro.value = '';
           if (tipoEl) tipoEl.value = n.tipo || 'Otro';
           if (asuntoEl) asuntoEl.value = n.asunto || '';
           if (ubicEl) ubicEl.value = n.ubicacion || '';
           if (detEl) detEl.value = n.detalle || '';
           if (relevEl) relevEl.value = n.relevancia || 'Normal';
           if (pendEl) pendEl.checked = n.pendiente || false;
-          if (casoEl) casoEl.value = n.caso || '';
+          if (horaEl) horaEl.value = n.hora_evento || '';
+          if (nroPdEl) nroPdEl.value = '';
+          if (nroPuEl) nroPuEl.value = '';
+          if (txtInfEl) txtInfEl.value = '';
+          toggleOtroAsunto();
           // Marcar como edicion
           window._EDIT_NOV_ID = id;
           // Cambiar titulo del modal
@@ -7934,7 +7946,7 @@ function openOv(id) {
   var esGestionPuesto = ROLES_GESTION_PUESTO.includes(USER ? USER.puesto : '') || (USER && USER.rol === 'ADMIN');
   if (id === 'ov-nov') {
     if ($('n-puesto-wrap'))   $('n-puesto-wrap').style.display  = esGestionPuesto ? 'block' : 'none';
-    if ($('n-informe-wrap'))  $('n-informe-wrap').style.display = esAdm ? 'block' : 'none';
+    if ($('n-informe-wrap'))  $('n-informe-wrap').style.display = 'none'; // Reemplazado por módulo PD/PU
     // Opción "Otro" para Administración, Administrador y Responsable de turno
     var _puedeOtroPuesto = ['Administración', 'Administrador', 'Responsable de turno'].indexOf(USER ? USER.puesto : '') >= 0 || (USER && USER.rol === 'ADMIN');
     var _optOtro = document.getElementById('n-puesto-otro-opt');
@@ -7944,7 +7956,7 @@ function openOv(id) {
     if ($('n-puesto-sel')) { $('n-puesto-sel').value = ''; }
   }
   if (id === 'ov-obj-upd') {
-    if ($('upd-informe-wrap')) $('upd-informe-wrap').style.display = esAdm ? 'block' : 'none';
+    if ($('upd-informe-wrap')) $('upd-informe-wrap').style.display = 'none'; // Reemplazado por módulo PD/PU
   }
   if (id === 'ov-obj' && esGestionPuesto && $('o-puesto-wrap')) $('o-puesto-wrap').style.display = 'block';
 }
@@ -20194,6 +20206,7 @@ function _puedeVerPartes() {
 }
 
 // ── Sub-tab switcher principal ────────────────────────────────
+var _partes48hTimer = null;
 function selPartesTab(tab) {
   ['48h','hist'].forEach(function(t) {
     var btn   = document.getElementById('partes-tab-' + t);
@@ -20206,7 +20219,8 @@ function selPartesTab(tab) {
     }
     if (panel) panel.style.display = active ? 'block' : 'none';
   });
-  if (tab === '48h')  load48hs();
+  if (_partes48hTimer) { clearInterval(_partes48hTimer); _partes48hTimer = null; }
+  if (tab === '48h')  { load48hs(); _partes48hTimer = setInterval(load48hs, 60000); }
   if (tab === 'hist') { histCargarAnios(); }
 }
 
@@ -20739,6 +20753,10 @@ function gpGuardar() {
     .map(function(n) { return n.id; });
 
   var horaEvento = GP_STATE.novedadesVinculadas.length ? (GP_STATE.novedadesVinculadas[0].hora || null) : null;
+  // Fecha en Buenos Aires (evita que CURRENT_DATE UTC adelante el día en horario nocturno)
+  var _ahoraAR = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Argentina/Buenos_Aires' }));
+  var _fechaAR = _ahoraAR.getFullYear() + '-' + String(_ahoraAR.getMonth()+1).padStart(2,'0') + '-' + String(_ahoraAR.getDate()).padStart(2,'0');
+  var _horaAR  = String(_ahoraAR.getHours()).padStart(2,'0') + ':' + String(_ahoraAR.getMinutes()).padStart(2,'0');
   var payload = {
     estado:            'activo',
     tipo:              tipo,
@@ -20759,6 +20777,8 @@ function gpGuardar() {
     origen:            GP_STATE.origen || 'manual',
     origen_id:         GP_STATE.origenId || null,
     hora_evento:       horaEvento,
+    fecha:             _fechaAR,
+    hora:              _horaAR,
     updated_at:        new Date().toISOString()
   };
 
@@ -20826,7 +20846,8 @@ function load48hs() {
   if (!cont) return;
   cont.innerHTML = '<div class="empty"><span class="spinner"></span></div>';
 
-  var desde = new Date(Date.now() - 48*3600*1000).toISOString().substring(0,10);
+  var _ar48 = new Date(new Date(Date.now() - 48*3600*1000).toLocaleString('en-US', { timeZone: 'America/Argentina/Buenos_Aires' }));
+  var desde = _ar48.getFullYear() + '-' + String(_ar48.getMonth()+1).padStart(2,'0') + '-' + String(_ar48.getDate()).padStart(2,'0');
   var q = db.from('partes_diarios')
     .select('*')
     .gte('fecha', desde)
@@ -20848,8 +20869,10 @@ function load48hs() {
       if (!porDia[dia]) porDia[dia] = [];
       porDia[dia].push(p);
     });
-    var hoyStr  = new Date().toISOString().substring(0,10);
-    var ayerStr = new Date(Date.now() - 86400000).toISOString().substring(0,10);
+    var _arHoy48 = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Argentina/Buenos_Aires' }));
+    var hoyStr  = _arHoy48.getFullYear() + '-' + String(_arHoy48.getMonth()+1).padStart(2,'0') + '-' + String(_arHoy48.getDate()).padStart(2,'0');
+    var _arAyer48 = new Date(new Date(Date.now()-86400000).toLocaleString('en-US', { timeZone: 'America/Argentina/Buenos_Aires' }));
+    var ayerStr = _arAyer48.getFullYear() + '-' + String(_arAyer48.getMonth()+1).padStart(2,'0') + '-' + String(_arAyer48.getDate()).padStart(2,'0');
     var html = '';
     Object.keys(porDia).sort(function(a,b){ return b.localeCompare(a); }).forEach(function(dia) {
       var diaStr = dia.split('-').reverse().join('/');
@@ -21374,7 +21397,7 @@ function _gpResetFotos() {
 // Reset fotos al abrir edición completa
 function _pecResetFotos(fotosActuales) {
   _pecFotosNuevas = [];
-  _pecFotasActuales = fotosActuales || [];
+  _pecFotasActuales = (fotosActuales || []).slice(); // clonar para no mutar PARTE_ACTUAL
   var prev = document.getElementById('pec-fotos-nuevas');
   if (prev) prev.innerHTML = '';
   // Mostrar fotos actuales con opción de quitar
@@ -21591,6 +21614,7 @@ function gpEliminarParte() {
 var PDPU_HIST_CACHE = [];
 var PDPU_HIST_ANIO  = new Date().getFullYear();
 
+var _pdpu48hTimer = null;
 function selPdpuTab(tab) {
   ['48h','hist'].forEach(function(t) {
     var btn   = document.getElementById('pdpu-tab-' + t);
@@ -21603,7 +21627,8 @@ function selPdpuTab(tab) {
     }
     if (panel) panel.style.display = active ? 'block' : 'none';
   });
-  if (tab === '48h')  pdpu48hCargar();
+  if (_pdpu48hTimer) { clearInterval(_pdpu48hTimer); _pdpu48hTimer = null; }
+  if (tab === '48h')  { pdpu48hCargar(); _pdpu48hTimer = setInterval(pdpu48hCargar, 60000); }
   if (tab === 'hist') pdpuHistCargarAnios();
 }
 
@@ -21614,7 +21639,7 @@ function pdpu48hCargar() {
   db.from('partes_diarios')
     .select('*')
     .eq('estado', 'activo')
-    .gte('fecha', new Date(Date.now() - 48*3600*1000).toISOString().substring(0,10))
+    .gte('fecha', (function(){ var d=new Date(new Date(Date.now()-48*3600*1000).toLocaleString('en-US',{timeZone:'America/Argentina/Buenos_Aires'})); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); })())
     .order('fecha', { ascending: false })
     .order('nro_pd', { ascending: false })
     .then(function(r) {
@@ -21625,12 +21650,16 @@ function pdpu48hCargar() {
       }
       var porDia = {};
       rows.forEach(function(p) {
-        var dia = p.fecha || new Date().toISOString().substring(0,10);
+        var _arHoyPdpu = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Argentina/Buenos_Aires' }));
+        var _diaHoy = _arHoyPdpu.getFullYear() + '-' + String(_arHoyPdpu.getMonth()+1).padStart(2,'0') + '-' + String(_arHoyPdpu.getDate()).padStart(2,'0');
+        var dia = p.fecha || _diaHoy;
         if (!porDia[dia]) porDia[dia] = [];
         porDia[dia].push(p);
       });
-      var hoyStr  = new Date().toISOString().substring(0,10);
-      var ayerStr = new Date(Date.now() - 86400000).toISOString().substring(0,10);
+      var _arHoyP = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Argentina/Buenos_Aires' }));
+      var hoyStr  = _arHoyP.getFullYear() + '-' + String(_arHoyP.getMonth()+1).padStart(2,'0') + '-' + String(_arHoyP.getDate()).padStart(2,'0');
+      var _arAyerP = new Date(new Date(Date.now()-86400000).toLocaleString('en-US', { timeZone: 'America/Argentina/Buenos_Aires' }));
+      var ayerStr = _arAyerP.getFullYear() + '-' + String(_arAyerP.getMonth()+1).padStart(2,'0') + '-' + String(_arAyerP.getDate()).padStart(2,'0');
       var html = '';
       Object.keys(porDia).sort(function(a,b){ return b.localeCompare(a); }).forEach(function(dia) {
         var diaStr = dia.split('-').reverse().join('/');
