@@ -21551,6 +21551,9 @@ function pecGuardar() {
               toast('✓ ' + tipo + ' actualizado correctamente', 'ok');
               closeOv('ov-parte-editar-completo');
               Object.assign(PARTE_ACTUAL, payload);
+              // Re-renderizar el detalle con los datos actualizados (incluye fotos nuevas)
+              _gpRenderDetalle(PARTE_ACTUAL);
+              openOv('ov-parte-detalle');
               load48hs();
               histCargar();
               if (typeof pdpu48hCargar === 'function') pdpu48hCargar();
