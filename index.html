@@ -23421,7 +23421,7 @@ function buscarHistorialNovedades(irAPagina) {
       }
 
       var _colorPuestoHN = _colorParaPuestoHN(n.puesto || 'Sin especificar');
-      html += '<div style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-left:4px solid ' + _colorPuestoHN + ';border-radius:10px;padding:12px;margin-bottom:8px">';
+      html += '<div onclick="abrirDetalleDesdeHistorial(\'' + n.id + '\')" style="background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.06);border-left:4px solid ' + _colorPuestoHN + ';border-radius:10px;padding:12px;margin-bottom:8px;cursor:pointer;transition:background .15s" onmouseover="this.style.background=\'rgba(255,255,255,.04)\'" onmouseout="this.style.background=\'rgba(255,255,255,.025)\'">';
       html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:4px">';
       html += '<span style="display:inline-block;font-size:10px;font-weight:800;color:#fff;padding:2px 9px;border-radius:6px;background:' + _colorPuestoHN + '">' + (n.puesto || '—') + '</span>';
       html += '<span style="font-size:10px;color:var(--text3);white-space:nowrap;font-family:var(--mono)">' + fecha + '</span>';
@@ -23430,13 +23430,77 @@ function buscarHistorialNovedades(irAPagina) {
       if (n.ubicacion) html += '<div style="font-size:11px;color:var(--text2);margin-bottom:3px">\u{1F4CD} ' + n.ubicacion + '</div>';
       html += '<div style="font-size:12px;color:var(--text2);white-space:pre-wrap">' + (n.detalle || '').substring(0, 280) + ((n.detalle||'').length > 280 ? '...' : '') + '</div>';
       if (n.cargado_por) html += '<div style="font-size:10px;color:var(--text3);margin-top:5px">\u{1F464} ' + n.cargado_por + '</div>';
+      if (n.nro_pd || n.nro_pu) {
+        var _pdTxtHN = n.nro_pd ? 'PD N\xB0 ' + n.nro_pd : 'PU N\xB0 ' + n.nro_pu;
+        html += '<span style="display:inline-block;margin-top:5px;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3)">\uD83D\uDCCB ' + _pdTxtHN + '</span>';
+      }
       if (n.pendiente) html += '<span style="display:inline-block;margin-top:5px;font-size:9px;font-weight:700;padding:2px 8px;border-radius:10px;background:rgba(245,158,11,.12);color:#fcd34d">PENDIENTE</span>';
+      html += '<div style="font-size:9px;color:var(--text3);margin-top:6px;opacity:.6">Tap para ver detalle completo \u2192</div>';
       html += '</div>';
     });
 
     if (listEl) listEl.innerHTML = html;
     _renderPaginacionHistNov();
   });
+}
+
+function abrirDetalleDesdeHistorial(novId) {
+  db.from('novedades').select('*').eq('id', novId).single().then(function(r) {
+    if (r.error || !r.data) { toast('Error cargando novedad', 'err'); return; }
+    var n = r.data;
+    // Intentar abrir en el listado actual si está en el DOM
+    goView('novedades');
+    setTimeout(function() {
+      var elExist = document.getElementById('nov-' + novId);
+      if (elExist) {
+        elExist.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (elExist.style.display === 'none') toggleNovedad(novId, null);
+        return;
+      }
+      _mostrarDetalleRapidoNov(n);
+    }, 400);
+  });
+}
+
+function _mostrarDetalleRapidoNov(n) {
+  var existing = document.getElementById('ov-detalle-rapido-nov');
+  if (existing) existing.remove();
+  var hora = formatTs(n.created_at);
+  var h = '<div class="overlay" id="ov-detalle-rapido-nov" style="z-index:9999" onclick="if(event.target===this)document.getElementById(\'ov-detalle-rapido-nov\').remove()">';
+  h += '<div class="modal" style="max-width:600px">';
+  h += '<div class="modal-head"><span class="modal-title">' + escapeHTML(n.asunto || 'Sin asunto') + '</span>';
+  h += '<button class="btn-close" onclick="document.getElementById(\'ov-detalle-rapido-nov\').remove()">&times;</button></div>';
+  h += '<div style="background:var(--bg3);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12px;display:flex;flex-wrap:wrap;gap:10px">';
+  h += '<div><span style="color:var(--text3)">Fecha</span><br><strong>' + hora + '</strong></div>';
+  if (n.puesto) h += '<div><span style="color:var(--text3)">Puesto</span><br><strong>' + escapeHTML(n.puesto) + '</strong></div>';
+  if (n.cargado_por) h += '<div><span style="color:var(--text3)">Agente</span><br><strong>' + escapeHTML(n.cargado_por) + '</strong></div>';
+  if (n.hora_evento) h += '<div><span style="color:var(--text3)">Hora evento</span><br><strong>' + escapeHTML(n.hora_evento) + ' hs</strong></div>';
+  h += '</div>';
+  if (n.detalle) h += '<div style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:12px;white-space:pre-wrap">' + escapeHTML(n.detalle) + '</div>';
+  if (n.observaciones) {
+    h += '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;margin-bottom:4px">Observaciones</div>';
+    h += '<div style="font-size:12px;color:var(--text2);margin-bottom:12px">' + escapeHTML(n.observaciones) + '</div>';
+  }
+  if (n.nro_pd || n.nro_pu) {
+    var pdTxt = n.nro_pd ? 'PD N° ' + n.nro_pd : 'PU N° ' + n.nro_pu;
+    h += '<div style="margin-bottom:12px">';
+    h += '<span style="font-size:13px;font-weight:700;padding:5px 14px;border-radius:20px;background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.3)">📋 ' + pdTxt + '</span>';
+    if (n.parte_id) {
+      h += ' <button onclick="document.getElementById(\'ov-detalle-rapido-nov\').remove();gpVerDetalle('' + n.parte_id + '')" style="margin-left:8px;padding:5px 12px;border-radius:8px;border:1px solid rgba(99,102,241,.35);background:rgba(99,102,241,.08);color:#a5b4fc;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">Ver parte →</button>';
+    }
+    h += '</div>';
+  }
+  if (n.fuerza_publica) h += '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;background:rgba(239,68,68,.1);color:#fca5a5;margin-right:6px">🚔 Fuerza público</span>';
+  if (n.pendiente) h += '<span style="font-size:11px;font-weight:700;padding:3px 10px;border-radius:10px;background:rgba(245,158,11,.12);color:#fcd34d">PENDIENTE</span>';
+  if (n.fotos && n.fotos.length) {
+    h += '<div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:6px">';
+    n.fotos.forEach(function(url) {
+      h += '<img src="' + url + '" onclick="abrirFotoLightbox(\'' + url + '\')" style="width:80px;height:80px;object-fit:cover;border-radius:8px;cursor:zoom-in;border:1px solid var(--border2)">';
+    });
+    h += '</div>';
+  }
+  h += '</div></div>';
+  document.body.insertAdjacentHTML('beforeend', h);
 }
 
 function _renderPaginacionHistNov() {
