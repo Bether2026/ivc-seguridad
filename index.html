@@ -23364,9 +23364,9 @@ function buscarHistorialNovedades(irAPagina) {
     if (resumenEl) {
       var desdeM = desdeIdx + 1;
       var hastaM = Math.min(desdeIdx + list.length, HN_TOTAL);
-      resumenEl.textContent = HN_TOTAL > 0
+      resumenEl.textContent = (HN_TOTAL > 0
         ? ('Mostrando ' + desdeM + '–' + hastaM + ' de ' + HN_TOTAL + ' novedades')
-        : 'Sin resultados';
+        : 'Sin resultados') + ' · v2';
     }
 
     if (!list.length) {
@@ -23441,13 +23441,6 @@ function buscarHistorialNovedades(irAPagina) {
 
     if (listEl) {
       listEl.innerHTML = html;
-      // Event delegation para los cards del historial
-      listEl.onclick = function(e) {
-        var card = e.target.closest('.hn-card-item');
-        if (card && card.dataset.novid) {
-          abrirDetalleDesdeHistorial(card.dataset.novid);
-        }
-      };
     }
     _renderPaginacionHistNov();
   });
@@ -23462,6 +23455,17 @@ function abrirDetalleDesdeHistorial(novId) {
       } catch(e2) { toast('Error modal: ' + e2.message, 'err'); }
     }).catch(function(e) { toast('Fetch error: ' + e.message, 'err'); });
   } catch(e) { toast('Error: ' + e.message, 'err'); }
+}
+
+// Delegation global con capture: captura el click antes que cualquier otro handler
+if (!window._hnDelegationInstalada) {
+  window._hnDelegationInstalada = true;
+  document.addEventListener('click', function(e) {
+    var card = e.target && e.target.closest ? e.target.closest('.hn-card-item') : null;
+    if (card && card.getAttribute('data-novid')) {
+      abrirDetalleDesdeHistorial(card.getAttribute('data-novid'));
+    }
+  }, true);
 }
 
 function _abrirDetalleDesdeHistorial_UNUSED(novId) {
