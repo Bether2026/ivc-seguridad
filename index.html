@@ -11080,7 +11080,7 @@ function generarPreviewInforme() {
   var desdeUTC = desdeVal ? arToUTC(desdeVal, horaDesde) : '2020-01-01T00:00:00.000Z';
   var hastaUTC = hastaVal ? arToUTC(hastaVal, horaHasta) : arToUTC(desdeVal, horaHasta);
 
-  // Cargar en paralelo: novedades Y objetivos del período (solo las que tienen parte_id)
+  // Cargar en paralelo: novedades Y objetivos (solo con parte_id)
   Promise.all([
     db.from('novedades').select('id,puesto,tipo,asunto,cargado_por,hora_evento,created_at,parte_id,nro_pd,nro_pu,fuerza_publica').gte('created_at', desdeUTC).lte('created_at', hastaUTC).not('parte_id', 'is', null).order('created_at', { ascending: true }),
     db.from('objetivos').select('id,puesto,descripcion,cargado_por,created_at,parte_id,nro_pd,nro_pu').gte('created_at', desdeUTC).lte('created_at', hastaUTC).not('parte_id', 'is', null).order('created_at', { ascending: true })
@@ -11088,14 +11088,9 @@ function generarPreviewInforme() {
     var todasNovedades = results[0].data || [];
     var todosObjetivos = results[1].data || [];
 
-    // Recolectar todos los parte_id únicos
-    var parteIds = [];
-    var parteIdSet = {};
+    var parteIds = [], parteIdSet = {};
     todasNovedades.concat(todosObjetivos).forEach(function(r) {
-      if (r.parte_id && !parteIdSet[r.parte_id]) {
-        parteIdSet[r.parte_id] = true;
-        parteIds.push(r.parte_id);
-      }
+      if (r.parte_id && !parteIdSet[r.parte_id]) { parteIdSet[r.parte_id] = true; parteIds.push(r.parte_id); }
     });
 
     if (!parteIds.length) {
@@ -11103,62 +11098,48 @@ function generarPreviewInforme() {
       toast('Sin PD/PU generados para el período.', 'err');
       return;
     }
-
     if (statusTxt) statusTxt.textContent = 'Cargando datos de ' + parteIds.length + ' partes...';
 
-    // Traer los partes_diarios correspondientes
     db.from('partes_diarios')
       .select('id,nro_pd,anio,tipo,estado,asunto,texto_admin,observaciones,agentes,responsable_turno,administrativo,fotos,fuerza_publica,pendiente,fecha,hora,hora_evento,puesto')
-      .in('id', parteIds)
-      .eq('estado', 'activo')
-      .order('fecha', { ascending: true })
-      .order('hora', { ascending: true })
+      .in('id', parteIds).eq('estado', 'activo')
+      .order('fecha', { ascending: true }).order('hora', { ascending: true })
     .then(function(rPartes) {
       var partes = rPartes.data || [];
-
       if (!partes.length) {
         if (statusEl) statusEl.style.display = 'none';
         toast('Sin partes activos para el período.', 'err');
         return;
       }
 
-      // Mapa parte_id → parte
-      var parteMap = {};
-      partes.forEach(function(p) { parteMap[p.id] = p; });
-
-      // Mapa parte_id → origen (novedad u objetivo)
       var origenMap = {};
       todasNovedades.forEach(function(n) {
-        if (n.parte_id) origenMap[n.parte_id] = { _src: 'novedad', asunto: n.asunto, tipo: n.tipo, cargado_por: n.cargado_por, created_at: n.created_at, puesto: n.puesto };
+        if (n.parte_id) origenMap[n.parte_id] = { tipo: n.tipo, asunto: n.asunto, cargado_por: n.cargado_por, created_at: n.created_at, puesto: n.puesto };
       });
       todosObjetivos.forEach(function(o) {
-        if (o.parte_id && !origenMap[o.parte_id]) origenMap[o.parte_id] = { _src: 'objetivo', asunto: o.descripcion, tipo: 'Control de Objetivo', cargado_por: o.cargado_por, created_at: o.created_at, puesto: o.puesto };
+        if (o.parte_id && !origenMap[o.parte_id]) origenMap[o.parte_id] = { tipo: 'Control de Objetivo', asunto: o.descripcion, cargado_por: o.cargado_por, created_at: o.created_at, puesto: o.puesto };
       });
 
-      // Construir array de items para el informe, uno por parte activo
       var todos = partes.map(function(p) {
         var origen = origenMap[p.id] || {};
-        var nroDisplay = p.tipo + ' N\xB0 ' + p.nro_pd + '/' + p.anio;
         return {
-          id:             p.id,
-          _src:           'parte',
-          puesto:         p.puesto || origen.puesto || 'Sin barrio',
-          tipo:           origen.tipo || p.tipo || 'Novedad',
-          asunto:         p.asunto || origen.asunto || '',
-          texto_informe:  p.texto_admin || '',
-          observaciones:  p.observaciones || '',
-          agentes:        p.agentes || origen.cargado_por || '',
-          responsable:    p.responsable_turno || '',
+          id: p.id, _src: 'parte',
+          puesto: p.puesto || origen.puesto || 'Sin barrio',
+          tipo: origen.tipo || p.tipo || 'Novedad',
+          asunto: p.asunto || origen.asunto || '',
+          texto_informe: p.texto_admin || '',
+          observaciones: p.observaciones || '',
+          agentes: p.agentes || origen.cargado_por || '',
+          responsable: p.responsable_turno || '',
           administrativo: p.administrativo || '',
-          nro_pd:         p.tipo === 'PD' ? (p.nro_pd + '/' + p.anio) : null,
-          nro_pu:         p.tipo === 'PU' ? (p.nro_pd + '/' + p.anio) : null,
-          nro_display:    nroDisplay,
-          fotos:          p.fotos || [],
+          nro_pd: p.tipo === 'PD' ? (p.nro_pd + '/' + p.anio) : null,
+          nro_pu: p.tipo === 'PU' ? (p.nro_pd + '/' + p.anio) : null,
+          fotos: p.fotos || [],
           fuerza_publica: p.fuerza_publica || false,
-          pendiente:      p.pendiente || false,
-          fecha:          p.fecha,
-          hora:           p.hora_evento || p.hora,
-          created_at:     origen.created_at || p.fecha
+          pendiente: p.pendiente || false,
+          fecha: p.fecha,
+          hora: p.hora_evento || p.hora,
+          created_at: origen.created_at || p.fecha
         };
       });
 
@@ -11167,10 +11148,8 @@ function generarPreviewInforme() {
         toast('Sin partes activos para el período.', 'err');
         return;
       }
-
       if (statusTxt) statusTxt.textContent = 'Encontrados ' + todos.length + ' partes. Generando informe...';
 
-      // Agrupar por puesto
       var porPuesto = {};
       todos.forEach(function(n) {
         var p = n.puesto || 'Sin barrio';
@@ -11178,7 +11157,6 @@ function generarPreviewInforme() {
         porPuesto[p].push(n);
       });
 
-      // Fecha display
       var fechaDisplay = '';
       if (desdeVal && hastaVal && desdeVal !== hastaVal) {
         fechaDisplay = desdeVal.split('-').reverse().join('/') + ' al ' + hastaVal.split('-').reverse().join('/');
@@ -11186,14 +11164,11 @@ function generarPreviewInforme() {
         var fp = (desdeVal || hastaVal).split('-');
         fechaDisplay = fp[2] + '/' + fp[1] + '/' + fp[0];
       }
-      var diasNom = ['domingo','lunes','martes','mi\xE9rcoles','jueves','viernes','s\xE1bado'];
+      var diasNom = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
       var diaNom = (desdeVal && desdeVal === hastaVal) ? diasNom[new Date(desdeVal + 'T12:00:00').getDay()] : '';
 
-      // Mapear fotos (URLs directas desde R2)
       var fotosMap = {};
-      todos.forEach(function(n) {
-        (n.fotos || []).filter(Boolean).forEach(function(url) { fotosMap[url] = url; });
-      });
+      todos.forEach(function(n) { (n.fotos || []).filter(Boolean).forEach(function(url) { fotosMap[url] = url; }); });
 
       Promise.resolve().then(function() {
         if (statusEl) statusEl.style.display = 'none';
@@ -11303,17 +11278,15 @@ function construirHTMLEditablePreview(porPuesto, novedades, fotosMap, fechaDispl
       html += '<div class="novedad" data-nid="' + escapeHTML(String(n.id)) + '" data-src="' + (n._src || 'nov') + '">\n';
       html += '<button class="btn-del-row" onclick="eliminarFilaInforme(this)" title="Eliminar fila">&times;</button>\n';
       html += '<div class="col1"><div class="c1-tipo" contenteditable="true">' + escapeHTML(n.tipo || n.asunto || 'Novedad') + '</div>';
-      // Hora: preferir campo hora del parte (HH:MM), sino calcular de created_at
       var horaDisplay = n.hora || horaStr;
       html += '<div class="c1-meta" contenteditable="true"><strong>' + escapeHTML(fechaReal || fechaDisplay) + '</strong><br>' + escapeHTML(horaDisplay) + ' hs</div>';
-      if (n.nro_pd) html += '<div style="font-size:8pt;font-weight:700;color:#2563eb;margin-top:3px">PD N\xB0 ' + escapeHTML(n.nro_pd) + '</div>';
-      if (n.nro_pu) html += '<div style="font-size:8pt;font-weight:700;color:#7c3aed;margin-top:2px">PU N\xB0 ' + escapeHTML(n.nro_pu) + '</div>';
+      if (n.nro_pd) html += '<div style="font-size:8pt;font-weight:700;color:#2563eb;margin-top:3px">PD N\xB0 ' + escapeHTML(String(n.nro_pd)) + '</div>';
+      if (n.nro_pu) html += '<div style="font-size:8pt;font-weight:700;color:#7c3aed;margin-top:2px">PU N\xB0 ' + escapeHTML(String(n.nro_pu)) + '</div>';
       if (n.fuerza_publica) html += '<span class="badge-fp">Fuerza P&uacute;blica</span>';
       if (n.pendiente) html += '<span class="badge-fp" style="background:#fef3c7;color:#92400e;border-color:#fcd34d">Pendiente</span>';
       html += '</div>\n';
       html += '<div class="col2"><div class="nov-txt" contenteditable="true">' + escapeHTML(n.texto_informe || '\u2014') + '</div>';
-      // Agentes del parte (campo agentes), sino responsable, sino cargado_por
-      var agentesDisplay = n.agentes || n.responsable || '';
+      var agentesDisplay = n.agentes || n.responsable || n.cargado_por || '';
       if (agentesDisplay) html += '<div class="nov-ag"><strong>Agente/s:</strong> ' + escapeHTML(agentesDisplay) + '</div>';
       if (n.responsable && n.agentes) html += '<div class="nov-ag" style="margin-top:4px"><strong>Resp. turno:</strong> ' + escapeHTML(n.responsable) + '</div>';
       if (fotosB64.length > 0) {
@@ -20280,11 +20253,8 @@ function abrirGenerarParteObjetivo(objId) {
       if (r.error || !r.data) { toast('Error cargando objetivo', 'err'); return; }
       var o = r.data;
       if (o.parte_id) { gpVerDetalle(o.parte_id); return; }
-
-      // Construir texto desde los puntos registrados en actualizaciones
       var acts = o.actualizaciones || [];
-      var todasFotosObj = [];
-      var cuerpoLineas = [];
+      var todasFotosObj = [], cuerpoLineas = [];
       acts.forEach(function(a, idx) {
         var linea = '';
         if (a.lugar) linea += a.lugar;
@@ -20292,15 +20262,11 @@ function abrirGenerarParteObjetivo(objId) {
         if (a.obs)   linea += (linea ? '\n' : '') + a.obs;
         if (!linea)  linea = 'Punto ' + (idx + 1);
         cuerpoLineas.push(linea);
-        if (a.fotos && a.fotos.length) {
-          a.fotos.forEach(function(f) { if (f) todasFotosObj.push(f); });
-        } else if (a.foto) {
-          todasFotosObj.push(a.foto);
-        }
+        if (a.fotos && a.fotos.length) { a.fotos.forEach(function(f) { if (f) todasFotosObj.push(f); }); }
+        else if (a.foto) { todasFotosObj.push(a.foto); }
       });
       var cuerpo = cuerpoLineas.join('\n\n') || (o.texto_informe || '');
       var horaOrigen = (acts.length && acts[0].hora) ? acts[0].hora : '';
-
       GP_STATE.novedadesVinculadas = [{
         id:     o.id,
         asunto: o.descripcion || 'Control de objetivo',
@@ -20772,9 +20738,7 @@ function gpGuardar() {
     .filter(function(n) { return n.fuente === 'objetivo'; })
     .map(function(n) { return n.id; });
 
-  // Hora del evento: tomar del primer vinculado (hora_evento en novedad, hora del primer punto en objetivo)
   var horaEvento = GP_STATE.novedadesVinculadas.length ? (GP_STATE.novedadesVinculadas[0].hora || null) : null;
-
   var payload = {
     estado:            'activo',
     tipo:              tipo,
@@ -20805,10 +20769,20 @@ function gpGuardar() {
     var fotosFinales = todasFotos.concat(urlsNuevas);
     if (fotosFinales.length) payload.imagenes = true;
 
-    db.from('partes_diarios').update(payload).eq('id', parteId)
-      .then(function(r) {
-        if (btn) { btn.disabled = false; btn.textContent = '💾 Guardar Parte'; }
-        if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+    db.from('partes_diarios').select('historial_texto,texto_admin').eq('id', parteId).single()
+      .then(function(rHist) {
+        var historialActual = (rHist.data && rHist.data.historial_texto) ? rHist.data.historial_texto : [];
+        var textoAnterior   = rHist.data ? rHist.data.texto_admin : null;
+        var textoNuevo      = payload.texto_admin;
+        var autorActual     = payload.administrativo || USER.nombre || USER.email || 'Desconocido';
+        if (textoNuevo && textoNuevo !== textoAnterior) {
+          historialActual = historialActual.concat([{ texto: textoNuevo, autor: autorActual, timestamp: new Date().toISOString() }]);
+        }
+        payload.historial_texto = historialActual;
+        db.from('partes_diarios').update(payload).eq('id', parteId)
+          .then(function(r) {
+            if (btn) { btn.disabled = false; btn.textContent = '💾 Guardar Parte'; }
+            if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
 
         // Actualizar parte_id + número visible en los registros de origen
         var nroDisplay = GP_STATE.nro + '/' + GP_STATE.anio;
@@ -20831,14 +20805,15 @@ function gpGuardar() {
         }
         Promise.all(promises).then(function() {});
 
-        closeOv('ov-generar-parte');
-        GP_STATE.parteId = null;
-        toast((tipo === 'PD' ? '📋' : '⚠️') + ' ' + tipo + ' ' + GP_STATE.nro + '/' + GP_STATE.anio + ' generado ✓', 'ok');
+            closeOv('ov-generar-parte');
+            GP_STATE.parteId = null;
+            toast((tipo === 'PD' ? '📋' : '⚠️') + ' ' + tipo + ' ' + GP_STATE.nro + '/' + GP_STATE.anio + ' generado ✓', 'ok');
 
-        if (typeof loadNovedades === 'function') loadNovedades();
-        if (typeof loadObjetivos === 'function') loadObjetivos();
-        load48hs();
-        if (typeof pdpu48hCargar === 'function') pdpu48hCargar();
+            if (typeof loadNovedades === 'function') loadNovedades();
+            if (typeof loadObjetivos === 'function') loadObjetivos();
+            load48hs();
+            if (typeof pdpu48hCargar === 'function') pdpu48hCargar();
+          });
       });
   });
 }
@@ -21141,6 +21116,29 @@ function _gpRenderDetalle(p) {
     h += '<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px">📝 Texto del parte</div>';
     h += '<div style="background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:12px;font-size:13px;color:var(--text);line-height:1.7;white-space:pre-wrap">' + p.texto_admin + '</div>';
     h += '</div>';
+  }
+
+  // Historial de ediciones
+  var historial = p.historial_texto;
+  if (typeof historial === 'string') try { historial = JSON.parse(historial); } catch(e) { historial = []; }
+  if (historial && historial.length > 1) {
+    var versAnt = historial.slice(0, -1).reverse();
+    h += '<div style="margin-bottom:14px">';
+    h += '<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;cursor:pointer" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'block\':\'none\'">';
+    h += '\u231B Historial de ediciones (' + versAnt.length + (versAnt.length !== 1 ? ' versiones anteriores' : ' versi\xF3n anterior') + ') \u25BE</div>';
+    h += '<div style="display:none">';
+    versAnt.forEach(function(v) {
+      var ts = v.timestamp ? new Date(v.timestamp) : null;
+      var tsStr = ts ? ts.toLocaleString('es-AR', { timeZone: 'America/Argentina/Buenos_Aires', day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '';
+      h += '<div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:6px;font-size:12px">';
+      h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">';
+      h += '<span style="font-weight:700;color:var(--accent2)">' + escapeHTML(v.autor || 'Desconocido') + '</span>';
+      h += '<span style="font-size:10px;color:var(--text3)">' + escapeHTML(tsStr) + '</span>';
+      h += '</div>';
+      h += '<div style="color:var(--text3);white-space:pre-wrap;line-height:1.6">' + escapeHTML(v.texto || '\u2014') + '</div>';
+      h += '</div>';
+    });
+    h += '</div></div>';
   }
 
   // Observaciones
@@ -21513,17 +21511,28 @@ function pecGuardar() {
         fotos:            fotasFinales,
         updated_at:       new Date().toISOString()
       };
-      db.from('partes_diarios').update(payload).eq('id', id)
-        .then(function(r) {
-          if (btn) { btn.disabled = false; btn.textContent = '💾 Guardar cambios'; }
-          if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
-          toast('✓ ' + tipo + ' actualizado correctamente', 'ok');
-          closeOv('ov-parte-editar-completo');
-          Object.assign(PARTE_ACTUAL, payload);
-          load48hs();
-          histCargar();
-          if (typeof pdpu48hCargar === 'function') pdpu48hCargar();
-          if (typeof pdpuHistCargar === 'function') pdpuHistCargar();
+      db.from('partes_diarios').select('historial_texto,texto_admin').eq('id', id).single()
+        .then(function(rH) {
+          var histActual2  = (rH.data && rH.data.historial_texto) ? rH.data.historial_texto : [];
+          var txtAnterior2 = rH.data ? rH.data.texto_admin : null;
+          var txtNuevo2    = payload.texto_admin;
+          var autor2       = payload.administrativo || USER.nombre || USER.email || 'Desconocido';
+          if (txtNuevo2 && txtNuevo2 !== txtAnterior2) {
+            histActual2 = histActual2.concat([{ texto: txtNuevo2, autor: autor2, timestamp: new Date().toISOString() }]);
+          }
+          payload.historial_texto = histActual2;
+          db.from('partes_diarios').update(payload).eq('id', id)
+            .then(function(r) {
+              if (btn) { btn.disabled = false; btn.textContent = '💾 Guardar cambios'; }
+              if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+              toast('✓ ' + tipo + ' actualizado correctamente', 'ok');
+              closeOv('ov-parte-editar-completo');
+              Object.assign(PARTE_ACTUAL, payload);
+              load48hs();
+              histCargar();
+              if (typeof pdpu48hCargar === 'function') pdpu48hCargar();
+              if (typeof pdpuHistCargar === 'function') pdpuHistCargar();
+            });
         });
     });
   };
