@@ -2724,6 +2724,10 @@ body {
         <div class="stat-card"><div class="stat-lbl">Cumpleaños</div><div class="stat-val c-purple" id="rrhh-cumple">—</div><div class="stat-sub">este mes</div></div>
       </div>
 
+      <!-- Botón importar saldos -->
+      <div style="margin-bottom:12px">
+        <button onclick="abrirImportarSaldos()" style="padding:8px 16px;border-radius:8px;border:1px solid rgba(99,102,241,.35);background:rgba(99,102,241,.08);color:#a5b4fc;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">⬆️ Importar saldos desde Excel RRHH</button>
+      </div>
       <div id="rrhh-lista"></div>
     </div>
 
@@ -5258,6 +5262,39 @@ body {
   </div>
 </div>
 
+<!-- MODAL IMPORTAR SALDOS EXCEL -->
+<div class="overlay" id="ov-importar-saldos">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-head"><span class="modal-title">⬆️ Importar saldos desde Excel RRHH</span><button class="btn-close" onclick="closeOv('ov-importar-saldos')">&times;</button></div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:14px">Seleccioná el archivo Excel de RRHH (hoja <strong>Saldos</strong>). Matchea por DNI y actualiza: saldo ordinaria 2024, 2025, día particular, grupo familiar y enfermedad. También completa DNIs faltantes.</div>
+    <div class="form-group">
+      <label style="display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--bg3);border:1px dashed var(--border2);border-radius:8px;cursor:pointer">
+        <span style="font-size:13px;color:#93c5fd;font-weight:600">📂 Seleccionar archivo Excel (.xlsx)</span>
+        <input type="file" id="importar-saldos-file" accept=".xlsx,.xls" style="display:none" onchange="previsualizarImportSaldos(this)"/>
+      </label>
+    </div>
+    <div id="importar-saldos-preview" style="display:none">
+      <div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px">Preview — agentes encontrados</div>
+      <div style="max-height:320px;overflow-y:auto;border:1px solid var(--border);border-radius:8px">
+        <table style="width:100%;border-collapse:collapse;font-size:12px">
+          <thead><tr style="background:var(--bg3);position:sticky;top:0">
+            <th style="padding:8px;text-align:left;color:var(--text3)">Agente</th>
+            <th style="padding:8px;text-align:center;color:var(--text3)">Ord.2024</th>
+            <th style="padding:8px;text-align:center;color:var(--text3)">Ord.2025</th>
+            <th style="padding:8px;text-align:center;color:var(--text3)">Particular</th>
+            <th style="padding:8px;text-align:center;color:var(--text3)">Familiar</th>
+            <th style="padding:8px;text-align:center;color:var(--text3)">Enfermedad</th>
+            <th style="padding:8px;text-align:center;color:var(--text3)">Match</th>
+          </tr></thead>
+          <tbody id="importar-saldos-tbody"></tbody>
+        </table>
+      </div>
+      <div id="importar-saldos-resumen" style="font-size:12px;color:var(--text3);margin-top:8px;padding:8px;background:var(--bg3);border-radius:6px"></div>
+      <button onclick="confirmarImportSaldos()" id="btn-confirmar-import" style="width:100%;margin-top:12px;padding:13px;border-radius:10px;border:none;background:linear-gradient(135deg,#4f46e5,#6366f1);color:#fff;font-family:var(--font);font-size:14px;font-weight:800;cursor:pointer">✔ Confirmar importación</button>
+    </div>
+  </div>
+</div>
+
 <!-- MODAL AJUSTE DE LICENCIA -->
 <div class="overlay" id="ov-ajuste-lic">
   <div class="modal">
@@ -5335,12 +5372,12 @@ function recalcularSaldosDesdeHistorial() {
   var tiposDesc = { 'Licencia ordinaria': 'lic_ordinaria', 'Dia particular': 'lic_particular', 'Día particular': 'lic_particular', 'Franco autorizado': 'lic_franco' };
   // Tipos que ACUMULAN desde 0
   var tiposAcum = { 'Enfermedad': 'lic_enfermedad', 'Familiar enfermo': 'lic_familiar', 'Duelo': 'lic_duelo', 'No asiste autorizado': 'lic_no_asiste', 'Franco compensatorio': 'lic_franco_comp' };
-  // Saldos iniciales por tipo de condición
-  var saldosIniciales = {
-    'CH': { lic_ordinaria: 15, lic_franco: 4,  lic_particular: 0 },
-    'CI': { lic_ordinaria: 15, lic_franco: 2,  lic_particular: 0 },
-    'PH': { lic_ordinaria: 15, lic_franco: 0,  lic_particular: 6 },
-    'PI': { lic_ordinaria: 15, lic_franco: 0,  lic_particular: 3 }
+  // Francos y particular por tipo de condición (lo que NO viene del Excel)
+  var saldosBase = {
+    'CH': { lic_franco: 4,  lic_particular: 0 },
+    'CI': { lic_franco: 2,  lic_particular: 0 },
+    'PH': { lic_franco: 0,  lic_particular: 0 },
+    'PI': { lic_franco: 0,  lic_particular: 0 }
   };
 
   db.from('licencias').select('agente,tipo,dias').then(function(r) {
@@ -5360,20 +5397,28 @@ function recalcularSaldosDesdeHistorial() {
       if (!ag.nombre) return;
       var nom = ag.nombre.trim().toUpperCase();
       var cond = (ag.tipo || 'CH').toUpperCase();
-      var iniciales = saldosIniciales[cond] || saldosIniciales['CH'];
+      // lic_ordinaria ahora viene de campos 2024+2025 del Excel
       var usados = porAgente[nom] || {};
       var patch = {};
       var cambio = false;
 
-      // Tipos que descuentan: saldo = inicial - dias_usados
+      // Tipos que descuentan saldo
       Object.keys(tiposDesc).forEach(function(tipoLic) {
         var key = tiposDesc[tipoLic];
-        if (!patch[key] && patch[key] !== 0) { // no pisar si ya calculado (dia particular tiene dos nombres)
-          var inicial = iniciales[key] !== undefined ? iniciales[key] : 0;
-          var usado = usados[tipoLic] || 0;
-          var nuevo = Math.max(0, inicial - usado);
-          if (ag[key] !== nuevo) { patch[key] = nuevo; cambio = true; }
+        if (patch[key] !== undefined) return;
+        var inicial;
+        if (key === 'lic_ordinaria') {
+          var esPlanta2 = (cond === 'PH' || cond === 'PI');
+          inicial = esPlanta2
+            ? ((ag.lic_ordinaria_2024 || 0) + (ag.lic_ordinaria_2025 || 0))
+            : (ag.lic_ordinaria_2025 || 0);
+        } else {
+          var base2 = saldosBase[cond] || saldosBase['CH'];
+          inicial = base2[key] !== undefined ? base2[key] : 0;
         }
+        var usado = usados[tipoLic] || 0;
+        var nuevo = Math.max(0, inicial - usado);
+        if (ag[key] !== nuevo) { patch[key] = nuevo; cambio = true; }
       });
 
       // Tipos que acumulan: saldo = suma de dias usados
@@ -5521,7 +5566,7 @@ function renderAgenteCard(a) {
   // Tipos que DESCUENTAN saldo
   var _tiposDesc = {'lic_ordinaria': true, 'lic_particular': true, 'lic_franco': true};
   var lics = [
-    { key: 'lic_ordinaria',  label: 'Ordinaria',    tipoLic: 'Licencia ordinaria', show: true },
+    { key: 'lic_ordinaria',  label: 'Ordinaria',    tipoLic: 'Licencia ordinaria', show: true, key2024: 'lic_ordinaria_2024', key2025: 'lic_ordinaria_2025' },
     { key: 'lic_enfermedad', label: 'Enfermedad',   tipoLic: 'Enfermedad',         show: true },
     { key: 'lic_particular', label: 'Particular',   tipoLic: 'Dia particular',     show: _esPlanta },
     { key: 'lic_franco',     label: 'Franco aut.',  tipoLic: 'Franco autorizado',  show: _esContrato },
@@ -5543,7 +5588,9 @@ function renderAgenteCard(a) {
     var _aid = a.id.toString().replace(/-/g,'');
     var _anom = a.nombre.replace(/["<>]/g,'');
     h += '<div onclick="verHistorialLicencia(this,\''+_anom+'\',\''+lic.tipoLic+'\')" style="text-align:center;background:var(--bg2);border-radius:6px;padding:6px 4px;cursor:pointer;transition:background .15s" onmouseover="this.style.background=\'var(--bg3)\'" onmouseout="this.style.background=\'var(--bg2)\'">';
-    h += '<div style="font-size:18px;font-weight:900;color:' + color + '">' + dias + '</div>';
+    var tipExtra = '';
+    if (lic.key2024 !== undefined) { var v24 = a[lic.key2024]||0; var v25 = a[lic.key2025]||0; tipExtra = ' title="2024: ' + v24 + ' + 2025: ' + v25 + '"'; }
+    h += '<div style="font-size:18px;font-weight:900;color:' + color + '"' + tipExtra + '>' + dias + '</div>';
     h += '<div style="font-size:9px;color:var(--text3);line-height:1.2">' + lic.label + '</div>';
     h += '<div style="font-size:8px;color:var(--text3);margin-top:1px">' + (esDescuento ? '&#x1F4C9; descuenta' : '&#x1F4C8; acumula') + '</div>';
     h += '</div>';
@@ -5582,6 +5629,143 @@ function renderAgenteCard(a) {
   h += '</div>';
   return h;
 }
+// ─── IMPORTAR SALDOS DESDE EXCEL RRHH ───
+var _importSaldosData = [];
+
+function abrirImportarSaldos() {
+  _importSaldosData = [];
+  var prev = document.getElementById('importar-saldos-preview');
+  if (prev) prev.style.display = 'none';
+  var fi = document.getElementById('importar-saldos-file');
+  if (fi) fi.value = '';
+  openOv('ov-importar-saldos');
+}
+
+function previsualizarImportSaldos(input) {
+  var file = input.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    if (typeof XLSX === 'undefined') {
+      var s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+      s.onload = function() { _parsearXLSX(e.target.result); };
+      s.onerror = function() { toast('Error cargando librería Excel', 'err'); };
+      document.head.appendChild(s);
+    } else { _parsearXLSX(e.target.result); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function _parsearXLSX(buffer) {
+  try {
+    var wb = XLSX.read(buffer, { type: 'array' });
+    var shName = wb.SheetNames.find(function(n) { return n.toLowerCase().indexOf('saldo') >= 0; }) || wb.SheetNames[0];
+    var rows = XLSX.utils.sheet_to_json(wb.Sheets[shName], { defval: 0 });
+    if (!rows.length) { toast('Hoja sin datos', 'err'); return; }
+    var col = {};
+    Object.keys(rows[0]).forEach(function(c) {
+      var lc = c.toLowerCase();
+      if (lc.indexOf('dni') >= 0)                                  col.dni      = c;
+      if (lc.indexOf('apellido') >= 0 || lc.indexOf('nombre') >= 0) col.nombre = c;
+      if (lc.indexOf('2024') >= 0)                                 col.ord2024  = c;
+      if (lc.indexOf('2025') >= 0)                                 col.ord2025  = c;
+      if (lc.indexOf('particular') >= 0)                           col.part     = c;
+      if (lc.indexOf('familiar') >= 0 || lc.indexOf('grupo') >= 0) col.fam     = c;
+      if (lc.indexOf('enfermedad') >= 0)                           col.enf      = c;
+    });
+    var dniMap = {}, nomMap = {};
+    RRHH_CACHE.forEach(function(ag) {
+      if (ag.dni) dniMap[String(ag.dni).trim()] = ag;
+      if (ag.nombre) nomMap[ag.nombre.trim().toUpperCase()] = ag;
+    });
+    _importSaldosData = [];
+    rows.forEach(function(row) {
+      var dniE = col.dni   ? String(row[col.dni]  || '').trim() : '';
+      var nomE = col.nombre ? String(row[col.nombre] || '').trim() : '';
+      if (!dniE && !nomE) return;
+      var match = (dniE && dniMap[dniE]) || (nomE && nomMap[nomE.toUpperCase()]) || null;
+      if (!match && nomE) {
+        var pts = nomE.toUpperCase().split(' ');
+        if (pts.length >= 2) {
+          var busq = pts[0] + ' ' + pts[1];
+          Object.keys(nomMap).forEach(function(k) {
+            if (!match && k.indexOf(busq) >= 0) match = nomMap[k];
+          });
+        }
+      }
+      _importSaldosData.push({
+        dniExcel: dniE, nombreExcel: nomE,
+        ord2024: parseInt(row[col.ord2024] || 0) || 0,
+        ord2025: parseInt(row[col.ord2025] || 0) || 0,
+        particular: parseInt(row[col.part] || 0) || 0,
+        familiar:   parseInt(row[col.fam]  || 0) || 0,
+        enfermedad: parseInt(row[col.enf]  || 0) || 0,
+        agenteMatch: match
+      });
+    });
+    _renderPreviewImport();
+  } catch(e) { toast('Error procesando Excel: ' + e.message, 'err'); }
+}
+
+function _renderPreviewImport() {
+  var tbody  = document.getElementById('importar-saldos-tbody');
+  var prev   = document.getElementById('importar-saldos-preview');
+  var resumen= document.getElementById('importar-saldos-resumen');
+  if (!tbody || !prev) return;
+  var mOk = 0, mNo = 0, html = '';
+  _importSaldosData.forEach(function(row) {
+    var m = !!row.agenteMatch;
+    if (m) mOk++; else mNo++;
+    var nom = m ? row.agenteMatch.nombre : (row.nombreExcel || row.dniExcel);
+    html += '<tr style="border-bottom:1px solid var(--border);' + (m ? '' : 'background:rgba(239,68,68,.05)') + '">';
+    html += '<td style="padding:6px 8px;color:' + (m ? 'var(--text)' : 'var(--red)') + '">' + (m ? '' : '\u26a0\ufe0f ') + nom + '</td>';
+    html += '<td style="padding:6px 8px;text-align:center">' + row.ord2024 + '</td>';
+    html += '<td style="padding:6px 8px;text-align:center">' + row.ord2025 + '</td>';
+    html += '<td style="padding:6px 8px;text-align:center">' + row.particular + '</td>';
+    html += '<td style="padding:6px 8px;text-align:center">' + row.familiar + '</td>';
+    html += '<td style="padding:6px 8px;text-align:center">' + row.enfermedad + '</td>';
+    html += '<td style="padding:6px 8px;text-align:center">' + (m ? '<span style="color:var(--green)">\u2714</span>' : '<span style="color:var(--red)">\u2718</span>') + '</td>';
+    html += '</tr>';
+  });
+  tbody.innerHTML = html;
+  resumen.innerHTML = '\u2714 <strong>' + mOk + '</strong> encontrados &nbsp;�&nbsp; \u26a0\ufe0f <strong>' + mNo + '</strong> sin match';
+  prev.style.display = 'block';
+}
+
+function confirmarImportSaldos() {
+  var btn = document.getElementById('btn-confirmar-import');
+  if (btn) { btn.disabled = true; btn.textContent = 'Importando...'; }
+  var matched = _importSaldosData.filter(function(r) { return r.agenteMatch; });
+  if (!matched.length) {
+    toast('Sin agentes para importar', 'err');
+    if (btn) { btn.disabled = false; btn.textContent = '\u2714 Confirmar importación'; }
+    return;
+  }
+  var promises = matched.map(function(row) {
+    var ag = row.agenteMatch;
+    var p2 = {
+      lic_ordinaria_2024: row.ord2024,
+      lic_ordinaria_2025: row.ord2025,
+      lic_particular:     row.particular,
+      lic_familiar:       row.familiar,
+      lic_enfermedad:     row.enfermedad
+    };
+    if (!ag.dni && row.dniExcel) p2.dni = row.dniExcel;
+    return db.from('agentes').update(p2).eq('id', ag.id);
+  });
+  Promise.all(promises).then(function(res) {
+    var e2 = res.filter(function(r) { return r.error; }).length;
+    if (btn) { btn.disabled = false; btn.textContent = '\u2714 Confirmar importación'; }
+    closeOv('ov-importar-saldos');
+    toast(e2 ? 'Importado con ' + e2 + ' errores' : '\u2714 ' + matched.length + ' agentes actualizados', e2 ? 'err' : 'ok');
+    loadRRHH();
+  }).catch(function(e3) {
+    if (btn) { btn.disabled = false; btn.textContent = '\u2714 Confirmar importación'; }
+    toast('Error: ' + e3.message, 'err');
+  });
+}
+
 function abrirNuevoAgente() {
   document.getElementById('agente-modal-title').textContent = 'Nuevo Agente';
   document.getElementById('agente-edit-id').value = '';
@@ -5852,32 +6036,29 @@ function _editarNovedad() {
           toast('Error cargando novedad', 'err');
           return _context11.a(2);
         case 2:
-          n = res.data; // Pre-fill modal de nueva novedad
+          n = res.data;
           tipoEl = document.getElementById('n-tipo');
           asuntoEl = document.getElementById('n-asunto-otro');
           ubicEl = document.getElementById('n-ubicacion');
           detEl = document.getElementById('n-detalle');
           relevEl = document.getElementById('n-relev');
           pendEl = document.getElementById('n-pend');
-          // Resetear campos que podrían tener datos previos
-          var puestoSel = document.getElementById('n-puesto-sel');
-          var puestoOtro = document.getElementById('n-puesto-otro-txt');
-          var horaEl = document.getElementById('n-hora-evento');
-          var nroPdEl = document.getElementById('n-nro-pd');
-          var nroPuEl = document.getElementById('n-nro-pu');
-          var txtInfEl = document.getElementById('n-texto-informe');
-          if (puestoSel) { puestoSel.value = n.puesto || ''; toggleOtroPuesto(); }
-          if (puestoOtro) puestoOtro.value = '';
+          var puestoSel2 = document.getElementById('n-puesto-sel');
+          var horaEl2 = document.getElementById('n-hora-evento');
+          var nroPdEl2 = document.getElementById('n-nro-pd');
+          var nroPuEl2 = document.getElementById('n-nro-pu');
+          var txtInfEl2 = document.getElementById('n-texto-informe');
+          if (puestoSel2) { puestoSel2.value = n.puesto || ''; toggleOtroPuesto(); }
           if (tipoEl) tipoEl.value = n.tipo || 'Otro';
           if (asuntoEl) asuntoEl.value = n.asunto || '';
           if (ubicEl) ubicEl.value = n.ubicacion || '';
           if (detEl) detEl.value = n.detalle || '';
           if (relevEl) relevEl.value = n.relevancia || 'Normal';
           if (pendEl) pendEl.checked = n.pendiente || false;
-          if (horaEl) horaEl.value = n.hora_evento || '';
-          if (nroPdEl) nroPdEl.value = '';
-          if (nroPuEl) nroPuEl.value = '';
-          if (txtInfEl) txtInfEl.value = '';
+          if (horaEl2) horaEl2.value = n.hora_evento || '';
+          if (nroPdEl2) nroPdEl2.value = '';
+          if (nroPuEl2) nroPuEl2.value = '';
+          if (txtInfEl2) txtInfEl2.value = '';
           toggleOtroAsunto();
           // Marcar como edicion
           window._EDIT_NOV_ID = id;
@@ -7946,7 +8127,7 @@ function openOv(id) {
   var esGestionPuesto = ROLES_GESTION_PUESTO.includes(USER ? USER.puesto : '') || (USER && USER.rol === 'ADMIN');
   if (id === 'ov-nov') {
     if ($('n-puesto-wrap'))   $('n-puesto-wrap').style.display  = esGestionPuesto ? 'block' : 'none';
-    if ($('n-informe-wrap'))  $('n-informe-wrap').style.display = 'none'; // Reemplazado por módulo PD/PU
+    if ($('n-informe-wrap'))  $('n-informe-wrap').style.display = 'none'; // PD/PU
     // Opción "Otro" para Administración, Administrador y Responsable de turno
     var _puedeOtroPuesto = ['Administración', 'Administrador', 'Responsable de turno'].indexOf(USER ? USER.puesto : '') >= 0 || (USER && USER.rol === 'ADMIN');
     var _optOtro = document.getElementById('n-puesto-otro-opt');
@@ -7956,7 +8137,7 @@ function openOv(id) {
     if ($('n-puesto-sel')) { $('n-puesto-sel').value = ''; }
   }
   if (id === 'ov-obj-upd') {
-    if ($('upd-informe-wrap')) $('upd-informe-wrap').style.display = 'none'; // Reemplazado por módulo PD/PU
+    if ($('upd-informe-wrap')) $('upd-informe-wrap').style.display = 'none'; // PD/PU
   }
   if (id === 'ov-obj' && esGestionPuesto && $('o-puesto-wrap')) $('o-puesto-wrap').style.display = 'block';
 }
@@ -11092,107 +11273,130 @@ function generarPreviewInforme() {
   var desdeUTC = desdeVal ? arToUTC(desdeVal, horaDesde) : '2020-01-01T00:00:00.000Z';
   var hastaUTC = hastaVal ? arToUTC(hastaVal, horaHasta) : arToUTC(desdeVal, horaHasta);
 
-  // Cargar en paralelo: novedades Y objetivos (solo con parte_id)
+  // Cargar en paralelo: novedades Y objetivos del período
   Promise.all([
-    db.from('novedades').select('id,puesto,tipo,asunto,cargado_por,hora_evento,created_at,parte_id,nro_pd,nro_pu,fuerza_publica').gte('created_at', desdeUTC).lte('created_at', hastaUTC).not('parte_id', 'is', null).order('created_at', { ascending: true }),
-    db.from('objetivos').select('id,puesto,descripcion,cargado_por,created_at,parte_id,nro_pd,nro_pu').gte('created_at', desdeUTC).lte('created_at', hastaUTC).not('parte_id', 'is', null).order('created_at', { ascending: true })
+    db.from('novedades').select('id,puesto,tipo,asunto,detalle,cargado_por,fotos,nro_pd,nro_pu,texto_informe,observaciones,fuerza_publica,pendiente,hora_evento,created_at').gte('created_at', desdeUTC).lte('created_at', hastaUTC).order('created_at', { ascending: true }),
+    db.from('objetivos').select('id,puesto,descripcion,tipo,agente,cargado_por,observaciones,texto_informe,nro_pd,nro_pu,actualizaciones,created_at').gte('created_at', desdeUTC).lte('created_at', hastaUTC).order('created_at', { ascending: true })
   ]).then(function(results) {
     var todasNovedades = results[0].data || [];
     var todosObjetivos = results[1].data || [];
 
-    var parteIds = [], parteIdSet = {};
-    todasNovedades.concat(todosObjetivos).forEach(function(r) {
-      if (r.parte_id && !parteIdSet[r.parte_id]) { parteIdSet[r.parte_id] = true; parteIds.push(r.parte_id); }
+    // Filtrar: solo las que tienen texto_informe O nro_pd O nro_pu
+    var novedadesInforme = todasNovedades.filter(function(n) {
+      return n.texto_informe || n.nro_pd || n.nro_pu;
     });
 
-    if (!parteIds.length) {
+    // De objetivos: los que tienen texto_informe/nro_pd/nro_pu directamente en el objetivo
+    var puntosInforme = [];
+    todosObjetivos.forEach(function(obj) {
+      // Extraer fotos del array de actualizaciones (campo foto o fotos[0])
+      var actsArr = obj.actualizaciones || [];
+      var fotosObj = [];
+      actsArr.forEach(function(a) {
+        if (a.fotos && a.fotos.length) {
+          a.fotos.forEach(function(f) { if (f) fotosObj.push(f); });
+        } else if (a.foto) {
+          fotosObj.push(a.foto);
+        }
+      });
+      var primeraFoto = fotosObj.length ? fotosObj[0] : null;
+
+      // Informe cargado directamente en el objetivo
+      if (obj.texto_informe || obj.nro_pd || obj.nro_pu) {
+        puntosInforme.push({
+          id:            obj.id,
+          _src:          'obj',
+          puesto:        obj.puesto || USER.puesto,
+          tipo:          'Control de Objetivo',
+          asunto:        obj.descripcion || obj.tipo || 'Recorrido',
+          detalle:       obj.observaciones || '',
+          texto_informe: obj.texto_informe || null,
+          nro_pd:        obj.nro_pd || null,
+          nro_pu:        obj.nro_pu || null,
+          agente:        obj.cargado_por || '',
+          observaciones: obj.texto_informe ? (obj.observaciones || null) : null,
+          foto_url:      primeraFoto,
+          fotos:         fotosObj,
+          fuerza_publica: false,
+          created_at:    obj.created_at
+        });
+      }
+      // También buscar en actualizaciones que tengan informe individual
+      var acts = obj.actualizaciones || [];
+      acts.forEach(function(a) {
+        if (a.texto_informe || a.nro_pd || a.nro_pu) {
+          puntosInforme.push({
+            id:            obj.id + '_' + (a.nro_pd || a.nro_pu || Math.random()),
+            _src:          'act',
+            puesto:        obj.puesto || USER.puesto,
+            tipo:          'Control de Objetivo',
+            asunto:        'Punto: ' + (a.lugar || a.asunto || obj.descripcion || obj.tipo || 'Recorrido'),
+            detalle:       a.obs || a.detalle || a.descripcion || '',
+            texto_informe: a.texto_informe || null,
+            nro_pd:        a.nro_pd || null,
+            nro_pu:        a.nro_pu || null,
+            agente:        obj.cargado_por || '',
+            observaciones: null,
+            foto_url:      a.foto || null,
+            fuerza_publica: false,
+            created_at:    a.fecha || obj.created_at
+          });
+        }
+      });
+    });
+
+    // Unir todo y ordenar por hora
+    var todos = novedadesInforme.concat(puntosInforme);
+    todos.sort(function(a, b) { return new Date(a.created_at) - new Date(b.created_at); });
+
+    if (!todos.length) {
       if (statusEl) statusEl.style.display = 'none';
-      toast('Sin PD/PU generados para el período.', 'err');
+      toast('Sin informes administrativos para el período. Verificá que las novedades tengan texto de informe o N° de PD/PU.', 'err');
       return;
     }
-    if (statusTxt) statusTxt.textContent = 'Cargando datos de ' + parteIds.length + ' partes...';
 
-    db.from('partes_diarios')
-      .select('id,nro_pd,anio,tipo,estado,asunto,texto_admin,observaciones,agentes,responsable_turno,administrativo,fotos,fuerza_publica,pendiente,fecha,hora,hora_evento,puesto')
-      .in('id', parteIds).eq('estado', 'activo')
-      .order('fecha', { ascending: true }).order('hora', { ascending: true })
-    .then(function(rPartes) {
-      var partes = rPartes.data || [];
-      if (!partes.length) {
-        if (statusEl) statusEl.style.display = 'none';
-        toast('Sin partes activos para el período.', 'err');
-        return;
-      }
+    if (statusTxt) statusTxt.textContent = 'Encontrados ' + todos.length + ' informes. Cargando fotos...';
 
-      var origenMap = {};
-      todasNovedades.forEach(function(n) {
-        if (n.parte_id) origenMap[n.parte_id] = { tipo: n.tipo, asunto: n.asunto, cargado_por: n.cargado_por, created_at: n.created_at, puesto: n.puesto };
+    // Agrupar por puesto
+    var porPuesto = {};
+    todos.forEach(function(n) {
+      var p = n.puesto || 'Sin barrio';
+      if (!porPuesto[p]) porPuesto[p] = [];
+      porPuesto[p].push(n);
+    });
+
+    // Fecha display
+    var fechaDisplay = '';
+    if (desdeVal && hastaVal && desdeVal !== hastaVal) {
+      fechaDisplay = desdeVal.split('-').reverse().join('/') + ' al ' + hastaVal.split('-').reverse().join('/');
+    } else {
+      var fp = (desdeVal || hastaVal).split('-');
+      fechaDisplay = fp[2] + '/' + fp[1] + '/' + fp[0];
+    }
+    var diasNom = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+    var diaNom = (desdeVal && desdeVal === hastaVal) ? diasNom[new Date(desdeVal + 'T12:00:00').getDay()] : '';
+
+    // Cargar fotos — usar URLs directamente (R2 sirve las imágenes con CORS abierto)
+    var fotosMap = {};
+    todos.forEach(function(n) {
+      var fotos = [];
+      if (n.foto_url)  fotos.push(n.foto_url);
+      if (n.foto_url2) fotos.push(n.foto_url2);
+      if (n.foto_url3) fotos.push(n.foto_url3);
+      if (n.fotos && Array.isArray(n.fotos)) fotos = fotos.concat(n.fotos);
+      fotos.filter(Boolean).forEach(function(url) {
+        fotosMap[url] = url; // usar URL directa en vez de base64
       });
-      todosObjetivos.forEach(function(o) {
-        if (o.parte_id && !origenMap[o.parte_id]) origenMap[o.parte_id] = { tipo: 'Control de Objetivo', asunto: o.descripcion, cargado_por: o.cargado_por, created_at: o.created_at, puesto: o.puesto };
-      });
+    });
 
-      var todos = partes.map(function(p) {
-        var origen = origenMap[p.id] || {};
-        return {
-          id: p.id, _src: 'parte',
-          puesto: p.puesto || origen.puesto || 'Sin barrio',
-          tipo: origen.tipo || p.tipo || 'Novedad',
-          asunto: p.asunto || origen.asunto || '',
-          texto_informe: p.texto_admin || '',
-          observaciones: p.observaciones || '',
-          agentes: p.agentes || origen.cargado_por || '',
-          responsable: p.responsable_turno || '',
-          administrativo: p.administrativo || '',
-          nro_pd: p.tipo === 'PD' ? (p.nro_pd + '/' + p.anio) : null,
-          nro_pu: p.tipo === 'PU' ? (p.nro_pd + '/' + p.anio) : null,
-          fotos: p.fotos || [],
-          fuerza_publica: p.fuerza_publica || false,
-          pendiente: p.pendiente || false,
-          fecha: p.fecha,
-          hora: p.hora_evento || p.hora,
-          created_at: origen.created_at || p.fecha
-        };
-      });
-
-      if (!todos.length) {
-        if (statusEl) statusEl.style.display = 'none';
-        toast('Sin partes activos para el período.', 'err');
-        return;
-      }
-      if (statusTxt) statusTxt.textContent = 'Encontrados ' + todos.length + ' partes. Generando informe...';
-
-      var porPuesto = {};
-      todos.forEach(function(n) {
-        var p = n.puesto || 'Sin barrio';
-        if (!porPuesto[p]) porPuesto[p] = [];
-        porPuesto[p].push(n);
-      });
-
-      var fechaDisplay = '';
-      if (desdeVal && hastaVal && desdeVal !== hastaVal) {
-        fechaDisplay = desdeVal.split('-').reverse().join('/') + ' al ' + hastaVal.split('-').reverse().join('/');
-      } else {
-        var fp = (desdeVal || hastaVal).split('-');
-        fechaDisplay = fp[2] + '/' + fp[1] + '/' + fp[0];
-      }
-      var diasNom = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
-      var diaNom = (desdeVal && desdeVal === hastaVal) ? diasNom[new Date(desdeVal + 'T12:00:00').getDay()] : '';
-
-      var fotosMap = {};
-      todos.forEach(function(n) { (n.fotos || []).filter(Boolean).forEach(function(url) { fotosMap[url] = url; }); });
-
-      Promise.resolve().then(function() {
-        if (statusEl) statusEl.style.display = 'none';
-        var html = construirHTMLEditablePreview(porPuesto, todos, fotosMap, fechaDisplay, diaNom, autor);
-        if (frame) frame.innerHTML = html;
-        if (container) container.style.display = 'block';
-        iniciarAutoSaveInforme();
-        toast('\u2713 ' + todos.length + ' partes cargados \u2014 edit\xE1 y descarg\xE1');
-      });
-    }).catch(function(e) {
+    if (statusTxt) statusTxt.textContent = 'Generando informe...';
+    Promise.resolve().then(function() {
       if (statusEl) statusEl.style.display = 'none';
-      toast('Error cargando partes: ' + e.message, 'err');
+      var html = construirHTMLEditablePreview(porPuesto, todos, fotosMap, fechaDisplay, diaNom, autor);
+      if (frame) frame.innerHTML = html;
+      if (container) container.style.display = 'block';
+      iniciarAutoSaveInforme();
+      toast('\u2713 ' + todos.length + ' informes encontrados — edit\xE1 y descarg\xE1');
     });
   }).catch(function(e) {
     if (statusEl) statusEl.style.display = 'none';
@@ -20272,7 +20476,7 @@ function abrirGenerarParteObjetivo(objId) {
       acts.forEach(function(a, idx) {
         var linea = '';
         if (a.lugar) linea += a.lugar;
-        if (a.hora)  linea += (linea ? ' — ' : '') + a.hora + ' hs';
+        if (a.hora)  linea += (linea ? ' \u2014 ' : '') + a.hora + ' hs';
         if (a.obs)   linea += (linea ? '\n' : '') + a.obs;
         if (!linea)  linea = 'Punto ' + (idx + 1);
         cuerpoLineas.push(linea);
@@ -20753,7 +20957,6 @@ function gpGuardar() {
     .map(function(n) { return n.id; });
 
   var horaEvento = GP_STATE.novedadesVinculadas.length ? (GP_STATE.novedadesVinculadas[0].hora || null) : null;
-  // Fecha en Buenos Aires (evita que CURRENT_DATE UTC adelante el día en horario nocturno)
   var _ahoraAR = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Argentina/Buenos_Aires' }));
   var _fechaAR = _ahoraAR.getFullYear() + '-' + String(_ahoraAR.getMonth()+1).padStart(2,'0') + '-' + String(_ahoraAR.getDate()).padStart(2,'0');
   var _horaAR  = String(_ahoraAR.getHours()).padStart(2,'0') + ':' + String(_ahoraAR.getMinutes()).padStart(2,'0');
@@ -20788,7 +20991,7 @@ function gpGuardar() {
   _subirFotosStorage(_gpFotosNuevas, 'pd_' + parteId, function(urlsNuevas) {
     var fotosFinales = todasFotos.concat(urlsNuevas);
     if (fotosFinales.length) payload.imagenes = true;
-    payload.fotos = fotosFinales; // actualizar con URLs definitivas de R2
+    payload.fotos = fotosFinales;
 
     db.from('partes_diarios').select('historial_texto,texto_admin').eq('id', parteId).single()
       .then(function(rHist) {
@@ -20828,7 +21031,6 @@ function gpGuardar() {
 
             closeOv('ov-generar-parte');
             GP_STATE.parteId = null;
-            // Si era edición de parte existente, actualizar PARTE_ACTUAL y re-renderizar detalle
             if (PARTE_ACTUAL && PARTE_ACTUAL.id === parteId) {
               Object.assign(PARTE_ACTUAL, payload);
               _gpRenderDetalle(PARTE_ACTUAL);
@@ -20876,10 +21078,10 @@ function load48hs() {
       if (!porDia[dia]) porDia[dia] = [];
       porDia[dia].push(p);
     });
-    var _arHoy48 = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Argentina/Buenos_Aires' }));
-    var hoyStr  = _arHoy48.getFullYear() + '-' + String(_arHoy48.getMonth()+1).padStart(2,'0') + '-' + String(_arHoy48.getDate()).padStart(2,'0');
-    var _arAyer48 = new Date(new Date(Date.now()-86400000).toLocaleString('en-US', { timeZone: 'America/Argentina/Buenos_Aires' }));
-    var ayerStr = _arAyer48.getFullYear() + '-' + String(_arAyer48.getMonth()+1).padStart(2,'0') + '-' + String(_arAyer48.getDate()).padStart(2,'0');
+    var _arH48 = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Argentina/Buenos_Aires' }));
+    var hoyStr  = _arH48.getFullYear() + '-' + String(_arH48.getMonth()+1).padStart(2,'0') + '-' + String(_arH48.getDate()).padStart(2,'0');
+    var _arA48 = new Date(new Date(Date.now()-86400000).toLocaleString('en-US', { timeZone: 'America/Argentina/Buenos_Aires' }));
+    var ayerStr = _arA48.getFullYear() + '-' + String(_arA48.getMonth()+1).padStart(2,'0') + '-' + String(_arA48.getDate()).padStart(2,'0');ing(0,10);
     var html = '';
     Object.keys(porDia).sort(function(a,b){ return b.localeCompare(a); }).forEach(function(dia) {
       var diaStr = dia.split('-').reverse().join('/');
@@ -21154,8 +21356,7 @@ function _gpRenderDetalle(p) {
   if (historial && historial.length > 1) {
     var versAnt = historial.slice(0, -1).reverse();
     h += '<div style="margin-bottom:14px">';
-    h += '<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;cursor:pointer" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'block\':\'none\'">';
-    h += '\u231B Historial de ediciones (' + versAnt.length + (versAnt.length !== 1 ? ' versiones anteriores' : ' versi\xF3n anterior') + ') \u25BE</div>';
+    h += '<div style="font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;cursor:pointer" onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display===\'none\'?\'block\':\'none\'">\u231B Historial de ediciones (' + versAnt.length + (versAnt.length !== 1 ? ' versiones anteriores' : ' versi\xF3n anterior') + ') \u25BE</div>';
     h += '<div style="display:none">';
     versAnt.forEach(function(v) {
       var ts = v.timestamp ? new Date(v.timestamp) : null;
@@ -21404,7 +21605,7 @@ function _gpResetFotos() {
 // Reset fotos al abrir edición completa
 function _pecResetFotos(fotosActuales) {
   _pecFotosNuevas = [];
-  _pecFotasActuales = (fotosActuales || []).slice(); // clonar para no mutar PARTE_ACTUAL
+  _pecFotasActuales = (fotosActuales || []).slice();
   var prev = document.getElementById('pec-fotos-nuevas');
   if (prev) prev.innerHTML = '';
   // Mostrar fotos actuales con opción de quitar
@@ -21558,7 +21759,6 @@ function pecGuardar() {
               toast('✓ ' + tipo + ' actualizado correctamente', 'ok');
               closeOv('ov-parte-editar-completo');
               Object.assign(PARTE_ACTUAL, payload);
-              // Re-renderizar el detalle con los datos actualizados (incluye fotos nuevas)
               _gpRenderDetalle(PARTE_ACTUAL);
               openOv('ov-parte-detalle');
               load48hs();
@@ -21660,16 +21860,12 @@ function pdpu48hCargar() {
       }
       var porDia = {};
       rows.forEach(function(p) {
-        var _arHoyPdpu = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Argentina/Buenos_Aires' }));
-        var _diaHoy = _arHoyPdpu.getFullYear() + '-' + String(_arHoyPdpu.getMonth()+1).padStart(2,'0') + '-' + String(_arHoyPdpu.getDate()).padStart(2,'0');
-        var dia = p.fecha || _diaHoy;
+        var dia = p.fecha || new Date().toISOString().substring(0,10);
         if (!porDia[dia]) porDia[dia] = [];
         porDia[dia].push(p);
       });
-      var _arHoyP = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Argentina/Buenos_Aires' }));
-      var hoyStr  = _arHoyP.getFullYear() + '-' + String(_arHoyP.getMonth()+1).padStart(2,'0') + '-' + String(_arHoyP.getDate()).padStart(2,'0');
-      var _arAyerP = new Date(new Date(Date.now()-86400000).toLocaleString('en-US', { timeZone: 'America/Argentina/Buenos_Aires' }));
-      var ayerStr = _arAyerP.getFullYear() + '-' + String(_arAyerP.getMonth()+1).padStart(2,'0') + '-' + String(_arAyerP.getDate()).padStart(2,'0');
+      var hoyStr  = new Date().toISOString().substring(0,10);
+      var ayerStr = new Date(Date.now() - 86400000).toISOString().substring(0,10);
       var html = '';
       Object.keys(porDia).sort(function(a,b){ return b.localeCompare(a); }).forEach(function(dia) {
         var diaStr = dia.split('-').reverse().join('/');
