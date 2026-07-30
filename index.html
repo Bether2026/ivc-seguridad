@@ -12077,7 +12077,7 @@ function formatDiffHM(h) {
   return (neg ? '-' : '+') + String(hh).padStart(2, '0') + ':' + String(mm).padStart(2, '0');
 }
 
-function reconstruirJornadasHR(fichs, tipo) {
+function reconstruirJornadasHR(fichs, tipo, horaEntradaAgente) {
   // Reconstruye jornadas laborales a partir de fichajes crudos.
   //
   // CH/PH (agentes hábiles, incluye turno noche):
@@ -12103,30 +12103,51 @@ function reconstruirJornadasHR(fichs, tipo) {
   function fmtAR(dateAR) {
     return dateAR.getUTCFullYear() + '-' + String(dateAR.getUTCMonth() + 1).padStart(2, '0') + '-' + String(dateAR.getUTCDate()).padStart(2, '0');
   }
+  // Hora de inicio de turno esperada (en minutos desde medianoche)
+  var turnoInicioMin = null;
+  if (horaEntradaAgente) {
+    var tp = horaEntradaAgente.split(':');
+    turnoInicioMin = parseInt(tp[0]) * 60 + (parseInt(tp[1]) || 0);
+  }
+
   orden.forEach(function(f) {
     if (!f.entrada) return;
     var entAR = new Date(new Date(f.entrada).getTime() - 3 * 3600000);
     var fecha = fmtAR(entAR);
+    var horaEnt = entAR.getUTCHours() * 60 + entAR.getUTCMinutes(); // minutos desde medianoche
 
     if (esHabil) {
       if (f.salida) {
         var salAR = new Date(new Date(f.salida).getTime() - 3 * 3600000);
         var fechaSal = fmtAR(salAR);
-        var horaEnt = entAR.getUTCHours();
+
         if (fechaSal !== fecha) {
-          if (horaEnt >= 12) {
-            // Turno tarde/noche (12-23hs): la jornada es del día que arranca
-            // fecha ya es el día de entrada — no cambiar
+          // La jornada cruza la medianoche
+          if (turnoInicioMin !== null) {
+            // Usar el horario del agente para decidir:
+            // Si el turno empieza cerca de la hora de entrada (±3hs), es el día de entrada
+            // Si no, es continuación de guardia anterior → día de salida
+            var diffTurno = Math.abs(horaEnt - turnoInicioMin);
+            if (diffTurno > 720) diffTurno = 1440 - diffTurno; // circular (ej. 23:00 vs 01:00)
+            if (diffTurno <= 180) {
+              // Entrada cercana al inicio del turno → jornada del día de entrada
+              // fecha ya es el día de entrada — no cambiar
+            } else {
+              // Entrada lejos del turno → continuación de guardia anterior
+              fecha = fechaSal;
+            }
           } else {
-            // Madrugada (0-11hs): es continuación de una guardia del día anterior
-            // Asignar al día de salida (que es el mismo día de entrada para guardias de 00-06)
-            fecha = fechaSal;
+            // Sin horario definido: heurística por hora de entrada
+            if (horaEnt >= 12 * 60) {
+              // Tarde/noche: jornada del día de entrada
+            } else {
+              // Madrugada: jornada del día de salida
+              fecha = fechaSal;
+            }
           }
         }
-      } else {
-        // Sin salida: si entra de tarde/noche queda en ese día, si es madrugada queda en ese día igual
-        // No cambiar fecha — siempre usar el día de entrada
       }
+      // Sin salida: siempre usar día de entrada
     } else {
       // CI/PI: normalmente se asigna al día de entrada (sáb/dom/feriado)
       // Excepción: guardia que empieza en día hábil nocturno y termina en fin de semana
@@ -12776,7 +12797,7 @@ function loadHorasReales() {
       // Reconstruir jornadas laborales ANTES de calcular:
       // resuelve nocturnas (asignadas al día correcto según condición),
       // guardias consecutivas y multiples fichajes por dia
-      var jornadas = reconstruirJornadasHR(fichs, tipo);
+      var jornadas = reconstruirJornadasHR(fichs, tipo, horarioMap[nombre.toUpperCase()] || '');
 
       var totalTrabajadas = 0;
       var totalACumplir   = 0;
