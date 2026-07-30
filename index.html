@@ -12110,58 +12110,22 @@ function reconstruirJornadasHR(fichs, tipo, horaEntradaAgente) {
     turnoInicioMin = parseInt(tp[0]) * 60 + (parseInt(tp[1]) || 0);
   }
 
-  function esDiaHabil(dateAR) {
-    var dow = dateAR.getUTCDay();
-    var fechaStr = fmtAR(dateAR);
-    return dow !== 0 && dow !== 6 && !esFeriado(fechaStr);
-  }
-
-  function esDiaInhabil(dateAR) {
-    return !esDiaHabil(dateAR);
-  }
-
   orden.forEach(function(f) {
     if (!f.entrada) return;
     var entAR = new Date(new Date(f.entrada).getTime() - 3 * 3600000);
     var fecha = fmtAR(entAR);
+    var horaEnt = entAR.getUTCHours();
 
-    if (esHabil) {
-      // CH/PH: la jornada pertenece al día hábil más cercano
-      // Si el día de entrada no es hábil, avanzar al siguiente día hábil
-      var diaAR = new Date(entAR);
-      var intentos = 0;
-      while (!esDiaHabil(diaAR) && intentos < 3) {
-        diaAR = new Date(diaAR.getTime() + 24 * 3600000);
-        intentos++;
-      }
-      fecha = fmtAR(diaAR);
-      // Si ya es hábil pero entró muy tarde (>18hs) y el día siguiente también es hábil,
-      // podría pertenecer al día siguiente — pero solo si la salida cae ahí
-      // Por simplicidad: si entra en día hábil después de las 12hs → mismo día hábil
-      // Si entra en día hábil entre 00-11hs → podría ser continuación, verificar con salida
-      if (esDiaHabil(entAR)) {
-        var horaEnt = entAR.getUTCHours();
-        if (horaEnt < 12 && f.salida) {
-          // Madrugada en día hábil: pertenece a ese mismo día hábil (ej. Lamadrid 00:01 lunes)
-          // No cambiar fecha
-        }
-      }
-    } else {
-      // CI/PI: la jornada pertenece al día inhábil más cercano
-      // Si el día de entrada es hábil, avanzar al siguiente inhábil
-      var diaCI = new Date(entAR);
-      var intentosCI = 0;
-      while (esDiaHabil(diaCI) && intentosCI < 3) {
-        diaCI = new Date(diaCI.getTime() + 24 * 3600000);
-        intentosCI++;
-      }
-      fecha = fmtAR(diaCI);
-      // Si ya es inhábil: quedarse en ese día
-      // Excepción: si ya hay jornada en ese día y entra >20hs, es la guardia del día siguiente
-      if (!esDiaHabil(entAR) && jorn[fecha] && entAR.getUTCHours() >= 20) {
-        var sigDia = new Date(entAR.getTime() + 24 * 3600000);
-        if (!esDiaHabil(sigDia)) fecha = fmtAR(sigDia);
-      }
+    // REGLA UNIVERSAL:
+    // Entrada 20:00-23:59 → jornada del día SIGUIENTE (entró antes de medianoche pero es turno del día siguiente)
+    // Entrada 00:00-19:59 → jornada del mismo día
+    if (horaEnt >= 20) {
+      fecha = fmtAR(new Date(entAR.getTime() + 24 * 3600000));
+    }
+    // Excepción CI/PI: si ya hay jornada en ese día siguiente y entra >=20hs de nuevo,
+    // avanzar un día más (guardia consecutiva)
+    if (!esHabil && jorn[fecha] && horaEnt >= 20) {
+      fecha = fmtAR(new Date(entAR.getTime() + 48 * 3600000));
     }
       // CI/PI: normalmente se asigna al día de entrada (sáb/dom/feriado)
       // Excepción: guardia que empieza en día hábil nocturno y termina en fin de semana
