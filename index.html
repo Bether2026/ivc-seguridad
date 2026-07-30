@@ -12646,7 +12646,7 @@ function loadHorasReales() {
     db.from('fichajes').select('agente,puesto,entrada,salida,observaciones').gte('entrada', desde).lte('entrada', hasta).order('entrada', { ascending: true }),
     db.from('personal_tipos').select('nombre,tipo'),
     db.from('licencias').select('agente,fecha_desde,fecha_hasta,tipo').lte('fecha_desde', anio + '-' + String(mes).padStart(2,'0') + '-31').gte('fecha_hasta', anio + '-' + String(mes).padStart(2,'0') + '-01'),
-    db.from('agentes').select('nombre,tipo,hora_entrada,puesto')
+    db.from('agentes').select('nombre,tipo,hora_entrada,hora_salida,puesto')
   ]).then(function(results) {
     var fichajes  = results[0].data || [];
     var personal  = results[1].data || [];
@@ -12657,6 +12657,7 @@ function loadHorasReales() {
     // (agentes.tipo) tiene prioridad sobre personal_tipos.
     var tipoMap = {};
     var horarioMap = {}; // nombre → hora_entrada
+    var horarioSalidaMap = {}; // nombre → hora_salida
     var puestoAgMap = {}; // nombre → puesto (para fallback turno)
     personal.forEach(function(p) { tipoMap[p.nombre.trim().toUpperCase()] = p.tipo; });
     agentesDb.forEach(function(a) {
@@ -12666,12 +12667,18 @@ function loadHorasReales() {
       if (HORAS_TIPO[t] !== undefined) tipoMap[key] = t;
       if (a.hora_entrada) {
         horarioMap[key] = a.hora_entrada;
-        // Indexar también por las dos primeras palabras (apellido + primer nombre)
-        // para tolerar agentes cuyos fichajes no incluyen el segundo nombre
         var partes = key.split(' ').filter(function(p) { return p.length > 0; });
         if (partes.length > 2) {
           var keyCorto = partes[0] + ' ' + partes[1];
           if (!horarioMap[keyCorto]) horarioMap[keyCorto] = a.hora_entrada;
+        }
+      }
+      if (a.hora_salida) {
+        horarioSalidaMap[key] = a.hora_salida;
+        var partesS = key.split(' ').filter(function(p) { return p.length > 0; });
+        if (partesS.length > 2) {
+          var keyCortoS = partesS[0] + ' ' + partesS[1];
+          if (!horarioSalidaMap[keyCortoS]) horarioSalidaMap[keyCortoS] = a.hora_salida;
         }
       }
       if (a.puesto) {
@@ -12764,6 +12771,7 @@ function loadHorasReales() {
         nombre: nombre,
         tipo: tipo,
         hora_entrada: horarioMap[nombre.toUpperCase()] || '',
+        hora_salida: horarioSalidaMap[nombre.toUpperCase()] || '',
         puesto_ag: puestoAgMap[nombre.toUpperCase()] || '',
         totalTrabajadas: totalTrabajadas,
         totalACumplir: totalACumplir,
@@ -13027,7 +13035,7 @@ function exportarHorasReales() {
 
   // Traer legajo y sector de la tabla agentes (una sola query)
   Promise.all([
-    db.from('agentes').select('nombre,legajo,puesto,hora_entrada'),
+    db.from('agentes').select('nombre,legajo,puesto,hora_entrada,hora_salida'),
     db.from('turnos_puesto').select('puesto,hora_entrada')
   ]).then(function(res) {
     var agInfo = {};
@@ -13038,11 +13046,12 @@ function exportarHorasReales() {
     (res[0].data || []).forEach(function(a) {
       if (!a.nombre) return;
       var horaEnt = a.hora_entrada || '';
+      var horaSal = a.hora_salida || '';
       // Fallback: si el agente no tiene hora_entrada individual, usar la del turno de su puesto
       if (!horaEnt && a.puesto && turnosMap[a.puesto.trim().toUpperCase()]) {
         horaEnt = turnosMap[a.puesto.trim().toUpperCase()];
       }
-      agInfo[a.nombre.trim().toUpperCase()] = { legajo: a.legajo || '', sector: a.puesto || '', hora_entrada: horaEnt };
+      agInfo[a.nombre.trim().toUpperCase()] = { legajo: a.legajo || '', sector: a.puesto || '', hora_entrada: horaEnt, hora_salida: horaSal };
     });
     _generarInformeHTML(mes, anio, mesesNom, diasSemNom, agInfo, turnosMap);
   });
@@ -13201,7 +13210,7 @@ function _generarInformeHTML(mes, anio, mesesNom, diasSemNom, agInfo, turnosMap)
         + '<td class="num ' + extClase + (extStyle ? ' extras-alerta' : '') + '">' + extTxt + '</td>'
         + '<td class="er-col ' + erClase + '">' + erTxt + '</td>'
         + '<td class="hd-col"><input type="text" placeholder="--:--" maxlength="5" class="hd-input" oninput="hdInput(this)" onblur="hdBlur(this)"></td>'
-        + '<td>' + cl.etiqueta + '</td>'
+        + '<td>' + (cl.clase !== 'trab' && cl.clase !== 'nocorr' && cl.clase !== 'sinreg' && cl.clase !== 'nf' && cl.etiqueta ? '<strong>' + cl.etiqueta + '</strong>' : cl.etiqueta) + '</td>'
         + '<td class="obs" contenteditable="true" style="min-width:120px">' + obsTxt + '</td>'
         + '</tr>';
     });
@@ -13214,8 +13223,10 @@ function _generarInformeHTML(mes, anio, mesesNom, diasSemNom, agInfo, turnosMap)
 
     var dataBuscar = (r.nombre + ' ' + (info.legajo || '')).replace(/"/g, '');
 
+    var horaSalidaAg = (info.hora_salida || r.hora_salida || '').trim();
+    var turnoTxt = horaEntradaAg ? (' <span style="font-weight:400;font-size:13px;color:#5a6478">(' + horaEntradaAg + (horaSalidaAg ? ' a ' + horaSalidaAg : '') + ' hs)</span>') : '';
     cuerpo += '<section class="agente" data-buscar="' + dataBuscar + '">'
-      + '<div class="ag-head"><h2>' + r.nombre + (horaEntradaAg ? ' <span style="font-weight:400;font-size:13px;color:#5a6478">(' + horaEntradaAg + ' hs)</span>' : '') + '</h2><div class="ag-meta">'
+      + '<div class="ag-head"><h2>' + r.nombre + turnoTxt + '</h2><div class="ag-meta">'
       + (info.legajo ? '<span>Legajo: <b>' + info.legajo + '</b></span>' : '')
       + (info.sector ? '<span>Sector: <b>' + info.sector + '</b></span>' : '')
       + '<span>Condicion: <b>' + r.tipo + '</b></span></div></div>'
