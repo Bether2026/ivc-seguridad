@@ -2153,8 +2153,20 @@ body {
         </div>
         <div class="card">
           <div class="card-head"><span class="card-lbl">Historial de licencias</span></div>
-          <div style="padding:8px 0 4px">
-            <input class="form-input" id="lic-hist-search" placeholder="&#x1F50D; Buscar por apellido o nombre..." oninput="filtrarHistorialLicencias()" style="font-size:13px"/>
+          <div style="padding:8px 0 4px;display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+            <input class="form-input" id="lic-hist-search" placeholder="&#x1F50D; Buscar por apellido o nombre..." oninput="filtrarHistorialLicencias()" style="font-size:13px;flex:1;min-width:180px"/>
+            <select id="lic-hist-mes" onchange="filtrarHistorialLicencias()" style="padding:9px 10px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--font);font-size:12px;outline:none">
+              <option value="">Todos los meses</option>
+              <option value="01">Enero</option><option value="02">Febrero</option><option value="03">Marzo</option>
+              <option value="04">Abril</option><option value="05">Mayo</option><option value="06">Junio</option>
+              <option value="07">Julio</option><option value="08">Agosto</option><option value="09">Septiembre</option>
+              <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
+            </select>
+            <select id="lic-hist-tipo" onchange="filtrarHistorialLicencias()" style="padding:9px 10px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--font);font-size:12px;outline:none">
+              <option value="">Todos los tipos</option>
+              <option>Licencia ordinaria</option><option>Enfermedad</option><option>Franco autorizado</option>
+              <option>Familiar enfermo</option><option>Día particular</option><option>Duelo</option><option>ART</option>
+            </select>
           </div>
           <div id="lic-historial-list"></div>
         </div>
@@ -12633,7 +12645,7 @@ function loadHorasReales() {
   Promise.all([
     db.from('fichajes').select('agente,puesto,entrada,salida,observaciones').gte('entrada', desde).lte('entrada', hasta).order('entrada', { ascending: true }),
     db.from('personal_tipos').select('nombre,tipo'),
-    db.from('licencias').select('agente,fecha_desde,fecha_hasta,tipo').gte('fecha_desde', anio + '-' + String(mes).padStart(2,'0') + '-01').lte('fecha_hasta', anio + '-' + String(mes).padStart(2,'0') + '-31'),
+    db.from('licencias').select('agente,fecha_desde,fecha_hasta,tipo').lte('fecha_desde', anio + '-' + String(mes).padStart(2,'0') + '-31').gte('fecha_hasta', anio + '-' + String(mes).padStart(2,'0') + '-01'),
     db.from('agentes').select('nombre,tipo,hora_entrada,puesto')
   ]).then(function(results) {
     var fichajes  = results[0].data || [];
@@ -13203,7 +13215,7 @@ function _generarInformeHTML(mes, anio, mesesNom, diasSemNom, agInfo, turnosMap)
     var dataBuscar = (r.nombre + ' ' + (info.legajo || '')).replace(/"/g, '');
 
     cuerpo += '<section class="agente" data-buscar="' + dataBuscar + '">'
-      + '<div class="ag-head"><h2>' + r.nombre + '</h2><div class="ag-meta">'
+      + '<div class="ag-head"><h2>' + r.nombre + (horaEntradaAg ? ' <span style="font-weight:400;font-size:13px;color:#5a6478">(' + horaEntradaAg + ' hs)</span>' : '') + '</h2><div class="ag-meta">'
       + (info.legajo ? '<span>Legajo: <b>' + info.legajo + '</b></span>' : '')
       + (info.sector ? '<span>Sector: <b>' + info.sector + '</b></span>' : '')
       + '<span>Condicion: <b>' + r.tipo + '</b></span></div></div>'
@@ -18727,10 +18739,14 @@ function _renderHistorialLicencias(lista) {
 }
 
 function filtrarHistorialLicencias() {
-  var q = ((document.getElementById('lic-hist-search') || {}).value || '').toLowerCase().trim();
-  if (!q) { _renderHistorialLicencias(LIC_HISTORIAL_CACHE); return; }
+  var q    = ((document.getElementById('lic-hist-search') || {}).value || '').toLowerCase().trim();
+  var mes  = ((document.getElementById('lic-hist-mes')   || {}).value || '');
+  var tipo = ((document.getElementById('lic-hist-tipo')  || {}).value || '').toLowerCase().trim();
   var filtrado = LIC_HISTORIAL_CACHE.filter(function(l) {
-    return (l.agente || '').toLowerCase().indexOf(q) !== -1;
+    if (q && (l.agente || '').toLowerCase().indexOf(q) === -1) return false;
+    if (mes && (l.fecha_desde || '').substring(5, 7) !== mes) return false;
+    if (tipo && (l.tipo || '').toLowerCase().indexOf(tipo) === -1) return false;
+    return true;
   });
   _renderHistorialLicencias(filtrado);
 }
