@@ -2155,6 +2155,12 @@ body {
           <div class="card-head"><span class="card-lbl">Historial de licencias</span></div>
           <div style="padding:8px 0 4px;display:flex;flex-wrap:wrap;gap:8px;align-items:center">
             <input class="form-input" id="lic-hist-search" placeholder="&#x1F50D; Buscar por apellido o nombre..." oninput="filtrarHistorialLicencias()" style="font-size:13px;flex:1;min-width:180px"/>
+            <select id="lic-hist-anio" onchange="filtrarHistorialLicencias()" style="padding:9px 10px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--font);font-size:12px;outline:none">
+              <option value="">Todos los años</option>
+              <option value="2026">2026</option>
+              <option value="2025">2025</option>
+              <option value="2024">2024</option>
+            </select>
             <select id="lic-hist-mes" onchange="filtrarHistorialLicencias()" style="padding:9px 10px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--font);font-size:12px;outline:none">
               <option value="">Todos los meses</option>
               <option value="01">Enero</option><option value="02">Febrero</option><option value="03">Marzo</option>
@@ -12659,7 +12665,10 @@ function loadHorasReales() {
     var horarioMap = {}; // nombre → hora_entrada
     var horarioSalidaMap = {}; // nombre → hora_salida
     var puestoAgMap = {}; // nombre → puesto (para fallback turno)
-    personal.forEach(function(p) { tipoMap[p.nombre.trim().toUpperCase()] = p.tipo; });
+    personal.forEach(function(p) {
+      var kp = p.nombre.trim().toUpperCase();
+      tipoMap[kp] = p.tipo;
+    });
     agentesDb.forEach(function(a) {
       if (!a.nombre) return;
       var key = a.nombre.trim().toUpperCase();
@@ -18751,11 +18760,13 @@ function _renderHistorialLicencias(lista) {
 
 function filtrarHistorialLicencias() {
   var q    = ((document.getElementById('lic-hist-search') || {}).value || '').toLowerCase().trim();
+  var anio = ((document.getElementById('lic-hist-anio')  || {}).value || '');
   var mes  = ((document.getElementById('lic-hist-mes')   || {}).value || '');
   var tipo = ((document.getElementById('lic-hist-tipo')  || {}).value || '').toLowerCase().trim();
   var filtrado = LIC_HISTORIAL_CACHE.filter(function(l) {
     if (q && (l.agente || '').toLowerCase().indexOf(q) === -1) return false;
-    if (mes && (l.fecha_desde || '').substring(5, 7) !== mes) return false;
+    if (anio && (l.fecha_desde || '').substring(0, 4) !== anio) return false;
+    if (mes  && (l.fecha_desde || '').substring(5, 7) !== mes)  return false;
     if (tipo && (l.tipo || '').toLowerCase().indexOf(tipo) === -1) return false;
     return true;
   });
