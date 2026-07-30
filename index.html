@@ -13154,16 +13154,34 @@ function _hrExtrasReales(d, horaEntradaEsperadaStr, tipo) {
   var entradaDate = new Date(new Date(entradaISO).getTime() - 3 * 3600000);
   var entradaRealMin = entradaDate.getUTCHours() * 60 + entradaDate.getUTCMinutes();
 
-  // Minutos de anticipación (positivo = entró antes)
+  // Minutos de anticipación (positivo = entró antes del horario esperado)
   var anticipacionMin = esperadoMin - entradaRealMin;
+
+  // Ajuste circular para turnos nocturnos (ej. turno 22:00, entra 18:00)
+  // entradaRealMin=1080, esperadoMin=1320 → anticipacion=240 (correcto)
+  // Pero si turno 22:00 y entra 23:50 → entradaRealMin=1430, esperadoMin=1320 → anticipacion=-110 (llegó tarde, correcto)
+  // Caso borde: turno 22:00 y entra 01:00 → entradaRealMin=60, esperadoMin=1320
+  // En ese caso la anticipación calculada sería 1260 min (¡21hs!), lo que es incorrecto
+  // → si anticipación > 12hs (720 min), el agente llegó DESPUÉS de medianoche, no antes
+  if (anticipacionMin > 720) anticipacionMin = anticipacionMin - 1440;
 
   // Horas trabajadas en minutos totales
   var trabajadasMin = Math.round(d.hs * 60);
 
-  // Descontar la anticipación: si entró antes, esos minutos no cuentan
-  var minutosEfectivos = anticipacionMin > 0
-    ? trabajadasMin - anticipacionMin
-    : trabajadasMin;
+  // Descontar anticipación:
+  // - Anticipación <= 30 min: tolerancia, se descuenta (entró "a tiempo")
+  // - Anticipación > 30 min: son horas extra reales hacia atrás, NO descontar
+  var minutosEfectivos;
+  if (anticipacionMin > 30) {
+    // Entró más de 30 min antes → todas las horas cuentan (las extras de entrada también)
+    minutosEfectivos = trabajadasMin;
+  } else if (anticipacionMin > 0) {
+    // Tolerancia: entró hasta 30 min antes → descontar esos minutos
+    minutosEfectivos = trabajadasMin - anticipacionMin;
+  } else {
+    // Llegó a horario o tarde → horas trabajadas tal cual
+    minutosEfectivos = trabajadasMin;
+  }
 
   // Horas requeridas en minutos
   var requeridoMin = Math.round((d.aCumplir || 0) * 60);
