@@ -7271,6 +7271,10 @@ window.addEventListener('error', function (e) {
 window.addEventListener('unhandledrejection', function (e) {
   var msg = 'PROMISE: ' + (e.reason && e.reason.message ? e.reason.message : e.reason);
   console.error(msg);
+  // Suprimir toast de "Failed to fetch" — ocurre normalmente durante la
+  // transición del Service Worker y no es un error real para el usuario.
+  if (e.reason && e.reason.message && e.reason.message.indexOf('fetch') >= 0) return;
+  if (typeof msg === 'string' && msg.toLowerCase().indexOf('fetch') >= 0) return;
   try {
     var d = document.createElement('div');
     d.style.cssText = 'position:fixed;bottom:80px;left:10px;right:10px;background:rgba(239,68,68,0.95);color:white;padding:12px;border-radius:8px;font-size:12px;z-index:10000;font-family:monospace;max-height:200px;overflow:auto';
