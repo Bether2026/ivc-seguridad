@@ -21121,7 +21121,7 @@ function load48hs() {
     var _arH48 = new Date(new Date().toLocaleString('en-US', { timeZone: 'America/Argentina/Buenos_Aires' }));
     var hoyStr  = _arH48.getFullYear() + '-' + String(_arH48.getMonth()+1).padStart(2,'0') + '-' + String(_arH48.getDate()).padStart(2,'0');
     var _arA48 = new Date(new Date(Date.now()-86400000).toLocaleString('en-US', { timeZone: 'America/Argentina/Buenos_Aires' }));
-    var ayerStr = _arA48.getFullYear() + '-' + String(_arA48.getMonth()+1).padStart(2,'0') + '-' + String(_arA48.getDate()).padStart(2,'0');ing(0,10);
+    var ayerStr = _arA48.getFullYear() + '-' + String(_arA48.getMonth()+1).padStart(2,'0') + '-' + String(_arA48.getDate()).padStart(2,'0');
     var html = '';
     Object.keys(porDia).sort(function(a,b){ return b.localeCompare(a); }).forEach(function(dia) {
       var diaStr = dia.split('-').reverse().join('/');
