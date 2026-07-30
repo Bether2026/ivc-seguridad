@@ -12112,25 +12112,40 @@ function reconstruirJornadasHR(fichs, tipo) {
       if (f.salida) {
         var salAR = new Date(new Date(f.salida).getTime() - 3 * 3600000);
         var fechaSal = fmtAR(salAR);
-        // Si la entrada es después de las 12hs (turno tarde/noche), asignar al día de entrada
-        // Si la entrada es de madrugada (0-6hs), asignar al día de salida (guardia que cruza noche)
-        var horaEntrada = entAR.getUTCHours();
+        var horaEnt = entAR.getUTCHours();
         if (fechaSal !== fecha) {
-          if (horaEntrada >= 12) {
-            // Turno tarde/noche: la jornada pertenece al día que empieza
-            // fecha ya es el día de entrada, no cambiar
+          if (horaEnt >= 12) {
+            // Turno tarde/noche (12-23hs): la jornada es del día que arranca
+            // fecha ya es el día de entrada — no cambiar
           } else {
-            // Madrugada: viene de una guardia nocturna del día anterior
+            // Madrugada (0-11hs): es continuación de una guardia del día anterior
+            // Asignar al día de salida (que es el mismo día de entrada para guardias de 00-06)
             fecha = fechaSal;
           }
         }
-      } else if (entAR.getUTCHours() >= 20) {
-        // Sin salida con ingreso muy nocturno (20hs+): patrón turno noche
-        // No cambiar fecha — queda en el día de entrada
+      } else {
+        // Sin salida: si entra de tarde/noche queda en ese día, si es madrugada queda en ese día igual
+        // No cambiar fecha — siempre usar el día de entrada
       }
     } else {
-      // CI/PI: día de ingreso, con excepción de guardia consecutiva
-      if (jorn[fecha] && entAR.getUTCHours() >= 20) {
+      // CI/PI: normalmente se asigna al día de entrada (sáb/dom/feriado)
+      // Excepción: guardia que empieza en día hábil nocturno y termina en fin de semana
+      // → asignar al día de salida (ej. viernes 23hs → sábado 06hs = guardia del sábado)
+      if (f.salida) {
+        var salCI = new Date(new Date(f.salida).getTime() - 3 * 3600000);
+        var fechaSalCI = fmtAR(salCI);
+        if (fechaSalCI !== fecha) {
+          var dowEnt = entAR.getUTCDay(); // día de entrada
+          var dowSal = salCI.getUTCDay(); // día de salida
+          var entEsHabil = (dowEnt !== 0 && dowEnt !== 6);
+          var salEsInhabil = (dowSal === 0 || dowSal === 6);
+          if (entEsHabil && salEsInhabil) {
+            fecha = fechaSalCI; // viernes noche → sábado
+          } else if (jorn[fecha] && entAR.getUTCHours() >= 20) {
+            fecha = fmtAR(new Date(entAR.getTime() + 24 * 3600000));
+          }
+        }
+      } else if (jorn[fecha] && entAR.getUTCHours() >= 20) {
         fecha = fmtAR(new Date(entAR.getTime() + 24 * 3600000));
       }
     }
@@ -12145,6 +12160,23 @@ function reconstruirJornadasHR(fichs, tipo) {
     }
     if (!jorn[fecha]) jorn[fecha] = { horas: 0, entrada: null, salida: null, sinSalida: false, obs: [] };
     var J = jorn[fecha];
+    // Si ya existe una jornada en este día y la nueva entrada es claramente de otro turno
+    // (más de 6hs de diferencia), no acumular — mantener la de mayor duración
+    if (J.entrada && horas > 0 && J.horas > 0) {
+      var entExist = new Date(J.entrada).getTime();
+      var entNueva = new Date(f.entrada).getTime();
+      var diffEntradas = Math.abs(entNueva - entExist) / 3600000;
+      if (diffEntradas > 6) {
+        // Son turnos distintos — quedarse con el de más horas
+        if (horas > J.horas) {
+          J.horas = horas;
+          J.entrada = f.entrada;
+          J.salida = f.salida;
+        }
+        if (f.observaciones) J.obs.push(f.observaciones);
+        return;
+      }
+    }
     J.horas += horas;
     if (sinSal) J.sinSalida = true;
     if (!J.entrada || new Date(f.entrada) < new Date(J.entrada)) J.entrada = f.entrada;
