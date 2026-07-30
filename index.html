@@ -18748,7 +18748,8 @@ function _loadLicencias() {
           q = db.from('licencias').select('*').order('fecha_desde', {
             ascending: false
           });
-          if (filtro) q = q.eq('puesto', filtro);
+          // Las licencias no se filtran por puesto — son de agentes, no de puestos
+          // if (filtro) q = q.eq('puesto', filtro);
           _context69.n = 1;
           return q;
         case 1:
