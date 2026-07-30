@@ -18562,6 +18562,60 @@ function verHistorialLicencia(elClickeado, agNombre, tipoLic) {
         + '<div style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase">&#x1F4C4; ' + tipoLic + ' \u2014 ' + agNombre + '</div>'
         + '<button onclick="document.getElementById(\'' + panelId + '\').style.display=\'none\'" style="padding:3px 10px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text3);font-size:11px;cursor:pointer;font-family:var(--font)">&#x2715; Cerrar</button>'
         + '</div>';
+
+      // Desglose de saldo base para Licencia ordinaria
+      if (tipoLic === 'Licencia ordinaria') {
+        var agCache = null;
+        for (var ci = 0; ci < RRHH_CACHE.length; ci++) {
+          if (RRHH_CACHE[ci].nombre === agNombre) { agCache = RRHH_CACHE[ci]; break; }
+        }
+        if (agCache) {
+          var tipo2 = (agCache.tipo || 'CH').toUpperCase();
+          var esPlantaD = (tipo2 === 'PH' || tipo2 === 'PI');
+          html += '<div style="background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.25);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:12px">';
+          if (esPlantaD) {
+            var v24 = agCache.lic_ordinaria_2024 || 0;
+            var v25 = agCache.lic_ordinaria_2025 || 0;
+            html += '<div style="font-weight:700;color:var(--accent2);margin-bottom:6px">Saldo disponible (Planta)</div>';
+            html += '<div style="display:flex;flex-direction:column;gap:4px">';
+            html += '<div style="display:flex;justify-content:space-between"><span style="color:var(--text3)">2024 (vence 31/12/2026)</span><span style="font-weight:700;color:var(--green)">' + v24 + ' d\xEDas</span></div>';
+            html += '<div style="display:flex;justify-content:space-between"><span style="color:var(--text3)">2025</span><span style="font-weight:700;color:var(--green)">' + v25 + ' d\xEDas</span></div>';
+            html += '<div style="display:flex;justify-content:space-between;border-top:1px solid var(--border);padding-top:4px;margin-top:2px"><span style="font-weight:700">Total disponible</span><span style="font-weight:900;color:var(--green)">' + (v24 + v25) + ' d\xEDas</span></div>';
+            html += '</div>';
+          } else {
+            var v25c = agCache.lic_ordinaria_2025 || 0;
+            html += '<div style="font-weight:700;color:var(--accent2);margin-bottom:6px">Saldo disponible (Contratado)</div>';
+            html += '<div style="display:flex;justify-content:space-between"><span style="color:var(--text3)">2025 (vence 31/12/2026)</span><span style="font-weight:700;color:var(--green)">' + v25c + ' d\xEDas</span></div>';
+            html += '<div style="font-size:11px;color:var(--text3);margin-top:4px">Los contratados no acumulan vacaciones de a\xF1os anteriores.</div>';
+          }
+          html += '</div>';
+        }
+      }
+
+      // Desglose para Particular, Familiar, Enfermedad
+      var baseLicMap = {
+        'Dia particular':  { campo: 'lic_particular_base',  label: 'Saldo base (Particular)' },
+        'D\xEDa particular': { campo: 'lic_particular_base', label: 'Saldo base (Particular)' },
+        'Familiar enfermo': { campo: 'lic_familiar_base',   label: 'Saldo base (Familiar enfermo)' },
+        'Enfermedad':       { campo: 'lic_enfermedad_base', label: 'Saldo base (Enfermedad)' }
+      };
+      if (baseLicMap[tipoLic]) {
+        var agCache2 = null;
+        for (var ci2 = 0; ci2 < RRHH_CACHE.length; ci2++) {
+          if (RRHH_CACHE[ci2].nombre === agNombre) { agCache2 = RRHH_CACHE[ci2]; break; }
+        }
+        if (agCache2) {
+          var campoBase = baseLicMap[tipoLic].campo;
+          var baseVal = agCache2[campoBase] || 0;
+          var saldoActual = agCache2[baseLicMap[tipoLic].campo.replace('_base','')] || 0;
+          html += '<div style="background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.25);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:12px">';
+          html += '<div style="font-weight:700;color:var(--accent2);margin-bottom:6px">' + baseLicMap[tipoLic].label + '</div>';
+          html += '<div style="display:flex;flex-direction:column;gap:4px">';
+          html += '<div style="display:flex;justify-content:space-between"><span style="color:var(--text3)">Saldo inicial (foto 17/07/2026)</span><span style="font-weight:700">' + baseVal + ' d\xEDas</span></div>';
+          html += '<div style="display:flex;justify-content:space-between"><span style="color:var(--text3)">Saldo actual disponible</span><span style="font-weight:700;color:var(--green)">' + saldoActual + ' d\xEDas</span></div>';
+          html += '</div></div>';
+        }
+      }
       if (!lista.length) {
         html += '<div style="font-size:12px;color:var(--text3);padding:8px 0">Sin registros de este tipo de licencia.</div>';
         panel.innerHTML = html; return;
