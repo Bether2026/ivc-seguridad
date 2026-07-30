@@ -12116,27 +12116,16 @@ function reconstruirJornadasHR(fichs, tipo, horaEntradaAgente) {
     var fecha = fmtAR(entAR);
     var horaEnt = entAR.getUTCHours();
 
-    // REGLA UNIVERSAL:
-    // Entrada 20:00-23:59 → jornada del día SIGUIENTE (entró antes de medianoche pero es turno del día siguiente)
-    // Entrada 00:00-19:59 → jornada del mismo día
-    if (horaEnt >= 20) {
+    // REGLA BASE: entrada >=20hs = jornada del día siguiente
+    // EXTENSIÓN: si el agente tiene turno nocturno (inicio >=20hs) y entra antes de las 20hs
+    // ese mismo día, también pertenece al día siguiente (son las horas extras del inicio del turno)
+    var esTurnoNocturno = turnoInicioMin !== null && turnoInicioMin >= 20 * 60;
+    if (horaEnt >= 20 || (esTurnoNocturno && horaEnt >= 12)) {
       fecha = fmtAR(new Date(entAR.getTime() + 24 * 3600000));
     }
-    // Excepción CI/PI: si ya hay jornada en ese día siguiente y entra >=20hs de nuevo,
-    // avanzar un día más (guardia consecutiva)
-    if (!esHabil && jorn[fecha] && horaEnt >= 20) {
+    // CI/PI: si ya hay jornada en el día destino y entra >=20hs de nuevo → guardia consecutiva
+    if (!esHabil && jorn[fecha] && (horaEnt >= 20 || (esTurnoNocturno && horaEnt >= 12))) {
       fecha = fmtAR(new Date(entAR.getTime() + 48 * 3600000));
-    }
-      // CI/PI: normalmente se asigna al día de entrada (sáb/dom/feriado)
-      // Excepción: guardia que empieza en día hábil nocturno y termina en fin de semana
-      // → asignar al día de salida (ej. viernes 23hs → sábado 06hs = guardia del sábado)
-      if (f.salida) {
-        var salCI = new Date(new Date(f.salida).getTime() - 3 * 3600000);
-        var fechaSalCI = fmtAR(salCI);
-        if (fechaSalCI !== fecha) {
-          var dowEnt = entAR.getUTCDay(); // día de entrada
-          var dowSal = salCI.getUTCDay(); // día de salida
-      }
     }
 
     var horas = 0, sinSal = false;
@@ -12793,7 +12782,10 @@ function loadHorasReales() {
 
         // Licencias
         var licDia = licencias.filter(function(l) {
-          return (l.agente || '').trim() === nombre && l.fecha_desde <= fechaStr && l.fecha_hasta >= fechaStr;
+          var agMatch = (l.agente || '').trim().toUpperCase() === nombre.toUpperCase();
+          var dDesde = (l.fecha_desde || '').substring(0, 10);
+          var dHasta = (l.fecha_hasta || '').substring(0, 10);
+          return agMatch && dDesde <= fechaStr && dHasta >= fechaStr;
         });
         var codLic = licDia.length > 0 ? (licDia[0].tipo_licencia || licDia[0].tipo || 'LIC') : null;
 
