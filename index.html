@@ -13199,18 +13199,19 @@ function _generarInformeHTML(mes, anio, mesesNom, diasSemNom, agInfo, turnosMap)
         erTxt = (erResult.extraMin < 0 ? '-' : '+') + String(erH).padStart(2,'0') + ':' + String(erM).padStart(2,'0');
         erClase = 'num ' + (erResult.extraMin > 0 ? 'pos' : (erResult.extraMin < 0 ? 'neg' : ''));
       }
-      var filaClass = cl.clase + (erResult.alerta ? ' alerta-hr' : '');
+      var filaClass = cl.clase;
 
       filas += '<tr class="' + filaClass + '">'
         + '<td>' + diasSemNom[d.diaSemana] + '</td>'
         + '<td>' + String(d.d).padStart(2, '0') + '/' + String(mes).padStart(2, '0') + '</td>'
-        + '<td>' + _hrHoraAR(d._entrada) + '</td>'
-        + '<td>' + _hrHoraAR(d._salida) + '</td>'
+        + '<td class="editable-hora" onclick="editarHora(this)" title="Click para editar">' + _hrHoraAR(d._entrada) + '</td>'
+        + '<td class="editable-hora" onclick="editarHora(this)" title="Click para editar">' + _hrHoraAR(d._salida) + '</td>'
         + '<td class="num">' + hsTxt + '</td>'
-        + '<td class="num ' + extClase + '"' + (extStyle ? ' style="' + extStyle + '"' : '') + '>' + extTxt + '</td>'
+        + '<td class="num ' + extClase + (extStyle ? ' extras-alerta' : '') + '">' + extTxt + '</td>'
         + '<td class="er-col ' + erClase + '">' + erTxt + '</td>'
+        + '<td class="hd-col"><input type="text" placeholder="--:--" maxlength="5" class="hd-input" oninput="hdInput(this)" onblur="hdBlur(this)"></td>'
         + '<td>' + cl.etiqueta + '</td>'
-        + '<td class="obs">' + obsTxt + '</td>'
+        + '<td class="obs" contenteditable="true" style="min-width:120px">' + obsTxt + '</td>'
         + '</tr>';
     });
     var totalLic = S.vac + S.enf + S.art + S.est + S.fra + S.aus + S.otra;
@@ -13227,13 +13228,14 @@ function _generarInformeHTML(mes, anio, mesesNom, diasSemNom, agInfo, turnosMap)
       + (info.legajo ? '<span>Legajo: <b>' + info.legajo + '</b></span>' : '')
       + (info.sector ? '<span>Sector: <b>' + info.sector + '</b></span>' : '')
       + '<span>Condicion: <b>' + r.tipo + '</b></span></div></div>'
-      + '<table><thead><tr><th>Dia</th><th>Fecha</th><th>Ingreso</th><th>Egreso</th><th>Hs trabajadas</th><th>Extras / Faltantes</th><th class="er-col">Extras reales</th><th>Novedad</th><th>Observaciones</th></tr></thead>'
+      + '<table><thead><tr><th>Dia</th><th>Fecha</th><th>Ingreso</th><th>Egreso</th><th>Hs trabajadas</th><th>Extras / Faltantes</th><th class="er-col">Extras reales</th><th class="hd-col">Hs. definitivas</th><th>Novedad</th><th>Observaciones</th></tr></thead>'
       + '<tbody>' + filas + '</tbody></table>'
       + '<div class="resumen">'
       + '<div class="res-item"><span>' + formatHoras(r.totalTrabajadas) + '</span><label>Total horas</label></div>'
       + '<div class="res-item"><span class="pos">+' + formatHoras(r.totalExtras) + '</span><label>Hs extras</label></div>'
       + '<div class="res-item"><span class="neg">-' + formatHoras(r.totalFaltantes) + '</span><label>Hs faltantes</label></div>'
       + '<div class="res-item destacado"><span>' + formatDiffHM(balance) + '</span><label>Balance</label></div>'
+      + '<div class="res-item hd-total-wrap"><span class="hd-total">0h 00m</span><label>Total Hs. definitivas</label></div>'
       + '<div class="res-item"><span>' + r.diasTrabajados + '</span><label>Dias trabajados</label></div>'
       + '<div class="res-item"><span>' + S.vac + '</span><label>Vacaciones</label></div>'
       + '<div class="res-item"><span>' + S.enf + '</span><label>Enfermedad</label></div>'
@@ -13288,11 +13290,17 @@ function _generarInformeHTML(mes, anio, mesesNom, diasSemNom, agInfo, turnosMap)
     + 'td.neg{color:#b3261e}'
     + 'span.pos{color:#0d7a3f}'
     + 'span.neg{color:#b3261e}'
-    + 'tr.alerta-hr td{background:#ffe600 !important;color:#1a2233 !important}'
+    + 'td.hd-col{border-left:2px solid #e67e22;background:rgba(230,126,34,.06);text-align:center}'
+    + 'thead th.hd-col{background:#e67e22;text-align:center}'
+    + 'input.hd-input{width:52px;padding:3px 4px;border:1px solid #c8cfd9;border-radius:4px;font-size:12px;font-family:inherit;text-align:center;outline:none}'
+    + 'input.hd-input:focus{border-color:#e67e22}'
+    + 'td.extras-alerta{background:#ffe600 !important;color:#1a2233 !important;font-weight:900}'
     + 'td.er-col{border-left:1px solid #4f46e5;border-right:1px solid #4f46e5;background:rgba(79,70,229,0.06);text-align:center}'
     + 'thead th.er-col{background:#4f46e5;border-left:1px solid #3730a3;border-right:1px solid #3730a3;text-align:center}'
     + 'tr.alerta-hr td.er-col{background:#ffe600 !important}'
-    + 'td.obs{color:#5a6478;font-size:11px;max-width:200px}'
+    + 'td.obs{color:#5a6478;font-size:11px;min-width:120px}'
+    + 'td.editable-hora{cursor:pointer;position:relative}'
+    + 'td.editable-hora:hover{background:rgba(230,126,34,.12);}'
     + 'tr.trab td{background:#f2faf4}'
     + 'tr.vac td{background:#e8f2fd}'
     + 'tr.enf td{background:#fdeeee}'
@@ -13329,7 +13337,7 @@ function _generarInformeHTML(mes, anio, mesesNom, diasSemNom, agInfo, turnosMap)
     + '<header class="doc"><h1>IVC Seguridad y Emergencias</h1><p>' + titulo + ' &middot; Generado el ' + fechaHoyAR().split('-').reverse().join('/') + '</p></header>'
     + '<div class="buscador"><input type="text" placeholder="Buscar por apellido, nombre o legajo..." oninput="filtrarAgentes(this.value)"></div>'
     + cuerpo + resumenGlobal
-    + '<scr' + 'ipt>' + buscadorJs + '</scr' + 'ipt>'
+    + '<scr' + 'ipt>' + buscadorJs + '\nfunction hdInput(el){\n  var v=el.value.replace(/[^0-9:]/g,"");\n  if(v.length===3&&v.indexOf(":")<0)v=v[0]+":"+v.slice(1);\n  if(v.length===4&&v.indexOf(":")<0)v=v.slice(0,2)+":"+v.slice(2);\n  el.value=v;\n  hdRecalc(el);\n}\nfunction hdBlur(el){\n  var v=el.value.trim();if(!v)return;\n  var p=v.split(":");\n  var h=parseInt(p[0])||0,m=parseInt(p[1])||0;\n  el.value=h+":"+String(m).padStart(2,"0");\n  hdRecalc(el);\n}\nfunction hdRecalc(el){\n  var sec=el.closest("section.agente");if(!sec)return;\n  var inputs=sec.querySelectorAll("input.hd-input");\n  var total=0;\n  inputs.forEach(function(inp){\n    var v=inp.value.trim();if(!v)return;\n    var p=v.split(":");\n    total+=(parseInt(p[0])||0)*60+(parseInt(p[1])||0);\n  });\n  var sp=sec.querySelector(".hd-total");\n  if(sp){var th=Math.floor(total/60),tm=total%60;sp.textContent=th+"h "+String(tm).padStart(2,"0")+"m";}\n}\nfunction editarHora(td){\n  if(td.querySelector("input"))return;\n  var cur=td.textContent.trim();\n  var inp=document.createElement("input");\n  inp.type="text";inp.value=cur;inp.maxLength=5;\n  inp.style.cssText="width:52px;padding:2px 4px;border:1px solid #e67e22;border-radius:4px;font-size:12px;font-family:inherit;text-align:center";\n  inp.onblur=function(){td.textContent=inp.value.trim()||cur;};\n  inp.onkeydown=function(e){if(e.key==="Enter"||e.key==="Escape")inp.blur();};\n  td.textContent="";td.appendChild(inp);inp.focus();inp.select();\n}\n' + '</scr' + 'ipt>'
     + '</body></html>';
 
   var blob = new Blob([doc], { type: 'text/html;charset=utf-8;' });
