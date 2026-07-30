@@ -5372,15 +5372,13 @@ function recalcularSaldosDesdeHistorial() {
   var tiposDesc = { 'Licencia ordinaria': 'lic_ordinaria', 'Dia particular': 'lic_particular', 'Día particular': 'lic_particular', 'Franco autorizado': 'lic_franco' };
   // Tipos que ACUMULAN desde 0
   var tiposAcum = { 'Enfermedad': 'lic_enfermedad', 'Familiar enfermo': 'lic_familiar', 'Duelo': 'lic_duelo', 'No asiste autorizado': 'lic_no_asiste', 'Franco compensatorio': 'lic_franco_comp' };
-  // Francos y particular por tipo de condición (lo que NO viene del Excel)
-  var saldosBase = {
-    'CH': { lic_franco: 4,  lic_particular: 0 },
-    'CI': { lic_franco: 2,  lic_particular: 0 },
-    'PH': { lic_franco: 0,  lic_particular: 0 },
-    'PI': { lic_franco: 0,  lic_particular: 0 }
-  };
+  // Francos por tipo (particular/familiar/enfermedad vienen de campos _base cargados desde Excel)
+  var francosBase = { 'CH': 4, 'CI': 2, 'PH': 0, 'PI': 0 };
 
-  db.from('licencias').select('agente,tipo,dias').then(function(r) {
+  // CORTE 17/07/2026: el Excel ya tiene saldos netos a esa fecha.
+  // Solo descontamos licencias posteriores para evitar doble descuento.
+  var CORTE = '2026-07-18';
+  db.from('licencias').select('agente,tipo,dias').gte('fecha_desde', CORTE).then(function(r) {
     if (r.error || !r.data) return;
     // Agrupar días por agente y tipo
     var porAgente = {};
@@ -5397,25 +5395,26 @@ function recalcularSaldosDesdeHistorial() {
       if (!ag.nombre) return;
       var nom = ag.nombre.trim().toUpperCase();
       var cond = (ag.tipo || 'CH').toUpperCase();
-      // lic_ordinaria ahora viene de campos 2024+2025 del Excel
+      // saldo inicial segun tipo de licencia y tipo de agente
       var usados = porAgente[nom] || {};
       var patch = {};
       var cambio = false;
 
-      // Tipos que descuentan saldo
+      // Tipos que descuentan saldo (solo licencias desde 2026-07-18)
       Object.keys(tiposDesc).forEach(function(tipoLic) {
         var key = tiposDesc[tipoLic];
         if (patch[key] !== undefined) return;
         var inicial;
         if (key === 'lic_ordinaria') {
-          var esPlanta2 = (cond === 'PH' || cond === 'PI');
-          inicial = esPlanta2
+          var esPlanta3 = (cond === 'PH' || cond === 'PI');
+          inicial = esPlanta3
             ? ((ag.lic_ordinaria_2024 || 0) + (ag.lic_ordinaria_2025 || 0))
             : (ag.lic_ordinaria_2025 || 0);
-        } else {
-          var base2 = saldosBase[cond] || saldosBase['CH'];
-          inicial = base2[key] !== undefined ? base2[key] : 0;
-        }
+        } else if (key === 'lic_particular')  { inicial = ag.lic_particular_base  || 0; }
+        else if (key === 'lic_familiar')       { inicial = ag.lic_familiar_base   || 0; }
+        else if (key === 'lic_enfermedad')     { inicial = ag.lic_enfermedad_base || 0; }
+        else if (key === 'lic_franco')         { inicial = francosBase[cond] || 0; }
+        else { inicial = 0; }
         var usado = usados[tipoLic] || 0;
         var nuevo = Math.max(0, inicial - usado);
         if (ag[key] !== nuevo) { patch[key] = nuevo; cambio = true; }
