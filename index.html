@@ -18525,19 +18525,27 @@ function esFeriadoAR(fecha) {
   return !!FERIADOS_AR[yyyy + '-' + mm + '-' + dd];
 }
 
-function calcDias(desde, hasta) {
+function calcDias(desde, hasta, tipo) {
   if (!desde || !hasta) return 1;
   var d1 = new Date(desde + 'T00:00:00');
   var d2 = new Date(hasta + 'T00:00:00');
   if (d1 > d2) return 1;
-  var count = 0;
-  var cur = new Date(d1);
-  while (cur <= d2) {
-    var dow = cur.getDay(); // 0=Dom, 6=Sab
-    if (dow !== 0 && dow !== 6 && !esFeriadoAR(cur)) count++;
-    cur.setDate(cur.getDate() + 1);
+  // Solo licencia ordinaria cuenta días hábiles (sin sáb/dom/feriados)
+  var esOrdinaria = !tipo || /ordin/i.test(tipo) || /vacac/i.test(tipo);
+  if (esOrdinaria) {
+    var count = 0;
+    var cur = new Date(d1);
+    while (cur <= d2) {
+      var dow = cur.getDay();
+      if (dow !== 0 && dow !== 6 && !esFeriadoAR(cur)) count++;
+      cur.setDate(cur.getDate() + 1);
+    }
+    return Math.max(1, count);
+  } else {
+    // Resto: días corridos inclusivos
+    var diff = Math.round((d2 - d1) / 86400000) + 1;
+    return Math.max(1, diff);
   }
-  return Math.max(1, count);
 }
 function isLicActive(lic) {
   var today = new Date();
@@ -18812,9 +18820,9 @@ function _loadLicencias() {
   }));
   return _loadLicencias.apply(this, arguments);
 }
-function extractoDiasLicHTML(desde, hasta) {
-  // Genera la lista día por día de una licencia (máx 92 días por seguridad)
-  var DIAS_SEM = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+function extractoDiasLicHTML(desde, hasta, tipo) {
+  var DIAS_SEM = ['Dom','Lun','Mar','Mi\xE9','Jue','Vie','S\xE1b'];
+  var esOrdinaria = !tipo || /ordin/i.test(tipo) || /vacac/i.test(tipo);
   var d = new Date(desde + 'T12:00:00');
   var fin = new Date(hasta + 'T12:00:00');
   var html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:4px;padding-top:8px">';
@@ -18823,15 +18831,20 @@ function extractoDiasLicHTML(desde, hasta) {
     var dd = String(d.getDate()).padStart(2, '0');
     var mm = String(d.getMonth() + 1).padStart(2, '0');
     var yy = d.getFullYear();
-    var esDom = d.getDay() === 0;
-    html += '<div style="font-size:11px;font-family:var(--mono);padding:4px 8px;border-radius:6px;background:' + (esDom ? 'rgba(255,255,255,.03)' : 'var(--bg2)') + ';color:' + (esDom ? 'var(--text3)' : 'var(--text2)') + '">';
-    html += DIAS_SEM[d.getDay()] + ' ' + dd + '/' + mm + '/' + yy;
+    var dow = d.getDay();
+    var esFinSemana = dow === 0 || dow === 6;
+    var noContable = esOrdinaria && (esFinSemana || esFeriadoAR(d));
+    var bg = noContable ? 'rgba(255,255,255,.03)' : 'var(--bg2)';
+    var color = noContable ? 'var(--text3)' : 'var(--text2)';
+    html += '<div style="font-size:11px;font-family:var(--mono);padding:4px 8px;border-radius:6px;background:' + bg + ';color:' + color + '">';
+    html += DIAS_SEM[dow] + ' ' + dd + '/' + mm + '/' + yy;
+    if (noContable) html += ' <span style="font-size:9px;opacity:.5">(no cuenta)</span>';
     html += '</div>';
     d.setDate(d.getDate() + 1);
     count++;
   }
   html += '</div>';
-  if (count >= 92) html += '<div style="font-size:10px;color:var(--text3);margin-top:4px">Mostrando los primeros 92 días</div>';
+  if (count >= 92) html += '<div style="font-size:10px;color:var(--text3);margin-top:4px">Mostrando los primeros 92 d\xEDas</div>';
   return html;
 }
 
@@ -18845,7 +18858,7 @@ function toggleLicExtracto(id) {
 }
 
 function renderLic(l, activa) {
-  var dias = calcDias(l.fecha_desde, l.fecha_hasta);
+  var dias = calcDias(l.fecha_desde, l.fecha_hasta, l.tipo);
   var isPDF = l.archivo && l.archivo.includes('.pdf');
   var borderColor = activa ? 'var(--yellow)' : 'var(--border2)';
   var badgeClass = tipoLicColor(l.tipo);
@@ -18870,7 +18883,7 @@ function renderLic(l, activa) {
   html += '<span>&#x1F4C5; Ver extracto de d\xEDas</span>';
   html += '<span id="lic-ext-arrow-' + l.id + '" style="font-size:10px">&#x25BC;</span>';
   html += '</div>';
-  html += '<div id="lic-ext-' + l.id + '" style="display:none">' + extractoDiasLicHTML(l.fecha_desde, l.fecha_hasta) + '</div>';
+  html += '<div id="lic-ext-' + l.id + '" style="display:none">' + extractoDiasLicHTML(l.fecha_desde, l.fecha_hasta, l.tipo) + '</div>';
   if (l.observaciones) html += '<div style="font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:8px">' + l.observaciones + '</div>';
   if (l.archivo) {
     if (isPDF) {
