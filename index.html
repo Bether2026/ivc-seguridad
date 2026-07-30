@@ -12112,10 +12112,21 @@ function reconstruirJornadasHR(fichs, tipo) {
       if (f.salida) {
         var salAR = new Date(new Date(f.salida).getTime() - 3 * 3600000);
         var fechaSal = fmtAR(salAR);
-        if (fechaSal !== fecha) fecha = fechaSal; // nocturna: día en que termina
+        // Si la entrada es después de las 12hs (turno tarde/noche), asignar al día de entrada
+        // Si la entrada es de madrugada (0-6hs), asignar al día de salida (guardia que cruza noche)
+        var horaEntrada = entAR.getUTCHours();
+        if (fechaSal !== fecha) {
+          if (horaEntrada >= 12) {
+            // Turno tarde/noche: la jornada pertenece al día que empieza
+            // fecha ya es el día de entrada, no cambiar
+          } else {
+            // Madrugada: viene de una guardia nocturna del día anterior
+            fecha = fechaSal;
+          }
+        }
       } else if (entAR.getUTCHours() >= 20) {
-        // Sin salida con ingreso nocturno: patrón de turno noche
-        fecha = fmtAR(new Date(entAR.getTime() + 24 * 3600000));
+        // Sin salida con ingreso muy nocturno (20hs+): patrón turno noche
+        // No cambiar fecha — queda en el día de entrada
       }
     } else {
       // CI/PI: día de ingreso, con excepción de guardia consecutiva
@@ -12689,6 +12700,8 @@ function loadHorasReales() {
           var keyCorto = partes[0] + ' ' + partes[1];
           if (!horarioMap[keyCorto]) horarioMap[keyCorto] = a.hora_entrada;
         }
+        // También indexar por apellido solo (primera palabra) para casos extremos
+        if (partes.length > 0 && !horarioMap[partes[0]]) horarioMap[partes[0]] = a.hora_entrada;
       }
       if (a.hora_salida) {
         horarioSalidaMap[key] = a.hora_salida;
