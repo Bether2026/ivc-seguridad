@@ -12110,45 +12110,59 @@ function reconstruirJornadasHR(fichs, tipo, horaEntradaAgente) {
     turnoInicioMin = parseInt(tp[0]) * 60 + (parseInt(tp[1]) || 0);
   }
 
+  function esDiaHabil(dateAR) {
+    var dow = dateAR.getUTCDay();
+    var fechaStr = fmtAR(dateAR);
+    return dow !== 0 && dow !== 6 && !esFeriado(fechaStr);
+  }
+
+  function esDiaInhabil(dateAR) {
+    return !esDiaHabil(dateAR);
+  }
+
   orden.forEach(function(f) {
     if (!f.entrada) return;
     var entAR = new Date(new Date(f.entrada).getTime() - 3 * 3600000);
     var fecha = fmtAR(entAR);
-    var horaEnt = entAR.getUTCHours() * 60 + entAR.getUTCMinutes(); // minutos desde medianoche
 
     if (esHabil) {
-      if (f.salida) {
-        var salAR = new Date(new Date(f.salida).getTime() - 3 * 3600000);
-        var fechaSal = fmtAR(salAR);
-
-        if (fechaSal !== fecha) {
-          // La jornada cruza la medianoche
-          if (turnoInicioMin !== null) {
-            // Usar el horario del agente para decidir:
-            // Si el turno empieza cerca de la hora de entrada (±3hs), es el día de entrada
-            // Si no, es continuación de guardia anterior → día de salida
-            var diffTurno = Math.abs(horaEnt - turnoInicioMin);
-            if (diffTurno > 720) diffTurno = 1440 - diffTurno; // circular (ej. 23:00 vs 01:00)
-            if (diffTurno <= 180) {
-              // Entrada cercana al inicio del turno → jornada del día de entrada
-              // fecha ya es el día de entrada — no cambiar
-            } else {
-              // Entrada lejos del turno → continuación de guardia anterior
-              fecha = fechaSal;
-            }
-          } else {
-            // Sin horario definido: heurística por hora de entrada
-            if (horaEnt >= 12 * 60) {
-              // Tarde/noche: jornada del día de entrada
-            } else {
-              // Madrugada: jornada del día de salida
-              fecha = fechaSal;
-            }
-          }
+      // CH/PH: la jornada pertenece al día hábil más cercano
+      // Si el día de entrada no es hábil, avanzar al siguiente día hábil
+      var diaAR = new Date(entAR);
+      var intentos = 0;
+      while (!esDiaHabil(diaAR) && intentos < 3) {
+        diaAR = new Date(diaAR.getTime() + 24 * 3600000);
+        intentos++;
+      }
+      fecha = fmtAR(diaAR);
+      // Si ya es hábil pero entró muy tarde (>18hs) y el día siguiente también es hábil,
+      // podría pertenecer al día siguiente — pero solo si la salida cae ahí
+      // Por simplicidad: si entra en día hábil después de las 12hs → mismo día hábil
+      // Si entra en día hábil entre 00-11hs → podría ser continuación, verificar con salida
+      if (esDiaHabil(entAR)) {
+        var horaEnt = entAR.getUTCHours();
+        if (horaEnt < 12 && f.salida) {
+          // Madrugada en día hábil: pertenece a ese mismo día hábil (ej. Lamadrid 00:01 lunes)
+          // No cambiar fecha
         }
       }
-      // Sin salida: siempre usar día de entrada
     } else {
+      // CI/PI: la jornada pertenece al día inhábil más cercano
+      // Si el día de entrada es hábil, avanzar al siguiente inhábil
+      var diaCI = new Date(entAR);
+      var intentosCI = 0;
+      while (esDiaHabil(diaCI) && intentosCI < 3) {
+        diaCI = new Date(diaCI.getTime() + 24 * 3600000);
+        intentosCI++;
+      }
+      fecha = fmtAR(diaCI);
+      // Si ya es inhábil: quedarse en ese día
+      // Excepción: si ya hay jornada en ese día y entra >20hs, es la guardia del día siguiente
+      if (!esDiaHabil(entAR) && jorn[fecha] && entAR.getUTCHours() >= 20) {
+        var sigDia = new Date(entAR.getTime() + 24 * 3600000);
+        if (!esDiaHabil(sigDia)) fecha = fmtAR(sigDia);
+      }
+    }
       // CI/PI: normalmente se asigna al día de entrada (sáb/dom/feriado)
       // Excepción: guardia que empieza en día hábil nocturno y termina en fin de semana
       // → asignar al día de salida (ej. viernes 23hs → sábado 06hs = guardia del sábado)
@@ -12158,16 +12172,6 @@ function reconstruirJornadasHR(fichs, tipo, horaEntradaAgente) {
         if (fechaSalCI !== fecha) {
           var dowEnt = entAR.getUTCDay(); // día de entrada
           var dowSal = salCI.getUTCDay(); // día de salida
-          var entEsHabil = (dowEnt !== 0 && dowEnt !== 6);
-          var salEsInhabil = (dowSal === 0 || dowSal === 6);
-          if (entEsHabil && salEsInhabil) {
-            fecha = fechaSalCI; // viernes noche → sábado
-          } else if (jorn[fecha] && entAR.getUTCHours() >= 20) {
-            fecha = fmtAR(new Date(entAR.getTime() + 24 * 3600000));
-          }
-        }
-      } else if (jorn[fecha] && entAR.getUTCHours() >= 20) {
-        fecha = fmtAR(new Date(entAR.getTime() + 24 * 3600000));
       }
     }
 
