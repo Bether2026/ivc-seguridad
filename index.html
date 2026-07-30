@@ -16679,6 +16679,7 @@ function goView(name) {
     if (name === 'pendientes' && typeof loadPendientes === 'function') loadPendientes();
     if (name === 'relevamiento' && typeof loadRelevamientos === 'function') loadRelevamientos();
     if (name === 'panol' && typeof loadPanol === 'function') loadPanol();
+    if (name === 'pdpu' && typeof selPdpuTab === 'function') selPdpuTab('48h');
     if (name === 'horas') {
       // Mover adm-panel-horas al contenedor de Gerencia y activar
       var _panel = document.getElementById('adm-panel-horas');
@@ -21456,6 +21457,7 @@ function gpTogglePendiente() {
       // Re-sincronizar número en novedades/objetivos vinculados
       _gpSincronizarNroOrigen(PARTE_ACTUAL);
       load48hs();
+      if (typeof pdpu48hCargar === 'function') pdpu48hCargar();
     });
 }
 
