@@ -1275,9 +1275,6 @@ input::placeholder, textarea::placeholder { color: var(--text3); opacity: .85; f
 .nav-btn.active::after {
   opacity: .15;
 }
-</style>
-
-<style id="ui-polish-2026">
 /* ── ACTUALIZACIÓN VISUAL — profundidad, brillo y acento cian ── */
 
 /* Fondo con auroras de profundidad: se nota en toda la app */
@@ -5754,7 +5751,7 @@ function _renderPreviewImport() {
     html += '</tr>';
   });
   tbody.innerHTML = html;
-  resumen.innerHTML = '\u2714 <strong>' + mOk + '</strong> encontrados &nbsp;�&nbsp; \u26a0\ufe0f <strong>' + mNo + '</strong> sin match';
+  resumen.innerHTML = '\u2714 <strong>' + mOk + '</strong> encontrados &nbsp;�&nbsp; \u26a0\ufe0f <strong>' + mNo + '</strong> sin match';
   prev.style.display = 'block';
 }
 
@@ -8890,7 +8887,6 @@ function _saveAgenda() {
 }
 // ══════════════════════════════════════════════════════════
 //  MÓDULO INVENTARIO — Control de Stock (Necochea)
-// ══════════════════════════════════════════════════════════
 var INV_TIPO = '';
 var INV_FOTO_ITEMS = {};
 
@@ -9338,7 +9334,6 @@ function verDetalleInv(id) {
 
 // ══════════════════════════════════════════════════════════
 //  MÓDULO PENDIENTES — Puntos Críticos por Barrio
-// ══════════════════════════════════════════════════════════
 var NP_PRIORIDAD = 'media';
 var NP_FOTO_FILE = null;
 var CTRL_FOTOS = [];
@@ -10262,7 +10257,6 @@ function eliminarPunto(id) {
 
 // ══════════════════════════════════════════════════════════
 //  MÓDULO HORAS REALES — Solo Administrador de sistema
-// ══════════════════════════════════════════════════════════
 
 // Horas a cumplir por tipo (en horas decimales)
 var HORAS_TIPO = { PH: 6, PI: 12, CH: 8, CI: 12 };
@@ -12085,7 +12079,6 @@ function eliminarAgenteAdmin(id, nombre) {
   }, 'Eliminar', 'var(--red)');
 }
 
-function selAdminTab2(tab) { selAdminTab(tab); } // alias por compatibilidad
 
 function esFeriado(fechaStr) {
   // fechaStr: YYYY-MM-DD
@@ -18455,93 +18448,6 @@ function loadGPS() {
 function verRecorridoGPS() { /* GPS desactivado */ }
 
 function startGPSTransmission() { GPS_TRACKING = false; return Promise.resolve(); }
-function _startGPSTransmission_DEAD_START() { /*
-    var transmit;
-    return _regenerator().w(function (_context67) {
-      while (1) switch (_context67.n) {
-        case 0:
-          if (!GPS_TRACKING) {
-            _context67.n = 1;
-            break;
-          }
-          return _context67.a(2);
-        case 1:
-          GPS_TRACKING = true;
-          transmit = function() {
-            getGeoSilent().then(function(geo) {
-              if (!geo) { console.warn('[GPS] Sin coordenadas'); return; }
-              getAddress(geo.lat, geo.lng).then(function(direccion) {
-                // Primero intentar DELETE del registro anterior del mismo móvil
-                // para evitar problemas con onConflict sin constraint
-                db.from('gps_moviles').delete().eq('movil', movil).then(function() {
-                  db.from('gps_moviles').insert({
-                    chofer: chofer,
-                    movil: movil,
-                    lat: geo.lat,
-                    lng: geo.lng,
-                    direccion: direccion,
-                    activo: true,
-                    updated_at: new Date().toISOString()
-                  }).then(function(r) {
-                    if (r.error) {
-                      // Fallback: intentar update si insert falla
-                      db.from('gps_moviles').update({
-                        lat: geo.lat, lng: geo.lng,
-                        direccion: direccion,
-                        activo: true,
-                        updated_at: new Date().toISOString()
-                      }).eq('movil', movil).then(function() {});
-                    } else {
-                      console.log('[GPS] Transmitido OK:', geo.lat, geo.lng, direccion);
-                    }
-                  });
-                });
-                // Notificar al SW para transmisión en background
-                if (typeof notificarGPSalSW === 'function') {
-                  notificarGPSalSW(geo.lat, geo.lng, movil, chofer);
-                }
-                // También guardar en gps_track para historial de huellas
-                db.from('gps_track').insert({
-                  chofer: chofer, movil: movil,
-                  lat: geo.lat, lng: geo.lng,
-                  ts: new Date().toISOString(),
-                  created_at: new Date().toISOString()
-                }).then(function() {});
-              });
-            }).catch(function(e) { console.warn('[GPS] Error geoloc:', e); });
-          };
-          _context67.n = 2;
-          return transmit();
-        case 2:
-          GPS_INTERVAL = setInterval(function() {
-            // Verificar si la ruta sigue activa antes de transmitir (por si fue cerrada desde otro dispositivo)
-            db.from('rutas').select('id,estado').eq('chofer', chofer).eq('estado', 'activo').maybeSingle().then(function(rv) {
-              if (!rv.data) {
-                // Ruta finalizada externamente — detener GPS
-                console.log('[GPS] Ruta finalizada externamente, deteniendo transmision');
-                stopGPSTransmission(movil);
-              } else {
-                transmit();
-              }
-            });
-          }, 15000); // cada 15 segundos
-          // Wake Lock: mantener pantalla activa mientras transmite GPS
-          _adquirirWakeLock();
-          // Re-adquirir wake lock si el usuario vuelve a la app
-          if (!window._wakeLockListener) {
-            window._wakeLockListener = true;
-            document.addEventListener('visibilitychange', function() {
-              if (document.visibilityState === 'visible' && GPS_TRACKING) {
-                _adquirirWakeLock();
-                // Transmitir inmediatamente al volver (recupera puntos perdidos en background)
-                if (typeof transmit === 'function') try { transmit(); } catch(e) {}
-              }
-            });
-          }
-        case 3:
-          return _context67.a(2);
-      }
-*/ }
 function stopGPSTransmission()  { GPS_TRACKING = false; if (GPS_INTERVAL) { clearInterval(GPS_INTERVAL); GPS_INTERVAL = null; } return Promise.resolve(); }
 function startGPSRefresh()      { /* GPS desactivado */ }
 var LIC_FILE = null;
@@ -20587,14 +20493,8 @@ function toggleActivoChofer(id, activo) {
 // Timeout de inactividad ELIMINADO por pedido del usuario — la sesion solo se cierra
 // manualmente con el boton "Cerrar sesion". El refresh del token lo maneja Supabase Auth
 // automaticamente via autoRefreshToken configurado en el cliente.
-// ══════════════════════════════════════════════════════════
-// MÓDULO PD / PU — Partes Diarios y Urgentes
+// ══ MÓDULO PD / PU — Partes Diarios y Urgentes ══════════════════════════════
 // Solo visible para Administración, Administrador, Programación
-// ══════════════════════════════════════════════════════════
-
-// ═══════════════════════════════════════════════════════════════
-// MÓDULO PD / PU — IVC Seguridad
-// ═══════════════════════════════════════════════════════════════
 var GP_STATE = {
   parteId:   null,   // uuid del borrador reservado
   tipo:      null,   // 'PD' | 'PU'
@@ -20613,10 +20513,6 @@ var PARTE_ACTUAL  = null;  // parte abierto en detalle
 function _esAdminParte() {
   return USER && (USER.rol === 'ADMIN' || USER.puesto === 'Administración' || USER.puesto === 'Administrador' || USER.puesto === 'Programación');
 }
-function _puedeVerPartes() {
-  return USER && (USER.rol === 'ADMIN' || ['Administración','Administrador','Gerencia','Jefe de departamento','Programación'].includes(USER.puesto));
-}
-
 // ── Sub-tab switcher principal ────────────────────────────────
 var _partes48hTimer = null;
 function selPartesTab(tab) {
@@ -20638,7 +20534,6 @@ function selPartesTab(tab) {
 
 // ═══════════════════════════════════════════════════════════════
 // GENERACIÓN DE PARTE — modal unificado
-// ═══════════════════════════════════════════════════════════════
 
 // Abrir desde Novedad
 function abrirGenerarParteNovedad(novId) {
@@ -21257,7 +21152,6 @@ function gpGuardar() {
 
 // ═══════════════════════════════════════════════════════════════
 // VISTA 48 HORAS
-// ═══════════════════════════════════════════════════════════════
 function load48hs() {
   var cont = document.getElementById('partes-48h-lista');
   if (!cont) return;
@@ -21306,7 +21200,6 @@ function load48hs() {
 
 // ═══════════════════════════════════════════════════════════════
 // HISTORIAL
-// ═══════════════════════════════════════════════════════════════
 function histCargarAnios() {
   db.rpc('anios_con_partes').then(function(r) {
     var anios = r.data || [new Date().getFullYear()];
@@ -21467,7 +21360,6 @@ function histToggleMes(mes) {
 
 // ═══════════════════════════════════════════════════════════════
 // CARD de parte (usada en 48hs y historial)
-// ═══════════════════════════════════════════════════════════════
 function _gpCard(p) {
   var nroDisplay = p.nro_pd + '/' + p.anio;
   var esPU = p.tipo === 'PU';
@@ -21497,7 +21389,6 @@ function _gpCard(p) {
 
 // ═══════════════════════════════════════════════════════════════
 // DETALLE DE PARTE
-// ═══════════════════════════════════════════════════════════════
 function gpVerDetalle(parteId) {
   db.from('partes_diarios').select('*').eq('id', parteId).single()
     .then(function(r) {
@@ -21701,7 +21592,6 @@ function gpEditarParteActual() {
 // ═══════════════════════════════════════════════════════════════
 // BOTONES EN NOVEDADES, C.OBJETIVO, INVENTARIO, PRECINTOS
 // Patch de las funciones de render para agregar el botón
-// ═══════════════════════════════════════════════════════════════
 
 // El botón se inyecta via las funciones existentes abrirCargarInforme
 // y abrirCargarInformeObj — las redirigimos al nuevo flujo
@@ -21722,7 +21612,6 @@ window.guardarInformeObj     = function() {};
 
 // ═══════════════════════════════════════════════════════════════
 // PATCH selAdminTab para cargar 48hs al entrar al tab
-// ═══════════════════════════════════════════════════════════════
 var _selAdminTab_gpOrig = selAdminTab;
 selAdminTab = function(tab) {
   _selAdminTab_gpOrig(tab);
@@ -22059,7 +21948,6 @@ function gpEliminarParte() {
 
 // ═══════════════════════════════════════════════════════════════
 // VISTA PD/PU INDEPENDIENTE (sidebar)
-// ═══════════════════════════════════════════════════════════════
 var PDPU_HIST_CACHE = [];
 var PDPU_HIST_ANIO  = new Date().getFullYear();
 
@@ -22240,7 +22128,6 @@ function pdpuToggleMes(mes) {
 
 // ═══════════════════════════════════════════════════════════════
 // IMPORTAR ACCESS
-// ═══════════════════════════════════════════════════════════════
 var IMP_FILE    = null;
 var IMP_RUNNING = false;
 
@@ -23692,24 +23579,6 @@ if (!window._hnDelegationInstalada) {
   }, true);
 }
 
-function _abrirDetalleDesdeHistorial_UNUSED(novId) {
-  db.from('novedades').select('*').eq('id', novId).single().then(function(r) {
-    if (r.error || !r.data) { toast('Error cargando novedad', 'err'); return; }
-    var n = r.data;
-    // Intentar abrir en el listado actual si está en el DOM
-    goView('novedades');
-    setTimeout(function() {
-      var elExist = document.getElementById('nov-' + novId);
-      if (elExist) {
-        elExist.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        if (elExist.style.display === 'none') toggleNovedad(novId, null);
-        return;
-      }
-      _mostrarDetalleRapidoNov(n);
-    }, 400);
-  });
-}
-
 function _mostrarDetalleRapidoNov(n) {
   var existing = document.getElementById('ov-detalle-rapido-nov');
   if (existing) existing.remove();
@@ -23767,7 +23636,6 @@ function _renderPaginacionHistNov() {
   }
   pagEl.innerHTML = html;
 }
-// ══════════════════════════════════════════════════════════════════
 
 // ══════════════════════════════════════════════════════════════════
 // ESTADISTICAS AVANZADAS — exclusivo Gerencia / Administrador
@@ -23956,7 +23824,6 @@ function _renderGraficoSA(entries, fuente, dimension, totalRegistros) {
   };
   document.getElementById('sa-resumen-escrito').style.display = 'none';
 }
-// ══════════════════════════════════════════════════════════════════
 
 var SA_ULTIMO_CONTEXTO = null;
 
@@ -24183,7 +24050,6 @@ function confirmarTraslado() {
     });
   });
 }
-// ══════════════════════════════════════════════════════════════════
 
 // ══════════════════════════════════════════════════════════════════
 // PRECINTOS — exclusivo Obrador Savio y Administrador del sistema
@@ -24565,7 +24431,6 @@ function buscarHistorialPrecintos() {
     listEl.innerHTML = html;
   });
 }
-// ══════════════════════════════════════════════════════════════════
 
 // ══ HISTORIAL DE FICHAJES ══
 function iniciarHistorialFichajes() {
@@ -24720,7 +24585,6 @@ function _renderHistorialFichajes() {
   });
   lista.innerHTML = html;
 }
-// ══════════════════════════════════════════════════════════════════
 
 // ══ BORRADOR DE INFORME DIARIO ══
 // Tabla Supabase: informes_borrador (id, autor, desde, hasta, hora_desde, hora_hasta, html_preview, updated_at)
@@ -24897,7 +24761,6 @@ function cargarBorradorInforme() {
     }
   });
 }
-// ══════════════════════════════════════════════════════════════════
 
 // ── Marcar "No fichó salida" — solo Administración / Administrador ──
 // Cierra el fichaje SIN sumar horas. Queda marcado como cierre manual
