@@ -24131,6 +24131,12 @@ function _estadoItemHoy(zona, itemId) {
 }
 
 function _renderZonaColocar(zona) {
+  // Revocar object URLs anteriores de esta zona para evitar memory leak
+  if (!window._precObjectUrls) window._precObjectUrls = {};
+  var prevUrls = window._precObjectUrls[zona] || [];
+  prevUrls.forEach(function(u) { try { URL.revokeObjectURL(u); } catch(e){} });
+  window._precObjectUrls[zona] = [];
+
   var items = zona === 'pasto' ? PREC_ITEMS_PASTO : PREC_ITEMS_GALPONES;
   var wrap = document.getElementById('prec-colocar-' + zona);
   if (!wrap) return;
@@ -24148,7 +24154,9 @@ function _renderZonaColocar(zona) {
     if (!yaHecho) {
       html += '<div id="prec-fotos-' + key + '" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">';
       fotosPend.forEach(function(f, idx) {
-        html += '<div style="position:relative;width:60px;height:60px"><img src="' + URL.createObjectURL(f) + '" style="width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid var(--border2)"><button onclick="precQuitarFoto(\'' + key + '\',' + idx + ')" style="position:absolute;top:-5px;right:-5px;width:18px;height:18px;border-radius:50%;background:var(--red);color:#fff;border:none;font-size:11px;cursor:pointer">\u00d7</button></div>';
+        var objUrl = URL.createObjectURL(f);
+        window._precObjectUrls[zona].push(objUrl);
+        html += '<div style="position:relative;width:60px;height:60px"><img src="' + objUrl + '" style="width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid var(--border2)"><button onclick="precQuitarFoto(\'' + key + '\',' + idx + ')" style="position:absolute;top:-5px;right:-5px;width:18px;height:18px;border-radius:50%;background:var(--red);color:#fff;border:none;font-size:11px;cursor:pointer">\u00d7</button></div>';
       });
       html += '</div>';
       html += '<div style="display:flex;gap:8px">';
@@ -24169,12 +24177,19 @@ function _renderZonaColocar(zona) {
 }
 
 function precAgregarFoto(key) {
+  // El input DEBE estar en el DOM para que iOS/Safari lo abra correctamente
+  var old = document.getElementById('_prec_input_temp');
+  if (old) old.remove();
   var inputTemp = document.createElement('input');
+  inputTemp.id = '_prec_input_temp';
   inputTemp.type = 'file';
   inputTemp.accept = 'image/*';
   inputTemp.multiple = true;
+  inputTemp.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0';
+  document.body.appendChild(inputTemp);
   inputTemp.onchange = function() {
     var nuevos = Array.prototype.slice.call(inputTemp.files || []);
+    inputTemp.remove();
     if (!nuevos.length) return;
     if (!PREC_FOTOS_PENDIENTES[key]) PREC_FOTOS_PENDIENTES[key] = [];
     PREC_FOTOS_PENDIENTES[key] = PREC_FOTOS_PENDIENTES[key].concat(nuevos);
@@ -24193,6 +24208,9 @@ function precGuardarItem(zona, itemId, itemLabel) {
   var key = zona + '_' + itemId;
   var fotos = PREC_FOTOS_PENDIENTES[key] || [];
   if (!fotos.length) { toast('Agreg\u00e1 al menos una foto', 'err'); return; }
+  // Protección contra doble-tap: deshabilitar el botón confirmar
+  var btnConfirmar = document.querySelector('[onclick*="precGuardarItem(\'' + zona + '\',\'' + itemId + '\'"]');
+  if (btnConfirmar) { btnConfirmar.disabled = true; btnConfirmar.textContent = 'Subiendo...'; }
   toast('Subiendo foto(s)...', 'info');
   Promise.all(fotos.map(function(f) { return uploadToR2Comprimido(f, 'precintos').catch(function() { return null; }); }))
     .then(function(urls) {
@@ -24276,12 +24294,20 @@ function guardarRetiroPrecintos() {
           created_at: new Date().toISOString()
         });
       });
-      Promise.all(inserts).then(function() {
+      Promise.all(inserts).then(function(resultados) {
         setLoading('btn-prec-retirar', false);
+        var hayError = resultados.some(function(r) { return r && r.error; });
+        if (hayError) {
+          toast('Error al registrar el retiro en la base de datos', 'err');
+          return;
+        }
         toast('\uD83D\uDD13 Retiro registrado');
         PREC_RETIRO_FOTOS = [];
         document.getElementById('prec-retiro-foto-prev').innerHTML = '';
         loadPrecintos();
+      }).catch(function(err) {
+        setLoading('btn-prec-retirar', false);
+        toast('Error al guardar el retiro: ' + (err && err.message ? err.message : 'desconocido'), 'err');
       });
     });
 }
