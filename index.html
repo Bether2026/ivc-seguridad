@@ -20034,43 +20034,54 @@ function loadEntregasLlaves() {
   if (!cont) return;
   cont.innerHTML = '<div class="empty"><div class="icon">📦</div><p>Cargando entregas...</p></div>';
   var tableroFiltro = LLAVES_SEDE_ACTUAL === 'castanares' ? 'castanares' : 'obrador';
-  db.from('llaves_entregas').select('*, llaves(numero_tablero, nombre, tablero)').order('fecha_entrega', {ascending: false}).then(function(res) {
+  db.from('llaves_entregas').select('*').order('fecha_entrega', {ascending: false}).then(function(res) {
     if (res.error) {
       cont.innerHTML = '<div class="empty"><p>Error: ' + res.error.message + '</p></div>';
       return;
     }
-    var data = (res.data || []).filter(function(e) { return e.llaves && e.llaves.tablero === tableroFiltro; });
-    if (!data.length) {
-      cont.innerHTML = '<div class="empty"><div class="icon">📦</div><p>Sin entregas registradas en esta sede</p></div>';
-      return;
-    }
-    var html = data.map(function(e) {
-      var nro = e.llaves ? e.llaves.numero_tablero : e.numero_tablero;
-      var nom = (e.llaves && e.llaves.nombre) || '';
-      var docsHtml = '';
-      if (e.documentos && e.documentos.length) {
-        docsHtml = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">' +
-          e.documentos.map(function(url) {
-            var esPdf = url.toLowerCase().indexOf('.pdf') >= 0;
-            return esPdf
-              ? '<a href="' + url + '" target="_blank" style="display:flex;align-items:center;gap:4px;padding:4px 8px;border-radius:6px;border:1px solid var(--border2);font-size:10px;color:var(--accent3);text-decoration:none">📄 PDF</a>'
-              : '<a href="' + url + '" target="_blank" style="display:block;width:56px;height:56px;border-radius:6px;overflow:hidden;border:1px solid var(--border2)"><img src="' + url + '" style="width:100%;height:100%;object-fit:cover" loading="lazy"></a>';
-          }).join('') +
-          '</div>';
+    // Filtrar por sede: cargamos las llaves de la sede para cruzar por llave_id
+    db.from('llaves').select('id, numero_tablero, nombre, tablero').eq('tablero', tableroFiltro).then(function(resL) {
+      var llavesMap = {};
+      ((resL && resL.data) || []).forEach(function(l) { llavesMap[l.id] = l; });
+      var data = (res.data || []).filter(function(e) {
+        // Si tiene llave_id y hay mapa, filtrar por tablero; si no, confiar en numero_tablero
+        if (e.llave_id && llavesMap[e.llave_id]) return true;
+        if (!e.llave_id) return true; // registros viejos sin FK: mostrar igual
+        return false;
+      });
+      if (!data.length) {
+        cont.innerHTML = '<div class="empty"><div class="icon">📦</div><p>Sin entregas registradas en esta sede</p></div>';
+        return;
       }
-      return '<div class="card" style="border-left:3px solid #ef4444;margin-bottom:8px">' +
-        '<div style="display:flex;justify-content:space-between;gap:8px;margin-bottom:6px">' +
-          '<div style="font-size:14px;font-weight:800">Nro. ' + nro + (nom ? ' — ' + nom : '') + '</div>' +
-          '<span class="badge b-red">ENTREGADA</span>' +
-        '</div>' +
-        '<div style="font-size:12px;color:var(--text2);margin-bottom:2px">👤 Entregada a: <strong>' + (e.entregada_a || '') + '</strong></div>' +
-        '<div style="font-size:11px;color:var(--text3);margin-bottom:2px">Entregó: ' + (e.entregada_por || '') + '</div>' +
-        '<div style="font-size:11px;color:var(--text3);margin-bottom:2px">Fecha: ' + (e.fecha_entrega || '') + '</div>' +
-        (e.observaciones ? '<div style="font-size:12px;color:var(--text2);margin-top:6px">' + e.observaciones + '</div>' : '') +
-        docsHtml +
-      '</div>';
-    }).join('');
-    cont.innerHTML = html;
+      var html = data.map(function(e) {
+        var llave = llavesMap[e.llave_id] || {};
+        var nro = llave.numero_tablero || e.numero_tablero || '?';
+        var nom = llave.nombre || '';
+        var docsHtml = '';
+        if (e.documentos && e.documentos.length) {
+          docsHtml = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">' +
+            e.documentos.map(function(url) {
+              var esPdf = url.toLowerCase().indexOf('.pdf') >= 0;
+              return esPdf
+                ? '<a href="' + url + '" target="_blank" style="display:flex;align-items:center;gap:4px;padding:4px 8px;border-radius:6px;border:1px solid var(--border2);font-size:10px;color:var(--accent3);text-decoration:none">📄 PDF</a>'
+                : '<a href="' + url + '" target="_blank" style="display:block;width:56px;height:56px;border-radius:6px;overflow:hidden;border:1px solid var(--border2)"><img src="' + url + '" style="width:100%;height:100%;object-fit:cover" loading="lazy"></a>';
+            }).join('') +
+            '</div>';
+        }
+        return '<div class="card" style="border-left:3px solid #ef4444;margin-bottom:8px">' +
+          '<div style="display:flex;justify-content:space-between;gap:8px;margin-bottom:6px">' +
+            '<div style="font-size:14px;font-weight:800">Nro. ' + nro + (nom ? ' \u2014 ' + nom : '') + '</div>' +
+            '<span class="badge b-red">ENTREGADA</span>' +
+          '</div>' +
+          '<div style="font-size:12px;color:var(--text2);margin-bottom:2px">👤 Entregada a: <strong>' + (e.entregada_a || '') + '</strong></div>' +
+          '<div style="font-size:11px;color:var(--text3);margin-bottom:2px">Entregó: ' + (e.entregada_por || '') + '</div>' +
+          '<div style="font-size:11px;color:var(--text3);margin-bottom:2px">Fecha: ' + (e.fecha_entrega || '') + '</div>' +
+          (e.observaciones ? '<div style="font-size:12px;color:var(--text2);margin-top:6px">' + e.observaciones + '</div>' : '') +
+          docsHtml +
+        '</div>';
+      }).join('');
+      cont.innerHTML = html;
+    });
   });
 }
 
