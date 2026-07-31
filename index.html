@@ -6215,7 +6215,7 @@ function guardarInformeObj() {
   setLoading('cio-btn-save', true);
   db.from('objetivos').update({ texto_informe: texto, nro_pd: nroPD, nro_pu: nroPU, observaciones: obsCio }).eq('id', id).then(function(r) {
     setLoading('cio-btn-save', false);
-    if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+    if (!dbOk(r)) return;
     toast('\u2713 Informe guardado');
     closeOv('ov-cargar-inf-obj');
     loadObjetivos();
@@ -6273,7 +6273,7 @@ function guardarInformeNovedad() {
   setLoading('ci-btn-save', true);
   db.from('novedades').update(payload).eq('id', id).then(function(r) {
     setLoading('ci-btn-save', false);
-    if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+    if (!dbOk(r)) return;
     toast('\u2713 Informe ' + tipo + (nro ? ' N\xB0 ' + nro : '') + ' guardado');
     closeOv('ov-cargar-inf');
     loadNovedades();
@@ -6633,7 +6633,7 @@ function guardarEdicionCompletaNovedad() {
     };
     db.from('novedades').update(payload).eq('id', id).then(function(r) {
       setLoading('btn-save-ena', false);
-      if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+      if (!dbOk(r)) return;
       for (var _ei2 = 0; _ei2 < ENA_OBJURLS.length; _ei2++) { URL.revokeObjectURL(ENA_OBJURLS[_ei2]); } ENA_OBJURLS = [];
       ENA_FOTOS_NUEVAS = [];
       closeOv('ov-edit-nov-admin');
@@ -8131,6 +8131,27 @@ var initials = function initials(n) {
 var filtro = function filtro() {
   return USER && USER.rol !== 'TODOS' && USER.rol !== 'ADMIN' ? USER.puesto : null;
 };
+// ── Helpers reutilizables ─────────────────────────────────────
+// Manejo uniforme de errores Supabase: retorna true si hubo error (para hacer early return)
+function dbOk(r, msg) {
+  if (!r.error) return true;
+  toast((msg || 'Error') + ': ' + r.error.message, 'err');
+  return false;
+}
+
+// Crea un overlay oscuro de pantalla completa con un modal centrado.
+// Retorna { ov, modal, close } — close() lo elimina del DOM.
+function mkOverlay(maxWidth) {
+  var ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+  var modal = document.createElement('div');
+  modal.style.cssText = 'background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:' + (maxWidth || '320px') + ';width:100%';
+  ov.appendChild(modal);
+  function close() { if (ov.parentNode) ov.parentNode.removeChild(ov); }
+  ov.addEventListener('click', function(e) { if (e.target === ov) close(); });
+  return { ov: ov, modal: modal, close: close };
+}
+
 function toast(msg) {
   var type = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 'ok';
   var t = $('toast');
@@ -8913,7 +8934,7 @@ function adminDelBtnInv(tabla, id, label) {
 function eliminarMovInv(id, label) {
   showConfirm('🗑️', 'Eliminar ' + label, '¿Confirmar eliminación? Esta acción no se puede deshacer.', function() {
     db.from('inventario').delete().eq('id', id).then(function(r) {
-      if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+      if (!dbOk(r)) return;
       toast('✓ Eliminado');
       loadInventario();
     });
@@ -9534,7 +9555,7 @@ function guardarNuevoPunto() {
       if (fotoUrl) payload.foto_inicial = fotoUrl;
       db.from('puntos_criticos').update(payload).eq('id', window._NP_EDIT_ID).then(function(r) {
         setLoading('btn-save-np', false);
-        if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+        if (!dbOk(r)) return;
         window._NP_EDIT_ID = null;
         closeOv('ov-nuevo-punto');
         toast('\u2714 Punto actualizado');
@@ -9562,7 +9583,7 @@ function guardarNuevoPunto() {
       created_at: new Date().toISOString()
     }).then(function(r) {
       setLoading('btn-save-np', false);
-      if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+      if (!dbOk(r)) return;
       closeOv('ov-nuevo-punto');
       toast('\u2714 Punto cr\xEDtico creado \u2014 ' + barrio);
       loadPendientes();
@@ -9991,7 +10012,7 @@ function generarInformeRecorridos() {
   else          { var dd = new Date(desdeVal  + 'T03:00:00.000Z'); dd.setUTCDate(dd.getUTCDate() + 1); hastaUTC = dd.toISOString(); }
   toast('Cargando recorridos...');
   db.from('objetivos').select('id,created_at,inicio,fin,puesto,cargado_por,estado,actualizaciones,auto_fichaje,texto_informe,nro_pd,nro_pu,descripcion,agente,progreso').gte('created_at', desdeUTC).lte('created_at', hastaUTC).order('created_at', { ascending: true }).then(function(r) {
-    if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+    if (!dbOk(r)) return;
     var rutas = r.data || [];
     if (!rutas.length) { toast('Sin recorridos para el per\xEDodo', 'err'); return; }
     var fechaDisplay = (desdeVal && hastaVal && desdeVal !== hastaVal)
@@ -10032,7 +10053,7 @@ function toggleEdicionPunto(id, habilitar) {
     : '\xBFDesactivar el modo edici\xF3n para este punto?';
   showConfirm('&#x270F;', label, msg, function() {
     db.from('puntos_criticos').update({ edicion_habilitada: habilitar }).eq('id', id).then(function(r) {
-      if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+      if (!dbOk(r)) return;
       toast(habilitar ? '&#x1F513; Edici\xF3n habilitada' : '&#x1F512; Edici\xF3n deshabilitada');
       // Actualizar _PEND_DATA en memoria para que el badge refleje el cambio sin recargar
       var pIdx = -1; for (var _pi = 0; _pi < _PEND_DATA.length; _pi++) { if (_PEND_DATA[_pi].id === id) { pIdx = _pi; break; } }
@@ -10050,7 +10071,7 @@ function toggleEdicionDatosPunto(id, habilitar) {
     : '\xBFDesactivar la edici\xF3n de datos para este punto?';
   showConfirm('&#x1F4DD;', label, msg, function() {
     db.from('puntos_criticos').update({ edicion_datos_habilitada: habilitar }).eq('id', id).then(function(r) {
-      if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+      if (!dbOk(r)) return;
       toast(habilitar ? '&#x1F4DD; Completar datos habilitado' : '&#x1F4DD; Completar datos deshabilitado');
       var pIdx = -1; for (var _pi3 = 0; _pi3 < _PEND_DATA.length; _pi3++) { if (_PEND_DATA[_pi3].id === id) { pIdx = _pi3; break; } }
       if (pIdx >= 0) _PEND_DATA[pIdx].edicion_datos_habilitada = habilitar;
@@ -10106,7 +10127,7 @@ function guardarDatosPunto() {
     if (fotoUrl) payload.foto_inicial = fotoUrl;
     db.from('puntos_criticos').update(payload).eq('id', CTRL_PUNTO_ID).then(function(r) {
       setLoading('btn-save-edp', false);
-      if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+      if (!dbOk(r)) return;
       // Actualizar _PEND_DATA en memoria
       var pIdx = -1; for (var _pi4 = 0; _pi4 < _PEND_DATA.length; _pi4++) { if (_PEND_DATA[_pi4].id === CTRL_PUNTO_ID) { pIdx = _pi4; break; } }
       if (pIdx >= 0) {
@@ -10191,7 +10212,7 @@ function _guardarControlInsert(fotoUrls, fotoUrl) {
     created_at: new Date().toISOString()
   }).then(function(r) {
     setLoading('btn-save-ctrl', false);
-    if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+    if (!dbOk(r)) return;
     if (CTRL_ESTADO === 'novedad' && obs) {
       db.from('puntos_criticos').select('titulo,categoria,barrio').eq('id', CTRL_PUNTO_ID).single().then(function(rp) {
         var punto = (rp.data || {});
@@ -10228,7 +10249,7 @@ function _guardarControlInsert(fotoUrls, fotoUrl) {
 function eliminarControlPunto(ctrlId, puntoId) {
   showConfirm('&#x1F5D1;', 'Eliminar registro', '\xBFEliminás este control del historial?', function() {
     db.from('controles_punto').delete().eq('id', ctrlId).then(function(r) {
-      if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+      if (!dbOk(r)) return;
       toast('Registro eliminado');
       verPunto(puntoId);
     });
@@ -10238,7 +10259,7 @@ function eliminarControlPunto(ctrlId, puntoId) {
 function resolverPunto(id) {
   showConfirm('&#x2705;', 'Marcar como resuelto', '¿Confirmás que este punto crítico fue resuelto?', function() {
     db.from('puntos_criticos').update({ estado: 'resuelto', fecha_resolucion: fechaHoyAR() }).eq('id', id).then(function(r) {
-      if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+      if (!dbOk(r)) return;
       toast('\u2705 Punto marcado como resuelto'); closeOv('ov-punto-detalle'); loadPendientes();
     });
   }, 'Resolver', 'var(--green)');
@@ -10248,7 +10269,7 @@ function eliminarPunto(id) {
   showConfirm('&#x1F5D1;', 'Eliminar punto crítico', '¿Eliminar este punto y todos sus controles?', function() {
     db.from('controles_punto').delete().eq('punto_id', id).then(function() {
       db.from('puntos_criticos').delete().eq('id', id).then(function(r) {
-        if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+        if (!dbOk(r)) return;
         toast('Eliminado'); closeOv('ov-punto-detalle'); loadPendientes();
       });
     });
@@ -11051,7 +11072,7 @@ function guardarPD() {
 
   op.then(function(r) {
     setLoading('btn-save-pd', false);
-    if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+    if (!dbOk(r)) return;
     toast('\u2713 Novedad ' + (id ? 'actualizada' : 'creada'));
     closeOv('ov-pd-edit');
     cargarPD();
@@ -11063,7 +11084,7 @@ function eliminarPD() {
   if (!id) return;
   showConfirm('&#x1F5D1;', 'Eliminar novedad', '\xBFEliminar esta novedad? Esta acci\xF3n no se puede deshacer.', function() {
     db.from('novedades').delete().eq('id', id).then(function(r) {
-      if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+      if (!dbOk(r)) return;
       toast('\u2713 Novedad eliminada');
       closeOv('ov-pd-edit');
       cargarPD();
@@ -11989,7 +12010,7 @@ function saveVehiculo() {
 function eliminarVehiculoAdmin(id, nombre) {
   showConfirm('🗑️', 'Eliminar vehículo', '¿Eliminar ' + nombre + ' del sistema? Esta acción no se puede deshacer.', function() {
     db.from('vehiculos').delete().eq('id', id).then(function(r) {
-      if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+      if (!dbOk(r)) return;
       toast('✓ Vehículo eliminado');
       loadVehiculosAdmin();
       cargarVehiculosEnSelectores();
@@ -12071,7 +12092,7 @@ function nuevoAgenteAdmin() {
 function eliminarAgenteAdmin(id, nombre) {
   showConfirm('&#x1F5D1;', 'Eliminar agente', '\xBFEliminar a ' + nombre + ' del sistema? Esta acci\xF3n no se puede deshacer.', function() {
     db.from('agentes').delete().eq('id', id).then(function(r) {
-      if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+      if (!dbOk(r)) return;
       toast('\u2713 ' + nombre + ' eliminado');
       loadAgentesAdmin();
       loadRRHH();
@@ -13490,7 +13511,7 @@ function loadPersonalHR() {
 function guardarTipoPersonal(nombre, tipo) {
   if (!tipo) return;
   db.from('personal_tipos').upsert({ nombre: nombre.trim(), tipo: tipo }, { onConflict: 'nombre' }).then(function(r) {
-    if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+    if (!dbOk(r)) return;
     toast('\u2713 ' + nombre.split(' ')[0] + ' → ' + tipo);
   });
 }
@@ -13541,7 +13562,7 @@ function marcarEstadoAgenda(id, estado, fecha) {
       var mapa = (r2.data && r2.data.estados_por_fecha) ? r2.data.estados_por_fecha : {};
       mapa[fecha] = estado;
       db.from('agenda_operativos').update({ estados_por_fecha: mapa }).eq('id', id).then(function(r) {
-        if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+        if (!dbOk(r)) return;
         toast(estado === 'realizado' ? '✓ Marcado como realizado' : '✕ Marcado como no realizado');
         loadAgenda();
       });
@@ -13549,7 +13570,7 @@ function marcarEstadoAgenda(id, estado, fecha) {
   } else {
     // Estado global (vista hoy/todos)
     db.from('agenda_operativos').update({ estado: estado }).eq('id', id).then(function(r) {
-      if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+      if (!dbOk(r)) return;
       toast(estado === 'realizado' ? '✓ Marcado como realizado' : '✕ Marcado como no realizado');
       loadAgenda();
     });
@@ -13705,7 +13726,7 @@ function suprimirAgenda(id, asunto) {
   if (!_puedeGestionAgenda()) { toast('Sin permiso', 'err'); return; }
   showConfirm('🗑', 'Suprimir operativo', '¿Eliminar "' + asunto + '" de la agenda? Esta acción no se puede deshacer.', function() {
     db.from('agenda_operativos').delete().eq('id', id).then(function(r) {
-      if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+      if (!dbOk(r)) return;
       toast('Operativo eliminado');
       loadAgenda();
     });
@@ -14330,7 +14351,7 @@ function _renderFichajeRow(fr, canSeeGeo) {
 function eliminarFichaje(fichajeId, nombre) {
   if (!confirm('¿Eliminar el fichaje de ' + nombre + '?\nEsta acción no se puede deshacer.')) return;
   db.from('fichajes').delete().eq('id', fichajeId).then(function(r) {
-    if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+    if (!dbOk(r)) return;
     toast('Fichaje eliminado — ' + nombre);
     loadFichajes();
   });
@@ -14498,7 +14519,7 @@ function guardarEditarFichaje() {
 
   db.from('fichajes').update(updates).eq('id', EF_ID).then(function(r) {
     setLoading('btn-save-ef', false);
-    if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+    if (!dbOk(r)) return;
 
     // Registrar en bitácora
     var detalle = 'Fichaje de ' + EF_AGENTE + ' editado. Entrada: ' + entEl.value + 'hs';
@@ -16092,7 +16113,7 @@ function guardarEdicionParada() {
     });
     db.from('rutas').update({ paradas: paradas }).eq('id', rutaId).then(function(r) {
       setLoading('btn-save-ep', false);
-      if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+      if (!dbOk(r)) return;
       closeOv('ov-editar-parada');
       toast('✅ Corrección guardada y registrada');
       loadChoferes();
@@ -16142,7 +16163,7 @@ function eliminarRuta(rutaId) {
   if (!USER || USER.rol !== 'ADMIN') { toast('Sin permiso', 'err'); return; }
   if (!confirm('¿Seguro que querés eliminar esta hoja de ruta? Esta acción no se puede deshacer.')) return;
   db.from('rutas').delete().eq('id', rutaId).then(function(r) {
-    if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+    if (!dbOk(r)) return;
     toast('🗑️ Hoja de ruta eliminada');
     loadChoferes();
     loadDash();
@@ -16504,7 +16525,7 @@ function marcarSalidaParada(rutaId, paradaIdx) {
     if (paradas[paradaIdx].hora_salida) { toast('Esta parada ya tiene salida registrada', 'err'); return; }
     paradas[paradaIdx].hora_salida = new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Argentina/Buenos_Aires'});
     db.from('rutas').update({ paradas: paradas }).eq('id', rutaId).then(function(r) {
-      if (r.error) { toast('Error al guardar: ' + r.error.message, 'err'); return; }
+      if (!dbOk(r, 'Error al guardar')) return;
       toast('🛑 Salida de ' + (paradas[paradaIdx].puesto || 'parada') + ' registrada');
       loadChoferes();
     });
@@ -16862,7 +16883,7 @@ function cargarHojasRutaImpresion() {
   var lista = document.getElementById('hr-imp-lista');
   if (lista) lista.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3)">Cargando...</div>';
   db.from('rutas').select('*').gte('inicio', desdeUTC).lte('inicio', hastaUTC).order('inicio', { ascending: true }).then(function(r) {
-    if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+    if (!dbOk(r)) return;
     var rutas = r.data || [];
     if (!lista) return;
     if (!rutas.length) {
@@ -21109,7 +21130,7 @@ function gpGuardar() {
         db.from('partes_diarios').update(payload).eq('id', parteId)
           .then(function(r) {
             if (btn) { btn.disabled = false; btn.textContent = '💾 Guardar Parte'; }
-            if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+            if (!dbOk(r)) return;
 
         // Actualizar parte_id + número visible en los registros de origen
         var nroDisplay = GP_STATE.nro + '/' + GP_STATE.anio;
@@ -21508,7 +21529,7 @@ function gpTogglePendiente() {
   var nuevoEstado = !PARTE_ACTUAL.pendiente;
   db.from('partes_diarios').update({ pendiente: nuevoEstado }).eq('id', PARTE_ACTUAL.id)
     .then(function(r) {
-      if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+      if (!dbOk(r)) return;
       PARTE_ACTUAL.pendiente = nuevoEstado;
       _gpRenderDetalle(PARTE_ACTUAL);
       toast(nuevoEstado ? 'Parte reabierto' : 'Parte cerrado ✓');
@@ -21883,7 +21904,7 @@ function pecGuardar() {
           db.from('partes_diarios').update(payload).eq('id', id)
             .then(function(r) {
               if (btn) { btn.disabled = false; btn.textContent = '💾 Guardar cambios'; }
-              if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+              if (!dbOk(r)) return;
               toast('✓ ' + tipo + ' actualizado correctamente', 'ok');
               closeOv('ov-parte-editar-completo');
               Object.assign(PARTE_ACTUAL, payload);
@@ -21935,7 +21956,7 @@ function gpEliminarParte() {
 
   db.from('partes_diarios').delete().eq('id', p.id)
     .then(function(r) {
-      if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+      if (!dbOk(r)) return;
       closeOv('ov-parte-detalle');
       PARTE_ACTUAL = null;
       toast('🗑 ' + p.tipo + ' ' + nroDisplay + ' eliminado definitivamente', 'ok');
@@ -23290,107 +23311,79 @@ function marcarAlertasDispositivosLeidas() {
 // ══════════════════════════════════════════════════════════════
 
 function confirmar(msg, callbackSi, labelSi, colorSi) {
-  var ov = document.createElement('div');
-  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
-  var modal = document.createElement('div');
-  modal.style.cssText = 'background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:320px;width:100%;text-align:center';
-  modal.innerHTML = '<div style="font-size:15px;font-weight:600;color:var(--white);margin-bottom:18px;line-height:1.5">' + msg + '</div>';
+  var o = mkOverlay('320px');
+  o.modal.style.textAlign = 'center';
+  o.modal.innerHTML = '<div style="font-size:15px;font-weight:600;color:var(--white);margin-bottom:18px;line-height:1.5">' + msg + '</div>';
   var btnSi = document.createElement('button');
   btnSi.className = 'btn-login';
   btnSi.style.cssText = 'width:100%;margin-bottom:8px;background:' + (colorSi || 'var(--red)');
   btnSi.textContent = labelSi || 'Confirmar';
-  btnSi.onclick = function() { document.body.removeChild(ov); callbackSi(); };
+  btnSi.onclick = function() { o.close(); callbackSi(); };
   var btnNo = document.createElement('button');
   btnNo.className = 'btn-login';
   btnNo.style.cssText = 'width:100%;background:var(--bg3);border:1px solid var(--border)';
   btnNo.textContent = 'Cancelar';
-  btnNo.onclick = function() { document.body.removeChild(ov); };
-  modal.appendChild(btnSi);
-  modal.appendChild(btnNo);
-  ov.appendChild(modal);
-  document.body.appendChild(ov);
+  btnNo.onclick = o.close;
+  o.modal.appendChild(btnSi);
+  o.modal.appendChild(btnNo);
+  document.body.appendChild(o.ov);
 }
 
 function editarNombreDispositivo(fingerprint, nombreActual) {
-  var ov = document.createElement('div');
-  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
-  var modal = document.createElement('div');
-  modal.style.cssText = 'background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:320px;width:100%';
-  modal.innerHTML = '<div style="font-size:15px;font-weight:700;color:var(--white);margin-bottom:14px">✏️ Nombre del dispositivo</div>';
+  var o = mkOverlay('320px');
+  o.modal.innerHTML = '<div style="font-size:15px;font-weight:700;color:var(--white);margin-bottom:14px">✏️ Nombre del dispositivo</div>';
   var inp = document.createElement('input');
-  inp.type = 'text';
-  inp.value = nombreActual || '';
+  inp.type = 'text'; inp.value = nombreActual || '';
   inp.placeholder = 'Ej: Celular Gomez, iPad Portería...';
   inp.className = 'form-input';
   inp.style.cssText = 'width:100%;box-sizing:border-box;margin-bottom:14px';
   var btnOk = document.createElement('button');
-  btnOk.className = 'btn-login';
-  btnOk.style.cssText = 'width:100%;margin-bottom:8px';
+  btnOk.className = 'btn-login'; btnOk.style.cssText = 'width:100%;margin-bottom:8px';
   btnOk.textContent = '✓ Guardar';
   btnOk.onclick = function() {
-    var nuevoNombre = inp.value.trim();
-    if (!nuevoNombre) { toast('Ingresá un nombre', 'err'); return; }
-    db.from('dispositivos_auth').update({ nombre_dispositivo: nuevoNombre }).eq('fingerprint', fingerprint).then(function(r) {
-      if (r.error) { toast('Error al guardar', 'err'); return; }
-      toast('Nombre guardado');
-      document.body.removeChild(ov);
-      cargarDispositivos();
+    var v = inp.value.trim();
+    if (!v) { toast('Ingresá un nombre', 'err'); return; }
+    db.from('dispositivos_auth').update({ nombre_dispositivo: v }).eq('fingerprint', fingerprint).then(function(r) {
+      if (!dbOk(r, 'Error al guardar')) return;
+      toast('Nombre guardado'); o.close(); cargarDispositivos();
     });
   };
   var btnCan = document.createElement('button');
-  btnCan.className = 'btn-login';
-  btnCan.style.cssText = 'width:100%;background:var(--bg3);border:1px solid var(--border)';
-  btnCan.textContent = 'Cancelar';
-  btnCan.onclick = function() { document.body.removeChild(ov); };
-  modal.appendChild(inp);
-  modal.appendChild(btnOk);
-  modal.appendChild(btnCan);
-  ov.appendChild(modal);
-  document.body.appendChild(ov);
+  btnCan.className = 'btn-login'; btnCan.style.cssText = 'width:100%;background:var(--bg3);border:1px solid var(--border)';
+  btnCan.textContent = 'Cancelar'; btnCan.onclick = o.close;
+  o.modal.appendChild(inp); o.modal.appendChild(btnOk); o.modal.appendChild(btnCan);
+  document.body.appendChild(o.ov);
   setTimeout(function() { inp.focus(); inp.select(); }, 100);
 }
 
 function abrirEditarAsuntoNovedad(novId, asuntoActual) {
-  var ov = document.createElement('div');
-  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
-  var modal = document.createElement('div');
-  modal.style.cssText = 'background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:24px;max-width:340px;width:100%';
-  modal.innerHTML = '<div style="font-size:15px;font-weight:700;color:var(--white);margin-bottom:6px">✏️ Editar asunto</div>' +
+  var o = mkOverlay('340px');
+  o.modal.innerHTML = '<div style="font-size:15px;font-weight:700;color:var(--white);margin-bottom:6px">✏️ Editar asunto</div>' +
     '<div style="font-size:12px;color:var(--text3);margin-bottom:14px">Solo se modifica el asunto, el resto de la novedad queda igual.</div>';
   var inp = document.createElement('input');
-  inp.type = 'text';
-  inp.value = asuntoActual || '';
-  inp.placeholder = 'Asunto de la novedad...';
-  inp.className = 'form-input';
+  inp.type = 'text'; inp.value = asuntoActual || '';
+  inp.placeholder = 'Asunto de la novedad...'; inp.className = 'form-input';
   inp.style.cssText = 'width:100%;box-sizing:border-box;margin-bottom:14px';
   var btnOk = document.createElement('button');
-  btnOk.className = 'btn-login';
-  btnOk.style.cssText = 'width:100%;margin-bottom:8px';
+  btnOk.className = 'btn-login'; btnOk.style.cssText = 'width:100%;margin-bottom:8px';
   btnOk.textContent = '✓ Guardar';
   btnOk.onclick = function() {
-    var nuevoAsunto = inp.value.trim();
-    if (!nuevoAsunto) { toast('El asunto no puede quedar vacío', 'err'); return; }
-    db.from('novedades').update({ asunto: nuevoAsunto }).eq('id', novId).then(function(r) {
-      if (r.error) { toast('Error al guardar: ' + r.error.message, 'err'); return; }
-      toast('Asunto actualizado');
-      document.body.removeChild(ov);
+    var v = inp.value.trim();
+    if (!v) { toast('El asunto no puede quedar vacío', 'err'); return; }
+    db.from('novedades').update({ asunto: v }).eq('id', novId).then(function(r) {
+      if (!dbOk(r, 'Error al guardar')) return;
+      toast('Asunto actualizado'); o.close();
       if (typeof loadNovedades === 'function') loadNovedades();
     });
   };
   var btnCan = document.createElement('button');
-  btnCan.className = 'btn-login';
-  btnCan.style.cssText = 'width:100%;background:var(--bg3);border:1px solid var(--border)';
-  btnCan.textContent = 'Cancelar';
-  btnCan.onclick = function() { document.body.removeChild(ov); };
-  modal.appendChild(inp);
-  modal.appendChild(btnOk);
-  modal.appendChild(btnCan);
-  ov.appendChild(modal);
-  document.body.appendChild(ov);
+  btnCan.className = 'btn-login'; btnCan.style.cssText = 'width:100%;background:var(--bg3);border:1px solid var(--border)';
+  btnCan.textContent = 'Cancelar'; btnCan.onclick = o.close;
+  o.modal.appendChild(inp); o.modal.appendChild(btnOk); o.modal.appendChild(btnCan);
+  document.body.appendChild(o.ov);
   setTimeout(function() { inp.focus(); inp.select(); }, 100);
 }
 
-// ══ HISTORIAL COMPLETO DE NOVEDADES — busqueda con filtros y paginacion ══
 var HN_PAGINA = 0;
 var HN_POR_PAGINA = 50;
 var HN_TOTAL = 0;
@@ -23935,7 +23928,7 @@ function guardarObsFichaje() {
   setLoading('btn-guardar-obsf', true);
   db.from('fichajes').update({ observaciones: texto || null }).eq('id', fichajeId).then(function(r) {
     setLoading('btn-guardar-obsf', false);
-    if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+    if (!dbOk(r)) return;
     toast('📝 Observación guardada');
     closeOv('ov-obs-fichaje');
     loadFichajes();
@@ -23962,7 +23955,7 @@ function confirmarSalidaTramite() {
     tramite_motivo: motivo || null
   }).eq('id', fichajeId).then(function(r) {
     setLoading('btn-confirmar-tramite', false);
-    if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+    if (!dbOk(r)) return;
     toast('🚪 Salida por trámite registrada');
     closeOv('ov-tramite-fichaje');
     loadFichajes();
@@ -23972,7 +23965,7 @@ function confirmarSalidaTramite() {
 function marcarRegresoTramite(fichajeId, agente) {
   showConfirm('🚶', 'Marcar regreso', '¿Confirmás que ' + agente + ' volvió al puesto?', function() {
     db.from('fichajes').update({ tramite_hasta: new Date().toISOString() }).eq('id', fichajeId).then(function(r) {
-      if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+      if (!dbOk(r)) return;
       toast('✅ ' + agente + ' de regreso en el puesto');
       loadFichajes();
     });
@@ -24782,7 +24775,7 @@ function marcarNoFichoSalida(fichajeId, nombreAgente) {
         cierre_admin: true,
         cerrado_por: USER.nombre || USER.puesto
       }).eq('id', fichajeId).then(function(r) {
-        if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+        if (!dbOk(r)) return;
         toast('\u2713 ' + nombreAgente + ' — marcado como "No fichó salida"');
         loadFichajes();
         loadDash();
@@ -25104,7 +25097,7 @@ function savePanolItem() {
       }
       db.from('panol_items').insert(payload).then(function(r) {
         setLoading('btn-save-panol-item', false);
-        if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+        if (!dbOk(r)) return;
         closeOv('ov-panol-item');
         toast('🔧 Ítem agregado al pañol');
         loadPanol();
@@ -25120,7 +25113,7 @@ function savePanolItem() {
       }
       db.from('panol_items').update(payload).eq('id', id).then(function(r) {
         setLoading('btn-save-panol-item', false);
-        if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+        if (!dbOk(r)) return;
         closeOv('ov-panol-item');
         toast('✓ Ítem actualizado');
         loadPanol();
@@ -25188,7 +25181,7 @@ function confirmarSacarPanol() {
     }
     db.from('panol_items').update(payload).eq('id', id).then(function(r) {
       setLoading('btn-save-panol-sacar', false);
-      if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+      if (!dbOk(r)) return;
       closeOv('ov-panol-sacar');
       toast('📤 Salida registrada');
       loadPanol();
@@ -25243,7 +25236,7 @@ function confirmarDevolverPanol() {
     }
     db.from('panol_items').update(payload).eq('id', id).then(function(r) {
       setLoading('btn-save-panol-devolver', false);
-      if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+      if (!dbOk(r)) return;
       closeOv('ov-panol-devolver');
       toast('📥 Devolución registrada');
       loadPanol();
@@ -25320,7 +25313,7 @@ function confirmarBajaPanol() {
       }
       db.from('panol_items').update(payload).eq('id', id).then(function(r) {
         setLoading('btn-save-panol-baja', false);
-        if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+        if (!dbOk(r)) return;
         closeOv('ov-panol-baja');
         toast('🗑 Baja registrada');
         loadPanol();
@@ -25566,7 +25559,7 @@ function guardarRelevamiento() {
     return op;
   }).then(function(r) {
     setLoading('btn-save-relev', false);
-    if (r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+    if (!dbOk(r)) return;
     closeOv('ov-relevamiento');
     for (var _reli2 = 0; _reli2 < RELEV_OBJURLS.length; _reli2++) { URL.revokeObjectURL(RELEV_OBJURLS[_reli2]); } RELEV_OBJURLS = [];
     RELEV_FOTOS = [];
