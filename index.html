@@ -1446,10 +1446,10 @@ body {
       <label class="form-label" style="color:var(--text3);font-size:11px;text-transform:uppercase;letter-spacing:.06em">&#x1F4F7; Fotos / Evidencia <span style="font-weight:400">(opcional)</span></label>
       <div id="foto-drop-zone" onclick="agregarFoto()" style="border:2px dashed var(--border2);border-radius:var(--radius-sm);padding:14px;text-align:center;cursor:pointer;background:var(--bg3)">
         <div style="font-size:24px;margin-bottom:4px">&#x1F4F7;</div>
-        <div style="font-size:13px;color:var(--text2);font-weight:600">Toc&#xE1; para agregar foto</div>
-        <div style="font-size:11px;color:var(--text3);margin-top:2px">C&#xE1;mara &#xB7; Galer&#xED;a</div>
+        <div style="font-size:13px;color:var(--text2);font-weight:600">Toc&#xE1; para agregar foto o PDF</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">C&#xE1;mara &#xB7; Galer&#xED;a &#xB7; PDF</div>
       </div>
-      <input type="file" id="foto-input" accept="image/*" style="display:none" onchange="fotoCapturada(this)">
+      <input type="file" id="foto-input" accept="image/*,application/pdf" style="display:none" onchange="fotoCapturada(this)">
       <div id="foto-preview" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"></div>
       <div id="btn-mas-foto" style="display:none;margin-top:8px">
         <button type="button" onclick="agregarFoto()" style="width:100%;padding:10px;border-radius:var(--radius-xs);border:1px dashed var(--border2);background:none;color:var(--accent3);font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer">+ Agregar otra foto</button>
@@ -7413,12 +7413,21 @@ function renderFotoPreview() {
     return;
   }
   wrap.innerHTML = FOTOS_PENDIENTES.map(function (f, i) {
-    return "\n<div style=\"position:relative;width:80px;height:80px;border-radius:8px;overflow:hidden;border:1px solid var(--border2)\">\n<img src=\"".concat(URL.createObjectURL(f), "\" style=\"width:100%;height:100%;object-fit:cover\">\n<button onclick=\"removeFoto(").concat(i, ")\" style=\"position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;border:none;background:rgba(0,0,0,.7);color:white;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center\">\xD7</button>\n</div>");
+    var esPDF = f.type === 'application/pdf';
+    var inner = esPDF
+      ? '<div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(239,68,68,.12);gap:2px"><span style="font-size:24px">\uD83D\uDCC4</span><span style="font-size:9px;color:var(--text2);font-weight:700;text-align:center;padding:0 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:74px">' + f.name + '</span></div>'
+      : '<img src="' + URL.createObjectURL(f) + '" style="width:100%;height:100%;object-fit:cover">';
+    return '\n<div style="position:relative;width:80px;height:80px;border-radius:8px;overflow:hidden;border:1px solid var(--border2)">' + inner + '<button onclick="removeFoto(' + i + ')" style="position:absolute;top:2px;right:2px;width:18px;height:18px;border-radius:50%;border:none;background:rgba(0,0,0,.7);color:white;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center">\xD7</button>\n</div>';
   }).join('');
   if (btnMas) btnMas.style.display = 'block';
   var dz = document.getElementById('foto-drop-zone');
   if (dz) {
-    dz.querySelector('div').textContent = 'OK ' + FOTOS_PENDIENTES.length + ' foto(s) agregada(s)';
+    var nFotos = FOTOS_PENDIENTES.filter(function(f){ return f.type !== 'application/pdf'; }).length;
+    var nPDFs  = FOTOS_PENDIENTES.filter(function(f){ return f.type === 'application/pdf'; }).length;
+    var partes = [];
+    if (nFotos) partes.push(nFotos + ' foto(s)');
+    if (nPDFs)  partes.push(nPDFs  + ' PDF(s)');
+    dz.querySelector('div').textContent = 'OK ' + partes.join(' · ') + ' agregado(s)';
   }
 }
 function removeFoto(idx) {
@@ -7427,7 +7436,7 @@ function removeFoto(idx) {
   if (!FOTOS_PENDIENTES.length) {
     var dz = document.getElementById('foto-drop-zone');
     if (dz) {
-      dz.querySelector('div').textContent = 'Tocá para agregar foto';
+      dz.querySelector('div').textContent = 'Tocá para agregar foto o PDF';
     }
   }
 }
@@ -10860,6 +10869,11 @@ function generarPreviewEditable() {
     if (n.fotos && Array.isArray(n.fotos)) fotos = fotos.concat(n.fotos);
     fotos.filter(Boolean).forEach(function(url) {
       if (!fotosMap[url]) {
+        // PDFs: no hay que convertir a base64, usamos la URL directa
+        if (url.toLowerCase().indexOf('.pdf') !== -1) {
+          fotosMap[url] = url;
+          return;
+        }
         fotosMap[url] = null;
         fotoPromises.push(fetch(url).then(function(r){return r.blob();}).then(function(b){
           return new Promise(function(res){
@@ -11510,11 +11524,20 @@ function construirHTMLEditablePreview(porPuesto, novedades, fotosMap, fechaDispl
       if (agentesDisplay) html += '<div class="nov-ag"><strong>Agente/s:</strong> ' + escapeHTML(agentesDisplay) + '</div>';
       if (n.responsable && n.agentes) html += '<div class="nov-ag" style="margin-top:4px"><strong>Resp. turno:</strong> ' + escapeHTML(n.responsable) + '</div>';
       if (fotosB64.length > 0) {
-        html += '<div class="fotos-wrap"><div class="fotos-lbl">Im\xE1genes <span class="fotos-hint" style="font-weight:400;text-transform:none;letter-spacing:0">(tild\xE1 las que quer\xE9s incluir en el informe final, clic para agrandar)</span></div><div class="fotos-grid">';
+        html += '<div class="fotos-wrap"><div class="fotos-lbl">Adjuntos <span class="fotos-hint" style="font-weight:400;text-transform:none;letter-spacing:0">(tild\xE1 los que quer\xE9s incluir en el informe final, clic para abrir)</span></div><div class="fotos-grid">';
         fotosB64.forEach(function(f, fi){
           var fid = 'fchk_' + n.id + '_' + fi;
+          var esPDF = f.u && f.u.toLowerCase().indexOf('.pdf') !== -1;
+          var nombrePDF = f.u ? f.u.split('/').pop().replace(/\?.*$/, '') : 'documento.pdf';
           html += '<div style="position:relative;display:inline-block">';
-          html += '<img class="foto-t" src="' + f.b + '" onclick="abrirFotoLightbox(\'' + f.u.replace(/'/g, "\\'") + '\')" style="cursor:zoom-in" data-foto-url="' + escapeHTML(f.u) + '">';
+          if (esPDF) {
+            html += '<a href="' + escapeHTML(f.u) + '" target="_blank" class="foto-t pdf-adjunto" data-foto-url="' + escapeHTML(f.u) + '" style="width:100px;height:75px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fff5f5;border:1.5px solid #fca5a5;border-radius:4px;text-decoration:none;gap:3px;padding:4px">'
+              + '<span style="font-size:22px">\uD83D\uDCC4</span>'
+              + '<span style="font-size:7pt;color:#991b1b;font-weight:700;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:90px">' + escapeHTML(nombrePDF) + '</span>'
+              + '</a>';
+          } else {
+            html += '<img class="foto-t" src="' + f.b + '" onclick="abrirFotoLightbox(\'' + f.u.replace(/'/g, "\\'") + '\')" style="cursor:zoom-in" data-foto-url="' + escapeHTML(f.u) + '">';
+          }
           html += '<label style="position:absolute;top:3px;left:3px;background:rgba(255,255,255,.95);border-radius:4px;padding:2px 4px;display:flex;align-items:center;gap:3px;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.3)">';
           html += '<input type="checkbox" id="' + fid + '" class="foto-incluir-chk" data-foto-url="' + escapeHTML(f.u) + '" checked style="width:13px;height:13px;cursor:pointer;margin:0">';
           html += '</label>';
@@ -11658,8 +11681,19 @@ function construirHTMLInforme(porPuesto, novedades, fotosMap, fechaDisplay, diaN
       html += '<div class="col2"><div class="nov-txt">' + escapeHTML(n.texto_informe || n.detalle || n.novedades || '\u2014') + '</div>';
       if (n.cargado_por) html += '<div class="nov-ag"><strong>Agente/s:</strong> ' + escapeHTML(n.cargado_por) + '</div>';
       if (fotosB64.length > 0) {
-        html += '<div class="fotos-wrap"><div class="fotos-lbl">&#x1F4F7; Im\xE1genes del informe</div><div class="fotos-grid">';
-        fotosB64.forEach(function(f, fi) { html += '<img class="foto-t" src="' + f.b + '" alt="Foto ' + (fi+1) + '" onclick="lb(' + (startIdx+fi) + ')">'; });
+        html += '<div class="fotos-wrap"><div class="fotos-lbl">&#x1F4CE; Adjuntos del informe</div><div class="fotos-grid">';
+        fotosB64.forEach(function(f, fi) {
+          var esPDF = f.u && f.u.toLowerCase().indexOf('.pdf') !== -1;
+          if (esPDF) {
+            var nombrePDF = f.u ? f.u.split('/').pop().replace(/\?.*$/, '') : 'documento.pdf';
+            html += '<a href="' + escapeHTML(f.u) + '" target="_blank" class="foto-t pdf-adjunto" style="width:100px;height:75px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fff5f5;border:1.5px solid #fca5a5;border-radius:4px;text-decoration:none;gap:3px;padding:4px">'
+              + '<span style="font-size:22px">\uD83D\uDCC4</span>'
+              + '<span style="font-size:7pt;color:#991b1b;font-weight:700;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:90px">' + escapeHTML(nombrePDF) + '</span>'
+              + '</a>';
+          } else {
+            html += '<img class="foto-t" src="' + f.b + '" alt="Foto ' + (fi+1) + '" onclick="lb(' + (startIdx+fi) + ')">';
+          }
+        });
         html += '</div></div>';
       }
       html += '</div>\n';
@@ -15033,7 +15067,7 @@ function _horaActualHHMM() {
 async function abrirNuevaNovedad() {
   // Reset form
   var tipoEl = document.getElementById('n-tipo');
-  if (tipoEl) tipoEl.value = 'Construcción indebida';
+  if (tipoEl) tipoEl.value = '';
   var otroWrap = document.getElementById('n-otro-wrap');
   if (otroWrap) otroWrap.style.display = 'none';
   var otroEl = document.getElementById('n-asunto-otro');
