@@ -11242,11 +11242,13 @@ function _ejecutarSincInforme(novItems, objItems, actCount, nuevasCount) {
     novItems.forEach(function(item) {
       var orig = novOrig[String(item.id)];
       if (!orig) return; // registro ya no existe — no crear nada
-      var txtOrig = (orig.texto_informe || orig.detalle || '\u2014').trim();
-      var obsOrig = (orig.observaciones || '').trim();
+      var txtOrig = (orig.texto_informe || orig.detalle || '\u2014').trim().replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\s+$/gm, '').trim();
+      var obsOrig = (orig.observaciones || '').trim().replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
+      var txtNuevo = (item.txt || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\s+$/gm, '').trim();
+      var obsNuevo = (item.obs || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
       var payload = {};
-      if (item.txt && item.txt !== txtOrig && item.txt !== '\u2014') payload.texto_informe = item.txt;
-      if (item.obs !== obsOrig) payload.observaciones = item.obs || null;
+      if (txtNuevo && txtNuevo !== txtOrig && txtNuevo !== '\u2014') payload.texto_informe = txtNuevo;
+      if (obsNuevo !== obsOrig) payload.observaciones = obsNuevo || null;
       if (Object.keys(payload).length) {
         cambiadas++;
         updates.push(db.from('novedades').update(payload).eq('id', item.id));
@@ -11256,10 +11258,11 @@ function _ejecutarSincInforme(novItems, objItems, actCount, nuevasCount) {
     objItems.forEach(function(item) {
       var orig = objOrig[String(item.id)];
       if (!orig) return;
-      var txtOrig = (orig.texto_informe || '').trim();
-      if (item.txt && item.txt !== txtOrig && item.txt !== '\u2014') {
+      var txtOrig = (orig.texto_informe || '').trim().replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\s+$/gm, '').trim();
+      var txtNuevo = (item.txt || '').replace(/\r\n/g, '\n').replace(/\r/g, '\n').replace(/\s+$/gm, '').trim();
+      if (txtNuevo && txtNuevo !== txtOrig && txtNuevo !== '\u2014') {
         cambiadas++;
-        updates.push(db.from('objetivos').update({ texto_informe: item.txt }).eq('id', item.id));
+        updates.push(db.from('objetivos').update({ texto_informe: txtNuevo }).eq('id', item.id));
       }
     });
 
@@ -24848,6 +24851,10 @@ function guardarBorradorInforme(silencioso) {
     if (r.data && r.data.id) {
       op = db.from('informes_borrador').update(payload).eq('id', r.data.id);
     } else {
+      payload.id = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r2 = Math.random() * 16 | 0;
+        return (c === 'x' ? r2 : (r2 & 0x3 | 0x8)).toString(16);
+      });
       op = db.from('informes_borrador').insert(payload);
     }
     op.then(function(res) {
