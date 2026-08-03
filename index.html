@@ -24342,33 +24342,39 @@ function guardarRetiroPrecintos() {
       var urlsOk = urls.filter(Boolean);
       if (!urlsOk.length) { setLoading('btn-prec-retirar', false); toast('No se pudieron subir las fotos', 'err'); return; }
       var sectoresAGuardar = PREC_RETIRO_MODO === 'todo' ? ['pasto', 'galpones'] : [PREC_RETIRO_MODO];
-      var inserts = sectoresAGuardar.map(function(s) {
-        return db.from('precintos').insert({
-          fecha: fechaHoyAR(),
-          sector: s,
-          item: null,
-          item_label: PREC_RETIRO_MODO === 'todo' ? 'Retiro general' : 'Retiro ' + s,
-          accion: 'retirar',
-          fotos: urlsOk,
-          agente: USER.nombre || USER.puesto,
-          created_at: new Date().toISOString()
-        });
-      });
-      Promise.all(inserts).then(function(resultados) {
-        setLoading('btn-prec-retirar', false);
-        var hayError = resultados.some(function(r) { return r && r.error; });
-        if (hayError) {
-          toast('Error al registrar el retiro en la base de datos', 'err');
+      var payload = {
+        fecha: fechaHoyAR(),
+        item: null,
+        accion: 'retirar',
+        fotos: urlsOk,
+        agente: USER.nombre || USER.puesto,
+        created_at: new Date().toISOString()
+      };
+      // Ejecutar inserts en secuencia para aislar errores por sector
+      function insertarSiguiente(idx) {
+        if (idx >= sectoresAGuardar.length) {
+          setLoading('btn-prec-retirar', false);
+          toast('\uD83D\uDD13 Retiro registrado');
+          PREC_RETIRO_FOTOS = [];
+          document.getElementById('prec-retiro-foto-prev').innerHTML = '';
+          loadPrecintos();
           return;
         }
-        toast('\uD83D\uDD13 Retiro registrado');
-        PREC_RETIRO_FOTOS = [];
-        document.getElementById('prec-retiro-foto-prev').innerHTML = '';
-        loadPrecintos();
-      }).catch(function(err) {
-        setLoading('btn-prec-retirar', false);
-        toast('Error al guardar el retiro: ' + (err && err.message ? err.message : 'desconocido'), 'err');
-      });
+        var sector = sectoresAGuardar[idx];
+        var row = Object.assign({}, payload, {
+          sector: sector,
+          item_label: PREC_RETIRO_MODO === 'todo' ? 'Retiro general' : 'Retiro ' + sector
+        });
+        db.from('precintos').insert(row).then(function(r) {
+          if (r.error) {
+            setLoading('btn-prec-retirar', false);
+            toast('Error retiro (' + sector + '): ' + r.error.message, 'err');
+            return;
+          }
+          insertarSiguiente(idx + 1);
+        });
+      }
+      insertarSiguiente(0);
     });
 }
 
