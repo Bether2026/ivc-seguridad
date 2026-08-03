@@ -6498,6 +6498,7 @@ document.addEventListener('visibilitychange', function() {
     else if (s === 'objetivos' && typeof loadObjetivos === 'function') loadObjetivos();
     else if (s === 'choferes'  && typeof loadChoferes  === 'function') loadChoferes();
     else if (s === 'llaves'    && typeof loadLlaves    === 'function') loadLlaves();
+    else if (s === 'precintos' && typeof loadPrecintos === 'function') loadPrecintos();
   } catch(e) {}
 });
 function toggleNovedad(id, clickedEl) {
@@ -7516,6 +7517,8 @@ function limpiarDraftNovedad() {
 
 function usarCamara(inputId) {
   guardarDraftNovedad();
+  // Guardar sección activa para restaurar si Android mata el WebView al abrir la cámara
+  try { sessionStorage.setItem('ivc_last_section', LAST_ACTIVE_SECTION || ''); } catch(e) {}
   var modal = document.getElementById('foto-selector-modal');
   if (modal) modal.remove();
   var input = document.getElementById(inputId);
@@ -7526,6 +7529,7 @@ function usarCamara(inputId) {
 }
 function usarGaleria(inputId) {
   guardarDraftNovedad();
+  try { sessionStorage.setItem('ivc_last_section', LAST_ACTIVE_SECTION || ''); } catch(e) {}
   var modal = document.getElementById('foto-selector-modal');
   if (modal) modal.remove();
   var input = document.getElementById(inputId);
@@ -24247,18 +24251,32 @@ function _renderRetiroFotos() {
   var wrap = document.getElementById('prec-retiro-foto-prev');
   if (!wrap) return;
   wrap.innerHTML = '';
+  // Revocar object URLs anteriores
+  if (window._precRetiroObjUrls) {
+    window._precRetiroObjUrls.forEach(function(u) { try { URL.revokeObjectURL(u); } catch(e) {} });
+  }
+  window._precRetiroObjUrls = [];
   PREC_RETIRO_FOTOS.forEach(function(f, idx) {
-    var div = document.createElement('div');
-    div.style.cssText = 'position:relative;width:72px;height:72px';
-    var img = document.createElement('img');
-    img.src = URL.createObjectURL(f);
-    img.style.cssText = 'width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--border2)';
-    var btn = document.createElement('button');
-    btn.textContent = '\u00d7';
-    btn.onclick = function() { precQuitarFotoRetiro(idx); };
-    btn.style.cssText = 'position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--red);color:#fff;border:none;font-size:13px;cursor:pointer';
-    div.appendChild(img); div.appendChild(btn);
-    wrap.appendChild(div);
+    try {
+      var objUrl = URL.createObjectURL(f);
+      window._precRetiroObjUrls.push(objUrl);
+      var div = document.createElement('div');
+      div.style.cssText = 'position:relative;width:72px;height:72px';
+      var img = document.createElement('img');
+      img.src = objUrl;
+      img.style.cssText = 'width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--border2)';
+      var btn = document.createElement('button');
+      btn.textContent = '\u00d7';
+      btn.onclick = function() { precQuitarFotoRetiro(idx); };
+      btn.style.cssText = 'position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--red);color:#fff;border:none;font-size:13px;cursor:pointer';
+      div.appendChild(img); div.appendChild(btn);
+      wrap.appendChild(div);
+    } catch(e) {
+      // File inválido (page reload mató el objeto) — limpiar array y salir
+      PREC_RETIRO_FOTOS = [];
+      wrap.innerHTML = '';
+      window._precRetiroObjUrls = [];
+    }
   });
 }
 
