@@ -4406,7 +4406,7 @@ body {
         <input type="checkbox" id="gp-imagenes" style="display:none"/>
         <input type="checkbox" id="gp-documentacion" style="display:none"/>
         <input type="checkbox" id="gp-fuerza" style="display:none"/>
-        <input type="checkbox" id="gp-pendiente" checked style="display:none"/>
+        <input type="checkbox" id="gp-pendiente" style="display:none"/>
 
         <!-- Subir fotos desde la computadora -->
         <div style="margin-bottom:14px">
@@ -4512,7 +4512,6 @@ body {
     <div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch" id="pd-detalle-body-nuevo"></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;padding-top:12px;border-top:1px solid var(--border)">
       <button onclick="gpEditarParteActual()" style="padding:8px 16px;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">✏️ Editar</button>
-      <button onclick="gpTogglePendiente()" id="btn-toggle-parte-estado" style="padding:8px 16px;border-radius:8px;border:1px solid rgba(34,197,94,.35);background:rgba(34,197,94,.08);color:#4ade80;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">✅ Cerrar parte</button>
       <!-- Solo ADMIN sistema -->
       <div id="btn-admin-parte" style="display:none;margin-left:auto;display:none;gap:6px">
         <button onclick="gpEditarCompleto()" style="padding:8px 16px;border-radius:8px;border:1px solid rgba(245,158,11,.4);background:rgba(245,158,11,.08);color:#fbbf24;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">🔧 Editar completo</button>
@@ -4584,7 +4583,6 @@ body {
         <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="pec-imagenes"/> Imágenes</label>
         <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="pec-documentacion"/> Documentación</label>
         <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="pec-fuerza"/> Fuerza Pública</label>
-        <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer"><input type="checkbox" id="pec-pendiente"/> Pendiente</label>
       </div>
     </div>
 
@@ -8087,7 +8085,7 @@ function _hashPassword() {
   return _hashPassword.apply(this, arguments);
 }
 var CREDS = {}; // Migrado a Supabase Auth — credenciales ya no viven en el codigo
-var AGENTES = ['ACOSTA PAMELA', 'ACUÑA EMANUEL FABIAN', 'ACUÑA JUAN FEDERICO', 'ACUÑA LUCAS OCTAVIO', 'AGUIRRE CARLA FLORENCIA', 'ALBANESE NICOLAS SEBASTIAN', 'ALBORNOZ JORGE ALEJANDRO', 'ALMEIDA ENRIQUE ROBERTO', 'ALVAREZ OZON NICOLAS MARCELO', 'APAZA ABRAHAM ESTEBAN', 'APUD MIGUEL OSCAR', 'ARMOA SANDRA ELIZABETH', 'ARROYO LAURA', 'AYBAR LEONEL MAXIMILIANO', 'BASTIAS EMANUEL DE DIOS', 'BECERRA MILAGROS VALENTINA', 'BRITOS JUAN ALBERTO', 'CAMARA MARIA CELESTE', 'CAMPOS ROXANA RUT', 'CARDOZO VERONICA MARIEL', 'CASTILLO ANGEL HERNAN', 'CASTILLO LUIS ANGEL', 'CASTRO CLAUDIO DAMIAN', 'CASTRO VICTOR HUGO', 'CONTE LUCAS EZEQUIEL', 'CRUCELI CARLOS GABRIEL', 'DE MARCO LEANDRO DANIEL', 'DEL COLLE DAMIAN EZEQUIEL', 'DEL COLLE GONZALO MARTIN', 'ELIAS GABRIEL', 'ELIAS RODRIGO', 'ESCOBAR VICTOR GABRIEL', 'GIMENEZ GREGORIO', 'GODOY MARTIN TOMAS', 'GOMEZ ANTONIO', 'GONZALEZ CLAUDIO MARCELO', 'GONZALEZ MARIANO', 'LAMADRID HORACIO DANIEL', 'LANDAETA VIELMA CARMENCITA', 'LOBOS RAFAEL ALEJANDRO', 'LOPEZ NESTOR GUSTAVO', 'LUACES JONATHAN RICARDO', 'MARTINEZ NOEMI KARINA', 'MEDINA RODRIGO SEBASTIAN', 'MELGAR ESTEBAN GUSTAVO', 'MENDEZ NARCISO MIGUEL', 'MIRANDA MIGUEL ALBERTO', 'MONTE FRANCISCO ALBERTO', 'MUCCI MARCELA', 'MUJICA IGNACIO JAVIER', 'NUÑEZ ALEXIS URIEL', 'NUÑEZ CLAUDIO DANIEL', 'OBELLA DANIEL FRANCO', 'ORENDE BRIAN NICOLAS', 'PALLADINO RICARDO ESTEBAN', 'PANDOLLO CAROLINA', 'PERAZZO WALTER DANIEL', 'PEREIRA MIGUEL RAFAEL', 'PEREZ TOUTOUNDJIAN FEDERICO NICOLAS', 'PEÑA OSCAR RAUL', 'PEÑA SERGIO ADRIAN', 'PEÑALOZA GASTON HERNAN', 'PILUSO MARCELO OSCAR', 'PILUSO URIEL', 'PRESTERA CHRISTIAN EDGAR', 'PRESTERA DIEGO GASTON', 'RESCHIGNA THIAGO', 'RIVEROS VEGA LEANDRO', 'ROCA JOSE LUIS', 'RODRIGUEZ MONTES DE OCA CRISTIAN EDUARDO', 'SANTILLAN HUMBERTO', 'SELVA ADRIANA BEATRIZ', 'SOSA FACUNDO URIEL', 'TALLARICO MARIANA LAURA', 'TOKAYUK CHRISTIAN PABLO', 'VALDEZ JORGE ALBERTO', 'VALDEZ NADIA SABRINA', 'VIEIRA HECTOR AUGUSTO', 'YALEVA CARLOS'];
+var AGENTES = ['ACOSTA PAMELA', 'ACUÑA EMANUEL FABIAN', 'ACUÑA JUAN FEDERICO', 'ACUÑA LUCAS OCTAVIO', 'AGUIRRE CARLA FLORENCIA', 'ALBANESE NICOLAS SEBASTIAN', 'ALBORNOZ JORGE ALEJANDRO', 'ALMEIDA ENRIQUE ROBERTO', 'ALVAREZ OZON NICOLAS MARCELO', 'APAZA ABRAHAM ESTEBAN', 'APUD MIGUEL OSCAR', 'ARMOA SANDRA ELIZABETH', 'ARROYO LAURA', 'AYBAR LEONEL MAXIMILIANO', 'BASTIAS EMANUEL DE DIOS', 'BECERRA MILAGROS VALENTINA', 'BRITOS JUAN ALBERTO', 'CAMARA MARIA CELESTE', 'CAMPOS ROXANA RUT', 'CARDOZO VERONICA MARIEL', 'CASTILLO ANGEL HERNAN', 'CASTILLO LUIS ANGEL', 'CASTRO CLAUDIO DAMIAN', 'CASTRO VICTOR HUGO', 'CONTE LUCAS EZEQUIEL', 'CRUCELI CARLOS GABRIEL', 'DE MARCO LEANDRO DANIEL', 'DEL COLLE DAMIAN EZEQUIEL', 'DEL COLLE GONZALO MARTIN', 'ELIAS GABRIEL', 'ELIAS RODRIGO', 'ESCOBAR VICTOR GABRIEL', 'GIMENEZ GREGORIO', 'GODOY MARTIN TOMAS', 'GOMEZ ANTONIO', 'GONZALEZ CLAUDIO MARCELO', 'GONZALEZ MARIANO', 'LAMADRID HORACIO DANIEL', 'LANDAETA VIELMA CARMENCITA', 'LOBOS RAFAEL ALEJANDRO', 'LOPEZ NESTOR GUSTAVO', 'LUACES JONATHAN RICARDO', 'MARTINEZ NOEMI KARINA', 'MEDINA RODRIGO SEBASTIAN', 'MELGAR ESTEBAN GUSTAVO', 'MENDEZ NARCISO MIGUEL', 'MIRANDA MIGUEL ALBERTO', 'MONTE FRANCISCO ALBERTO', 'MUCCI MARCELA', 'MUJICA IGNACIO JAVIER', 'NUÑEZ ALEXIS URIEL', 'NUÑEZ CLAUDIO DANIEL', 'OBELLA DANIEL FRANCO', 'ORENDE BRIAN NICOLAS', 'PALLADINO RICARDO ESTEBAN', 'PANDULLO CAROLINA MARIEL', 'PERAZZO WALTER DANIEL', 'PEREIRA MIGUEL RAFAEL', 'PEREZ TOUTOUNDJIAN FEDERICO NICOLAS', 'PEÑA OSCAR RAUL', 'PEÑA SERGIO ADRIAN', 'PEÑALOZA GASTON HERNAN', 'PILUSO MARCELO OSCAR', 'PILUSO URIEL', 'PRESTERA CHRISTIAN EDGAR', 'PRESTERA DIEGO GASTON', 'RESCHIGNA THIAGO', 'RIVEROS VEGA LEANDRO', 'ROCA JOSE LUIS', 'RODRIGUEZ MONTES DE OCA CRISTIAN EDUARDO', 'SANTILLAN HUMBERTO', 'SELVA ADRIANA BEATRIZ', 'SOSA FACUNDO URIEL', 'TALLARICO MARIANA LAURA', 'TOKAYUK CHRISTIAN PABLO', 'VALDEZ JORGE ALBERTO', 'VALDEZ NADIA SABRINA', 'VIEIRA HECTOR AUGUSTO', 'YALEVA CARLOS'];
 var USER = null;
 var CUR_VIEW = 'dashboard';
 var CUR_NOV_TAB = 'todas';
@@ -11542,7 +11540,7 @@ function construirHTMLEditablePreview(porPuesto, novedades, fotosMap, fechaDispl
       if (n.nro_pd) html += '<div style="font-size:8pt;font-weight:700;color:#2563eb;margin-top:3px">PD N\xB0 ' + escapeHTML(String(n.nro_pd)) + '</div>';
       if (n.nro_pu) html += '<div style="font-size:8pt;font-weight:700;color:#7c3aed;margin-top:2px">PU N\xB0 ' + escapeHTML(String(n.nro_pu)) + '</div>';
       if (n.fuerza_publica) html += '<span class="badge-fp">Fuerza P&uacute;blica</span>';
-      if (n.pendiente) html += '<span class="badge-fp" style="background:#fef3c7;color:#92400e;border-color:#fcd34d">Pendiente</span>';
+
       html += '</div>\n';
       html += '<div class="col2"><div class="nov-txt" contenteditable="true">' + escapeHTML(n.texto_informe || '\u2014') + '</div>';
       var agentesDisplay = n.agentes || n.responsable || n.cargado_por || '';
@@ -20711,7 +20709,7 @@ function _gpAbrirModal(tipoForzado) {
   ['gp-imagenes','gp-documentacion','gp-fuerza'].forEach(function(id) {
     var el = document.getElementById(id); if (el) el.checked = false;
   });
-  var pend = document.getElementById('gp-pendiente'); if (pend) pend.checked = true;
+  // pendiente eliminado
 
   openOv('ov-generar-parte');
 
@@ -21107,7 +21105,7 @@ function gpGuardar() {
     imagenes:          document.getElementById('gp-imagenes').checked,
     documentacion:     document.getElementById('gp-documentacion').checked,
     fuerza_publica:    document.getElementById('gp-fuerza').checked,
-    pendiente:         document.getElementById('gp-pendiente').checked,
+    pendiente: false,
     textos_originales: textosOriginales,
     novedad_ids:       novIds,
     objetivo_ids:      objIds,
@@ -21439,10 +21437,6 @@ function _gpRenderDetalle(p) {
   var body   = document.getElementById('pd-detalle-body-nuevo');
   var btnEst = document.getElementById('btn-toggle-parte-estado');
   if (titulo) titulo.textContent = (esPU ? '⚠️' : '📋') + ' ' + p.tipo + ' ' + nroDisplay;
-  if (btnEst) {
-    btnEst.textContent = p.pendiente ? '✅ Marcar cerrado' : '🔄 Reabrir';
-    btnEst.style.display = (p.estado === 'anulado' || p.estado === 'borrador') ? 'none' : 'inline-flex';
-  }
   _gpActualizarBotonesAdmin();
 
   var h = '';
@@ -21450,7 +21444,6 @@ function _gpRenderDetalle(p) {
   // Header info
   h += '<div style="background:var(--bg3);border-radius:10px;padding:12px 14px;margin-bottom:14px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">';
   h += '<div><span style="color:var(--text3)">Fecha</span><br><strong>' + fechaStr + (p.hora ? ' ' + p.hora : '') + '</strong></div>';
-  h += '<div><span style="color:var(--text3)">Estado</span><br><strong style="color:' + (p.pendiente?'#fcd34d':'#4ade80') + '">' + (p.pendiente?'Pendiente':'Cerrado') + '</strong></div>';
   if (p.responsable_turno) h += '<div><span style="color:var(--text3)">Responsable de turno</span><br><strong>' + p.responsable_turno + '</strong></div>';
   if (p.administrativo)   h += '<div><span style="color:var(--text3)">Administrativo</span><br><strong>' + p.administrativo + '</strong></div>';
   if (p.agentes)          h += '<div style="grid-column:1/-1"><span style="color:var(--text3)">Agentes intervinientes</span><br><strong>' + p.agentes + '</strong></div>';
@@ -21535,22 +21528,6 @@ function _gpRenderDetalle(p) {
 }
 
 // ── Toggle pendiente ──────────────────────────────────────────
-function gpTogglePendiente() {
-  if (!PARTE_ACTUAL) return;
-  var nuevoEstado = !PARTE_ACTUAL.pendiente;
-  db.from('partes_diarios').update({ pendiente: nuevoEstado }).eq('id', PARTE_ACTUAL.id)
-    .then(function(r) {
-      if (!dbOk(r)) return;
-      PARTE_ACTUAL.pendiente = nuevoEstado;
-      _gpRenderDetalle(PARTE_ACTUAL);
-      toast(nuevoEstado ? 'Parte reabierto' : 'Parte cerrado ✓');
-      // Re-sincronizar número en novedades/objetivos vinculados
-      _gpSincronizarNroOrigen(PARTE_ACTUAL);
-      load48hs();
-      if (typeof pdpu48hCargar === 'function') pdpu48hCargar();
-    });
-}
-
 // Sincroniza el nro display en las novedades/objetivos vinculados al parte
 function _gpSincronizarNroOrigen(p) {
   if (!p || p.estado !== 'activo') return;
@@ -21606,7 +21583,7 @@ function gpEditarParteActual() {
   document.getElementById('gp-imagenes').checked    = !!PARTE_ACTUAL.imagenes;
   document.getElementById('gp-documentacion').checked = !!PARTE_ACTUAL.documentacion;
   document.getElementById('gp-fuerza').checked      = !!PARTE_ACTUAL.fuerza_publica;
-  document.getElementById('gp-pendiente').checked   = !!PARTE_ACTUAL.pendiente;
+  // pendiente eliminado
 
   _gpCargarPersonal();
   _gpRenderTextosOriginales();
@@ -21817,7 +21794,7 @@ function gpEditarCompleto() {
   document.getElementById('pec-imagenes').checked    = !!p.imagenes;
   document.getElementById('pec-documentacion').checked = !!p.documentacion;
   document.getElementById('pec-fuerza').checked      = !!p.fuerza_publica;
-  document.getElementById('pec-pendiente').checked   = !!p.pendiente;
+  // pendiente eliminado
 
   document.getElementById('pec-titulo').textContent = '🔧 Editar ' + p.tipo + ' ' + p.nro_pd + '/' + p.anio;
   document.getElementById('pec-nro-status').style.display = 'none';
@@ -21898,7 +21875,7 @@ function pecGuardar() {
         imagenes:         document.getElementById('pec-imagenes').checked || fotasFinales.length > 0,
         documentacion:    document.getElementById('pec-documentacion').checked,
         fuerza_publica:   document.getElementById('pec-fuerza').checked,
-        pendiente:        document.getElementById('pec-pendiente').checked,
+        pendiente: false,
         fotos:            fotasFinales,
         updated_at:       new Date().toISOString()
       };
