@@ -2588,7 +2588,7 @@ body {
             <button class="tab active" onclick="precRetirarModo('todo')" id="prec-ret-todo-btn" style="width:100%;text-align:center;margin-bottom:12px">📦 Todo junto</button>
             <div id="prec-retiro-fotos-wrap">
               <label class="form-label">Foto(s) de los precintos retirados <span style="color:var(--red)">*</span></label>
-              <div onclick="abrirSelectorFoto('prec-retiro-foto-input')" style="border:2px dashed var(--border2);border-radius:var(--radius-sm);padding:14px;text-align:center;cursor:pointer;background:var(--bg3)">
+              <div onclick="window._camaraAbierta=true; abrirSelectorFoto('prec-retiro-foto-input')" style="border:2px dashed var(--border2);border-radius:var(--radius-sm);padding:14px;text-align:center;cursor:pointer;background:var(--bg3)">
                 <div style="font-size:22px;margin-bottom:4px">📷</div>
                 <div style="font-size:13px;color:var(--text2)">Agregar foto(s)</div>
               </div>
@@ -7517,24 +7517,43 @@ function limpiarDraftNovedad() {
 
 function usarCamara(inputId) {
   guardarDraftNovedad();
-  // Guardar sección activa para restaurar si Android mata el WebView al abrir la cámara
   try { sessionStorage.setItem('ivc_last_section', LAST_ACTIVE_SECTION || ''); } catch(e) {}
+  window._camaraAbierta = true; // proteger contra reload del SW mientras la cámara está activa
   var modal = document.getElementById('foto-selector-modal');
   if (modal) modal.remove();
   var input = document.getElementById(inputId);
-  if (!input) return;
+  if (!input) { window._camaraAbierta = false; return; }
   input.setAttribute('capture', 'environment');
+  // Marcar cámara como cerrada cuando el input recibe los archivos o pierde el foco
+  var _onCamDone = function() {
+    window._camaraAbierta = false;
+    input.removeEventListener('change', _onCamDone);
+    input.removeEventListener('cancel', _onCamDone);
+  };
+  input.addEventListener('change', _onCamDone);
+  input.addEventListener('cancel', _onCamDone);
+  // Fallback: si en 60s no hubo respuesta, liberar el flag igual
+  setTimeout(function() { window._camaraAbierta = false; }, 60000);
   input.click();
   setTimeout(function() { input.removeAttribute('capture'); }, 500);
 }
 function usarGaleria(inputId) {
   guardarDraftNovedad();
   try { sessionStorage.setItem('ivc_last_section', LAST_ACTIVE_SECTION || ''); } catch(e) {}
+  window._camaraAbierta = true;
   var modal = document.getElementById('foto-selector-modal');
   if (modal) modal.remove();
   var input = document.getElementById(inputId);
-  if (!input) return;
+  if (!input) { window._camaraAbierta = false; return; }
   input.removeAttribute('capture');
+  var _onGalDone = function() {
+    window._camaraAbierta = false;
+    input.removeEventListener('change', _onGalDone);
+    input.removeEventListener('cancel', _onGalDone);
+  };
+  input.addEventListener('change', _onGalDone);
+  input.addEventListener('cancel', _onGalDone);
+  setTimeout(function() { window._camaraAbierta = false; }, 60000);
   input.click();
 }
 function limpiarFoto(inputId, previewId) {
@@ -20301,7 +20320,12 @@ if ('serviceWorker' in navigator) {
     reg.update().catch(function() {});
     document.addEventListener('visibilitychange', function() {
       if (document.visibilityState === 'visible') {
-        reg.update().catch(function() {});
+        window._volviDeBackground = Date.now(); // trackear cuándo volvemos
+        // Solo chequear updates si pasaron más de 8s desde que volvimos del background
+        // Esto evita que volver de la cámara dispare un reg.update() que active un nuevo SW
+        setTimeout(function() {
+          reg.update().catch(function() {});
+        }, 8000);
       }
     });
     // Subscribe to push server if permission granted
@@ -20315,8 +20339,12 @@ if ('serviceWorker' in navigator) {
   // Cuando el Service Worker activa una versión nueva, recarga la página
   // automáticamente — soluciona dispositivos atascados con HTML viejo en
   // memoria sin que el usuario tenga que cerrar y reabrir la app a mano.
+  // PROTECCIÓN: no recargar si el usuario está usando la cámara o acaba de volver
+  // del background (≤8s) — evita que abrir la cámara reinicie la app en Android.
   navigator.serviceWorker.addEventListener('message', function(event) {
     if (event.data && event.data.type === 'SW_UPDATED_RELOAD') {
+      if (window._camaraAbierta) return; // cámara activa: diferir
+      if (window._volviDeBackground && (Date.now() - window._volviDeBackground) < 8000) return;
       window.location.reload();
     }
   });
@@ -20325,6 +20353,13 @@ if ('serviceWorker' in navigator) {
   var _swReloaded = false;
   navigator.serviceWorker.addEventListener('controllerchange', function() {
     if (_swReloaded) return;
+    if (window._camaraAbierta) { // diferir hasta que cierre la cámara
+      var _waitCam = setInterval(function() {
+        if (!window._camaraAbierta) { clearInterval(_waitCam); _swReloaded = true; window.location.reload(); }
+      }, 2000);
+      return;
+    }
+    if (window._volviDeBackground && (Date.now() - window._volviDeBackground) < 8000) return;
     _swReloaded = true;
     window.location.reload();
   });
@@ -24246,6 +24281,7 @@ function precRetirarModo(modo) {
 }
 
 function precPreviewRetiro(input) {
+  window._camaraAbierta = false; // ya volvimos de la cámara
   var nuevos = Array.prototype.slice.call(input.files || []);
   if (!nuevos.length) return;
   PREC_RETIRO_FOTOS = PREC_RETIRO_FOTOS.concat(nuevos);
