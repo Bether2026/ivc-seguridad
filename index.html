@@ -24109,16 +24109,13 @@ var PREC_RETIRO_MODO = 'todo';
 var PREC_RETIRO_FOTOS = [];
 
 function loadPrecintos() {
-  // Traemos los últimos registros (no solo los de hoy) para que el estado
-  // refleje el ÚLTIMO movimiento: si el último fue una colocación, queda
-  // colocado aunque haya sido hace días, hasta que se registre un retiro.
   db.from('precintos').select('*').order('created_at', { ascending: false }).limit(200).then(function(r) {
     if (r.error) {
       var el = document.getElementById('prec-resumen-hoy');
-      if (el) el.innerHTML = '<div style="padding:12px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:8px;font-size:12px;color:#fca5a5">⚠️ Error al cargar precintos: ' + r.error.message + '<br><span style="font-size:11px;color:var(--text3)">Verificá que la tabla "precintos" exista en Supabase (ejecutá el SQL que se generó al crear el módulo).</span></div>';
+      if (el) el.innerHTML = '<div style="padding:12px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:8px;font-size:12px;color:#fca5a5">\u26a0\ufe0f Error al cargar precintos: ' + r.error.message + '</div>';
       return;
     }
-    PREC_HOY_CACHE = (r.data || []);
+    PREC_HOY_CACHE = r.data || [];
     _renderResumenPrecintosHoy();
     if (document.getElementById('prec-zona-colocar').style.display !== 'none') {
       _renderZonaColocar('pasto');
@@ -24132,8 +24129,6 @@ function precMainTab(tab, btn) {
   btn.classList.add('active');
   document.getElementById('prec-panel-hoy').style.display = tab === 'hoy' ? 'block' : 'none';
   document.getElementById('prec-panel-historial').style.display = tab === 'historial' ? 'block' : 'none';
-  // Al entrar al historial, cargar TODO automáticamente (sin filtro de fecha).
-  // El usuario puede después completar las fechas para filtrar.
   if (tab === 'historial') buscarHistorialPrecintos();
 }
 
@@ -24152,15 +24147,17 @@ function precSelZona(accion, zona) {
   var otraZona = zona === 'pasto' ? 'galpones' : 'pasto';
   var elZona = document.getElementById('prec-colocar-' + zona);
   var elOtra = document.getElementById('prec-colocar-' + otraZona);
+  if (!elZona) return;
   var abierta = elZona.style.display !== 'none';
   elZona.style.display = abierta ? 'none' : 'block';
-  elOtra.style.display = 'none';
-  document.getElementById('prec-sub-pasto-btn').classList.toggle('active', zona === 'pasto' && !abierta);
-  document.getElementById('prec-sub-galpones-btn').classList.toggle('active', zona === 'galpones' && !abierta);
+  if (elOtra) elOtra.style.display = 'none';
+  var btnPasto = document.getElementById('prec-sub-pasto-btn');
+  var btnGalp  = document.getElementById('prec-sub-galpones-btn');
+  if (btnPasto) btnPasto.classList.toggle('active', zona === 'pasto' && !abierta);
+  if (btnGalp)  btnGalp.classList.toggle('active', zona === 'galpones' && !abierta);
 }
 
 function _estadoItemHoy(zona, itemId) {
-  // Busca la última colocación de este item
   var ultC = 0, regC = null, ultR = 0, ultRetiroGeneral = 0;
   PREC_HOY_CACHE.forEach(function(p) {
     if (p.sector !== zona) return;
@@ -24171,15 +24168,13 @@ function _estadoItemHoy(zona, itemId) {
     if (p.accion === 'retirar' && t > ultR) ultR = t;
   });
   if (!regC) return null;
-  // colocado actualmente si el último colocar es posterior a su retiro y al retiro general
   return (ultC > ultR && ultC > ultRetiroGeneral) ? regC : null;
 }
 
 function _renderZonaColocar(zona) {
-  // Revocar object URLs anteriores de esta zona para evitar memory leak
+  // Revocar object URLs anteriores para evitar memory leak
   if (!window._precObjectUrls) window._precObjectUrls = {};
-  var prevUrls = window._precObjectUrls[zona] || [];
-  prevUrls.forEach(function(u) { try { URL.revokeObjectURL(u); } catch(e){} });
+  (window._precObjectUrls[zona] || []).forEach(function(u) { try { URL.revokeObjectURL(u); } catch(e) {} });
   window._precObjectUrls[zona] = [];
 
   var items = zona === 'pasto' ? PREC_ITEMS_PASTO : PREC_ITEMS_GALPONES;
@@ -24201,17 +24196,23 @@ function _renderZonaColocar(zona) {
       fotosPend.forEach(function(f, idx) {
         var objUrl = URL.createObjectURL(f);
         window._precObjectUrls[zona].push(objUrl);
-        html += '<div style="position:relative;width:60px;height:60px"><img src="' + objUrl + '" style="width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid var(--border2)"><button onclick="precQuitarFoto(\'' + key + '\',' + idx + ')" style="position:absolute;top:-5px;right:-5px;width:18px;height:18px;border-radius:50%;background:var(--red);color:#fff;border:none;font-size:11px;cursor:pointer">\u00d7</button></div>';
+        html += '<div style="position:relative;width:60px;height:60px">'
+          + '<img src="' + objUrl + '" style="width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid var(--border2)">'
+          + '<button onclick="precQuitarFoto(\'' + key + '\',' + idx + ')" style="position:absolute;top:-5px;right:-5px;width:18px;height:18px;border-radius:50%;background:var(--red);color:#fff;border:none;font-size:11px;cursor:pointer">\u00d7</button>'
+          + '</div>';
       });
       html += '</div>';
       html += '<div style="display:flex;gap:8px">';
       html += '<button class="btn-sm" onclick="precAgregarFoto(\'' + key + '\')" style="flex:1">\uD83D\uDCF7 Agregar foto</button>';
-      if (fotosPend.length) html += '<button class="btn-sm" onclick="precGuardarItem(\'' + zona + '\',\'' + it.id + '\',\'' + it.label.replace(/'/g,"\\'") + '\')" style="flex:1;background:rgba(34,197,94,.15);border-color:rgba(34,197,94,.4);color:#4ade80">\u2713 Confirmar</button>';
+      if (fotosPend.length) {
+        var labelEsc = it.label.replace(/'/g, "\\'");
+        html += '<button class="btn-sm" id="prec-confirm-' + key + '" onclick="precGuardarItem(\'' + zona + '\',\'' + it.id + '\',\'' + labelEsc + '\')" style="flex:1;background:rgba(34,197,94,.15);border-color:rgba(34,197,94,.4);color:#4ade80">\u2713 Confirmar</button>';
+      }
       html += '</div>';
     } else if (yaHecho.fotos && yaHecho.fotos.length) {
       html += '<div style="display:flex;gap:6px;flex-wrap:wrap">';
       yaHecho.fotos.forEach(function(url) {
-        html += '<img src="' + url + '" onclick="abrirFotoLightbox(\'' + url + '\')" style="width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid var(--border2);cursor:zoom-in">';
+        html += '<img src="' + url + '" loading="lazy" onclick="abrirFotoLightbox(\'' + url + '\')" style="width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid var(--border2);cursor:zoom-in">';
       });
       html += '</div>';
     }
@@ -24222,26 +24223,39 @@ function _renderZonaColocar(zona) {
 }
 
 function precAgregarFoto(key) {
-  // El input DEBE estar en el DOM para que iOS/Safari lo abra correctamente
+  // Input en el DOM — iOS/Safari requiere esto para abrir el picker
   var old = document.getElementById('_prec_input_temp');
   if (old) old.remove();
-  var inputTemp = document.createElement('input');
-  inputTemp.id = '_prec_input_temp';
-  inputTemp.type = 'file';
-  inputTemp.accept = 'image/*';
-  inputTemp.multiple = true;
-  inputTemp.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0';
-  document.body.appendChild(inputTemp);
-  inputTemp.onchange = function() {
-    var nuevos = Array.prototype.slice.call(inputTemp.files || []);
-    inputTemp.remove();
+  var inp = document.createElement('input');
+  inp.id = '_prec_input_temp';
+  inp.type = 'file';
+  inp.accept = 'image/*';
+  inp.multiple = true;
+  inp.style.cssText = 'position:fixed;top:-9999px;left:-9999px;opacity:0';
+  document.body.appendChild(inp);
+  window._camaraAbierta = true; // proteger contra SW reload
+  var done = function() {
+    window._camaraAbierta = false;
+    inp.removeEventListener('change', onChg);
+    inp.removeEventListener('cancel', onCancel);
+  };
+  var onChg = function() {
+    done();
+    var nuevos = Array.prototype.slice.call(inp.files || []);
+    if (inp.parentNode) inp.parentNode.removeChild(inp);
     if (!nuevos.length) return;
     if (!PREC_FOTOS_PENDIENTES[key]) PREC_FOTOS_PENDIENTES[key] = [];
     PREC_FOTOS_PENDIENTES[key] = PREC_FOTOS_PENDIENTES[key].concat(nuevos);
-    var zona = key.split('_')[0];
-    _renderZonaColocar(zona);
+    _renderZonaColocar(key.split('_')[0]);
   };
-  inputTemp.click();
+  var onCancel = function() {
+    done();
+    if (inp.parentNode) inp.parentNode.removeChild(inp);
+  };
+  inp.addEventListener('change', onChg);
+  inp.addEventListener('cancel', onCancel);
+  setTimeout(function() { window._camaraAbierta = false; }, 60000); // fallback
+  inp.click();
 }
 
 function precQuitarFoto(key, idx) {
@@ -24253,14 +24267,18 @@ function precGuardarItem(zona, itemId, itemLabel) {
   var key = zona + '_' + itemId;
   var fotos = PREC_FOTOS_PENDIENTES[key] || [];
   if (!fotos.length) { toast('Agreg\u00e1 al menos una foto', 'err'); return; }
-  // Protección contra doble-tap: deshabilitar el botón confirmar
-  var btnConfirmar = document.querySelector('[onclick*="precGuardarItem(\'' + zona + '\',\'' + itemId + '\'"]');
+  var btnConfirmar = document.getElementById('prec-confirm-' + key);
   if (btnConfirmar) { btnConfirmar.disabled = true; btnConfirmar.textContent = 'Subiendo...'; }
   toast('Subiendo foto(s)...', 'info');
+  var agente = (USER && (USER.nombre || USER.email || USER.puesto)) || 'Desconocido';
   Promise.all(fotos.map(function(f) { return uploadToR2Comprimido(f, 'precintos').catch(function() { return null; }); }))
     .then(function(urls) {
       var urlsOk = urls.filter(Boolean);
-      if (!urlsOk.length) { toast('No se pudieron subir las fotos', 'err'); return; }
+      if (!urlsOk.length) {
+        if (btnConfirmar) { btnConfirmar.disabled = false; btnConfirmar.textContent = '\u2713 Confirmar'; }
+        toast('No se pudieron subir las fotos', 'err');
+        return;
+      }
       db.from('precintos').insert({
         fecha: fechaHoyAR(),
         sector: zona,
@@ -24268,10 +24286,13 @@ function precGuardarItem(zona, itemId, itemLabel) {
         item_label: itemLabel,
         accion: 'colocar',
         fotos: urlsOk,
-        agente: USER.nombre || USER.puesto,
-        created_at: new Date().toISOString()
+        agente: agente
       }).then(function(res) {
-        if (res.error) { toast('Error: ' + res.error.message, 'err'); return; }
+        if (res.error) {
+          if (btnConfirmar) { btnConfirmar.disabled = false; btnConfirmar.textContent = '\u2713 Confirmar'; }
+          toast('Error al guardar: ' + res.error.message, 'err');
+          return;
+        }
         toast('\u2713 ' + itemLabel + ' registrado');
         delete PREC_FOTOS_PENDIENTES[key];
         loadPrecintos();
@@ -24288,7 +24309,7 @@ function precRetirarModo(modo) {
 }
 
 function precPreviewRetiro(input) {
-  window._camaraAbierta = false; // ya volvimos de la cámara
+  window._camaraAbierta = false;
   var nuevos = Array.prototype.slice.call(input.files || []);
   if (!nuevos.length) return;
   PREC_RETIRO_FOTOS = PREC_RETIRO_FOTOS.concat(nuevos);
@@ -24304,12 +24325,10 @@ function precQuitarFotoRetiro(idx) {
 function _renderRetiroFotos() {
   var wrap = document.getElementById('prec-retiro-foto-prev');
   if (!wrap) return;
-  wrap.innerHTML = '';
-  // Revocar object URLs anteriores
-  if (window._precRetiroObjUrls) {
-    window._precRetiroObjUrls.forEach(function(u) { try { URL.revokeObjectURL(u); } catch(e) {} });
-  }
+  // Revocar URLs anteriores
+  (window._precRetiroObjUrls || []).forEach(function(u) { try { URL.revokeObjectURL(u); } catch(e) {} });
   window._precRetiroObjUrls = [];
+  wrap.innerHTML = '';
   PREC_RETIRO_FOTOS.forEach(function(f, idx) {
     try {
       var objUrl = URL.createObjectURL(f);
@@ -24319,66 +24338,77 @@ function _renderRetiroFotos() {
       var img = document.createElement('img');
       img.src = objUrl;
       img.style.cssText = 'width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--border2)';
+      // Usar IIFE para capturar idx por valor (evitar closure bug)
       var btn = document.createElement('button');
       btn.textContent = '\u00d7';
-      btn.onclick = function() { precQuitarFotoRetiro(idx); };
-      btn.style.cssText = 'position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--red);color:#fff;border:none;font-size:13px;cursor:pointer';
-      div.appendChild(img); div.appendChild(btn);
+      btn.style.cssText = 'position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:50%;background:var(--red);color:#fff;border:none;font-size:13px;cursor:pointer;line-height:1';
+      (function(i) { btn.onclick = function() { precQuitarFotoRetiro(i); }; })(idx);
+      div.appendChild(img);
+      div.appendChild(btn);
       wrap.appendChild(div);
     } catch(e) {
-      // File inválido (page reload mató el objeto) — limpiar array y salir
+      // File inválido post-reload — limpiar
       PREC_RETIRO_FOTOS = [];
-      wrap.innerHTML = '';
       window._precRetiroObjUrls = [];
+      wrap.innerHTML = '';
     }
   });
 }
 
 function guardarRetiroPrecintos() {
-  if (!PREC_RETIRO_FOTOS.length) { toast('Agreg\u00e1 al menos una foto', 'err'); return; }
+  if (!PREC_RETIRO_FOTOS.length) { toast('Agreg\u00e1 al menos una foto del retiro', 'err'); return; }
   setLoading('btn-prec-retirar', true);
-  Promise.all(PREC_RETIRO_FOTOS.map(function(f) { return uploadToR2Comprimido(f, 'precintos').catch(function() { return null; }); }))
-    .then(function(urls) {
-      var urlsOk = urls.filter(Boolean);
-      if (!urlsOk.length) { setLoading('btn-prec-retirar', false); toast('No se pudieron subir las fotos', 'err'); return; }
-      var sectoresAGuardar = PREC_RETIRO_MODO === 'todo' ? ['pasto', 'galpones'] : [PREC_RETIRO_MODO];
-      var payload = {
-        fecha: fechaHoyAR(),
-        item: null,
-        accion: 'retirar',
-        fotos: urlsOk,
-        agente: USER.nombre || USER.puesto,
-        created_at: new Date().toISOString()
+  var agente = (USER && (USER.nombre || USER.email || USER.puesto)) || 'Desconocido';
+  Promise.all(PREC_RETIRO_FOTOS.map(function(f) {
+    return uploadToR2Comprimido(f, 'precintos').catch(function() { return null; });
+  })).then(function(urls) {
+    var urlsOk = urls.filter(Boolean);
+    if (!urlsOk.length) {
+      setLoading('btn-prec-retirar', false);
+      toast('No se pudieron subir las fotos', 'err');
+      return;
+    }
+    var sectores = PREC_RETIRO_MODO === 'todo' ? ['pasto', 'galpones'] : [PREC_RETIRO_MODO];
+    // Inserts secuenciales — evita el bug de Promise.all con SupabaseQueryBuilder
+    function siguiente(i) {
+      if (i >= sectores.length) {
+        setLoading('btn-prec-retirar', false);
+        toast('\uD83D\uDD13 Retiro registrado correctamente');
+        PREC_RETIRO_FOTOS = [];
+        PREC_RETIRO_MODO = 'todo';
+        ['todo','pasto','galpones'].forEach(function(m) {
+          var b = document.getElementById('prec-ret-' + m + '-btn');
+          if (b) b.classList.toggle('active', m === 'todo');
+        });
+        var prev = document.getElementById('prec-retiro-foto-prev');
+        if (prev) prev.innerHTML = '';
+        var inp = document.getElementById('prec-retiro-foto-input');
+        if (inp) inp.value = '';
+        loadPrecintos();
+        return;
+      }
+      var sector = sectores[i];
+      // No mandar created_at ni item null — Supabase pone el default y evita errores de constraint
+      var row = {
+        fecha:      fechaHoyAR(),
+        sector:     sector,
+        accion:     'retirar',
+        item_label: PREC_RETIRO_MODO === 'todo' ? 'Retiro general' : 'Retiro ' + sector,
+        fotos:      urlsOk,
+        agente:     agente
       };
-      // Ejecutar inserts en secuencia para aislar errores por sector
-      function insertarSiguiente(idx) {
-        if (idx >= sectoresAGuardar.length) {
+      db.from('precintos').insert(row).then(function(r) {
+        if (r.error) {
           setLoading('btn-prec-retirar', false);
-          toast('\uD83D\uDD13 Retiro registrado');
-          PREC_RETIRO_FOTOS = [];
-          document.getElementById('prec-retiro-foto-prev').innerHTML = '';
-          loadPrecintos();
+          toast('Error al registrar retiro: ' + r.error.message, 'err');
           return;
         }
-        var sector = sectoresAGuardar[idx];
-        var row = Object.assign({}, payload, {
-          sector: sector,
-          item_label: PREC_RETIRO_MODO === 'todo' ? 'Retiro general' : 'Retiro ' + sector
-        });
-        db.from('precintos').insert(row).then(function(r) {
-          if (r.error) {
-            setLoading('btn-prec-retirar', false);
-            toast('Error retiro (' + sector + '): ' + r.error.message, 'err');
-            return;
-          }
-          insertarSiguiente(idx + 1);
-        });
-      }
-      insertarSiguiente(0);
-    });
+        siguiente(i + 1);
+      });
+    }
+    siguiente(0);
+  });
 }
-
-var PREC_HOY_FILTRO = 'pasto'; // filtro de la lista de colocados hoy
 
 function _renderResumenPrecintosHoy() {
   var el = document.getElementById('prec-resumen-hoy');
@@ -24478,7 +24508,7 @@ function buscarHistorialPrecintos() {
   var hasta = document.getElementById('prec-h-hasta').value;
   var listEl = document.getElementById('prec-historial-list');
   listEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3)"><span class="spinner"></span></div>';
-  var q = db.from('precintos').select('*').order('fecha', { ascending: false }).order('created_at', { ascending: false });
+  var q = db.from('precintos').select('*').order('fecha', { ascending: false }).order('created_at', { ascending: false }).limit(500);
   if (desde) q = q.gte('fecha', desde);
   if (hasta) q = q.lte('fecha', hasta);
   q.then(function(r) {
@@ -24516,6 +24546,7 @@ function buscarHistorialPrecintos() {
     listEl.innerHTML = html;
   });
 }
+
 
 // ══ HISTORIAL DE FICHAJES ══
 function iniciarHistorialFichajes() {
