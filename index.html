@@ -6438,7 +6438,7 @@ var LAST_ACTIVE_SECTION = 'dashboard';
 // Guarda "count|ultimo_created_at" por tabla. Si no cambio, no se recarga la vista.
 var AR_FINGERPRINTS = {};
 var AR_CICLOS = 0;
-var AR_FORZAR_CADA = 10; // cada 10 ciclos (10 min) refresco completo para captar ediciones
+var AR_FORZAR_CADA = 20; // cada 20 ciclos (60 min) refresco completo — reducido de 10 para frenar egress
 function _arCheckYRecargar(tabla, filtroFn, loadFn) {
   // filtroFn: funcion que aplica filtros extra a la query de fingerprint (o null)
   var q = db.from(tabla).select('created_at', { count: 'exact' }).order('created_at', { ascending: false }).limit(1);
@@ -6478,7 +6478,7 @@ function startAutoRefresh() {
     } else if (name === 'choferes') loadChoferes();else if (name === 'llaves') {
       if (typeof loadLlaves === 'function') loadLlaves();
     }
-  }, 60000);
+  }, 180000); // 3 min — reducido de 60s para frenar egress
 }
 function stopAutoRefresh() {
   if (AUTO_REFRESH_INTERVAL) {
@@ -14057,10 +14057,10 @@ function _loadDash() {
           qObj = db.from('objetivos').select('id,puesto,estado').eq('estado', 'activo'); // Objetivos finalizados HOY
           qObjFin = db.from('objetivos').select('id,puesto').eq('estado', 'finalizado').gte('created_at', hoyInicio).lte('created_at', hoyFin); // Licencias activas
           qLicAct = db.from('licencias').select('id,puesto').lte('fecha_desde', hoyIso).gte('fecha_hasta', hoyIso); // Últimas novedades del día
-          qUlt = db.from('novedades').select('id,created_at,tipo,asunto,puesto,detalle,fotos').gte('created_at', hoyInicio).lte('created_at', hoyFin).order('created_at', {
+          qUlt = db.from('novedades').select('id,created_at,tipo,asunto,puesto,detalle').gte('created_at', hoyInicio).lte('created_at', hoyFin).order('created_at', {
             ascending: false
           }).limit(5); // Todos los fichajes de hoy para actividad por puesto
-          qFichHoy = db.from('fichajes').select('id,puesto,agente,entrada').gte('entrada', hoyInicio); // Novedades por puesto hoy
+          qFichHoy = db.from('fichajes').select('id,puesto,agente,entrada').gte('entrada', hoyInicio).limit(300); // Novedades por puesto hoy
           qNovPuesto = db.from('novedades').select('puesto').gte('created_at', hoyInicio).lte('created_at', hoyFin); // Objetivos por puesto hoy
           qObjPuesto = db.from('objetivos').select('puesto').gte('created_at', hoyInicio).lte('created_at', hoyFin);
           if (f) {
@@ -14978,7 +14978,7 @@ function cargarMasNovedades() {
   NOV_PAGE++;
   var f = filtro();
   var desde = NOV_PAGE * NOV_LIMIT;
-  var q = db.from('novedades').select('id,created_at,tipo,relevancia,asunto,detalle,puesto,cargado_por,caso,area,fotos,ubicacion,texto_informe,nro_pd,nro_pu,pendiente,solo_admin,observaciones,fuerza_publica,actualizaciones').order('created_at', { ascending: false }).range(desde, desde + NOV_LIMIT - 1);
+  var q = db.from('novedades').select('id,created_at,tipo,relevancia,asunto,detalle,puesto,cargado_por,caso,area,fotos,ubicacion,nro_pd,nro_pu,pendiente,solo_admin,fuerza_publica').order('created_at', { ascending: false }).range(desde, desde + NOV_LIMIT - 1);
   if (f) q = q.eq('puesto', f);
   if (CUR_NOV_TAB === 'pendientes') q = q.eq('pendiente', true);
   q.then(function(res) {
@@ -15008,7 +15008,7 @@ function _loadNovedades() {
           if (el) el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3)">Cargando...</div>';
           f = filtro();
           NOV_PAGE = 0;
-          q = db.from('novedades').select('id,created_at,tipo,relevancia,asunto,detalle,puesto,cargado_por,caso,area,fotos,ubicacion,texto_informe,nro_pd,nro_pu,pendiente,solo_admin,observaciones,fuerza_publica,actualizaciones').order('created_at', {
+          q = db.from('novedades').select('id,created_at,tipo,relevancia,asunto,detalle,puesto,cargado_por,caso,area,fotos,ubicacion,nro_pd,nro_pu,pendiente,solo_admin,fuerza_publica').order('created_at', {
             ascending: false
           }).range(0, NOV_LIMIT - 1);
           if (f) q = q.eq('puesto', f);
@@ -20562,7 +20562,7 @@ function selPartesTab(tab) {
     if (panel) panel.style.display = active ? 'block' : 'none';
   });
   if (_partes48hTimer) { clearInterval(_partes48hTimer); _partes48hTimer = null; }
-  if (tab === '48h')  { load48hs(); _partes48hTimer = setInterval(load48hs, 60000); }
+  if (tab === '48h')  { load48hs(); _partes48hTimer = setInterval(load48hs, 120000); }
   if (tab === 'hist') { histCargarAnios(); }
 }
 
@@ -21978,7 +21978,7 @@ function selPdpuTab(tab) {
     if (panel) panel.style.display = active ? 'block' : 'none';
   });
   if (_pdpu48hTimer) { clearInterval(_pdpu48hTimer); _pdpu48hTimer = null; }
-  if (tab === '48h')  { pdpu48hCargar(); _pdpu48hTimer = setInterval(pdpu48hCargar, 60000); }
+  if (tab === '48h')  { pdpu48hCargar(); _pdpu48hTimer = setInterval(pdpu48hCargar, 120000); }
   if (tab === 'hist') pdpuHistCargarAnios();
 }
 
@@ -22893,16 +22893,27 @@ function iniciarMonitorTurnos() {
   MONITOR_TURNO_INTERVAL = setInterval(ejecutarMonitorTurnos, MONITOR_TURNO_MS);
 }
 
+var _monitorAgentesCache = null;
+var _monitorAgentesCacheTs = 0;
+var _MONITOR_AGENTES_TTL = 30 * 60 * 1000; // 30 min — los horarios no cambian seguido
+
 function ejecutarMonitorTurnos() {
   if (document.hidden) return; // pestaña oculta: pausar monitor
   var hoy = fechaHoyAR();
   var horaAR = horaActualAR();
 
-  // Cargar agentes que tienen horario configurado
-  db.from('agentes').select('id, nombre, puesto, hora_entrada, hora_salida')
-    .not('hora_entrada', 'is', null)
-    .not('hora_salida', 'is', null)
-    .then(function(rAg) {
+  // Agentes: usar cache de 30 min para evitar re-fetch en cada ciclo
+  var ahora = Date.now();
+  var agentesPromise = (_monitorAgentesCache && (ahora - _monitorAgentesCacheTs) < _MONITOR_AGENTES_TTL)
+    ? Promise.resolve({ data: _monitorAgentesCache })
+    : db.from('agentes').select('id, nombre, puesto, hora_entrada, hora_salida')
+        .not('hora_entrada', 'is', null).not('hora_salida', 'is', null)
+        .then(function(r) {
+          if (r && r.data) { _monitorAgentesCache = r.data; _monitorAgentesCacheTs = Date.now(); }
+          return r;
+        });
+
+  agentesPromise.then(function(rAg) {
       if (!rAg || !rAg.data || !rAg.data.length) return;
       var agentes = rAg.data;
 
@@ -23258,7 +23269,7 @@ function iniciarMonitorDispositivos() {
   _chequearAlertasDispositivos();
   // Revisar cada 60 segundos
   if (_dispAlertInterval) clearInterval(_dispAlertInterval);
-  _dispAlertInterval = setInterval(_chequearAlertasDispositivos, 60000);
+  _dispAlertInterval = setInterval(_chequearAlertasDispositivos, 5 * 60 * 1000); // 5 min — reducido de 60s
 }
 
 function _chequearAlertasDispositivos() {
