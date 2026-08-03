@@ -20320,12 +20320,12 @@ if ('serviceWorker' in navigator) {
     reg.update().catch(function() {});
     document.addEventListener('visibilitychange', function() {
       if (document.visibilityState === 'visible') {
-        window._volviDeBackground = Date.now(); // trackear cuándo volvemos
-        // Solo chequear updates si pasaron más de 8s desde que volvimos del background
-        // Esto evita que volver de la cámara dispare un reg.update() que active un nuevo SW
+        window._volviDeBackground = Date.now();
+        // Esperar 30s antes de chequear updates — evita que volver de la cámara
+        // dispare un reg.update() que active un nuevo SW y recargue la app
         setTimeout(function() {
-          reg.update().catch(function() {});
-        }, 8000);
+          if (!window._camaraAbierta) reg.update().catch(function() {});
+        }, 30000);
       }
     });
     // Subscribe to push server if permission granted
@@ -20336,33 +20336,40 @@ if ('serviceWorker' in navigator) {
     console.log('[SW] no disponible:', e.message);
   });
 
-  // Cuando el Service Worker activa una versión nueva, recarga la página
-  // automáticamente — soluciona dispositivos atascados con HTML viejo en
-  // memoria sin que el usuario tenga que cerrar y reabrir la app a mano.
-  // PROTECCIÓN: no recargar si el usuario está usando la cámara o acaba de volver
-  // del background (≤8s) — evita que abrir la cámara reinicie la app en Android.
+  // Cuando el Service Worker activa una versión nueva, recarga la página.
+  // ESTRATEGIA: solo recargar cuando el usuario está en idle real — no durante
+  // el uso de la cámara ni en los primeros 30s después de volver del background.
+  // Esto evita el bug de Android donde abrir la cámara dispara un reload completo.
+
+  var _swPendingReload = false; // hay una actualización pendiente esperando idle
+
+  function _swReloadSiIdle() {
+    if (!_swPendingReload) return;
+    if (window._camaraAbierta) return; // cámara activa
+    if (document.hidden) return; // app en background
+    // Solo recargar si pasaron al menos 30s desde que volvimos del background
+    if (window._volviDeBackground && (Date.now() - window._volviDeBackground) < 30000) return;
+    _swPendingReload = false;
+    window.location.reload();
+  }
+
   navigator.serviceWorker.addEventListener('message', function(event) {
     if (event.data && event.data.type === 'SW_UPDATED_RELOAD') {
-      if (window._camaraAbierta) return; // cámara activa: diferir
-      if (window._volviDeBackground && (Date.now() - window._volviDeBackground) < 8000) return;
-      window.location.reload();
+      _swPendingReload = true;
+      _swReloadSiIdle(); // intenta ahora; si no puede, el interval lo reintenta
     }
   });
 
-  // Si el controller cambia (nueva versión tomó control), también recargar
   var _swReloaded = false;
   navigator.serviceWorker.addEventListener('controllerchange', function() {
     if (_swReloaded) return;
-    if (window._camaraAbierta) { // diferir hasta que cierre la cámara
-      var _waitCam = setInterval(function() {
-        if (!window._camaraAbierta) { clearInterval(_waitCam); _swReloaded = true; window.location.reload(); }
-      }, 2000);
-      return;
-    }
-    if (window._volviDeBackground && (Date.now() - window._volviDeBackground) < 8000) return;
     _swReloaded = true;
-    window.location.reload();
+    _swPendingReload = true;
+    _swReloadSiIdle();
   });
+
+  // Reintentar el reload cada 5s hasta que el usuario esté en idle
+  setInterval(_swReloadSiIdle, 5000);
 }
 
 function enviarNotificacion(titulo, cuerpo, url) {
