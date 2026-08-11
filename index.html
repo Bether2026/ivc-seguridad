@@ -4336,7 +4336,21 @@ body {
                     color:var(--accent2);font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">
                   Capturar
                 </button>
+                <button onclick="rbrb_toggleMiniMapa()" type="button" id="rbrb-minimapa-btn"
+                  style="padding:5px 10px;border-radius:7px;border:1px solid var(--border2);background:transparent;
+                    color:var(--accent3);font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">
+                  📍 Ajustar en mapa
+                </button>
               </div>
+
+              <!-- MINI MAPA PARA AJUSTAR PUNTO -->
+              <div id="rbrb-minimapa-wrap" style="display:none">
+                <div style="font-size:11px;color:var(--text3);margin-bottom:6px">
+                  Usá + / − para hacer zoom · Tocá para poner el punto · Arrastrá el marcador para afinar
+                </div>
+                <div id="rbrb-minimapa" style="width:100%;height:340px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2)"></div>
+              </div>
+
               <input type="hidden" id="rbrb-lat">
               <input type="hidden" id="rbrb-lng">
 
@@ -26968,11 +26982,7 @@ window.rbrb_getGPS = function() {
     function(pos) {
       var lat = pos.coords.latitude.toFixed(6);
       var lng = pos.coords.longitude.toFixed(6);
-      var latEl = document.getElementById('rbrb-lat');
-      var lngEl = document.getElementById('rbrb-lng');
-      if (latEl) latEl.value = lat;
-      if (lngEl) lngEl.value = lng;
-      if (txt) txt.textContent = 'GPS: ' + lat + ', ' + lng + ' ✓';
+      rbrb_setPunto(parseFloat(lat), parseFloat(lng));
     },
     function() {
       if (txt) txt.textContent = 'No se pudo obtener la ubicación. Intentá al aire libre.';
@@ -26980,6 +26990,92 @@ window.rbrb_getGPS = function() {
     { enableHighAccuracy: true, timeout: 10000 }
   );
 };
+
+// ── MINI MAPA para ajustar el punto manualmente ──
+var RBRB_MINI_MAP = null;
+var RBRB_MINI_MARKER = null;
+var RBRB_RB_CENTRO = [-34.6142, -58.3598]; // Rodrigo Bueno
+
+// Setea el punto en inputs + texto + marker (fuente única de verdad)
+function rbrb_setPunto(lat, lng) {
+  var latEl = document.getElementById('rbrb-lat');
+  var lngEl = document.getElementById('rbrb-lng');
+  if (latEl) latEl.value = lat.toFixed(6);
+  if (lngEl) lngEl.value = lng.toFixed(6);
+  var txt = document.getElementById('rbrb-gps-txt');
+  if (txt) txt.textContent = 'GPS: ' + lat.toFixed(6) + ', ' + lng.toFixed(6) + ' ✓';
+  if (RBRB_MINI_MAP && RBRB_MINI_MARKER) {
+    RBRB_MINI_MARKER.setLatLng([lat, lng]);
+    RBRB_MINI_MAP.setView([lat, lng], Math.max(RBRB_MINI_MAP.getZoom(), 18));
+  }
+}
+
+window.rbrb_toggleMiniMapa = function() {
+  var wrap = document.getElementById('rbrb-minimapa-wrap');
+  var btn = document.getElementById('rbrb-minimapa-btn');
+  if (!wrap) return;
+
+  var abierto = wrap.style.display !== 'none';
+  if (abierto) {
+    wrap.style.display = 'none';
+    if (btn) btn.textContent = '📍 Ajustar en mapa';
+    return;
+  }
+
+  wrap.style.display = 'block';
+  if (btn) btn.textContent = '▲ Cerrar mapa';
+
+  // Cargar Leaflet si hace falta (mismo loader que el tab mapa)
+  if (typeof L === 'undefined') {
+    var css = document.createElement('link');
+    css.rel = 'stylesheet';
+    css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    document.head.appendChild(css);
+    var js = document.createElement('script');
+    js.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    js.onload = function() { rbrb_crearMiniMapa(); };
+    document.head.appendChild(js);
+  } else {
+    rbrb_crearMiniMapa();
+  }
+};
+
+function rbrb_crearMiniMapa() {
+  // Punto inicial: coords cargadas o centro de Rodrigo Bueno
+  var lat = parseFloat((document.getElementById('rbrb-lat') || {}).value);
+  var lng = parseFloat((document.getElementById('rbrb-lng') || {}).value);
+  var centro = (!isNaN(lat) && !isNaN(lng)) ? [lat, lng] : RBRB_RB_CENTRO;
+
+  if (!RBRB_MINI_MAP) {
+    RBRB_MINI_MAP = L.map('rbrb-minimapa', {
+      scrollWheelZoom: true,
+      touchZoom: true,
+      zoomControl: true
+    }).setView(centro, 18);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap'
+    }).addTo(RBRB_MINI_MAP);
+
+    RBRB_MINI_MARKER = L.marker(centro, { draggable: true }).addTo(RBRB_MINI_MAP);
+
+    // Arrastrar el marker → actualizar punto
+    RBRB_MINI_MARKER.on('dragend', function() {
+      var p = RBRB_MINI_MARKER.getLatLng();
+      rbrb_setPunto(p.lat, p.lng);
+    });
+
+    // Tocar el mapa → mover el marker ahí
+    RBRB_MINI_MAP.on('click', function(e) {
+      rbrb_setPunto(e.latlng.lat, e.latlng.lng);
+    });
+  } else {
+    RBRB_MINI_MAP.setView(centro, 17);
+    RBRB_MINI_MARKER.setLatLng(centro);
+  }
+
+  // Leaflet necesita recalcular tamaño cuando el div recién se muestra
+  setTimeout(function() { if (RBRB_MINI_MAP) RBRB_MINI_MAP.invalidateSize(); }, 100);
+}
 
 var RBRB_EDIT_ID = null; // id del registro en edición, null = nuevo
 
@@ -27100,6 +27196,11 @@ window.rbrb_limpiarForm = function rbrb_limpiarForm() {
   RBRB_EDIT_ID = null;
   var gps = document.getElementById('rbrb-gps-txt');
   if (gps) gps.textContent = 'GPS: tocá para capturar ubicación';
+  // Cerrar mini-mapa
+  var mmWrap = document.getElementById('rbrb-minimapa-wrap');
+  if (mmWrap) mmWrap.style.display = 'none';
+  var mmBtn = document.getElementById('rbrb-minimapa-btn');
+  if (mmBtn) mmBtn.textContent = '📍 Ajustar en mapa';
   var btn = document.getElementById('rbrb-guardar-btn');
   if (btn) { btn.textContent = '💾 Guardar relevamiento'; btn.disabled = false; }
   var banner = document.getElementById('rbrb-edit-banner');
@@ -27528,6 +27629,11 @@ window.rbrb_editar = function(id) {
   // GPS texto
   var gps = document.getElementById('rbrb-gps-txt');
   if (gps && r.lat && r.lng) gps.textContent = 'GPS: ' + r.lat + ', ' + r.lng + ' ✓';
+  // Si el mini-mapa está abierto, mover el marker al punto del registro
+  if (r.lat && r.lng && RBRB_MINI_MAP && RBRB_MINI_MARKER) {
+    RBRB_MINI_MARKER.setLatLng([r.lat, r.lng]);
+    RBRB_MINI_MAP.setView([r.lat, r.lng], 17);
+  }
 
   // Certeza
   RBRB_CERTEZA = r.certeza || 'Confirmado';
