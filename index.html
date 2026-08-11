@@ -4306,7 +4306,7 @@ body {
               <!-- FOTOS MÚLTIPLES -->
               <div class="form-group">
                 <label class="form-label">Fotos <span style="color:var(--text3);font-weight:400">(opcional · podés seleccionar varias)</span></label>
-                <div id="rbrb-fotos-grid" style="display:none;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px"></div>
+                <div id="rbrb-fotos-grid" style="display:none;grid-template-columns:repeat(auto-fill,80px);gap:6px;margin-bottom:8px"></div>
                 <div style="display:flex;gap:8px">
                   <label style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 12px;background:var(--bg2);
                     border:1px dashed var(--border2);border-radius:10px;cursor:pointer">
@@ -26899,7 +26899,7 @@ window.rbrb_previewFotos = function(input) {
     var reader = new FileReader();
     reader.onload = function(e) {
       var cell = document.createElement('div');
-      cell.style.cssText = 'position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;border:1px solid var(--border)';
+      cell.style.cssText = 'position:relative;width:80px;height:80px;border-radius:8px;overflow:hidden;border:1px solid var(--border)';
       cell.innerHTML = '<img src="'+e.target.result+'" style="width:100%;height:100%;object-fit:cover">'+
         '<button onclick="rbrb_quitarFoto('+idx+')" type="button" style="position:absolute;top:4px;right:4px;'+
         'background:rgba(0,0,0,.65);border:none;color:#fff;border-radius:50%;width:20px;height:20px;'+
@@ -26925,7 +26925,7 @@ window.rbrb_quitarFoto = function(idx) {
     var reader = new FileReader();
     reader.onload = function(e) {
       var cell = document.createElement('div');
-      cell.style.cssText = 'position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;border:1px solid var(--border)';
+      cell.style.cssText = 'position:relative;width:80px;height:80px;border-radius:8px;overflow:hidden;border:1px solid var(--border)';
       cell.innerHTML = '<img src="'+e.target.result+'" style="width:100%;height:100%;object-fit:cover">'+
         '<button onclick="rbrb_quitarFoto('+i+')" type="button" style="position:absolute;top:4px;right:4px;'+
         'background:rgba(0,0,0,.65);border:none;color:#fff;border-radius:50%;width:20px;height:20px;'+
@@ -27023,14 +27023,24 @@ window.rbrb_guardar = function() {
     // Edición sin fotos nuevas: no tocar foto_url/fotos_urls existentes
 
     var op = editId
-      ? db.from('relevamiento_rb').update(payload).eq('id', editId)
-      : db.from('relevamiento_rb').insert(payload);
+      ? db.from('relevamiento_rb').update(payload).eq('id', editId).select()
+      : db.from('relevamiento_rb').insert(payload).select();
 
     op.then(function(res) {
       if (res.error) { restaurarBtn(); toast('Error: ' + res.error.message, 'err'); return; }
+      if (editId && (!res.data || !res.data.length)) {
+        restaurarBtn();
+        toast('⚠️ No se actualizó: falta permiso UPDATE en Supabase (RLS)', 'err');
+        console.error('[RBRB] Update devolvió 0 filas — revisar policy RLS de UPDATE en relevamiento_rb');
+        return;
+      }
       toast(editId ? '✓ Registro actualizado' : '✓ Relevamiento guardado', 'ok');
       rbrb_limpiarForm();
       rbrb_cargarDatos();
+    }).catch(function(e) {
+      restaurarBtn();
+      toast('Error inesperado al guardar', 'err');
+      console.error('[RBRB] Error guardar:', e);
     });
   }
 
@@ -27054,7 +27064,7 @@ window.rbrb_guardar = function() {
   }
 };
 
-function rbrb_limpiarForm() {
+window.rbrb_limpiarForm = function rbrb_limpiarForm() {
   var ids = ['rbrb-mza','rbrb-orden','rbrb-desc','rbrb-titular','rbrb-obs','rbrb-obs-vivienda','rbrb-lat','rbrb-lng','rbrb-tipo-otro'];
   ids.forEach(function(id) { var el = document.getElementById(id); if (el) el.value = ''; });
   RBRB_TIPOS_SEL = [];
@@ -27070,7 +27080,7 @@ function rbrb_limpiarForm() {
   var gps = document.getElementById('rbrb-gps-txt');
   if (gps) gps.textContent = 'GPS: tocá para capturar ubicación';
   var btn = document.getElementById('rbrb-guardar-btn');
-  if (btn) btn.textContent = '💾 Guardar relevamiento';
+  if (btn) { btn.textContent = '💾 Guardar relevamiento'; btn.disabled = false; }
   var banner = document.getElementById('rbrb-edit-banner');
   if (banner) banner.style.display = 'none';
   RBRB_CERTEZA = 'Confirmado';
@@ -27296,10 +27306,10 @@ function rbrb_buildItems() {
       }
       if (!fotosUrls.length && r.foto_url) fotosUrls = [r.foto_url];
       var fotosHtml = fotosUrls.length
-        ? '<div style="display:grid;grid-template-columns:repeat('+Math.min(fotosUrls.length,4)+',1fr);gap:4px;margin-top:8px">'
+        ? '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">'
           + fotosUrls.map(function(u){
               return '<img src="'+u+'" onclick="rbrb_openFoto(\''+u+'\')" '+
-                'style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;cursor:pointer;'+
+                'style="width:80px;height:80px;object-fit:cover;border-radius:6px;cursor:zoom-in;'+
                 'border:1px solid var(--border)" loading="lazy">';
             }).join('')+'</div>' : '';
 
@@ -27338,8 +27348,12 @@ function rbrb_buildItems() {
 window.rbrb_eliminar = function(id) {
   if (!window.USER || USER.rol !== 'ADMIN') { toast('Sin permiso', 'err'); return; }
   if (!confirm('¿Eliminar este registro definitivamente?')) return;
-  db.from('relevamiento_rb').delete().eq('id', id).then(function(res) {
+  db.from('relevamiento_rb').delete().eq('id', id).select().then(function(res) {
     if (res.error) { toast('Error: ' + res.error.message, 'err'); return; }
+    if (!res.data || !res.data.length) {
+      toast('⚠️ No se eliminó: falta permiso DELETE en Supabase (RLS)', 'err');
+      return;
+    }
     toast('🗑 Registro eliminado', 'ok');
     rbrb_cargarDatos();
   });
@@ -27418,7 +27432,7 @@ window.rbrb_editar = function(id) {
   if (grid && fotosUrls.length) {
     grid.style.display = 'grid';
     grid.innerHTML = fotosUrls.map(function(u) {
-      return '<div style="position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;border:1px solid var(--border)">'+
+      return '<div style="position:relative;width:80px;height:80px;border-radius:8px;overflow:hidden;border:1px solid var(--border)">'+
         '<img src="'+u+'" style="width:100%;height:100%;object-fit:cover">'+
         '<span style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,.55);color:#fff;border-radius:4px;font-size:9px;padding:2px 5px">Guardada</span>'+
       '</div>';
