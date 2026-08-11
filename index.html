@@ -4213,20 +4213,11 @@ body {
             <!-- TAB: FORMULARIO -->
             <div id="rbrb-panel-form" style="padding:16px;display:flex;flex-direction:column;gap:12px">
 
-              <div style="background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.25);border-radius:10px;padding:12px 14px;font-size:12px;color:#6ee7b7;line-height:1.6">
-                📝 <strong>Modo encubierto</strong> — Registrá lo que observás o lo que te comentan vecinos. La foto es opcional.
-              </div>
-
               <!-- MANZANA + ORDEN -->
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
                 <div class="form-group">
                   <label class="form-label">Manzana</label>
-                  <select id="rbrb-mza" class="form-select">
-                    <option value="">— Seleccionar —</option>
-                    <option>1</option><option>2</option><option>3</option>
-                    <option>4</option><option>5</option><option>6</option>
-                    <option>7</option><option>8</option><option>Borde costero</option><option>Sin manzana</option>
-                  </select>
+                  <input id="rbrb-mza" class="form-input" type="text" placeholder="Ej: 3 o Borde costero">
                 </div>
                 <div class="form-group">
                   <label class="form-label">N° de Orden</label>
@@ -4265,8 +4256,8 @@ body {
                 <div style="display:flex;gap:8px">
                   <button type="button" class="rbrb-cert-btn active" data-val="Confirmado"
                     onclick="rbrb_setCert(this)"
-                    style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--green);background:rgba(16,185,129,.12);
-                      color:var(--green);font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">
+                    style="flex:1;padding:8px;border-radius:8px;border:1px solid #10b981;background:rgba(16,185,129,.18);
+                      color:#10b981;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">
                     ✓ Confirmado
                   </button>
                   <button type="button" class="rbrb-cert-btn" data-val="Probable"
@@ -4286,9 +4277,8 @@ body {
 
               <!-- DESCRIPCION -->
               <div class="form-group">
-                <label class="form-label">Descripción <span style="color:var(--text3);font-weight:400">(qué se vio / qué se escuchó)</span></label>
-                <textarea id="rbrb-desc" class="form-textarea" rows="3" style="min-height:80px"
-                  placeholder="Describí lo observado o lo que te comentó el vecino. Incluí detalles: horarios, cantidad de personas, materiales, etc."></textarea>
+                <label class="form-label">Descripción</label>
+                <textarea id="rbrb-desc" class="form-textarea" rows="3" style="min-height:80px" placeholder=""></textarea>
               </div>
 
               <!-- TITULAR -->
@@ -4303,18 +4293,30 @@ body {
                 <textarea id="rbrb-obs" class="form-textarea" rows="2" style="min-height:60px" placeholder="Información extra, contexto, antecedentes..."></textarea>
               </div>
 
-              <!-- FOTO -->
+              <!-- OTRAS OBSERVACIONES DE LA VIVIENDA -->
               <div class="form-group">
-                <label class="form-label">Foto <span style="color:var(--text3);font-weight:400">(opcional)</span></label>
-                <div id="rbrb-foto-preview" style="display:none;margin-bottom:8px">
-                  <img id="rbrb-foto-img" style="width:100%;max-height:180px;object-fit:cover;border-radius:8px;border:1px solid var(--border)" alt="">
+                <label class="form-label">Otras observaciones de la vivienda</label>
+                <textarea id="rbrb-obs-vivienda" class="form-textarea" rows="2" style="min-height:60px" placeholder="Estado edilicio, accesos, características físicas, etc."></textarea>
+              </div>
+
+              <!-- FOTOS MÚLTIPLES -->
+              <div class="form-group">
+                <label class="form-label">Fotos <span style="color:var(--text3);font-weight:400">(opcional · podés seleccionar varias)</span></label>
+                <div id="rbrb-fotos-grid" style="display:none;display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px"></div>
+                <div style="display:flex;gap:8px">
+                  <label style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 12px;background:var(--bg2);
+                    border:1px dashed var(--border2);border-radius:10px;cursor:pointer">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;color:var(--text3)"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    <span style="font-size:12px;color:var(--text2)">Galería</span>
+                    <input type="file" accept="image/*" multiple id="rbrb-foto-input" style="display:none" onchange="rbrb_previewFotos(this)">
+                  </label>
+                  <label style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 12px;background:var(--bg2);
+                    border:1px dashed var(--border2);border-radius:10px;cursor:pointer">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;color:var(--text3)"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                    <span style="font-size:12px;color:var(--text2)">Cámara</span>
+                    <input type="file" accept="image/*" capture="environment" id="rbrb-camara-input" style="display:none" onchange="rbrb_previewFotos(this)">
+                  </label>
                 </div>
-                <label style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg2);
-                  border:1px dashed var(--border2);border-radius:10px;cursor:pointer">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;color:var(--text3)"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-                  <span style="font-size:13px;color:var(--text2)">Tocá para adjuntar foto</span>
-                  <input type="file" accept="image/*" id="rbrb-foto-input" style="display:none" onchange="rbrb_previewFoto(this)">
-                </label>
               </div>
 
               <!-- GPS -->
@@ -4332,7 +4334,7 @@ body {
               <input type="hidden" id="rbrb-lng">
 
               <!-- GUARDAR -->
-              <button onclick="rbrb_guardar()" type="button"
+              <button onclick="rbrb_guardar()" type="button" id="rbrb-guardar-btn"
                 style="padding:14px;border-radius:12px;border:none;
                   background:var(--green,#10b981);color:#fff;
                   font-family:var(--font);font-size:15px;font-weight:700;cursor:pointer;margin-top:4px">
@@ -26802,27 +26804,71 @@ window.rbrb_tab = function(name, btn) {
   if (name === 'lista') rbrb_renderLista();
 };
 
+var RBRB_CERT_COLORS = {
+  'Confirmado': { bg: 'rgba(16,185,129,.18)', border: '#10b981', color: '#10b981' },
+  'Probable':   { bg: 'rgba(245,158,11,.18)', border: '#f59e0b', color: '#f59e0b' },
+  'A verificar':{ bg: 'rgba(239,68,68,.15)',  border: '#ef4444', color: '#ef4444' }
+};
 window.rbrb_setCert = function(btn) {
   RBRB_CERTEZA = btn.dataset.val;
   document.querySelectorAll('.rbrb-cert-btn').forEach(function(b) {
     var isActive = b === btn;
-    b.style.background = isActive ? 'rgba(16,185,129,.15)' : 'transparent';
-    b.style.borderColor = isActive ? 'var(--green)' : 'var(--border2)';
-    b.style.color = isActive ? 'var(--green)' : 'var(--text2)';
+    var cfg = RBRB_CERT_COLORS[b.dataset.val] || {};
+    b.style.background = isActive ? (cfg.bg || 'transparent') : 'transparent';
+    b.style.borderColor = isActive ? (cfg.border || 'var(--border2)') : 'var(--border2)';
+    b.style.color = isActive ? (cfg.color || 'var(--text2)') : 'var(--text2)';
   });
 };
 
-window.rbrb_previewFoto = function(input) {
-  var file = input.files[0];
-  if (!file) return;
-  var reader = new FileReader();
-  reader.onload = function(e) {
-    var img = document.getElementById('rbrb-foto-img');
-    var wrap = document.getElementById('rbrb-foto-preview');
-    if (img) img.src = e.target.result;
-    if (wrap) wrap.style.display = 'block';
-  };
-  reader.readAsDataURL(file);
+var RBRB_FOTOS_FILES = [];
+
+window.rbrb_previewFotos = function(input) {
+  var files = Array.from(input.files || []);
+  if (!files.length) return;
+  files.forEach(function(f) { RBRB_FOTOS_FILES.push(f); });
+  var grid = document.getElementById('rbrb-fotos-grid');
+  if (!grid) return;
+  grid.style.display = 'grid';
+  grid.innerHTML = '';
+  RBRB_FOTOS_FILES.forEach(function(f, idx) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var cell = document.createElement('div');
+      cell.style.cssText = 'position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;border:1px solid var(--border)';
+      cell.innerHTML = '<img src="'+e.target.result+'" style="width:100%;height:100%;object-fit:cover">'+
+        '<button onclick="rbrb_quitarFoto('+idx+')" type="button" style="position:absolute;top:4px;right:4px;'+
+        'background:rgba(0,0,0,.65);border:none;color:#fff;border-radius:50%;width:20px;height:20px;'+
+        'font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">✕</button>';
+      grid.appendChild(cell);
+    };
+    reader.readAsDataURL(f);
+  });
+  // Reset input so same file can be selected again
+  input.value = '';
+};
+
+window.rbrb_quitarFoto = function(idx) {
+  RBRB_FOTOS_FILES.splice(idx, 1);
+  // Re-render
+  var fakeInput = { files: [] };
+  var grid = document.getElementById('rbrb-fotos-grid');
+  if (grid) { grid.innerHTML = ''; if (!RBRB_FOTOS_FILES.length) grid.style.display = 'none'; }
+  var saved = RBRB_FOTOS_FILES.slice();
+  RBRB_FOTOS_FILES = [];
+  saved.forEach(function(f, i) {
+    RBRB_FOTOS_FILES.push(f);
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var cell = document.createElement('div');
+      cell.style.cssText = 'position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;border:1px solid var(--border)';
+      cell.innerHTML = '<img src="'+e.target.result+'" style="width:100%;height:100%;object-fit:cover">'+
+        '<button onclick="rbrb_quitarFoto('+i+')" type="button" style="position:absolute;top:4px;right:4px;'+
+        'background:rgba(0,0,0,.65);border:none;color:#fff;border-radius:50%;width:20px;height:20px;'+
+        'font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">✕</button>';
+      if (grid) grid.appendChild(cell);
+    };
+    reader.readAsDataURL(f);
+  });
 };
 
 window.rbrb_getGPS = function() {
@@ -26849,6 +26895,8 @@ window.rbrb_getGPS = function() {
   );
 };
 
+var RBRB_EDIT_ID = null; // id del registro en edición, null = nuevo
+
 window.rbrb_guardar = function() {
   var mza = (document.getElementById('rbrb-mza') || {}).value || '';
   var orden = (document.getElementById('rbrb-orden') || {}).value || '';
@@ -26857,15 +26905,12 @@ window.rbrb_guardar = function() {
   var fuente = (document.getElementById('rbrb-fuente') || {}).value || 'Observación directa';
   var titular = (document.getElementById('rbrb-titular') || {}).value || '';
   var obs = (document.getElementById('rbrb-obs') || {}).value || '';
+  var obsVivienda = (document.getElementById('rbrb-obs-vivienda') || {}).value || '';
   var lat = parseFloat((document.getElementById('rbrb-lat') || {}).value) || null;
   var lng = parseFloat((document.getElementById('rbrb-lng') || {}).value) || null;
 
   if (!tipo) { toast('Seleccioná el tipo de situación', 'err'); return; }
   if (!desc.trim()) { toast('Agregá una descripción', 'err'); return; }
-
-  // Subir foto si existe
-  var fileInput = document.getElementById('rbrb-foto-input');
-  var file = fileInput && fileInput.files[0];
 
   var payload = {
     barrio: 'Rodrigo Bueno',
@@ -26877,27 +26922,19 @@ window.rbrb_guardar = function() {
     certeza: RBRB_CERTEZA,
     titular: titular.trim(),
     observaciones: obs.trim(),
+    obs_vivienda: obsVivienda.trim(),
     lat: lat,
     lng: lng,
-    agente: window.USER ? (USER.nombre || USER.puesto) : 'Desconocido',
-    created_at: new Date().toISOString()
+    agente: window.USER ? (USER.nombre || USER.puesto) : 'Desconocido'
   };
+  if (!RBRB_EDIT_ID) payload.created_at = new Date().toISOString();
 
-  function guardarSinFoto(fotoUrl) {
-    if (fotoUrl) payload.foto_url = fotoUrl;
-    db.from('relevamiento_rb').insert(payload).then(function(res) {
-      if (res.error) {
-        toast('Error al guardar: ' + res.error.message, 'err');
-        return;
-      }
-      toast('✓ Relevamiento guardado', 'ok');
-      rbrb_limpiarForm();
-      rbrb_cargarDatos();
-    });
-  }
+  // Subir fotos múltiples
+  var files = RBRB_FOTOS_FILES.slice();
 
-  if (file) {
-    // Comprimir y subir igual que novedades
+  function subirFotos(files, urls, cb) {
+    if (!files.length) { cb(urls); return; }
+    var file = files.shift();
     var reader = new FileReader();
     reader.onload = function(e) {
       var img = new Image();
@@ -26911,34 +26948,60 @@ window.rbrb_guardar = function() {
         canvas.toBlob(function(blob) {
           var fname = Date.now() + '_' + Math.random().toString(36).slice(2) + '.jpg';
           db.storage.from('novedades').upload(fname, blob, { contentType: 'image/jpeg' }).then(function(r) {
-            if (r.error) { guardarSinFoto(null); return; }
-            var url = 'https://pub-438b0d51c7a246f38a92859d01cedecd.r2.dev/novedades/' + fname;
-            guardarSinFoto(url);
+            if (!r.error) urls.push('https://pub-438b0d51c7a246f38a92859d01cedecd.r2.dev/novedades/' + fname);
+            subirFotos(files, urls, cb);
           });
         }, 'image/jpeg', 0.82);
       };
       img.src = e.target.result;
     };
     reader.readAsDataURL(file);
+  }
+
+  function guardarConUrls(urls) {
+    if (urls.length === 1) { payload.foto_url = urls[0]; payload.fotos_urls = null; }
+    else if (urls.length > 1) { payload.foto_url = urls[0]; payload.fotos_urls = JSON.stringify(urls); }
+
+    var op = RBRB_EDIT_ID
+      ? db.from('relevamiento_rb').update(payload).eq('id', RBRB_EDIT_ID)
+      : db.from('relevamiento_rb').insert(payload);
+
+    op.then(function(res) {
+      if (res.error) { toast('Error: ' + res.error.message, 'err'); return; }
+      toast(RBRB_EDIT_ID ? '✓ Registro actualizado' : '✓ Relevamiento guardado', 'ok');
+      rbrb_limpiarForm();
+      rbrb_cargarDatos();
+    });
+  }
+
+  if (files.length) {
+    subirFotos(files, [], guardarConUrls);
   } else {
-    guardarSinFoto(null);
+    guardarConUrls([]);
   }
 };
 
 function rbrb_limpiarForm() {
-  var ids = ['rbrb-mza','rbrb-orden','rbrb-tipo','rbrb-desc','rbrb-titular','rbrb-obs','rbrb-lat','rbrb-lng'];
+  var ids = ['rbrb-mza','rbrb-orden','rbrb-tipo','rbrb-desc','rbrb-titular','rbrb-obs','rbrb-obs-vivienda','rbrb-lat','rbrb-lng'];
   ids.forEach(function(id) { var el = document.getElementById(id); if (el) el.value = ''; });
-  var preview = document.getElementById('rbrb-foto-preview');
-  if (preview) preview.style.display = 'none';
+  var grid = document.getElementById('rbrb-fotos-grid');
+  if (grid) { grid.style.display = 'none'; grid.innerHTML = ''; }
   var fi = document.getElementById('rbrb-foto-input');
   if (fi) fi.value = '';
+  var ci = document.getElementById('rbrb-camara-input');
+  if (ci) ci.value = '';
+  RBRB_FOTOS_FILES = [];
+  RBRB_EDIT_ID = null;
   var gps = document.getElementById('rbrb-gps-txt');
   if (gps) gps.textContent = 'GPS: tocá para capturar ubicación';
+  var btn = document.getElementById('rbrb-guardar-btn');
+  if (btn) btn.textContent = '💾 Guardar relevamiento';
   RBRB_CERTEZA = 'Confirmado';
   document.querySelectorAll('.rbrb-cert-btn').forEach(function(b, i) {
-    b.style.background = i === 0 ? 'rgba(16,185,129,.15)' : 'transparent';
-    b.style.borderColor = i === 0 ? 'var(--green)' : 'var(--border2)';
-    b.style.color = i === 0 ? 'var(--green)' : 'var(--text2)';
+    var cfg = RBRB_CERT_COLORS[b.dataset.val] || {};
+    b.style.background = i === 0 ? (cfg.bg || 'transparent') : 'transparent';
+    b.style.borderColor = i === 0 ? (cfg.border || 'var(--border2)') : 'var(--border2)';
+    b.style.color = i === 0 ? (cfg.color || 'var(--text2)') : 'var(--text2)';
   });
 }
 
@@ -26976,15 +27039,22 @@ window.rbrb_renderLista = function() {
     var c = RBRB_COLORES[r.tipo] || '#6b7280';
     var fecha = r.created_at ? r.created_at.substring(0,10) : '';
     var gpsLink = (r.lat && r.lng)
-      ? '<a href="https://maps.google.com/?q='+r.lat+','+r.lng+'" target="_blank" style="font-size:10px;color:var(--blue);text-decoration:none">📍 Ver en Maps</a>'
+      ? '<a href="https://maps.google.com/?q='+r.lat+','+r.lng+'" target="_blank" style="font-size:10px;color:var(--accent3);text-decoration:none">📍 Ver en Maps</a>'
       : '';
-    var fotoHtml = r.foto_url
-      ? '<img src="'+r.foto_url+'" onclick="rbrb_openFoto(\''+r.foto_url+'\')" style="width:100%;max-height:140px;object-fit:cover;border-radius:8px;cursor:pointer;margin-top:8px;border:1px solid var(--border)" loading="lazy">'
-      : '';
-    var certColor = r.certeza === 'Confirmado' ? '#10b981' : r.certeza === 'Probable' ? '#f59e0b' : '#6b7280';
+    var certColor = r.certeza === 'Confirmado' ? '#10b981' : r.certeza === 'Probable' ? '#f59e0b' : '#ef4444';
 
-    return '<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid '+c+';'+
-      'border-radius:10px;padding:14px 16px">'+
+    // Fotos: puede haber una o varias
+    var fotosUrls = [];
+    if (r.fotos_urls) { try { fotosUrls = JSON.parse(r.fotos_urls); } catch(e){} }
+    if (!fotosUrls.length && r.foto_url) fotosUrls = [r.foto_url];
+    var fotosHtml = fotosUrls.length
+      ? '<div style="display:grid;grid-template-columns:repeat('+Math.min(fotosUrls.length,3)+',1fr);gap:4px;margin-top:8px">'
+        + fotosUrls.map(function(u){ return '<img src="'+u+'" onclick="rbrb_openFoto(\''+u+'\')" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;cursor:pointer;border:1px solid var(--border)" loading="lazy">'; }).join('')
+        + '</div>'
+      : '';
+
+    var rid = r.id || '';
+    return '<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid '+c+';border-radius:10px;padding:14px 16px">'+
       '<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;flex-wrap:wrap">'+
         '<span style="font-size:10px;font-family:var(--mono);color:var(--text3)">'+fecha+'</span>'+
         '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:'+c+'20;color:'+c+'">'+r.tipo+'</span>'+
@@ -26994,12 +27064,15 @@ window.rbrb_renderLista = function() {
       '<div style="font-size:13px;color:var(--text);margin-bottom:6px;line-height:1.6">'+r.descripcion+'</div>'+
       (r.titular?'<div style="font-size:11px;color:var(--text2)">👤 '+r.titular+'</div>':'')+
       (r.observaciones?'<div style="font-size:11px;color:var(--text3);margin-top:4px;font-style:italic">'+r.observaciones+'</div>':'')+
-      '<div style="display:flex;gap:10px;align-items:center;margin-top:6px">'+
+      (r.obs_vivienda?'<div style="font-size:11px;color:var(--text3);margin-top:2px;font-style:italic">🏠 '+r.obs_vivienda+'</div>':'')+
+      '<div style="display:flex;gap:10px;align-items:center;margin-top:8px;flex-wrap:wrap">'+
         '<span style="font-size:10px;color:var(--text3)">Fuente: '+r.fuente+'</span>'+
         '<span style="font-size:10px;color:var(--text3)">· '+r.agente+'</span>'+
         gpsLink+
+        (rid?'<button onclick="rbrb_editar(\''+rid+'\')" type="button" style="margin-left:auto;padding:4px 10px;border-radius:7px;border:1px solid var(--border2);'+
+          'background:transparent;color:var(--accent3);font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">✏️ Editar</button>':'')+
       '</div>'+
-      fotoHtml+
+      fotosHtml+
     '</div>';
   }).join('');
 };
@@ -27014,6 +27087,70 @@ window.rbrb_openFoto = function(url) {
   } else {
     window.open(url, '_blank');
   }
+};
+
+window.rbrb_editar = function(id) {
+  var r = RBRB_REGISTROS.find(function(x){ return String(x.id) === String(id); });
+  if (!r) { toast('Registro no encontrado', 'err'); return; }
+
+  RBRB_EDIT_ID = r.id;
+
+  // Ir a la pestaña formulario
+  rbrb_tab('form', document.getElementById('rbrb-tab-form'));
+
+  // Rellenar campos
+  var set = function(id, val) { var el = document.getElementById(id); if (el) el.value = val || ''; };
+  set('rbrb-mza', r.manzana);
+  set('rbrb-orden', r.orden);
+  set('rbrb-tipo', r.tipo);
+  set('rbrb-desc', r.descripcion);
+  set('rbrb-fuente', r.fuente);
+  set('rbrb-titular', r.titular);
+  set('rbrb-obs', r.observaciones);
+  set('rbrb-obs-vivienda', r.obs_vivienda);
+  set('rbrb-lat', r.lat || '');
+  set('rbrb-lng', r.lng || '');
+
+  // GPS texto
+  var gps = document.getElementById('rbrb-gps-txt');
+  if (gps && r.lat && r.lng) gps.textContent = 'GPS: ' + r.lat + ', ' + r.lng + ' ✓';
+
+  // Certeza
+  RBRB_CERTEZA = r.certeza || 'Confirmado';
+  document.querySelectorAll('.rbrb-cert-btn').forEach(function(b) {
+    var isActive = b.dataset.val === RBRB_CERTEZA;
+    var cfg = RBRB_CERT_COLORS[b.dataset.val] || {};
+    b.style.background = isActive ? (cfg.bg || 'transparent') : 'transparent';
+    b.style.borderColor = isActive ? (cfg.border || 'var(--border2)') : 'var(--border2)';
+    b.style.color = isActive ? (cfg.color || 'var(--text2)') : 'var(--text2)';
+  });
+
+  // Fotos existentes: mostrar en grid como previews (sin re-subir)
+  RBRB_FOTOS_FILES = [];
+  var grid = document.getElementById('rbrb-fotos-grid');
+  var fotosUrls = [];
+  if (r.fotos_urls) { try { fotosUrls = JSON.parse(r.fotos_urls); } catch(e){} }
+  if (!fotosUrls.length && r.foto_url) fotosUrls = [r.foto_url];
+  if (grid && fotosUrls.length) {
+    grid.style.display = 'grid';
+    grid.innerHTML = fotosUrls.map(function(u) {
+      return '<div style="position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;border:1px solid var(--border)">'+
+        '<img src="'+u+'" style="width:100%;height:100%;object-fit:cover">'+
+        '<span style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,.55);color:#fff;border-radius:4px;font-size:9px;padding:2px 5px">Guardada</span>'+
+      '</div>';
+    }).join('');
+  }
+
+  // Cambiar texto del botón
+  var btn = document.getElementById('rbrb-guardar-btn');
+  if (btn) btn.textContent = '✏️ Actualizar registro';
+
+  // Scroll al formulario
+  var panel = document.getElementById('rbrb-panel-form');
+  if (panel) panel.scrollTo({ top: 0, behavior: 'smooth' });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  toast('Editando registro · guardá para actualizar', 'ok');
 };
 
 window.rbrb_exportar = function() {
