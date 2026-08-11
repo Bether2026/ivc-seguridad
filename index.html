@@ -27250,46 +27250,6 @@ function rbrb_buildItems() {
     return '<div style="margin-bottom:14px">'+headerHtml+regsHtml+'</div>';
   }).join('');
 }
-    var c = RBRB_COLORES[r.tipo] || '#6b7280';
-    var fecha = r.created_at ? r.created_at.substring(0,10) : '';
-    var gpsLink = (r.lat && r.lng)
-      ? '<a href="https://maps.google.com/?q='+r.lat+','+r.lng+'" target="_blank" style="font-size:10px;color:var(--accent3);text-decoration:none">📍 Ver en Maps</a>'
-      : '';
-    var certColor = r.certeza === 'Confirmado' ? '#10b981' : r.certeza === 'Probable' ? '#f59e0b' : '#ef4444';
-
-    // Fotos: puede haber una o varias
-    var fotosUrls = [];
-    if (r.fotos_urls) { try { fotosUrls = JSON.parse(r.fotos_urls); } catch(e){} }
-    if (!fotosUrls.length && r.foto_url) fotosUrls = [r.foto_url];
-    var fotosHtml = fotosUrls.length
-      ? '<div style="display:grid;grid-template-columns:repeat('+Math.min(fotosUrls.length,3)+',1fr);gap:4px;margin-top:8px">'
-        + fotosUrls.map(function(u){ return '<img src="'+u+'" onclick="rbrb_openFoto(\''+u+'\')" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px;cursor:pointer;border:1px solid var(--border)" loading="lazy">'; }).join('')
-        + '</div>'
-      : '';
-
-    var rid = r.id || '';
-    return '<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid '+c+';border-radius:10px;padding:14px 16px">'+
-      '<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;flex-wrap:wrap">'+
-        '<span style="font-size:10px;font-family:var(--mono);color:var(--text3)">'+fecha+'</span>'+
-        '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:'+c+'20;color:'+c+'">'+r.tipo+'</span>'+
-        (r.manzana?'<span style="font-size:10px;color:var(--text3)">Mza '+r.manzana+(r.orden?' · Ord. '+r.orden:'')+'</span>':'') +
-        '<span style="font-size:10px;font-weight:700;color:'+certColor+';margin-left:auto">'+r.certeza+'</span>'+
-      '</div>'+
-      '<div style="font-size:13px;color:var(--text);margin-bottom:6px;line-height:1.6">'+r.descripcion+'</div>'+
-      (r.titular?'<div style="font-size:11px;color:var(--text2)">👤 '+r.titular+'</div>':'')+
-      (r.observaciones?'<div style="font-size:11px;color:var(--text3);margin-top:4px;font-style:italic">'+r.observaciones+'</div>':'')+
-      (r.obs_vivienda?'<div style="font-size:11px;color:var(--text3);margin-top:2px;font-style:italic">🏠 '+r.obs_vivienda+'</div>':'')+
-      '<div style="display:flex;gap:10px;align-items:center;margin-top:8px;flex-wrap:wrap">'+
-        '<span style="font-size:10px;color:var(--text3)">Fuente: '+r.fuente+'</span>'+
-        '<span style="font-size:10px;color:var(--text3)">· '+r.agente+'</span>'+
-        gpsLink+
-        (rid?'<button onclick="rbrb_editar(\''+rid+'\')" type="button" style="margin-left:auto;padding:4px 10px;border-radius:7px;border:1px solid var(--border2);'+
-          'background:transparent;color:var(--accent3);font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">✏️ Editar</button>':'')+
-      '</div>'+
-      fotosHtml+
-    '</div>';
-  }).join('');
-};
 
 window.rbrb_openFoto = function(url) {
   var lb = document.getElementById('lb');
