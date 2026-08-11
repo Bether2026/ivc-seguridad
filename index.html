@@ -26977,17 +26977,22 @@ window.rbrb_guardar = function() {
     reader.readAsDataURL(file);
   }
 
+  // Capturar el ID de edición ANTES de cualquier async (limpiarForm lo nullea)
+  var editId = RBRB_EDIT_ID;
+
   function guardarConUrls(urls) {
     if (urls.length === 1) { payload.foto_url = urls[0]; payload.fotos_urls = null; }
     else if (urls.length > 1) { payload.foto_url = urls[0]; payload.fotos_urls = JSON.stringify(urls); }
+    // Si es edición sin fotos nuevas, no tocar foto_url existente (no incluir en payload)
+    // Si es nuevo sin fotos, dejar sin foto_url
 
-    var op = RBRB_EDIT_ID
-      ? db.from('relevamiento_rb').update(payload).eq('id', RBRB_EDIT_ID)
+    var op = editId
+      ? db.from('relevamiento_rb').update(payload).eq('id', editId)
       : db.from('relevamiento_rb').insert(payload);
 
     op.then(function(res) {
       if (res.error) { toast('Error: ' + res.error.message, 'err'); return; }
-      toast(RBRB_EDIT_ID ? '✓ Registro actualizado' : '✓ Relevamiento guardado', 'ok');
+      toast(editId ? '✓ Registro actualizado' : '✓ Relevamiento guardado', 'ok');
       rbrb_limpiarForm();
       rbrb_cargarDatos();
     });
@@ -27034,6 +27039,11 @@ function rbrb_cargarDatos() {
     .then(function(res) {
       if (res.error) return;
       RBRB_REGISTROS = res.data || [];
+      // Debug: ver qué columnas llegan
+      if (RBRB_REGISTROS.length) {
+        var r0 = RBRB_REGISTROS[0];
+        console.log('[RBRB] Primer registro:', { foto_url: r0.foto_url, fotos_urls: r0.fotos_urls, id: r0.id });
+      }
       // Actualizar tab badge
       var btn = document.getElementById('rbrb-tab-lista');
       if (btn) btn.textContent = '📋 Listado (' + RBRB_REGISTROS.length + ')';
