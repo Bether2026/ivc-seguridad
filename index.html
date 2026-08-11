@@ -4354,8 +4354,14 @@ body {
 
             <!-- TAB: LISTADO -->
             <div id="rbrb-panel-lista" style="display:none;padding:16px">
-              <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
-                <select id="rbrb-lista-filtro" class="form-select" style="flex:1;min-width:160px" onchange="rbrb_renderLista()">
+
+              <!-- FILTROS -->
+              <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+                <input id="rbrb-filtro-mza" class="form-input" type="text" placeholder="Manzana..." style="width:90px;flex:none"
+                  oninput="rbrb_renderLista()">
+                <input id="rbrb-filtro-orden" class="form-input" type="text" placeholder="Orden..." style="width:90px;flex:none"
+                  oninput="rbrb_renderLista()">
+                <select id="rbrb-lista-filtro" class="form-select" style="flex:1;min-width:140px" onchange="rbrb_renderLista()">
                   <option value="">Todos los tipos</option>
                   <option>Comercio sin habilitación</option>
                   <option>Puesto en vía pública</option>
@@ -4365,12 +4371,18 @@ body {
                   <option>Ocupación espacio común</option>
                   <option>Otro</option>
                 </select>
+                <button onclick="rbrb_limpiarFiltros()" type="button"
+                  style="padding:8px 12px;border-radius:8px;border:1px solid var(--border2);
+                    background:transparent;color:var(--text3);font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">
+                  ✕ Limpiar
+                </button>
                 <button onclick="rbrb_exportar()" type="button"
                   style="padding:8px 14px;border-radius:8px;border:1px solid var(--border2);
                     background:transparent;color:var(--text2);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">
-                  📥 Exportar CSV
+                  📥 CSV
                 </button>
               </div>
+
               <div id="rbrb-count" style="font-size:12px;color:var(--text3);margin-bottom:12px"></div>
               <div id="rbrb-lista-items" style="display:flex;flex-direction:column;gap:10px"></div>
             </div>
@@ -27022,16 +27034,29 @@ function rbrb_cargarDatos() {
 }
 
 window.rbrb_renderLista = function() {
-  var filtro = (document.getElementById('rbrb-lista-filtro') || {}).value || '';
-  var items = RBRB_REGISTROS.filter(function(r) { return !filtro || r.tipo === filtro; });
+  var filtroTipo = (document.getElementById('rbrb-lista-filtro') || {}).value || '';
+  var filtroMza  = ((document.getElementById('rbrb-filtro-mza') || {}).value || '').trim().toLowerCase();
+  var filtroOrden = ((document.getElementById('rbrb-filtro-orden') || {}).value || '').trim().toLowerCase();
+
+  var items = RBRB_REGISTROS.filter(function(r) {
+    if (filtroTipo && r.tipo !== filtroTipo) return false;
+    if (filtroMza && !(r.manzana || '').toLowerCase().includes(filtroMza)) return false;
+    if (filtroOrden && !(r.orden || '').toLowerCase().includes(filtroOrden)) return false;
+    return true;
+  });
+
   var count = document.getElementById('rbrb-count');
-  if (count) count.textContent = items.length + ' registro' + (items.length !== 1 ? 's' : '') + (filtro ? ' · ' + filtro : '');
+  var tags = [];
+  if (filtroMza) tags.push('Mza: ' + filtroMza);
+  if (filtroOrden) tags.push('Ord: ' + filtroOrden);
+  if (filtroTipo) tags.push(filtroTipo);
+  if (count) count.textContent = items.length + ' registro' + (items.length !== 1 ? 's' : '') + (tags.length ? ' · ' + tags.join(' · ') : '');
 
   var cont = document.getElementById('rbrb-lista-items');
   if (!cont) return;
 
   if (!items.length) {
-    cont.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3)">Sin registros' + (filtro ? ' para este filtro' : '') + '</div>';
+    cont.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3)">Sin registros para este filtro</div>';
     return;
   }
 
@@ -27153,6 +27178,12 @@ window.rbrb_editar = function(id) {
   toast('Editando registro · guardá para actualizar', 'ok');
 };
 
+window.rbrb_limpiarFiltros = function() {
+  var ids = ['rbrb-filtro-mza','rbrb-filtro-orden','rbrb-lista-filtro'];
+  ids.forEach(function(id){ var el = document.getElementById(id); if (el) el.value = ''; });
+  rbrb_renderLista();
+};
+
 window.rbrb_exportar = function() {
   if (!RBRB_REGISTROS.length) { toast('Sin datos para exportar', 'err'); return; }
   var filtro = (document.getElementById('rbrb-lista-filtro') || {}).value || '';
@@ -27200,7 +27231,7 @@ function rbrb_crearMapa() {
   var loading = document.getElementById('rbrb-mapa-loading');
   if (loading) loading.style.display = 'none';
   // Rodrigo Bueno coordinates
-  RBRB_MAP = L.map('rbrb-mapa').setView([-34.6158, -58.3621], 16);
+  RBRB_MAP = L.map('rbrb-mapa').setView([-34.6142, -58.3598], 17);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '© OpenStreetMap contributors'
   }).addTo(RBRB_MAP);
