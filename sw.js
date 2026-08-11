@@ -1,7 +1,7 @@
 // IVC Seguridad y Emergencias — Service Worker (ÚNICO — no debe haber otro registrado)
 // BUILD_TIMESTAMP: este comentario se actualiza automáticamente en cada deploy
 // via deploy.sh — fuerza reinstalación del SW en todos los dispositivos.
-// LAST_BUILD: 2026-08-11T13:51:52Z
+// LAST_BUILD: 2026-08-11T13:59:53Z
 const CACHE_NAME = 'ivc-seg-v11';
 const urlsToCache = ['/'];
 
