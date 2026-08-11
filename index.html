@@ -4242,19 +4242,12 @@ body {
                 <textarea id="rbrb-obs-vivienda" class="form-textarea" rows="2" style="min-height:60px" placeholder="Estado edilicio, accesos, características físicas, etc."></textarea>
               </div>
 
-              <!-- TIPO -->
+              <!-- TIPO (multi-selección) -->
               <div class="form-group">
-                <label class="form-label">Tipo de situación</label>
-                <select id="rbrb-tipo" class="form-select">
-                  <option value="">— Seleccionar —</option>
-                  <option>Comercio sin habilitación</option>
-                  <option>Puesto en vía pública</option>
-                  <option>Construcción que invade línea municipal</option>
-                  <option>Taller clandestino</option>
-                  <option>Ampliación sin protocolo</option>
-                  <option>Ocupación espacio común</option>
-                  <option>Otro</option>
-                </select>
+                <label class="form-label">Tipo de situación <span style="color:var(--text3);font-weight:400">(podés elegir varios)</span></label>
+                <div id="rbrb-tipo-sel" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+                <input id="rbrb-tipo-otro" class="form-input" type="text" placeholder="Describí el tipo de situación..."
+                  style="display:none;margin-top:8px">
               </div>
 
               <!-- FUENTE -->
@@ -26787,6 +26780,7 @@ var RBRB_COLORES = {
 };
 
 window.rbrb_onOpen = function() {
+  rbrb_renderTipoSel();
   // Si ya desbloqueado, cargar datos
   if (RBRB_UNLOCKED) {
     rbrb_cargarDatos();
@@ -26799,6 +26793,7 @@ window.rbrb_checkPin = function() {
     RBRB_UNLOCKED = true;
     document.getElementById('rbrb-gate').style.display = 'none';
     document.getElementById('rbrb-content').style.display = 'block';
+    rbrb_renderTipoSel();
     rbrb_cargarDatos();
   } else {
     var err = document.getElementById('rbrb-pin-err');
@@ -26808,11 +26803,14 @@ window.rbrb_checkPin = function() {
   }
 };
 
+var RBRB_SKIP_CLEAR = false; // flag interno: rbrb_editar lo activa para no limpiar
+
 window.rbrb_tab = function(name, btn) {
-  // Si el usuario toca "Cargar novedad" y estaba en modo edición, preguntar
-  if (name === 'form' && RBRB_EDIT_ID) {
+  // Si el usuario toca "Cargar novedad" estando en edición, resetear (salvo que venga de rbrb_editar)
+  if (name === 'form' && RBRB_EDIT_ID && !RBRB_SKIP_CLEAR) {
     rbrb_limpiarForm();
   }
+  RBRB_SKIP_CLEAR = false;
   ['form','mapa','lista'].forEach(function(t) {
     var p = document.getElementById('rbrb-panel-'+t);
     var b = document.getElementById('rbrb-tab-'+t);
@@ -26822,6 +26820,54 @@ window.rbrb_tab = function(name, btn) {
   if (name === 'mapa') rbrb_initMapa();
   if (name === 'lista') rbrb_renderLista();
 };
+
+// ── TIPOS multi-selección ──
+var RBRB_TIPOS_LISTA = [
+  'Comercio sin habilitación',
+  'Puesto en vía pública',
+  'Taller clandestino',
+  'Ampliación sin protocolo',
+  'Ocupación espacio común',
+  'Otro'
+];
+var RBRB_TIPOS_SEL = [];
+
+function rbrb_renderTipoSel() {
+  var wrap = document.getElementById('rbrb-tipo-sel');
+  if (!wrap) return;
+  var chipBase = 'padding:7px 13px;border-radius:20px;border:1px solid;font-family:var(--font);'+
+    'font-size:11px;font-weight:700;cursor:pointer;transition:all .15s';
+  wrap.innerHTML = RBRB_TIPOS_LISTA.map(function(t) {
+    var sel = RBRB_TIPOS_SEL.indexOf(t) >= 0;
+    var c = RBRB_COLORES[t] || '#6b7280';
+    return '<button type="button" onclick="rbrb_toggleTipo(\''+t.replace(/'/g,"\\'")+'\')" style="'+chipBase+
+      ';background:'+(sel ? c+'30' : 'transparent')+
+      ';border-color:'+(sel ? c : 'var(--border2)')+
+      ';color:'+(sel ? c : 'var(--text2)')+'">'+
+      (sel?'✓ ':'')+t+'</button>';
+  }).join('');
+  // Mostrar/ocultar campo Otro
+  var otro = document.getElementById('rbrb-tipo-otro');
+  if (otro) otro.style.display = RBRB_TIPOS_SEL.indexOf('Otro') >= 0 ? 'block' : 'none';
+}
+
+window.rbrb_toggleTipo = function(t) {
+  var i = RBRB_TIPOS_SEL.indexOf(t);
+  if (i >= 0) RBRB_TIPOS_SEL.splice(i, 1);
+  else RBRB_TIPOS_SEL.push(t);
+  rbrb_renderTipoSel();
+};
+
+// Color para un tipo (soporta strings compuestos "A + B")
+function rbrb_colorDe(tipo) {
+  if (!tipo) return '#6b7280';
+  if (RBRB_COLORES[tipo]) return RBRB_COLORES[tipo];
+  var keys = Object.keys(RBRB_COLORES);
+  for (var i = 0; i < keys.length; i++) {
+    if (tipo.indexOf(keys[i]) >= 0) return RBRB_COLORES[keys[i]];
+  }
+  return '#6b7280';
+}
 
 var RBRB_CERT_COLORS = {
   'Confirmado': { bg: 'rgba(16,185,129,.18)', border: '#10b981', color: '#10b981' },
@@ -26919,7 +26965,6 @@ var RBRB_EDIT_ID = null; // id del registro en edición, null = nuevo
 window.rbrb_guardar = function() {
   var mza = (document.getElementById('rbrb-mza') || {}).value || '';
   var orden = (document.getElementById('rbrb-orden') || {}).value || '';
-  var tipo = (document.getElementById('rbrb-tipo') || {}).value || '';
   var desc = (document.getElementById('rbrb-desc') || {}).value || '';
   var fuente = (document.getElementById('rbrb-fuente') || {}).value || 'Observación directa';
   var titular = (document.getElementById('rbrb-titular') || {}).value || '';
@@ -26928,7 +26973,18 @@ window.rbrb_guardar = function() {
   var lat = parseFloat((document.getElementById('rbrb-lat') || {}).value) || null;
   var lng = parseFloat((document.getElementById('rbrb-lng') || {}).value) || null;
 
-  if (!tipo) { toast('Seleccioná el tipo de situación', 'err'); return; }
+  // Tipos multi-selección
+  if (!RBRB_TIPOS_SEL.length) { toast('Seleccioná al menos un tipo de situación', 'err'); return; }
+  var tipos = RBRB_TIPOS_SEL.slice();
+  var otroIdx = tipos.indexOf('Otro');
+  if (otroIdx >= 0) {
+    var otroTxt = ((document.getElementById('rbrb-tipo-otro') || {}).value || '').trim();
+    if (otroTxt) tipos[otroIdx] = otroTxt;
+    else if (tipos.length === 1) { toast('Describí el tipo de situación en el campo "Otro"', 'err'); return; }
+    else tipos.splice(otroIdx, 1);
+  }
+  var tipo = tipos.join(' + ');
+
   if (!desc.trim()) { toast('Agregá una descripción', 'err'); return; }
 
   var payload = {
@@ -26946,52 +27002,32 @@ window.rbrb_guardar = function() {
     lng: lng,
     agente: window.USER ? (USER.nombre || USER.puesto) : 'Desconocido'
   };
-  if (!RBRB_EDIT_ID) payload.created_at = new Date().toISOString();
 
-  // Subir fotos múltiples
+  // Capturar el ID de edición ANTES de cualquier async
+  var editId = RBRB_EDIT_ID;
+  if (!editId) payload.created_at = new Date().toISOString();
+
   var files = RBRB_FOTOS_FILES.slice();
 
-  function subirFotos(files, urls, cb) {
-    if (!files.length) { cb(urls); return; }
-    var file = files.shift();
-    var reader = new FileReader();
-    reader.onload = function(e) {
-      var img = new Image();
-      img.onload = function() {
-        var canvas = document.createElement('canvas');
-        var maxW = 1200;
-        var ratio = Math.min(maxW / img.width, maxW / img.height, 1);
-        canvas.width = img.width * ratio;
-        canvas.height = img.height * ratio;
-        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-        canvas.toBlob(function(blob) {
-          var fname = Date.now() + '_' + Math.random().toString(36).slice(2) + '.jpg';
-          db.storage.from('novedades').upload(fname, blob, { contentType: 'image/jpeg' }).then(function(r) {
-            if (!r.error) urls.push('https://pub-438b0d51c7a246f38a92859d01cedecd.r2.dev/novedades/' + fname);
-            subirFotos(files, urls, cb);
-          });
-        }, 'image/jpeg', 0.82);
-      };
-      img.src = e.target.result;
-    };
-    reader.readAsDataURL(file);
-  }
+  // Deshabilitar botón mientras guarda
+  var btnG = document.getElementById('rbrb-guardar-btn');
+  if (btnG) { btnG.disabled = true; btnG.textContent = files.length ? '⏳ Subiendo fotos...' : '⏳ Guardando...'; }
 
-  // Capturar el ID de edición ANTES de cualquier async (limpiarForm lo nullea)
-  var editId = RBRB_EDIT_ID;
+  function restaurarBtn() {
+    if (btnG) { btnG.disabled = false; btnG.textContent = editId ? '✏️ Actualizar registro' : '💾 Guardar relevamiento'; }
+  }
 
   function guardarConUrls(urls) {
     if (urls.length === 1) { payload.foto_url = urls[0]; payload.fotos_urls = null; }
     else if (urls.length > 1) { payload.foto_url = urls[0]; payload.fotos_urls = JSON.stringify(urls); }
-    // Si es edición sin fotos nuevas, no tocar foto_url existente (no incluir en payload)
-    // Si es nuevo sin fotos, dejar sin foto_url
+    // Edición sin fotos nuevas: no tocar foto_url/fotos_urls existentes
 
     var op = editId
       ? db.from('relevamiento_rb').update(payload).eq('id', editId)
       : db.from('relevamiento_rb').insert(payload);
 
     op.then(function(res) {
-      if (res.error) { toast('Error: ' + res.error.message, 'err'); return; }
+      if (res.error) { restaurarBtn(); toast('Error: ' + res.error.message, 'err'); return; }
       toast(editId ? '✓ Registro actualizado' : '✓ Relevamiento guardado', 'ok');
       rbrb_limpiarForm();
       rbrb_cargarDatos();
@@ -26999,15 +27035,30 @@ window.rbrb_guardar = function() {
   }
 
   if (files.length) {
-    subirFotos(files, [], guardarConUrls);
+    // Usar el mismo upload probado que usa toda la app (proxy R2)
+    var promesas = files.map(function(f) {
+      return uploadToR2Comprimido(f, 'relevamiento_rb').catch(function(e) {
+        console.error('[RBRB] Error subiendo foto:', e);
+        return null;
+      });
+    });
+    Promise.all(promesas).then(function(urls) {
+      var ok = urls.filter(Boolean);
+      if (!ok.length && files.length) {
+        toast('⚠️ No se pudieron subir las fotos, se guarda sin fotos', 'err');
+      }
+      guardarConUrls(ok);
+    });
   } else {
     guardarConUrls([]);
   }
 };
 
 function rbrb_limpiarForm() {
-  var ids = ['rbrb-mza','rbrb-orden','rbrb-tipo','rbrb-desc','rbrb-titular','rbrb-obs','rbrb-obs-vivienda','rbrb-lat','rbrb-lng'];
+  var ids = ['rbrb-mza','rbrb-orden','rbrb-desc','rbrb-titular','rbrb-obs','rbrb-obs-vivienda','rbrb-lat','rbrb-lng','rbrb-tipo-otro'];
   ids.forEach(function(id) { var el = document.getElementById(id); if (el) el.value = ''; });
+  RBRB_TIPOS_SEL = [];
+  rbrb_renderTipoSel();
   var grid = document.getElementById('rbrb-fotos-grid');
   if (grid) { grid.style.display = 'none'; grid.innerHTML = ''; }
   var fi = document.getElementById('rbrb-foto-input');
@@ -27108,7 +27159,7 @@ function rbrb_buildStatsBar() {
   if (!bar) return;
   var items = rbrb_itemsFiltrados(false); // sin filtro de tipo para stats reales
   var tipos = {};
-  items.forEach(function(r) { tipos[r.tipo] = (tipos[r.tipo]||0)+1; });
+  items.forEach(function(r) { (r.tipo||'').split(' + ').forEach(function(t){ t=t.trim(); if(t) tipos[t]=(tipos[t]||0)+1; }); });
   var ordenes = {};
   items.forEach(function(r) { ordenes[r.orden||'—'] = true; });
   var conFoto = items.filter(function(r){ return r.foto_url || r.fotos_urls; }).length;
@@ -27140,7 +27191,7 @@ function rbrb_buildTipoChips() {
   if (!wrap) return;
   var items = rbrb_itemsFiltrados(false);
   var tipos = {};
-  items.forEach(function(r){ tipos[r.tipo] = (tipos[r.tipo]||0)+1; });
+  items.forEach(function(r){ (r.tipo||'').split(' + ').forEach(function(t){ t=t.trim(); if(t) tipos[t]=(tipos[t]||0)+1; }); });
   if (!Object.keys(tipos).length) { wrap.innerHTML=''; return; }
 
   var chipBase = 'padding:5px 12px;border-radius:20px;border:1px solid;font-family:var(--font);'+
@@ -27184,7 +27235,7 @@ function rbrb_itemsFiltrados(conTipo) {
   return RBRB_REGISTROS.filter(function(r) {
     var m = (r.manzana || '—').trim() || '—';
     if (RBRB_ACTIVE_MZA !== 'todas' && m !== RBRB_ACTIVE_MZA) return false;
-    if (conTipo && RBRB_ACTIVE_TIPO && r.tipo !== RBRB_ACTIVE_TIPO) return false;
+    if (conTipo && RBRB_ACTIVE_TIPO && (r.tipo || '').indexOf(RBRB_ACTIVE_TIPO) < 0) return false;
     return true;
   });
 }
@@ -27232,7 +27283,7 @@ function rbrb_buildItems() {
     '</div>';
 
     var regsHtml = regs.map(function(r) {
-      var c = RBRB_COLORES[r.tipo] || '#6b7280';
+      var c = rbrb_colorDe(r.tipo);
       var certColor = r.certeza==='Confirmado'?'#10b981':r.certeza==='Probable'?'#f59e0b':'#ef4444';
       var fecha = r.created_at ? r.created_at.substring(0,10) : '';
       var gpsLink = (r.lat&&r.lng)
@@ -27271,6 +27322,10 @@ function rbrb_buildItems() {
           (rid?'<button onclick="rbrb_editar(\''+rid+'\')" type="button" '+
             'style="margin-left:auto;padding:3px 9px;border-radius:6px;border:1px solid var(--border2);'+
             'background:transparent;color:var(--accent3);font-family:var(--font);font-size:10px;font-weight:700;cursor:pointer">✏️ Editar</button>':'')+
+          (rid && window.USER && USER.rol === 'ADMIN'
+            ?'<button onclick="rbrb_eliminar(\''+rid+'\')" type="button" '+
+             'style="padding:3px 9px;border-radius:6px;border:1px solid rgba(239,68,68,.4);'+
+             'background:transparent;color:#ef4444;font-family:var(--font);font-size:10px;font-weight:700;cursor:pointer">🗑 Eliminar</button>':'')+
         '</div>'+
         fotosHtml+
       '</div>';
@@ -27279,6 +27334,16 @@ function rbrb_buildItems() {
     return '<div style="margin-bottom:14px">'+headerHtml+regsHtml+'</div>';
   }).join('');
 }
+
+window.rbrb_eliminar = function(id) {
+  if (!window.USER || USER.rol !== 'ADMIN') { toast('Sin permiso', 'err'); return; }
+  if (!confirm('¿Eliminar este registro definitivamente?')) return;
+  db.from('relevamiento_rb').delete().eq('id', id).then(function(res) {
+    if (res.error) { toast('Error: ' + res.error.message, 'err'); return; }
+    toast('🗑 Registro eliminado', 'ok');
+    rbrb_cargarDatos();
+  });
+};
 
 window.rbrb_openFoto = function(url) {
   var lb = document.getElementById('lb');
@@ -27296,16 +27361,17 @@ window.rbrb_editar = function(id) {
   var r = RBRB_REGISTROS.find(function(x){ return String(x.id) === String(id); });
   if (!r) { toast('Registro no encontrado', 'err'); return; }
 
-  RBRB_EDIT_ID = r.id;
-
-  // Ir a la pestaña formulario
+  // Ir a la pestaña formulario SIN limpiar (flag)
+  RBRB_SKIP_CLEAR = true;
   rbrb_tab('form', document.getElementById('rbrb-tab-form'));
+
+  // Setear el ID de edición DESPUÉS del cambio de tab
+  RBRB_EDIT_ID = r.id;
 
   // Rellenar campos
   var set = function(id, val) { var el = document.getElementById(id); if (el) el.value = val || ''; };
   set('rbrb-mza', r.manzana);
   set('rbrb-orden', r.orden);
-  set('rbrb-tipo', r.tipo);
   set('rbrb-desc', r.descripcion);
   set('rbrb-fuente', r.fuente);
   set('rbrb-titular', r.titular);
@@ -27313,6 +27379,21 @@ window.rbrb_editar = function(id) {
   set('rbrb-obs-vivienda', r.obs_vivienda);
   set('rbrb-lat', r.lat || '');
   set('rbrb-lng', r.lng || '');
+
+  // Tipos: parsear string compuesto "A + B" y marcar chips
+  RBRB_TIPOS_SEL = [];
+  var otroTxt = '';
+  (r.tipo || '').split(' + ').forEach(function(t) {
+    t = t.trim();
+    if (!t) return;
+    if (RBRB_TIPOS_LISTA.indexOf(t) >= 0) RBRB_TIPOS_SEL.push(t);
+    else { // tipo custom → es "Otro"
+      if (RBRB_TIPOS_SEL.indexOf('Otro') < 0) RBRB_TIPOS_SEL.push('Otro');
+      otroTxt = otroTxt ? otroTxt + ' + ' + t : t;
+    }
+  });
+  rbrb_renderTipoSel();
+  set('rbrb-tipo-otro', otroTxt);
 
   // GPS texto
   var gps = document.getElementById('rbrb-gps-txt');
@@ -27428,7 +27509,7 @@ function rbrb_actualizarMapa() {
   var sinGPS = RBRB_REGISTROS.length - conGPS.length;
 
   conGPS.forEach(function(r) {
-    var c = RBRB_COLORES[r.tipo] || '#6b7280';
+    var c = rbrb_colorDe(r.tipo);
     var icon = L.divIcon({
       html: '<div style="width:14px;height:14px;border-radius:50%;background:'+c+';border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>',
       iconSize: [14,14], iconAnchor: [7,7], className: ''
