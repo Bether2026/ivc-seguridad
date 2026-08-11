@@ -4213,6 +4213,17 @@ body {
             <!-- TAB: FORMULARIO -->
             <div id="rbrb-panel-form" style="padding:16px;display:flex;flex-direction:column;gap:12px">
 
+              <!-- BANNER MODO EDICIÓN -->
+              <div id="rbrb-edit-banner" style="display:none;background:rgba(245,158,11,.12);border:1px solid #f59e0b;
+                border-radius:10px;padding:10px 14px;display:none;align-items:center;gap:10px">
+                <span style="font-size:12px;color:#f59e0b;font-weight:700;flex:1">✏️ Editando registro existente</span>
+                <button onclick="rbrb_limpiarForm()" type="button"
+                  style="padding:5px 12px;border-radius:7px;border:1px solid #f59e0b;background:transparent;
+                    color:#f59e0b;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">
+                  ✕ Cancelar
+                </button>
+              </div>
+
               <!-- MANZANA + ORDEN -->
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
                 <div class="form-group">
@@ -26798,6 +26809,10 @@ window.rbrb_checkPin = function() {
 };
 
 window.rbrb_tab = function(name, btn) {
+  // Si el usuario toca "Cargar novedad" y estaba en modo edición, preguntar
+  if (name === 'form' && RBRB_EDIT_ID) {
+    rbrb_limpiarForm();
+  }
   ['form','mapa','lista'].forEach(function(t) {
     var p = document.getElementById('rbrb-panel-'+t);
     var b = document.getElementById('rbrb-tab-'+t);
@@ -27000,6 +27015,8 @@ function rbrb_limpiarForm() {
   if (gps) gps.textContent = 'GPS: tocá para capturar ubicación';
   var btn = document.getElementById('rbrb-guardar-btn');
   if (btn) btn.textContent = '💾 Guardar relevamiento';
+  var banner = document.getElementById('rbrb-edit-banner');
+  if (banner) banner.style.display = 'none';
   RBRB_CERTEZA = 'Confirmado';
   document.querySelectorAll('.rbrb-cert-btn').forEach(function(b, i) {
     var cfg = RBRB_CERT_COLORS[b.dataset.val] || {};
@@ -27213,7 +27230,9 @@ function rbrb_buildItems() {
           'style="font-size:10px;color:var(--accent3);text-decoration:none">📍 Maps</a>' : '';
 
       var fotosUrls = [];
-      if (r.fotos_urls) { try { fotosUrls = JSON.parse(r.fotos_urls); } catch(e){} }
+      if (r.fotos_urls && r.fotos_urls !== 'null') {
+        try { fotosUrls = JSON.parse(r.fotos_urls); } catch(e){}
+      }
       if (!fotosUrls.length && r.foto_url) fotosUrls = [r.foto_url];
       var fotosHtml = fotosUrls.length
         ? '<div style="display:grid;grid-template-columns:repeat('+Math.min(fotosUrls.length,4)+',1fr);gap:4px;margin-top:8px">'
@@ -27303,7 +27322,7 @@ window.rbrb_editar = function(id) {
   RBRB_FOTOS_FILES = [];
   var grid = document.getElementById('rbrb-fotos-grid');
   var fotosUrls = [];
-  if (r.fotos_urls) { try { fotosUrls = JSON.parse(r.fotos_urls); } catch(e){} }
+  if (r.fotos_urls && r.fotos_urls !== 'null') { try { fotosUrls = JSON.parse(r.fotos_urls); } catch(e){} }
   if (!fotosUrls.length && r.foto_url) fotosUrls = [r.foto_url];
   if (grid && fotosUrls.length) {
     grid.style.display = 'grid';
@@ -27315,9 +27334,11 @@ window.rbrb_editar = function(id) {
     }).join('');
   }
 
-  // Cambiar texto del botón
+  // Cambiar texto del botón y mostrar banner
   var btn = document.getElementById('rbrb-guardar-btn');
   if (btn) btn.textContent = '✏️ Actualizar registro';
+  var banner = document.getElementById('rbrb-edit-banner');
+  if (banner) banner.style.display = 'flex';
 
   // Scroll al formulario
   var panel = document.getElementById('rbrb-panel-form');
