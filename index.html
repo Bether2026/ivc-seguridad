@@ -484,6 +484,7 @@ body::after { display: none; }
 #nb-estadisticas    { --nc: #38bdf8; }
 
 #nb-relevamiento   { --nc: #a78bfa; }
+#nb-relev-rb       { --nc: #34d399; }
 #nb-rrhh            { --nc: #4ade80; }
 #nb-pendientes      { --nc: #f43f5e; }
 #nb-inventario      { --nc: #fb923c; }
@@ -1990,6 +1991,10 @@ body {
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Agenda
       </button>
 
+      <button class="sidebar-item" onclick="goView('relev-rb')" id="si-relev-rb" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/><circle cx="12" cy="5" r="1" fill="currentColor"/></svg>
+        <span>Relev. RB</span>
+      </button>
       <button class="sidebar-item" onclick="goView('relevamiento')" id="si-relevamiento" style="display:none">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
         <span>Relevamiento</span>
@@ -4165,6 +4170,211 @@ body {
       </div><!-- /adm-panel-liquidacion -->
 
         </div><!-- /view-admin -->
+
+        <!-- ══════════════════════════════════════════════
+             VISTA: RELEVAMIENTO RB — PIN 2072
+        ══════════════════════════════════════════════ -->
+        <div class="view" id="view-relev-rb" style="padding:0">
+
+          <!-- PIN GATE -->
+          <div id="rbrb-gate" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;padding:32px 20px;gap:20px">
+            <div style="font-size:32px">🔒</div>
+            <div style="font-size:16px;font-weight:700;color:var(--text)">Relevamiento Rodrigo Bueno</div>
+            <div style="font-size:13px;color:var(--text3);text-align:center;max-width:280px">Sección restringida. Ingresá el PIN de acceso para continuar.</div>
+            <div style="display:flex;gap:10px;margin-top:8px">
+              <input id="rbrb-pin" type="password" inputmode="numeric" maxlength="4" placeholder="PIN"
+                style="width:110px;padding:12px;text-align:center;font-size:22px;font-family:var(--mono);font-weight:700;
+                  background:var(--bg2);border:1px solid var(--border2);border-radius:12px;color:var(--text);outline:none;letter-spacing:8px"
+                onkeydown="if(event.key==='Enter')rbrb_checkPin()">
+              <button onclick="rbrb_checkPin()" style="padding:12px 20px;border-radius:12px;border:none;
+                background:var(--accent,#2563eb);color:#fff;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer">
+                Entrar
+              </button>
+            </div>
+            <div id="rbrb-pin-err" style="font-size:12px;color:#ef4444;display:none">PIN incorrecto</div>
+          </div>
+
+          <!-- CONTENIDO (oculto hasta PIN correcto) -->
+          <div id="rbrb-content" style="display:none">
+
+            <!-- TABS -->
+            <div style="display:flex;gap:0;border-bottom:1px solid var(--border);background:var(--bg2);position:sticky;top:0;z-index:10;overflow-x:auto">
+              <button class="tab active" id="rbrb-tab-form" onclick="rbrb_tab('form',this)" style="flex:1;padding:12px;font-size:12px;font-weight:700">
+                ➕ Cargar novedad
+              </button>
+              <button class="tab" id="rbrb-tab-mapa" onclick="rbrb_tab('mapa',this)" style="flex:1;padding:12px;font-size:12px;font-weight:700">
+                🗺 Mapa
+              </button>
+              <button class="tab" id="rbrb-tab-lista" onclick="rbrb_tab('lista',this)" style="flex:1;padding:12px;font-size:12px;font-weight:700">
+                📋 Listado
+              </button>
+            </div>
+
+            <!-- TAB: FORMULARIO -->
+            <div id="rbrb-panel-form" style="padding:16px;display:flex;flex-direction:column;gap:12px">
+
+              <div style="background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.25);border-radius:10px;padding:12px 14px;font-size:12px;color:#6ee7b7;line-height:1.6">
+                📝 <strong>Modo encubierto</strong> — Registrá lo que observás o lo que te comentan vecinos. La foto es opcional.
+              </div>
+
+              <!-- MANZANA + ORDEN -->
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                <div class="form-group">
+                  <label class="form-label">Manzana</label>
+                  <select id="rbrb-mza" class="form-select">
+                    <option value="">— Seleccionar —</option>
+                    <option>1</option><option>2</option><option>3</option>
+                    <option>4</option><option>5</option><option>6</option>
+                    <option>7</option><option>8</option><option>Borde costero</option><option>Sin manzana</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">N° de Orden</label>
+                  <input id="rbrb-orden" class="form-input" type="text" placeholder="Ej: 126">
+                </div>
+              </div>
+
+              <!-- TIPO -->
+              <div class="form-group">
+                <label class="form-label">Tipo de situación</label>
+                <select id="rbrb-tipo" class="form-select">
+                  <option value="">— Seleccionar —</option>
+                  <option>Comercio sin habilitación</option>
+                  <option>Puesto en vía pública</option>
+                  <option>Construcción que invade línea municipal</option>
+                  <option>Taller clandestino</option>
+                  <option>Ampliación sin protocolo</option>
+                  <option>Ocupación espacio común</option>
+                  <option>Otro</option>
+                </select>
+              </div>
+
+              <!-- FUENTE -->
+              <div class="form-group">
+                <label class="form-label">Fuente de información</label>
+                <select id="rbrb-fuente" class="form-select">
+                  <option value="Observación directa">Observación directa</option>
+                  <option value="Comentario de vecino">Comentario de vecino</option>
+                  <option value="Referencia indirecta">Referencia indirecta</option>
+                </select>
+              </div>
+
+              <!-- CERTEZA -->
+              <div class="form-group">
+                <label class="form-label">Nivel de certeza</label>
+                <div style="display:flex;gap:8px">
+                  <button type="button" class="rbrb-cert-btn active" data-val="Confirmado"
+                    onclick="rbrb_setCert(this)"
+                    style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--green);background:rgba(16,185,129,.12);
+                      color:var(--green);font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">
+                    ✓ Confirmado
+                  </button>
+                  <button type="button" class="rbrb-cert-btn" data-val="Probable"
+                    onclick="rbrb_setCert(this)"
+                    style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border2);background:transparent;
+                      color:var(--text2);font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">
+                    ~ Probable
+                  </button>
+                  <button type="button" class="rbrb-cert-btn" data-val="A verificar"
+                    onclick="rbrb_setCert(this)"
+                    style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border2);background:transparent;
+                      color:var(--text2);font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">
+                    ? A verificar
+                  </button>
+                </div>
+              </div>
+
+              <!-- DESCRIPCION -->
+              <div class="form-group">
+                <label class="form-label">Descripción <span style="color:var(--text3);font-weight:400">(qué se vio / qué se escuchó)</span></label>
+                <textarea id="rbrb-desc" class="form-textarea" rows="3" style="min-height:80px"
+                  placeholder="Describí lo observado o lo que te comentó el vecino. Incluí detalles: horarios, cantidad de personas, materiales, etc."></textarea>
+              </div>
+
+              <!-- TITULAR -->
+              <div class="form-group">
+                <label class="form-label">Nombre del titular / ocupante <span style="color:var(--text3);font-weight:400">(si se conoce)</span></label>
+                <input id="rbrb-titular" class="form-input" type="text" placeholder="Opcional">
+              </div>
+
+              <!-- OBSERVACIONES -->
+              <div class="form-group">
+                <label class="form-label">Observaciones adicionales</label>
+                <textarea id="rbrb-obs" class="form-textarea" rows="2" style="min-height:60px" placeholder="Información extra, contexto, antecedentes..."></textarea>
+              </div>
+
+              <!-- FOTO -->
+              <div class="form-group">
+                <label class="form-label">Foto <span style="color:var(--text3);font-weight:400">(opcional)</span></label>
+                <div id="rbrb-foto-preview" style="display:none;margin-bottom:8px">
+                  <img id="rbrb-foto-img" style="width:100%;max-height:180px;object-fit:cover;border-radius:8px;border:1px solid var(--border)" alt="">
+                </div>
+                <label style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--bg2);
+                  border:1px dashed var(--border2);border-radius:10px;cursor:pointer">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px;color:var(--text3)"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                  <span style="font-size:13px;color:var(--text2)">Tocá para adjuntar foto</span>
+                  <input type="file" accept="image/*" id="rbrb-foto-input" style="display:none" onchange="rbrb_previewFoto(this)">
+                </label>
+              </div>
+
+              <!-- GPS -->
+              <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;
+                background:var(--bg2);border:1px solid var(--border);border-radius:10px">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;flex-shrink:0;color:var(--text3)"><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 010 16c-2 0-6-4-8-8a8 8 0 018-8z"/></svg>
+                <span id="rbrb-gps-txt" style="font-size:12px;color:var(--text3);flex:1">GPS: tocá para capturar ubicación</span>
+                <button onclick="rbrb_getGPS()" type="button"
+                  style="padding:5px 10px;border-radius:7px;border:1px solid var(--border2);background:transparent;
+                    color:var(--accent2);font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">
+                  Capturar
+                </button>
+              </div>
+              <input type="hidden" id="rbrb-lat">
+              <input type="hidden" id="rbrb-lng">
+
+              <!-- GUARDAR -->
+              <button onclick="rbrb_guardar()" type="button"
+                style="padding:14px;border-radius:12px;border:none;
+                  background:var(--green,#10b981);color:#fff;
+                  font-family:var(--font);font-size:15px;font-weight:700;cursor:pointer;margin-top:4px">
+                💾 Guardar relevamiento
+              </button>
+
+            </div><!-- /panel-form -->
+
+            <!-- TAB: MAPA -->
+            <div id="rbrb-panel-mapa" style="display:none">
+              <div id="rbrb-mapa-wrap" style="height:calc(100vh - 160px);position:relative;background:var(--bg2)">
+                <div id="rbrb-mapa" style="width:100%;height:100%"></div>
+                <div id="rbrb-mapa-loading" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+                  font-size:13px;color:var(--text3);background:var(--bg2)">Cargando mapa...</div>
+              </div>
+            </div>
+
+            <!-- TAB: LISTADO -->
+            <div id="rbrb-panel-lista" style="display:none;padding:16px">
+              <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+                <select id="rbrb-lista-filtro" class="form-select" style="flex:1;min-width:160px" onchange="rbrb_renderLista()">
+                  <option value="">Todos los tipos</option>
+                  <option>Comercio sin habilitación</option>
+                  <option>Puesto en vía pública</option>
+                  <option>Construcción que invade línea municipal</option>
+                  <option>Taller clandestino</option>
+                  <option>Ampliación sin protocolo</option>
+                  <option>Ocupación espacio común</option>
+                  <option>Otro</option>
+                </select>
+                <button onclick="rbrb_exportar()" type="button"
+                  style="padding:8px 14px;border-radius:8px;border:1px solid var(--border2);
+                    background:transparent;color:var(--text2);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">
+                  📥 Exportar CSV
+                </button>
+              </div>
+              <div id="rbrb-count" style="font-size:12px;color:var(--text3);margin-bottom:12px"></div>
+              <div id="rbrb-lista-items" style="display:flex;flex-direction:column;gap:10px"></div>
+            </div>
+
+          </div><!-- /rbrb-content -->
+        </div><!-- /view-relev-rb -->
         <!-- VISTA HORAS REALES — Gerencia (reutiliza adm-panel-horas) -->
         <div class="view" id="view-horas">
           <div style="padding:16px">
@@ -4221,6 +4431,10 @@ body {
     </button>
     <button class="nav-btn" onclick="goView('agenda')" id="nb-agenda" style="display:none">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span>Agenda</span>
+    </button>
+    <button class="nav-btn" onclick="goView('relev-rb')" id="nb-relev-rb" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span>Relev.</span>
     </button>
     <button class="nav-btn" onclick="goView('relevamiento')" id="nb-relevamiento" style="display:none">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
@@ -8452,6 +8666,10 @@ function initApp() {
   var canSeeRelev = (USER.rol === 'ADMIN');
   if ($('si-relevamiento')) $('si-relevamiento').style.display = canSeeRelev ? 'block' : 'none';
   if ($('nb-relevamiento')) $('nb-relevamiento').style.display = canSeeRelev ? 'flex' : 'none';
+  // Relevamiento RB: Rodrigo Bueno, Gerencia, Administrador
+  var canSeeRelevRB = ['Rodrigo Bueno', 'Rodrigo bueno', 'Gerencia', 'Administrador'].indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN';
+  if ($('si-relev-rb')) $('si-relev-rb').style.display = canSeeRelevRB ? 'flex' : 'none';
+  if ($('nb-relev-rb')) $('nb-relev-rb').style.display = canSeeRelevRB ? 'flex' : 'none';
   // Pañol: exclusivo Emergencias y Administración del sistema
   var canSeePanol = USER.puesto === 'Emergencias' || USER.rol === 'ADMIN';
   if ($('si-panol')) $('si-panol').style.display = canSeePanol ? 'block' : 'none';
@@ -16849,6 +17067,7 @@ function goView(name) {
     if (name === 'inventario' && typeof loadInventario === 'function') loadInventario();
     if (name === 'pendientes' && typeof loadPendientes === 'function') loadPendientes();
     if (name === 'relevamiento' && typeof loadRelevamientos === 'function') loadRelevamientos();
+    if (name === 'relev-rb') rbrb_onOpen();
     if (name === 'panol' && typeof loadPanol === 'function') loadPanol();
     if (name === 'pdpu' && typeof selPdpuTab === 'function') selPdpuTab('48h');
     if (name === 'horas') {
@@ -26527,6 +26746,380 @@ selAdminTab = function(tab) {
 };
 
 })(); // fin IIFE
+
+// ══ MÓDULO: RELEVAMIENTO RB ════════════════════════════════════════════════
+(function() {
+
+var RBRB_PIN = '2072';
+var RBRB_UNLOCKED = false;
+var RBRB_REGISTROS = [];
+var RBRB_CERTEZA = 'Confirmado';
+var RBRB_MAP = null;
+var RBRB_MARKERS = [];
+var RBRB_MAP_INIT = false;
+
+// Colores por tipo
+var RBRB_COLORES = {
+  'Comercio sin habilitación': '#f59e0b',
+  'Puesto en vía pública': '#8b5cf6',
+  'Construcción que invade línea municipal': '#ef4444',
+  'Taller clandestino': '#f97316',
+  'Ampliación sin protocolo': '#ec4899',
+  'Ocupación espacio común': '#06b6d4',
+  'Otro': '#6b7280'
+};
+
+window.rbrb_onOpen = function() {
+  // Si ya desbloqueado, cargar datos
+  if (RBRB_UNLOCKED) {
+    rbrb_cargarDatos();
+  }
+};
+
+window.rbrb_checkPin = function() {
+  var pin = (document.getElementById('rbrb-pin') || {}).value || '';
+  if (pin === RBRB_PIN) {
+    RBRB_UNLOCKED = true;
+    document.getElementById('rbrb-gate').style.display = 'none';
+    document.getElementById('rbrb-content').style.display = 'block';
+    rbrb_cargarDatos();
+  } else {
+    var err = document.getElementById('rbrb-pin-err');
+    if (err) { err.style.display = 'block'; }
+    var inp = document.getElementById('rbrb-pin');
+    if (inp) { inp.value = ''; inp.focus(); }
+  }
+};
+
+window.rbrb_tab = function(name, btn) {
+  ['form','mapa','lista'].forEach(function(t) {
+    var p = document.getElementById('rbrb-panel-'+t);
+    var b = document.getElementById('rbrb-tab-'+t);
+    if (p) p.style.display = (t === name) ? 'block' : 'none';
+    if (b) b.classList.toggle('active', t === name);
+  });
+  if (name === 'mapa') rbrb_initMapa();
+  if (name === 'lista') rbrb_renderLista();
+};
+
+window.rbrb_setCert = function(btn) {
+  RBRB_CERTEZA = btn.dataset.val;
+  document.querySelectorAll('.rbrb-cert-btn').forEach(function(b) {
+    var isActive = b === btn;
+    b.style.background = isActive ? 'rgba(16,185,129,.15)' : 'transparent';
+    b.style.borderColor = isActive ? 'var(--green)' : 'var(--border2)';
+    b.style.color = isActive ? 'var(--green)' : 'var(--text2)';
+  });
+};
+
+window.rbrb_previewFoto = function(input) {
+  var file = input.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var img = document.getElementById('rbrb-foto-img');
+    var wrap = document.getElementById('rbrb-foto-preview');
+    if (img) img.src = e.target.result;
+    if (wrap) wrap.style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+};
+
+window.rbrb_getGPS = function() {
+  var txt = document.getElementById('rbrb-gps-txt');
+  if (txt) txt.textContent = 'Obteniendo ubicación...';
+  if (!navigator.geolocation) {
+    if (txt) txt.textContent = 'GPS no disponible en este dispositivo';
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    function(pos) {
+      var lat = pos.coords.latitude.toFixed(6);
+      var lng = pos.coords.longitude.toFixed(6);
+      var latEl = document.getElementById('rbrb-lat');
+      var lngEl = document.getElementById('rbrb-lng');
+      if (latEl) latEl.value = lat;
+      if (lngEl) lngEl.value = lng;
+      if (txt) txt.textContent = 'GPS: ' + lat + ', ' + lng + ' ✓';
+    },
+    function() {
+      if (txt) txt.textContent = 'No se pudo obtener la ubicación. Intentá al aire libre.';
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+};
+
+window.rbrb_guardar = function() {
+  var mza = (document.getElementById('rbrb-mza') || {}).value || '';
+  var orden = (document.getElementById('rbrb-orden') || {}).value || '';
+  var tipo = (document.getElementById('rbrb-tipo') || {}).value || '';
+  var desc = (document.getElementById('rbrb-desc') || {}).value || '';
+  var fuente = (document.getElementById('rbrb-fuente') || {}).value || 'Observación directa';
+  var titular = (document.getElementById('rbrb-titular') || {}).value || '';
+  var obs = (document.getElementById('rbrb-obs') || {}).value || '';
+  var lat = parseFloat((document.getElementById('rbrb-lat') || {}).value) || null;
+  var lng = parseFloat((document.getElementById('rbrb-lng') || {}).value) || null;
+
+  if (!tipo) { toast('Seleccioná el tipo de situación', 'err'); return; }
+  if (!desc.trim()) { toast('Agregá una descripción', 'err'); return; }
+
+  // Subir foto si existe
+  var fileInput = document.getElementById('rbrb-foto-input');
+  var file = fileInput && fileInput.files[0];
+
+  var payload = {
+    barrio: 'Rodrigo Bueno',
+    manzana: mza,
+    orden: orden,
+    tipo: tipo,
+    descripcion: desc.trim(),
+    fuente: fuente,
+    certeza: RBRB_CERTEZA,
+    titular: titular.trim(),
+    observaciones: obs.trim(),
+    lat: lat,
+    lng: lng,
+    agente: window.USER ? (USER.nombre || USER.puesto) : 'Desconocido',
+    created_at: new Date().toISOString()
+  };
+
+  function guardarSinFoto(fotoUrl) {
+    if (fotoUrl) payload.foto_url = fotoUrl;
+    db.from('relevamiento_rb').insert(payload).then(function(res) {
+      if (res.error) {
+        toast('Error al guardar: ' + res.error.message, 'err');
+        return;
+      }
+      toast('✓ Relevamiento guardado', 'ok');
+      rbrb_limpiarForm();
+      rbrb_cargarDatos();
+    });
+  }
+
+  if (file) {
+    // Comprimir y subir igual que novedades
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var img = new Image();
+      img.onload = function() {
+        var canvas = document.createElement('canvas');
+        var maxW = 1200;
+        var ratio = Math.min(maxW / img.width, maxW / img.height, 1);
+        canvas.width = img.width * ratio;
+        canvas.height = img.height * ratio;
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(function(blob) {
+          var fname = Date.now() + '_' + Math.random().toString(36).slice(2) + '.jpg';
+          db.storage.from('novedades').upload(fname, blob, { contentType: 'image/jpeg' }).then(function(r) {
+            if (r.error) { guardarSinFoto(null); return; }
+            var url = 'https://pub-438b0d51c7a246f38a92859d01cedecd.r2.dev/novedades/' + fname;
+            guardarSinFoto(url);
+          });
+        }, 'image/jpeg', 0.82);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  } else {
+    guardarSinFoto(null);
+  }
+};
+
+function rbrb_limpiarForm() {
+  var ids = ['rbrb-mza','rbrb-orden','rbrb-tipo','rbrb-desc','rbrb-titular','rbrb-obs','rbrb-lat','rbrb-lng'];
+  ids.forEach(function(id) { var el = document.getElementById(id); if (el) el.value = ''; });
+  var preview = document.getElementById('rbrb-foto-preview');
+  if (preview) preview.style.display = 'none';
+  var fi = document.getElementById('rbrb-foto-input');
+  if (fi) fi.value = '';
+  var gps = document.getElementById('rbrb-gps-txt');
+  if (gps) gps.textContent = 'GPS: tocá para capturar ubicación';
+  RBRB_CERTEZA = 'Confirmado';
+  document.querySelectorAll('.rbrb-cert-btn').forEach(function(b, i) {
+    b.style.background = i === 0 ? 'rgba(16,185,129,.15)' : 'transparent';
+    b.style.borderColor = i === 0 ? 'var(--green)' : 'var(--border2)';
+    b.style.color = i === 0 ? 'var(--green)' : 'var(--text2)';
+  });
+}
+
+function rbrb_cargarDatos() {
+  db.from('relevamiento_rb')
+    .select('*')
+    .eq('barrio', 'Rodrigo Bueno')
+    .order('created_at', { ascending: false })
+    .then(function(res) {
+      if (res.error) return;
+      RBRB_REGISTROS = res.data || [];
+      // Actualizar tab badge
+      var btn = document.getElementById('rbrb-tab-lista');
+      if (btn) btn.textContent = '📋 Listado (' + RBRB_REGISTROS.length + ')';
+      rbrb_renderLista();
+      if (RBRB_MAP_INIT) rbrb_actualizarMapa();
+    });
+}
+
+window.rbrb_renderLista = function() {
+  var filtro = (document.getElementById('rbrb-lista-filtro') || {}).value || '';
+  var items = RBRB_REGISTROS.filter(function(r) { return !filtro || r.tipo === filtro; });
+  var count = document.getElementById('rbrb-count');
+  if (count) count.textContent = items.length + ' registro' + (items.length !== 1 ? 's' : '') + (filtro ? ' · ' + filtro : '');
+
+  var cont = document.getElementById('rbrb-lista-items');
+  if (!cont) return;
+
+  if (!items.length) {
+    cont.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3)">Sin registros' + (filtro ? ' para este filtro' : '') + '</div>';
+    return;
+  }
+
+  cont.innerHTML = items.map(function(r) {
+    var c = RBRB_COLORES[r.tipo] || '#6b7280';
+    var fecha = r.created_at ? r.created_at.substring(0,10) : '';
+    var gpsLink = (r.lat && r.lng)
+      ? '<a href="https://maps.google.com/?q='+r.lat+','+r.lng+'" target="_blank" style="font-size:10px;color:var(--blue);text-decoration:none">📍 Ver en Maps</a>'
+      : '';
+    var fotoHtml = r.foto_url
+      ? '<img src="'+r.foto_url+'" onclick="rbrb_openFoto(\''+r.foto_url+'\')" style="width:100%;max-height:140px;object-fit:cover;border-radius:8px;cursor:pointer;margin-top:8px;border:1px solid var(--border)" loading="lazy">'
+      : '';
+    var certColor = r.certeza === 'Confirmado' ? '#10b981' : r.certeza === 'Probable' ? '#f59e0b' : '#6b7280';
+
+    return '<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid '+c+';'+
+      'border-radius:10px;padding:14px 16px">'+
+      '<div style="display:flex;align-items:flex-start;gap:8px;margin-bottom:8px;flex-wrap:wrap">'+
+        '<span style="font-size:10px;font-family:var(--mono);color:var(--text3)">'+fecha+'</span>'+
+        '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:20px;background:'+c+'20;color:'+c+'">'+r.tipo+'</span>'+
+        (r.manzana?'<span style="font-size:10px;color:var(--text3)">Mza '+r.manzana+(r.orden?' · Ord. '+r.orden:'')+'</span>':'') +
+        '<span style="font-size:10px;font-weight:700;color:'+certColor+';margin-left:auto">'+r.certeza+'</span>'+
+      '</div>'+
+      '<div style="font-size:13px;color:var(--text);margin-bottom:6px;line-height:1.6">'+r.descripcion+'</div>'+
+      (r.titular?'<div style="font-size:11px;color:var(--text2)">👤 '+r.titular+'</div>':'')+
+      (r.observaciones?'<div style="font-size:11px;color:var(--text3);margin-top:4px;font-style:italic">'+r.observaciones+'</div>':'')+
+      '<div style="display:flex;gap:10px;align-items:center;margin-top:6px">'+
+        '<span style="font-size:10px;color:var(--text3)">Fuente: '+r.fuente+'</span>'+
+        '<span style="font-size:10px;color:var(--text3)">· '+r.agente+'</span>'+
+        gpsLink+
+      '</div>'+
+      fotoHtml+
+    '</div>';
+  }).join('');
+};
+
+window.rbrb_openFoto = function(url) {
+  var lb = document.getElementById('lb');
+  if (lb) {
+    window.lbAll = [{url:url, texto:'', autor:'', fecha_foto:''}];
+    window.lbIdx = 0;
+    if (typeof window.updLB === 'function') window.updLB();
+    lb.classList.add('open');
+  } else {
+    window.open(url, '_blank');
+  }
+};
+
+window.rbrb_exportar = function() {
+  if (!RBRB_REGISTROS.length) { toast('Sin datos para exportar', 'err'); return; }
+  var filtro = (document.getElementById('rbrb-lista-filtro') || {}).value || '';
+  var items = RBRB_REGISTROS.filter(function(r) { return !filtro || r.tipo === filtro; });
+  var headers = ['Fecha','Manzana','Orden','Tipo','Certeza','Fuente','Descripción','Titular','Observaciones','Agente','Lat','Lng','Foto'];
+  var rows = items.map(function(r) {
+    return [
+      r.created_at ? r.created_at.substring(0,10) : '',
+      r.manzana || '', r.orden || '', r.tipo || '',
+      r.certeza || '', r.fuente || '',
+      '"'+(r.descripcion||'').replace(/"/g,'""')+'"',
+      r.titular || '',
+      '"'+(r.observaciones||'').replace(/"/g,'""')+'"',
+      r.agente || '', r.lat || '', r.lng || '',
+      r.foto_url || ''
+    ].join(',');
+  });
+  var csv = [headers.join(',')].concat(rows).join('\n');
+  var blob = new Blob(['\uFEFF'+csv], { type: 'text/csv;charset=utf-8;' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'relevamiento_rb_' + new Date().toISOString().substring(0,10) + '.csv';
+  a.click();
+};
+
+// ── MAPA (Leaflet CDN) ──
+function rbrb_initMapa() {
+  if (RBRB_MAP_INIT) { rbrb_actualizarMapa(); return; }
+  if (typeof L === 'undefined') {
+    // Cargar Leaflet dinámicamente
+    var css = document.createElement('link');
+    css.rel = 'stylesheet';
+    css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    document.head.appendChild(css);
+    var js = document.createElement('script');
+    js.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    js.onload = function() { rbrb_crearMapa(); };
+    document.head.appendChild(js);
+  } else {
+    rbrb_crearMapa();
+  }
+}
+
+function rbrb_crearMapa() {
+  var loading = document.getElementById('rbrb-mapa-loading');
+  if (loading) loading.style.display = 'none';
+  // Rodrigo Bueno coordinates
+  RBRB_MAP = L.map('rbrb-mapa').setView([-34.6158, -58.3621], 16);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors'
+  }).addTo(RBRB_MAP);
+  RBRB_MAP_INIT = true;
+  rbrb_actualizarMapa();
+}
+
+function rbrb_actualizarMapa() {
+  if (!RBRB_MAP) return;
+  // Limpiar markers
+  RBRB_MARKERS.forEach(function(m) { RBRB_MAP.removeLayer(m); });
+  RBRB_MARKERS = [];
+  var conGPS = RBRB_REGISTROS.filter(function(r) { return r.lat && r.lng; });
+  var sinGPS = RBRB_REGISTROS.length - conGPS.length;
+
+  conGPS.forEach(function(r) {
+    var c = RBRB_COLORES[r.tipo] || '#6b7280';
+    var icon = L.divIcon({
+      html: '<div style="width:14px;height:14px;border-radius:50%;background:'+c+';border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>',
+      iconSize: [14,14], iconAnchor: [7,7], className: ''
+    });
+    var marker = L.marker([r.lat, r.lng], { icon: icon });
+    var popup = '<div style="font-size:12px;min-width:180px">'+
+      '<strong style="color:'+c+'">'+r.tipo+'</strong><br>'+
+      (r.manzana?'Mza '+r.manzana+(r.orden?' · Ord. '+r.orden:'')+'<br>':'')+
+      r.descripcion.substring(0,120)+(r.descripcion.length>120?'...':'')+'<br>'+
+      '<small style="color:#888">'+r.agente+' · '+r.certeza+'</small>'+
+      (r.foto_url?'<br><img src="'+r.foto_url+'" style="width:100%;margin-top:6px;border-radius:4px">':'')+
+    '</div>';
+    marker.bindPopup(popup);
+    marker.addTo(RBRB_MAP);
+    RBRB_MARKERS.push(marker);
+  });
+
+  // Leyenda
+  var leyendaEl = document.getElementById('rbrb-leyenda');
+  if (!leyendaEl) {
+    var leyenda = document.createElement('div');
+    leyenda.id = 'rbrb-leyenda';
+    leyenda.style.cssText = 'position:absolute;bottom:12px;left:12px;z-index:1000;background:rgba(13,17,23,.9);'+
+      'border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:10px 12px;font-size:11px;color:#e6edf3;min-width:160px';
+    document.getElementById('rbrb-mapa-wrap').appendChild(leyenda);
+    leyendaEl = leyenda;
+  }
+  var tipos = Object.keys(RBRB_COLORES);
+  leyendaEl.innerHTML = '<div style="font-weight:700;margin-bottom:6px;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:#6e7681">Referencias</div>'+
+    tipos.map(function(t) {
+      var cnt = conGPS.filter(function(r) { return r.tipo === t; }).length;
+      return cnt > 0 ? '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">'+
+        '<div style="width:8px;height:8px;border-radius:50%;background:'+RBRB_COLORES[t]+';flex-shrink:0"></div>'+
+        '<span>'+t+' ('+cnt+')</span></div>' : '';
+    }).join('')+
+    (sinGPS?'<div style="margin-top:6px;color:#6e7681;font-size:10px">'+sinGPS+' registro'+(sinGPS>1?'s':'')+' sin GPS</div>':'');
+}
+
+})(); // fin MÓDULO RELEVAMIENTO RB
 </script>
 
 </body>
