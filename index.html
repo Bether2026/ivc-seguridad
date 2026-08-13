@@ -1457,7 +1457,7 @@ body {
         <div style="font-size:13px;color:var(--text2);font-weight:600">Toc&#xE1; para agregar foto o PDF</div>
         <div style="font-size:11px;color:var(--text3);margin-top:2px">C&#xE1;mara &#xB7; Galer&#xED;a &#xB7; PDF</div>
       </div>
-      <input type="file" id="foto-input" accept="image/*,application/pdf" style="display:none" onchange="fotoCapturada(this)">
+      <input type="file" id="foto-input" accept="image/*" style="display:none" multiple onchange="fotoCapturada(this)"><input type="file" id="foto-pdf-input" accept="application/pdf" style="display:none" onchange="fotoCapturada(this)">
       <div id="foto-preview" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px"></div>
       <div id="btn-mas-foto" style="display:none;margin-top:8px">
         <button type="button" onclick="agregarFoto()" style="width:100%;padding:10px;border-radius:var(--radius-xs);border:1px dashed var(--border2);background:none;color:var(--accent3);font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer">+ Agregar otra foto</button>
@@ -7662,9 +7662,9 @@ function agregarFoto() {
   abrirSelectorFoto('foto-input');
 }
 function fotoCapturada(input) {
-  var file = input.files[0];
-  if (!file) return;
-  FOTOS_PENDIENTES.push(file);
+  var files = Array.prototype.slice.call(input.files);
+  if (!files.length) return;
+  files.forEach(function(file) { FOTOS_PENDIENTES.push(file); });
   renderFotoPreview();
   input.value = '';
 }
@@ -7715,10 +7715,11 @@ function abrirSelectorFoto(inputId) {
   modal.innerHTML =
     '<div style="background:var(--bg2);border-radius:18px 18px 0 0;padding:20px 16px;width:100%;max-width:420px;border-top:1px solid var(--border2)">' +
     '<div style="width:40px;height:4px;border-radius:2px;background:var(--border2);margin:0 auto 18px"></div>' +
-    '<div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:14px;text-align:center">Agregar foto</div>' +
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">' +
-    '<button onclick="usarCamara(\'' + inputId + '\')" style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:18px;border-radius:12px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer"><span style="font-size:28px">&#128247;</span>Tomar foto</button>' +
-    '<button onclick="usarGaleria(\'' + inputId + '\')" style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:18px;border-radius:12px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer"><span style="font-size:28px">&#128444;&#65039;</span>Desde galeria</button>' +
+    '<div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:14px;text-align:center">Agregar archivo</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">' +
+    '<button onclick="usarCamara(\'' + inputId + '\')" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 8px;border-radius:12px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer"><span style="font-size:26px">&#128247;</span>Cámara</button>' +
+    '<button onclick="usarGaleria(\'' + inputId + '\')" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 8px;border-radius:12px;border:1px solid var(--border2);background:var(--bg3);color:var(--text);font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer"><span style="font-size:26px">&#128444;&#65039;</span>Galería</button>' +
+    '<button onclick="usarPDF(\'' + inputId + '\')" style="display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 8px;border-radius:12px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.06);color:#f87171;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer"><span style="font-size:26px">&#128196;</span>PDF</button>' +
     '</div>' +
     '<button onclick="document.getElementById(\'foto-selector-modal\').remove()" style="width:100%;margin-top:10px;padding:12px;border-radius:10px;border:1px solid var(--border2);background:transparent;color:var(--text3);font-family:var(--font);font-size:13px;cursor:pointer">Cancelar</button>' +
     '</div>';
@@ -7807,6 +7808,7 @@ function usarGaleria(inputId) {
   var input = document.getElementById(inputId);
   if (!input) { window._camaraAbierta = false; return; }
   input.removeAttribute('capture');
+  if (inputId === 'foto-input') { input.setAttribute('multiple', 'multiple'); }
   var _onGalDone = function() {
     window._camaraAbierta = false;
     input.removeEventListener('change', _onGalDone);
@@ -7815,6 +7817,18 @@ function usarGaleria(inputId) {
   input.addEventListener('change', _onGalDone);
   input.addEventListener('cancel', _onGalDone);
   setTimeout(function() { window._camaraAbierta = false; }, 60000);
+  input.click();
+}
+function usarPDF(inputId) {
+  var modal = document.getElementById('foto-selector-modal');
+  if (modal) modal.remove();
+  // Use dedicated PDF input if available, otherwise use the same input
+  var pdfInputId = inputId === 'foto-input' ? 'foto-pdf-input' : inputId;
+  var input = document.getElementById(pdfInputId);
+  if (!input) { input = document.getElementById(inputId); }
+  if (!input) return;
+  input.removeAttribute('capture');
+  input.removeAttribute('multiple');
   input.click();
 }
 function limpiarFoto(inputId, previewId) {
