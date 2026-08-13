@@ -7808,15 +7808,23 @@ function usarGaleria(inputId) {
   var input = document.getElementById(inputId);
   if (!input) { window._camaraAbierta = false; return; }
   input.removeAttribute('capture');
+  // Forzar galeria en Android: tipos explicitos en lugar de image/* evita que abra Archivos
+  var tiposGaleria = 'image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif,image/bmp';
+  input.setAttribute('accept', tiposGaleria);
   if (inputId === 'foto-input') { input.setAttribute('multiple', 'multiple'); }
   var _onGalDone = function() {
     window._camaraAbierta = false;
+    // Restaurar accept original
+    input.setAttribute('accept', 'image/*');
     input.removeEventListener('change', _onGalDone);
     input.removeEventListener('cancel', _onGalDone);
   };
   input.addEventListener('change', _onGalDone);
   input.addEventListener('cancel', _onGalDone);
-  setTimeout(function() { window._camaraAbierta = false; }, 60000);
+  setTimeout(function() {
+    window._camaraAbierta = false;
+    input.setAttribute('accept', 'image/*');
+  }, 60000);
   input.click();
 }
 function usarPDF(inputId) {
