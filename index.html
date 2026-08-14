@@ -4403,7 +4403,7 @@ body {
                 <button onclick="rbrb_exportar()" type="button"
                   style="padding:5px 12px;border-radius:7px;border:1px solid var(--border2);
                     background:transparent;color:var(--text2);font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">
-                  📥 CSV
+                  📄 Informe HTML
                 </button>
               </div>
 
@@ -27718,26 +27718,254 @@ window.rbrb_limpiarFiltros = function() {
 window.rbrb_exportar = function() {
   if (!RBRB_REGISTROS.length) { toast('Sin datos para exportar', 'err'); return; }
   var items = rbrb_itemsFiltrados(true);
-  var headers = ['Fecha','Manzana','Orden','Tipo','Certeza','Fuente','Descripción','Titular','Observaciones','Obs.Vivienda','Agente','Lat','Lng','Foto'];
-  var rows = items.map(function(r) {
-    return [
-      r.created_at ? r.created_at.substring(0,10) : '',
-      r.manzana || '', r.orden || '', r.tipo || '',
-      r.certeza || '', r.fuente || '',
-      '"'+(r.descripcion||'').replace(/"/g,'""')+'"',
-      r.titular || '',
-      '"'+(r.observaciones||'').replace(/"/g,'""')+'"',
-      '"'+(r.obs_vivienda||'').replace(/"/g,'""')+'"',
-      r.agente || '', r.lat || '', r.lng || '',
-      r.foto_url || ''
-    ].join(',');
+  if (!items.length) { toast('Sin registros con el filtro actual', 'err'); return; }
+
+  // Agrupar por manzana -> orden
+  var porMza = {};
+  items.forEach(function(r) {
+    var mza = (r.manzana || 'Sin manzana').trim();
+    var ord = (r.orden || 'Sin orden').trim();
+    if (!porMza[mza]) porMza[mza] = {};
+    if (!porMza[mza][ord]) porMza[mza][ord] = [];
+    porMza[mza][ord].push(r);
   });
-  var csv = [headers.join(',')].concat(rows).join('\n');
-  var blob = new Blob(['\uFEFF'+csv], { type: 'text/csv;charset=utf-8;' });
+
+  var COLORES = {
+    'Comercio sin habilitación': '#f59e0b',
+    'Puesto en vía pública': '#8b5cf6',
+    'Construcción que invade línea municipal': '#ef4444',
+    'Taller clandestino': '#f97316',
+    'Ampliación sin protocolo': '#ec4899',
+    'Ocupación espacio común': '#06b6d4',
+    'Vehículos abandonados': '#8b5cf6',
+    'Otro': '#6b7280'
+  };
+
+  function colorTipo(tipo) {
+    if (!tipo) return '#6b7280';
+    if (COLORES[tipo]) return COLORES[tipo];
+    var keys = Object.keys(COLORES);
+    for (var i = 0; i < keys.length; i++) {
+      if (tipo.indexOf(keys[i]) >= 0) return COLORES[keys[i]];
+    }
+    return '#6b7280';
+  }
+
+  function certBadge(c) {
+    var cfg = {
+      'Confirmado': { bg:'rgba(16,185,129,.18)', border:'#10b981', color:'#10b981', icon:'✓' },
+      'Probable':   { bg:'rgba(245,158,11,.18)',  border:'#f59e0b', color:'#f59e0b', icon:'~' },
+      'A verificar':{ bg:'rgba(239,68,68,.15)',   border:'#ef4444', color:'#ef4444', icon:'?' }
+    };
+    var s = cfg[c] || { bg:'rgba(139,148,158,.1)', border:'#6b7280', color:'#6b7280', icon:'○' };
+    return '<span style="font-size:9px;font-weight:700;padding:2px 8px;border-radius:20px;'+
+      'background:'+s.bg+';border:1px solid '+s.border+';color:'+s.color+'">'+s.icon+' '+c+'</span>';
+  }
+
+  function fmtFecha(iso) {
+    if (!iso) return '';
+    var p = iso.substring(0,10).split('-');
+    return p[2]+'/'+p[1]+'/'+p[0];
+  }
+
+  // Count stats
+  var stats = { total: items.length, mzas: Object.keys(porMza).length };
+  var tipoCount = {};
+  items.forEach(function(r) {
+    var t = r.tipo || 'Sin tipo';
+    tipoCount[t] = (tipoCount[t]||0) + 1;
+  });
+  var conFotos = items.filter(function(r){ return r.foto_url || (r.fotos_urls && r.fotos_urls !== 'null' && r.fotos_urls !== '[]'); }).length;
+  var confirmados = items.filter(function(r){ return r.certeza === 'Confirmado'; }).length;
+
+  // Build manzana sections
+  var mzasKeys = Object.keys(porMza).sort(function(a,b){
+    var na = parseInt(a), nb = parseInt(b);
+    if (!isNaN(na)&&!isNaN(nb)) return na-nb;
+    if (!isNaN(na)) return -1; if (!isNaN(nb)) return 1;
+    return a.localeCompare(b);
+  });
+
+  var mzaSections = mzasKeys.map(function(mza) {
+    var ordenes = porMza[mza];
+    var totalMza = 0;
+    Object.values(ordenes).forEach(function(arr){ totalMza += arr.length; });
+
+    var ordenKeys = Object.keys(ordenes).sort(function(a,b){
+      var na=parseInt(a), nb=parseInt(b);
+      if (!isNaN(na)&&!isNaN(nb)) return na-nb;
+      if (!isNaN(na)) return -1; if (!isNaN(nb)) return 1;
+      return a.localeCompare(b);
+    });
+
+    var ordenSections = ordenKeys.map(function(ord) {
+      var regs = ordenes[ord];
+      var cards = regs.map(function(r) {
+        var c = colorTipo(r.tipo);
+        var fecha = fmtFecha(r.created_at);
+        var fotosUrls = [];
+        if (r.fotos_urls && r.fotos_urls !== 'null' && r.fotos_urls !== '[]') {
+          try { fotosUrls = JSON.parse(r.fotos_urls); } catch(e){}
+        }
+        if (!fotosUrls.length && r.foto_url) fotosUrls = [r.foto_url];
+
+        var fotosHtml = fotosUrls.length
+          ? '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">'+
+            fotosUrls.map(function(u){
+              return '<a href="'+u+'" target="_blank">'+
+                '<img src="'+u+'" style="width:100px;height:78px;object-fit:cover;border-radius:8px;'+
+                'border:1px solid rgba(255,255,255,.1);transition:transform .2s" loading="lazy">'+
+              '</a>';
+            }).join('')+'</div>' : '';
+
+        var gpsHtml = (r.lat&&r.lng)
+          ? '<a href="https://maps.google.com/?q='+r.lat+','+r.lng+'" target="_blank" '+
+            'style="font-size:10px;color:#60a5fa;text-decoration:none;display:inline-flex;align-items:center;gap:3px">'+
+            '📍 Ver en Maps</a>' : '';
+
+        return '<div style="background:#1e2533;border:1px solid rgba(255,255,255,.08);border-left:3px solid '+c+';'+
+          'border-radius:10px;padding:14px 16px;margin-bottom:8px">'+
+          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">'+
+            '<span style="font-size:10px;font-family:monospace;color:#6b7280">'+fecha+'</span>'+
+            '<span style="font-size:10px;font-weight:700;padding:2px 9px;border-radius:20px;'+
+              'background:'+c+'22;border:1px solid '+c+'55;color:'+c+'">'+r.tipo+'</span>'+
+            certBadge(r.certeza)+
+            '<span style="margin-left:auto;font-size:10px;color:#6b7280">'+r.fuente+'</span>'+
+          '</div>'+
+          (r.descripcion?'<div style="font-size:13px;color:#e2e8f0;line-height:1.6;margin-bottom:8px">'+r.descripcion+'</div>':'')+
+          (r.titular?'<div style="font-size:11px;color:#94a3b8;margin-bottom:4px">👤 <strong>'+r.titular+'</strong></div>':'')+
+          (r.obs_vivienda?'<div style="font-size:11px;color:#94a3b8;margin-bottom:4px">🏠 '+r.obs_vivienda+'</div>':'')+
+          (r.observaciones?'<div style="font-size:11px;color:#6b7280;font-style:italic;margin-bottom:4px">'+r.observaciones+'</div>':'')+
+          '<div style="display:flex;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap">'+
+            '<span style="font-size:10px;color:#6b7280">👤 '+r.agente+'</span>'+
+            gpsHtml+
+          '</div>'+
+          fotosHtml+
+        '</div>';
+      }).join('');
+
+      return '<div style="margin-bottom:20px">'+
+        '<div style="display:flex;align-items:center;gap:10px;padding:8px 0 10px;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:10px">'+
+          '<span style="font-family:monospace;font-size:16px;font-weight:800;color:#f1f5f9">Orden '+ord+'</span>'+
+          '<span style="font-size:11px;color:#6b7280">'+regs.length+' registro'+(regs.length>1?'s':'')+'</span>'+
+        '</div>'+
+        cards+
+      '</div>';
+    }).join('');
+
+    return '<div style="margin-bottom:36px">'+
+      '<div style="display:flex;align-items:center;gap:12px;padding:14px 20px;'+
+        'background:linear-gradient(135deg,rgba(247,129,102,.12),rgba(247,129,102,.04));'+
+        'border:1px solid rgba(247,129,102,.25);border-radius:12px;margin-bottom:16px">'+
+        '<div style="font-size:22px;font-weight:900;color:#f78166;font-family:monospace">'+
+          (mza==='Sin manzana'?'—':'MZA '+mza)+
+        '</div>'+
+        '<div style="font-size:13px;color:#94a3b8">'+totalMza+' registro'+(totalMza>1?'s':'')+' · '+ordenKeys.length+' orden'+(ordenKeys.length>1?'es':'')+'</div>'+
+      '</div>'+
+      ordenSections+
+    '</div>';
+  }).join('');
+
+  // Build tipo stats chips
+  var tipoChips = Object.entries(tipoCount).sort(function(a,b){return b[1]-a[1];}).map(function(e){
+    var c = colorTipo(e[0]);
+    return '<div style="display:flex;align-items:center;gap:8px;padding:10px 16px;'+
+      'background:'+c+'12;border:1px solid '+c+'33;border-radius:10px">'+
+      '<span style="font-size:18px;font-weight:800;color:'+c+'">'+e[1]+'</span>'+
+      '<span style="font-size:11px;font-weight:600;color:#94a3b8;line-height:1.3">'+e[0]+'</span>'+
+    '</div>';
+  }).join('');
+
+  var ahora = new Date();
+  var fechaGen = ahora.getDate()+'/'+(ahora.getMonth()+1)+'/'+ahora.getFullYear()+' '+
+    ('0'+ahora.getHours()).slice(-2)+':'+('0'+ahora.getMinutes()).slice(-2);
+
+  var html = '<!DOCTYPE html><html lang="es"><head>'+
+    '<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">'+
+    '<title>Relevamiento Rodrigo Bueno — '+fechaGen+'</title>'+
+    '<link rel="preconnect" href="https://fonts.googleapis.com">'+
+    '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap">'+
+    '<style>'+
+      '*{box-sizing:border-box;margin:0;padding:0}'+
+      'body{font-family:Inter,system-ui,sans-serif;background:#0d1117;color:#e2e8f0;min-height:100vh;-webkit-font-smoothing:antialiased}'+
+      '@media print{.no-print{display:none!important}body{background:#fff;color:#111}'+
+        '.hdr{background:#111!important}'+
+      '}'+
+    '</style>'+
+  '</head><body>'+
+
+  // HEADER
+  '<div class="hdr" style="background:linear-gradient(135deg,#1a0800 0%,#0d1117 60%);border-bottom:1px solid rgba(247,129,102,.2);padding:44px 48px 36px;position:relative;overflow:hidden">'+
+    '<div style="position:absolute;top:-80px;right:-40px;width:400px;height:400px;background:radial-gradient(circle,rgba(247,129,102,.12) 0%,transparent 65%);pointer-events:none"></div>'+
+    '<div style="position:absolute;bottom:-60px;left:-40px;width:280px;height:280px;background:radial-gradient(circle,rgba(88,166,255,.06) 0%,transparent 65%);pointer-events:none"></div>'+
+    '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap;position:relative">'+
+      '<div>'+
+        '<div style="display:flex;align-items:center;gap:10px;font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:#f78166;margin-bottom:14px">'+
+          '<div style="width:28px;height:2px;background:#f78166;border-radius:2px"></div>'+
+          'IVC · Gerencia Operativa de Apoyo Territorial'+
+        '</div>'+
+        '<h1 style="font-size:clamp(28px,5vw,52px);font-weight:900;letter-spacing:-.03em;line-height:1.05;color:#f1f5f9">'+
+          'Relevamiento<br><span style="color:#f78166">Rodrigo Bueno</span>'+
+        '</h1>'+
+        '<div style="display:flex;gap:20px;flex-wrap:wrap;margin-top:18px;font-size:12px;color:#94a3b8">'+
+          '<span>📅 Generado: <strong style="color:#e2e8f0">'+fechaGen+'</strong></span>'+
+          '<span>🔍 Filtro activo: <strong style="color:#e2e8f0">'+(RBRB_ACTIVE_MZA==='todas'?'Todas las manzanas':'Manzana '+RBRB_ACTIVE_MZA)+'</strong></span>'+
+        '</div>'+
+      '</div>'+
+      '<div style="background:rgba(247,129,102,.1);border:1px solid rgba(247,129,102,.3);border-radius:12px;padding:16px 24px;text-align:center;flex-shrink:0">'+
+        '<div style="font-family:monospace;font-size:42px;font-weight:700;color:#f78166;line-height:1">'+stats.total+'</div>'+
+        '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#6b7280;margin-top:4px">registros</div>'+
+      '</div>'+
+    '</div>'+
+  '</div>'+
+
+  // STATS
+  '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:0;background:#161b22;border-bottom:1px solid rgba(255,255,255,.08)">'+
+    '<div style="padding:16px 20px;text-align:center;border-right:1px solid rgba(255,255,255,.08)">'+
+      '<div style="font-family:monospace;font-size:28px;font-weight:700;color:#f78166">'+stats.mzas+'</div>'+
+      '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#6b7280;margin-top:3px">Manzanas</div>'+
+    '</div>'+
+    '<div style="padding:16px 20px;text-align:center;border-right:1px solid rgba(255,255,255,.08)">'+
+      '<div style="font-family:monospace;font-size:28px;font-weight:700;color:#10b981">'+confirmados+'</div>'+
+      '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#6b7280;margin-top:3px">Confirmados</div>'+
+    '</div>'+
+    '<div style="padding:16px 20px;text-align:center;border-right:1px solid rgba(255,255,255,.08)">'+
+      '<div style="font-family:monospace;font-size:28px;font-weight:700;color:#60a5fa">'+conFotos+'</div>'+
+      '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#6b7280;margin-top:3px">Con fotos</div>'+
+    '</div>'+
+    '<div style="padding:16px 20px;text-align:center">'+
+      '<div style="font-family:monospace;font-size:28px;font-weight:700;color:#f59e0b">'+Object.keys(tipoCount).length+'</div>'+
+      '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#6b7280;margin-top:3px">Tipos</div>'+
+    '</div>'+
+  '</div>'+
+
+  // TIPO BREAKDOWN
+  '<div style="padding:24px 48px;background:#161b22;border-bottom:1px solid rgba(255,255,255,.06)">'+
+    '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#6b7280;margin-bottom:12px">Distribución por tipo</div>'+
+    '<div style="display:flex;gap:10px;flex-wrap:wrap">'+tipoChips+'</div>'+
+  '</div>'+
+
+  // MAIN CONTENT
+  '<div style="padding:32px 48px;max-width:1200px;margin:0 auto">'+
+    mzaSections+
+  '</div>'+
+
+  // FOOTER
+  '<div style="padding:24px 48px;background:#161b22;border-top:1px solid rgba(255,255,255,.06);'+
+    'display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">'+
+    '<div style="font-size:11px;color:#6b7280">IVC Seguridad y Emergencias · Gerencia Operativa de Apoyo Territorial</div>'+
+    '<div style="font-size:11px;color:#6b7280">Generado el '+fechaGen+' · '+stats.total+' registros</div>'+
+  '</div>'+
+
+  '</body></html>';
+
+  var blob = new Blob([html], { type: 'text/html;charset=utf-8;' });
   var a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'relevamiento_rb_' + new Date().toISOString().substring(0,10) + '.csv';
+  a.download = 'relevamiento_rb_' + new Date().toISOString().substring(0,10) + '.html';
   a.click();
+  URL.revokeObjectURL(a.href);
+  toast('Informe generado', 'ok');
 };
 
 // ── MAPA (Leaflet CDN) ──
