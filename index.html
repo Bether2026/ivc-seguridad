@@ -4379,6 +4379,20 @@ body {
                 <div id="rbrb-mapa" style="width:100%;height:100%"></div>
                 <div id="rbrb-mapa-loading" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
                   font-size:13px;color:var(--text3);background:var(--bg2)">Cargando mapa...</div>
+                <div id="rbrb-mapa-toolbar" style="position:absolute;bottom:16px;left:50%;transform:translateX(-50%);z-index:1000;display:flex;gap:8px;pointer-events:auto">
+                  <button onclick="rbrb_dispersar()" type="button"
+                    style="padding:9px 16px;background:rgba(6,27,52,.88);backdrop-filter:blur(6px);border:1px solid rgba(124,176,255,.4);border-radius:22px;
+                    color:#7cb0ff;font-family:var(--font,-apple-system);font-size:12px;font-weight:700;
+                    cursor:pointer;box-shadow:0 2px 14px rgba(0,0,0,.5);white-space:nowrap">
+                    🔀 Dispersar puntos
+                  </button>
+                  <button onclick="rbrb_reagrupar()" type="button" id="rbrb-reagrupar-btn"
+                    style="display:none;padding:9px 16px;background:rgba(6,27,52,.88);backdrop-filter:blur(6px);border:1px solid rgba(245,158,11,.5);border-radius:22px;
+                    color:#f59e0b;font-family:var(--font,-apple-system);font-size:12px;font-weight:700;
+                    cursor:pointer;box-shadow:0 2px 14px rgba(0,0,0,.5);white-space:nowrap">
+                    🔁 Posiciones reales
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -27814,7 +27828,9 @@ function rbrb_crearMapa() {
   // Rodrigo Bueno coordinates
   RBRB_MAP = L.map('rbrb-mapa').setView([-34.6142, -58.3598], 17);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '© OpenStreetMap contributors'
+    attribution: '© OpenStreetMap contributors',
+    maxZoom: 21,
+    maxNativeZoom: 19
   }).addTo(RBRB_MAP);
   RBRB_MAP_INIT = true;
   rbrb_actualizarMapa();
@@ -27899,7 +27915,7 @@ function rbrb_actualizarMapa() {
     .map(function(r) { return [r.lat, r.lng]; });
 
   if (pts.length) {
-    try { RBRB_MAP.fitBounds(pts, { padding: [50, 50], minZoom: 16, maxZoom: 18 }); } catch(e) {}
+    try { RBRB_MAP.fitBounds(pts, { padding: [50, 50], minZoom: 16, maxZoom: 21 }); } catch(e) {}
   } else {
     RBRB_MAP.setView([-34.6142, -58.3598], 17);
   }
@@ -27982,6 +27998,76 @@ window.rbrb_guardarPuntoManual = function(lat, lng) {
     RBRB_MINI_MAP.setView([lat, lng], 18);
   }
   toast('📍 Coordenadas cargadas en el formulario', 'ok');
+};
+
+// ── HERRAMIENTA DISPERSAR PUNTOS ──
+var RBRB_DISPERSADO = false;
+var RBRB_POS_ORIGINALES = []; // [{marker, lat, lng}]
+
+window.rbrb_dispersar = function() {
+  if (!RBRB_MAP || !RBRB_MARKERS.length) {
+    toast('No hay puntos en el mapa', 'err'); return;
+  }
+
+  // Guardar posiciones originales
+  RBRB_POS_ORIGINALES = RBRB_MARKERS.map(function(m) {
+    var ll = m.getLatLng();
+    return { marker: m, lat: ll.lat, lng: ll.lng };
+  });
+
+  // Agrupar por coordenada exacta (o muy cercana: <1m)
+  var grupos = [];
+  RBRB_POS_ORIGINALES.forEach(function(item) {
+    var encontrado = false;
+    for (var i = 0; i < grupos.length; i++) {
+      var g = grupos[i];
+      var dlat = Math.abs(item.lat - g.lat);
+      var dlng = Math.abs(item.lng - g.lng);
+      if (dlat < 0.000009 && dlng < 0.000009) { // ~1 metro
+        g.items.push(item);
+        encontrado = true;
+        break;
+      }
+    }
+    if (!encontrado) {
+      grupos.push({ lat: item.lat, lng: item.lng, items: [item] });
+    }
+  });
+
+  // Dispersar en espiral los grupos con más de 1 punto
+  var radio = 0.000045; // ~5 metros de separación entre puntos
+  grupos.forEach(function(g) {
+    if (g.items.length <= 1) return;
+    // Espiral: el primero queda en centro, resto se disponen en arco
+    var n = g.items.length;
+    g.items.forEach(function(item, i) {
+      if (i === 0) return; // el primero queda en el centro
+      var angulo = (2 * Math.PI / (n - 1)) * (i - 1);
+      var r = radio + (Math.floor((i - 1) / 8) * radio * 0.6);
+      var newLat = g.lat + r * Math.cos(angulo);
+      var newLng = g.lng + r * Math.sin(angulo) / Math.cos(g.lat * Math.PI / 180);
+      item.marker.setLatLng([newLat, newLng]);
+    });
+  });
+
+  var solosCount = grupos.filter(function(g) { return g.items.length === 1; }).length;
+  var gruposCount = grupos.filter(function(g) { return g.items.length > 1; }).length;
+
+  RBRB_DISPERSADO = true;
+  var btn = document.getElementById('rbrb-reagrupar-btn');
+  if (btn) btn.style.display = 'inline-block';
+  toast('🔀 ' + RBRB_MARKERS.length + ' puntos dispersados en ' + gruposCount + ' grupos', 'ok');
+};
+
+window.rbrb_reagrupar = function() {
+  if (!RBRB_DISPERSADO) return;
+  RBRB_POS_ORIGINALES.forEach(function(item) {
+    item.marker.setLatLng([item.lat, item.lng]);
+  });
+  RBRB_DISPERSADO = false;
+  var btn = document.getElementById('rbrb-reagrupar-btn');
+  if (btn) btn.style.display = 'none';
+  toast('🔁 Puntos vueltos a posición real', 'ok');
 };
 
 
