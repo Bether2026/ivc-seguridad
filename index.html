@@ -27523,7 +27523,7 @@ function rbrb_buildItems() {
           '<span style="font-size:10px;color:var(--text3)">'+r.fuente+'</span>'+
           '<span style="font-size:10px;color:var(--text3)">· '+r.agente+'</span>'+
           gpsLink+
-          (rid?'<button data-rid="'+rid+'" class="rbrb-edit-btn" type="button" '+
+          (rid?'<button onclick="rbrb_editar(\''+rid+'\')" type="button" '+
             'style="margin-left:auto;padding:3px 9px;border-radius:6px;border:1px solid var(--border2);'+
             'background:transparent;color:var(--accent3);font-family:var(--font);font-size:10px;font-weight:700;cursor:pointer">✏️ Editar</button>':'')+
           (rid && window.USER && USER.rol === 'ADMIN'
@@ -27537,10 +27537,6 @@ function rbrb_buildItems() {
 
     return '<div style="margin-bottom:14px">'+headerHtml+regsHtml+'</div>';
   }).join('');
-  cont.addEventListener('click', function(ev) {
-    var b = ev.target.closest('.rbrb-edit-btn');
-    if (b && b.dataset.rid) rbrb_editar(b.dataset.rid);
-  });
 }
 
 window.rbrb_eliminar = function(id) {
@@ -27665,7 +27661,10 @@ window.rbrb_openFoto = function(url) {
 };
 
 window.rbrb_editar = function(id) {
-  var r = RBRB_REGISTROS.find(function(x){ return String(x.id) === String(id); });
+  // Acepta tanto un id string como un objeto registro completo
+  var r = (typeof id === 'object' && id !== null && id.id)
+    ? id
+    : RBRB_REGISTROS.find(function(x){ return String(x.id) === String(id); });
   if (!r) { toast('Registro no encontrado', 'err'); return; }
 
   // Ir a la pestaña formulario SIN limpiar (flag)
@@ -27749,16 +27748,6 @@ window.rbrb_editar = function(id) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 
   toast('Editando registro · guardá para actualizar', 'ok');
-  var _mw = document.getElementById('rbrb-minimapa-wrap');
-  if (_mw && _mw.style.display === 'none') { setTimeout(rbrb_toggleMiniMapa, 200); }
-  if (r.lat && r.lng) {
-    setTimeout(function() {
-      if (RBRB_MINI_MAP && RBRB_MINI_MARKER) {
-        RBRB_MINI_MARKER.setLatLng([r.lat, r.lng]);
-        RBRB_MINI_MAP.setView([r.lat, r.lng], 17);
-      }
-    }, 450);
-  }
 };
 
 window.rbrb_limpiarFiltros = function() {
