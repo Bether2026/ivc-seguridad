@@ -27929,6 +27929,7 @@ function rbrb_actualizarMapa() {
   RBRB_MARKERS = [];
   if (RBRB_MANUAL_MARKER) { RBRB_MAP.removeLayer(RBRB_MANUAL_MARKER); RBRB_MANUAL_MARKER = null; }
   var conGPS = RBRB_REGISTROS.filter(function(r) {
+    if (!r || typeof r !== 'object') return false;
     if (!r.lat || !r.lng) return false;
     if (RBRB_MAPA_FILTER_MZA !== 'todas' && (r.manzana||'—') !== RBRB_MAPA_FILTER_MZA) return false;
     if (RBRB_MAPA_FILTER_TIPO !== 'todos' && (r.tipo||'').indexOf(RBRB_MAPA_FILTER_TIPO) < 0) return false;
@@ -27938,10 +27939,10 @@ function rbrb_actualizarMapa() {
 
   conGPS.forEach(function(r) {
     var c = rbrb_colorDe(r.tipo);
-    var _tipoKey = Object.keys(RBRB_ICONOS).find(function(k){ return (_rReg.tipo||'').indexOf(k)>=0; }) || 'Otro';
+    var _tipoKey = Object.keys(RBRB_ICONOS).find(function(k){ return ((r&&r.tipo)||'').indexOf(k)>=0; }) || 'Otro';
     var _svgPath = RBRB_ICONOS[_tipoKey].replace(/COLOR/g, '#fff');
     // Multi-tipo: split tipo por ' + ' y hacer icono partido
-    var _tipos = (_rReg.tipo||'').split(' + ').map(function(t){return t.trim();}).filter(Boolean);
+    var _tipos = ((r&&r.tipo)||'').split(' + ').map(function(t){return t.trim();}).filter(Boolean);
     var _iconHtml;
     if (_tipos.length >= 2) {
       var c1 = rbrb_colorDe(_tipos[0]), c2 = rbrb_colorDe(_tipos[1]);
