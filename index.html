@@ -27903,6 +27903,7 @@ function rbrb_actualizarMapa() {
   } else {
     RBRB_MAP.setView([-34.6142, -58.3598], 17);
   }
+} // cierra rbrb_actualizarMapa
 
 // ── POPUP LIGHTBOX ──
 var RBRB_POPUP_IDX = {};
@@ -27983,6 +27984,8 @@ window.rbrb_guardarPuntoManual = function(lat, lng) {
   toast('📍 Coordenadas cargadas en el formulario', 'ok');
 };
 
+
+})(); // fin IIFE RBRB
 // fin MÓDULO RELEVAMIENTO RB
 </script>
 
