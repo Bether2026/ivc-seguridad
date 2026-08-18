@@ -27039,7 +27039,6 @@ window.rbrb_quitarFoto = function(idx) {
 };
 
 window.rbrb_getGPS = function() {
-  // Proteger corrección manual: confirmar antes de sobreescribir
   var latActual = parseFloat((document.getElementById('rbrb-lat') || {}).value);
   var lngActual = parseFloat((document.getElementById('rbrb-lng') || {}).value);
   if (!isNaN(latActual) && !isNaN(lngActual)) {
@@ -27114,7 +27113,6 @@ window.rbrb_toggleMiniMapa = function() {
 };
 
 function rbrb_crearMiniMapa() {
-  // Punto inicial: coords cargadas o centro de Rodrigo Bueno
   var lat = parseFloat((document.getElementById('rbrb-lat') || {}).value);
   var lng = parseFloat((document.getElementById('rbrb-lng') || {}).value);
   var tieneCoords = !isNaN(lat) && !isNaN(lng);
@@ -27131,25 +27129,16 @@ function rbrb_crearMiniMapa() {
       maxZoom: 21,
       maxNativeZoom: 19
     }).addTo(RBRB_MINI_MAP);
-
     RBRB_MINI_MARKER = L.marker(centro, { draggable: true }).addTo(RBRB_MINI_MAP);
-
-    // Arrastrar el marker → actualizar punto
     RBRB_MINI_MARKER.on('dragend', function() {
       var p = RBRB_MINI_MARKER.getLatLng();
       rbrb_setPunto(p.lat, p.lng);
     });
-
-    // Tocar el mapa → mover el marker ahí
     RBRB_MINI_MAP.on('click', function(e) {
       rbrb_setPunto(e.latlng.lat, e.latlng.lng);
     });
-
-    // Si ya hay coords en el form, confirmarlas como punto activo
     if (tieneCoords) rbrb_setPunto(lat, lng);
-
   } else {
-    // Mini-mapa ya existe: reposicionar al punto actual
     RBRB_MINI_MAP.setView(centro, Math.max(RBRB_MINI_MAP.getZoom(), 19));
     RBRB_MINI_MARKER.setLatLng(centro);
     if (tieneCoords) rbrb_setPunto(lat, lng);
@@ -27898,15 +27887,27 @@ function rbrb_actualizarMapa() {
     // Registrar URLs para el lightbox
     if (fotosUrls.length) RBRB_POPUP_URLS[uid] = fotosUrls;
 
-    var popup = L.popup({ maxWidth: 260, className: 'rbrb-popup' }).setContent(
-      '<div style="font-size:12px;min-width:200px;font-family:var(--font,-apple-system)">'+
-      '<div style="font-weight:700;color:'+c+';margin-bottom:5px;font-size:13px">'+r.tipo+'</div>'+
-      (r.manzana ? '<div style="font-size:11px;color:#7cb0ff;margin-bottom:3px">Mza '+rbrb_normMza(r.manzana)+(r.orden?' · Ord. '+r.orden:'')+'</div>' : '')+
-      (r.descripcion ? '<div style="font-size:11px;color:#f1f5fc;line-height:1.4;margin-bottom:4px">'+r.descripcion.substring(0,150)+(r.descripcion.length>150?'…':'')+'</div>' : '')+
-      '<div style="font-size:10px;color:#6b85a8">'+r.agente+' · '+r.certeza+'</div>'+
+    var _rReg = r; // captura del registro para el closure
+    var popupContent = document.createElement('div');
+    popupContent.style.cssText = 'font-size:12px;min-width:200px;font-family:var(--font,-apple-system)';
+    popupContent.innerHTML =
+      '<div style="font-weight:700;color:'+c+';margin-bottom:5px;font-size:13px">'+_rReg.tipo+'</div>'+
+      (_rReg.manzana ? '<div style="font-size:11px;color:#7cb0ff;margin-bottom:3px">Mza '+rbrb_normMza(_rReg.manzana)+(_rReg.orden?' · Ord. '+_rReg.orden:'')+'</div>' : '')+
+      (_rReg.descripcion ? '<div style="font-size:11px;color:#f1f5fc;line-height:1.4;margin-bottom:4px">'+_rReg.descripcion.substring(0,150)+(_rReg.descripcion.length>150?'…':'')+'</div>' : '')+
+      '<div style="font-size:10px;color:#6b85a8;margin-bottom:8px">'+_rReg.agente+' · '+_rReg.certeza+'</div>'+
       fotosHtml+
-      '</div>'
-    );
+      '<button class="rbrb-popup-edit" type="button" '+
+        'style="margin-top:8px;width:100%;padding:8px;background:rgba(37,99,235,.2);border:1px solid rgba(124,176,255,.4);'+
+        'border-radius:8px;color:#7cb0ff;font-family:var(--font,-apple-system);font-size:12px;font-weight:700;cursor:pointer">'+
+        '✏️ Ver / Editar registro'+
+      '</button>';
+    // Adjuntar listener al botón (sin inline onclick, evita problemas de escape)
+    popupContent.querySelector('.rbrb-popup-edit').addEventListener('click', function() {
+      if (RBRB_MAP) RBRB_MAP.closePopup();
+      rbrb_tab('form', document.getElementById('rbrb-tab-form'));
+      setTimeout(function() { rbrb_editar(_rReg); }, 80);
+    });
+    var popup = L.popup({ maxWidth: 280, className: 'rbrb-popup' }).setContent(popupContent);
     marker.bindPopup(popup);
     marker.addTo(RBRB_MAP);
     RBRB_MARKERS.push(marker);
@@ -28022,17 +28023,14 @@ var RBRB_POS_ORIGINALES = [];
 window.rbrb_dispersar = function() {
   if (!RBRB_MAP || !RBRB_MARKERS.length) { toast('No hay puntos en el mapa', 'err'); return; }
   RBRB_POS_ORIGINALES = RBRB_MARKERS.map(function(m) {
-    var ll = m.getLatLng();
-    return { marker: m, lat: ll.lat, lng: ll.lng };
+    var ll = m.getLatLng(); return { marker: m, lat: ll.lat, lng: ll.lng };
   });
   var grupos = [];
   RBRB_POS_ORIGINALES.forEach(function(item) {
     var encontrado = false;
     for (var i = 0; i < grupos.length; i++) {
       var g = grupos[i];
-      if (Math.abs(item.lat - g.lat) < 0.000009 && Math.abs(item.lng - g.lng) < 0.000009) {
-        g.items.push(item); encontrado = true; break;
-      }
+      if (Math.abs(item.lat - g.lat) < 0.000009 && Math.abs(item.lng - g.lng) < 0.000009) { g.items.push(item); encontrado = true; break; }
     }
     if (!encontrado) grupos.push({ lat: item.lat, lng: item.lng, items: [item] });
   });
@@ -28047,11 +28045,10 @@ window.rbrb_dispersar = function() {
       item.marker.setLatLng([g.lat + r * Math.cos(angulo), g.lng + r * Math.sin(angulo) / Math.cos(g.lat * Math.PI / 180)]);
     });
   });
-  var gruposCount = grupos.filter(function(g) { return g.items.length > 1; }).length;
   RBRB_DISPERSADO = true;
   var btn = document.getElementById('rbrb-reagrupar-btn');
   if (btn) btn.style.display = 'inline-block';
-  toast('🔀 ' + RBRB_MARKERS.length + ' puntos dispersados en ' + gruposCount + ' grupos', 'ok');
+  toast('🔀 ' + RBRB_MARKERS.length + ' puntos dispersados', 'ok');
 };
 
 window.rbrb_reagrupar = function() {
@@ -28060,7 +28057,7 @@ window.rbrb_reagrupar = function() {
   RBRB_DISPERSADO = false;
   var btn = document.getElementById('rbrb-reagrupar-btn');
   if (btn) btn.style.display = 'none';
-  toast('🔁 Puntos vueltos a posición real', 'ok');
+  toast('🔁 Posiciones reales restauradas', 'ok');
 };
 
 })(); // fin IIFE RBRB
