@@ -4375,7 +4375,21 @@ body {
 
             <!-- TAB: MAPA -->
             <div id="rbrb-panel-mapa" style="display:none">
-              <div id="rbrb-mapa-wrap" style="height:calc(100vh - 160px);position:relative;background:var(--bg2)">
+              <div id="rbrb-mapa-filters" style="display:flex;gap:10px;flex-wrap:wrap;padding:10px 14px;background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:200">
+                  <div>
+                    <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:5px">Manzana</div>
+                    <div id="rbrb-mapa-chips-mza" style="display:flex;gap:5px;flex-wrap:wrap"></div>
+                  </div>
+                  <div>
+                    <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:5px">Tipo</div>
+                    <div id="rbrb-mapa-chips-tipo" style="display:flex;gap:5px;flex-wrap:wrap"></div>
+                  </div>
+                  <div>
+                    <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:5px">Certeza</div>
+                    <div id="rbrb-mapa-chips-cert" style="display:flex;gap:5px;flex-wrap:wrap"></div>
+                  </div>
+                </div>
+                <div id="rbrb-mapa-wrap" style="height:calc(100vh - 220px);position:relative;background:var(--bg2)">
                 <div id="rbrb-mapa" style="width:100%;height:100%"></div>
                 <div id="rbrb-mapa-loading" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
                   font-size:13px;color:var(--text3);background:var(--bg2)">Cargando mapa...</div>
@@ -26842,14 +26856,26 @@ var RBRB_MAP_INIT = false;
 
 // Colores por tipo
 var RBRB_COLORES = {
-  'Comercio sin habilitación': '#f59e0b',
-  'Puesto en vía pública': '#8b5cf6',
+  'Comercio': '#f59e0b',
+  'Puesto en vía pública': '#a855f7',
   'Construcción que invade línea municipal': '#ef4444',
   'Taller clandestino': '#f97316',
   'Ampliación sin protocolo': '#ec4899',
   'Ocupación espacio común': '#06b6d4',
-  'Vehículos abandonados': '#8b5cf6',
-  'Otro': '#6b7280'
+  'Vehículos abandonados': '#22d3ee',
+  'Otro': '#94a3b8'
+};
+
+// Iconos SVG únicos por tipo
+var RBRB_ICONOS = {
+  'Comercio': '<path d="M2 7l10-6 10 6v2H2V7zm2 3v8h4v-5h8v5h4V10H4zm5 3h6v5H9v-5z" fill="COLOR"/>',
+  'Puesto en vía pública': '<path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="COLOR"/>',
+  'Construcción que invade línea municipal': '<path d="M13.7 2.3L12 1 5 5v6c0 4.2 3 7.7 7 8.9 4-1.2 7-4.7 7-8.9V5l-5.3-2.7zm-1.7 9.7H9V10h3V7h2v3h3v2h-3v3h-2v-3z" fill="COLOR"/>',
+  'Taller clandestino': '<path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z" fill="COLOR"/>',
+  'Ampliación sin protocolo': '<rect x="3" y="13" width="4" height="8" fill="COLOR"/><rect x="10" y="9" width="4" height="12" fill="COLOR"/><rect x="17" y="5" width="4" height="16" fill="COLOR"/>',
+  'Ocupación espacio común': '<path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" fill="COLOR"/>',
+  'Vehículos abandonados': '<path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.85 7h10.29l1.08 3.11H5.77L6.85 7zM19 17H5v-5h14v5zM7.5 14c-.83 0-1.5.67-1.5 1.5S6.67 17 7.5 17 9 16.33 9 15.5 8.33 14 7.5 14zm9 0c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5z" fill="COLOR"/>',
+  'Otro': '<circle cx="12" cy="12" r="10" fill="none" stroke="COLOR" stroke-width="2"/><path d="M12 8v4m0 4h.01" stroke="COLOR" stroke-width="2" stroke-linecap="round"/>'
 };
 
 window.rbrb_onOpen = function() {
@@ -26904,7 +26930,7 @@ window.rbrb_tab = function(name, btn) {
 
 // ── TIPOS multi-selección ──
 var RBRB_TIPOS_LISTA = [
-  'Comercio sin habilitación',
+  'Comercio',
   'Puesto en vía pública',
   'Taller clandestino',
   'Ampliación sin protocolo',
@@ -27661,7 +27687,6 @@ window.rbrb_openFoto = function(url) {
 };
 
 window.rbrb_editar = function(id) {
-  // Acepta tanto un id string como un objeto registro completo
   var r = (typeof id === 'object' && id !== null && id.id)
     ? id
     : RBRB_REGISTROS.find(function(x){ return String(x.id) === String(id); });
@@ -27840,21 +27865,103 @@ function rbrb_crearMapa() {
     maxNativeZoom: 19
   }).addTo(RBRB_MAP);
   RBRB_MAP_INIT = true;
+  rbrb_buildMapaFilters();
   rbrb_actualizarMapa();
 }
+
+var RBRB_MAPA_FILTER_MZA = 'todas';
+var RBRB_MAPA_FILTER_TIPO = 'todos';
+var RBRB_MAPA_FILTER_CERT = 'todas';
+
+function rbrb_buildMapaFilters() {
+  var mzaSet = {}, tipoSet = {}, certSet = {};
+  RBRB_REGISTROS.filter(function(r){return r.lat&&r.lng;}).forEach(function(r) {
+    mzaSet[r.manzana||'—'] = 1;
+    if (r.tipo) r.tipo.split(' + ').forEach(function(t){tipoSet[t.trim()]=1;});
+    if (r.certeza) certSet[r.certeza] = 1;
+  });
+  var chipStyle = 'padding:4px 10px;border-radius:20px;border:1px solid;font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font,-apple-system);transition:all .15s;';
+  
+  var mzaEl = document.getElementById('rbrb-mapa-chips-mza');
+  if (mzaEl) {
+    var mzas = Object.keys(mzaSet).sort(function(a,b){var na=parseInt(a),nb=parseInt(b);if(!isNaN(na)&&!isNaN(nb))return na-nb;return a.localeCompare(b);});
+    mzaEl.innerHTML = '<button data-v="todas" onclick="rbrb_setMapaFilter(&quot;mza&quot;,&quot;todas&quot;,this)" style="'+chipStyle+'background:var(--accent);border-color:var(--accent);color:#fff">Todas</button>' +
+      mzas.map(function(m){return '<button data-v="'+m+'" onclick="rbrb_setMapaFilter(&quot;mza&quot;,&quot;'+m+'&quot;,this)" style="'+chipStyle+'background:transparent;border-color:var(--border2);color:var(--text2)">'+(isNaN(parseInt(m))?m:'Mza '+m)+'</button>';}).join('');
+  }
+  
+  var tipoEl = document.getElementById('rbrb-mapa-chips-tipo');
+  if (tipoEl) {
+    tipoEl.innerHTML = '<button data-v="todos" onclick="rbrb_setMapaFilter(&quot;tipo&quot;,&quot;todos&quot;,this)" style="'+chipStyle+'background:var(--accent);border-color:var(--accent);color:#fff">Todos</button>' +
+      Object.keys(tipoSet).map(function(t){var c=rbrb_colorDe(t);return '<button data-v="'+t+'" onclick="rbrb_setMapaFilter(&quot;tipo&quot;,&quot;'+t+'&quot;,this)" style="'+chipStyle+'background:'+c+'18;border-color:'+c+'55;color:'+c+'">'+t+'</button>';}).join('');
+  }
+  
+  var certEl = document.getElementById('rbrb-mapa-chips-cert');
+  if (certEl) {
+    certEl.innerHTML = [
+      '<button data-v="todas" onclick="rbrb_setMapaFilter(&quot;cert&quot;,&quot;todas&quot;,this)" style="'+chipStyle+'background:var(--accent);border-color:var(--accent);color:#fff">Todas</button>',
+      '<button data-v="Confirmado" onclick="rbrb_setMapaFilter(&quot;cert&quot;,&quot;Confirmado&quot;,this)" style="'+chipStyle+'background:rgba(16,185,129,.15);border-color:#10b981;color:#10b981">✓ Confirmado</button>',
+      '<button data-v="Probable" onclick="rbrb_setMapaFilter(&quot;cert&quot;,&quot;Probable&quot;,this)" style="'+chipStyle+'background:rgba(245,158,11,.15);border-color:#f59e0b;color:#f59e0b">~ Probable</button>',
+      '<button data-v="A verificar" onclick="rbrb_setMapaFilter(&quot;cert&quot;,&quot;A verificar&quot;,this)" style="'+chipStyle+'background:rgba(239,68,68,.15);border-color:#ef4444;color:#ef4444">? A verificar</button>'
+    ].join('');
+  }
+}
+
+window.rbrb_setMapaFilter = function(tipo, val, btn) {
+  // Support being called with (group, val, btn) or from onclick with encoded params
+  if (typeof tipo === 'string' && tipo.indexOf('mza') >= 0) tipo = 'mza';
+  if (tipo === 'mza') RBRB_MAPA_FILTER_MZA = val;
+  else if (tipo === 'tipo') RBRB_MAPA_FILTER_TIPO = val;
+  else if (tipo === 'cert') RBRB_MAPA_FILTER_CERT = val;
+  var groupId = tipo === 'mza' ? 'rbrb-mapa-chips-mza' : tipo === 'tipo' ? 'rbrb-mapa-chips-tipo' : 'rbrb-mapa-chips-cert';
+  var grp = document.getElementById(groupId);
+  if (grp) grp.querySelectorAll('button').forEach(function(b) {
+    var active = b.dataset.v === val;
+    b.style.background = active ? 'var(--accent)' : (b.dataset.bg || 'transparent');
+    b.style.borderColor = active ? 'var(--accent)' : (b.dataset.bc || 'var(--border2)');
+    b.style.color = active ? '#fff' : (b.dataset.tc || 'var(--text2)');
+  });
+  rbrb_actualizarMapa();
+};
 
 function rbrb_actualizarMapa() {
   if (!RBRB_MAP) return;
   RBRB_MARKERS.forEach(function(m) { RBRB_MAP.removeLayer(m); });
   RBRB_MARKERS = [];
   if (RBRB_MANUAL_MARKER) { RBRB_MAP.removeLayer(RBRB_MANUAL_MARKER); RBRB_MANUAL_MARKER = null; }
-  var conGPS = RBRB_REGISTROS.filter(function(r) { return r.lat && r.lng; });
+  var conGPS = RBRB_REGISTROS.filter(function(r) {
+    if (!r.lat || !r.lng) return false;
+    if (RBRB_MAPA_FILTER_MZA !== 'todas' && (r.manzana||'—') !== RBRB_MAPA_FILTER_MZA) return false;
+    if (RBRB_MAPA_FILTER_TIPO !== 'todos' && (r.tipo||'').indexOf(RBRB_MAPA_FILTER_TIPO) < 0) return false;
+    if (RBRB_MAPA_FILTER_CERT !== 'todas' && r.certeza !== RBRB_MAPA_FILTER_CERT) return false;
+    return true;
+  });
 
   conGPS.forEach(function(r) {
     var c = rbrb_colorDe(r.tipo);
+    var _tipoKey = Object.keys(RBRB_ICONOS).find(function(k){ return (_rReg.tipo||'').indexOf(k)>=0; }) || 'Otro';
+    var _svgPath = RBRB_ICONOS[_tipoKey].replace(/COLOR/g, '#fff');
+    // Multi-tipo: split tipo por ' + ' y hacer icono partido
+    var _tipos = (_rReg.tipo||'').split(' + ').map(function(t){return t.trim();}).filter(Boolean);
+    var _iconHtml;
+    if (_tipos.length >= 2) {
+      var c1 = rbrb_colorDe(_tipos[0]), c2 = rbrb_colorDe(_tipos[1]);
+      _iconHtml = '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24">' +
+        '<defs><clipPath id="lh"><rect x="0" y="0" width="12" height="24"/></clipPath>' +
+        '<clipPath id="rh"><rect x="12" y="0" width="12" height="24"/></clipPath></defs>' +
+        '<circle cx="12" cy="12" r="11" fill="'+c1+'" clip-path="url(#lh)"/>' +
+        '<circle cx="12" cy="12" r="11" fill="'+c2+'" clip-path="url(#rh)"/>' +
+        '<circle cx="12" cy="12" r="11" fill="none" stroke="#fff" stroke-width="1.5"/>' +
+        '</svg>';
+    } else {
+      var _p = (RBRB_ICONOS[_tipoKey]||RBRB_ICONOS['Otro']).replace(/COLOR/g, '#fff');
+      _iconHtml = '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" style="filter:drop-shadow(0 2px 4px rgba(0,0,0,.6))">' +
+        '<circle cx="12" cy="12" r="12" fill="'+c+'"/>' +
+        _p +
+        '</svg>';
+    }
     var icon = L.divIcon({
-      html: '<div style="width:16px;height:16px;border-radius:50%;background:'+c+';border:2.5px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.5)"></div>',
-      iconSize: [16,16], iconAnchor: [8,8], className: ''
+      html: _iconHtml,
+      iconSize: [28,28], iconAnchor: [14,14], className: ''
     });
     var marker = L.marker([r.lat, r.lng], { icon: icon });
 
@@ -27896,7 +28003,7 @@ function rbrb_actualizarMapa() {
     popupContent.innerHTML =
       '<div style="font-weight:700;color:'+c+';margin-bottom:5px;font-size:13px">'+_rReg.tipo+'</div>'+
       (_rReg.manzana ? '<div style="font-size:11px;color:#7cb0ff;margin-bottom:3px">Mza '+rbrb_normMza(_rReg.manzana)+(_rReg.orden?' · Ord. '+_rReg.orden:'')+'</div>' : '')+
-      (_rReg.descripcion ? '<div style="font-size:11px;color:#f1f5fc;line-height:1.4;margin-bottom:4px">'+_rReg.descripcion.substring(0,150)+(_rReg.descripcion.length>150?'…':'')+'</div>' : '')+
+      (_rReg.descripcion ? '<div style="font-size:13px;color:#f1f5fc;line-height:1.6;margin-bottom:8px;padding:8px 10px;background:rgba(0,0,0,.28);border-radius:7px;border-left:3px solid '+c+'">'+_rReg.descripcion.substring(0,220)+(_rReg.descripcion.length>220?'…':'')+' </div>' : '')+
       '<div style="font-size:10px;color:#6b85a8;margin-bottom:8px">'+_rReg.agente+' · '+_rReg.certeza+'</div>'+
       fotosHtml+
       '<button class="rbrb-popup-edit" type="button" '+
