@@ -26923,7 +26923,7 @@ window.rbrb_tab = function(name, btn) {
     if (p) p.style.display = (t === name) ? 'block' : 'none';
     if (b) b.classList.toggle('active', t === name);
   });
-  if (name === 'mapa') rbrb_initMapa();
+  if (name === 'mapa') { rbrb_initMapa(); setTimeout(function(){ if(RBRB_MAP) RBRB_MAP.invalidateSize(); }, 80); }
   if (name === 'lista') rbrb_renderLista();
   if (name === 'audit') rbrb_cargarAudit();
 };
