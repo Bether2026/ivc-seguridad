@@ -27471,6 +27471,102 @@ function rbrb_itemsFiltrados(conTipo) {
 }
 
 // Renderiza los items agrupados por orden
+// ── AJUSTE GPS DESDE LISTADO ──
+var RBRB_AJUSTE_MAP = null;
+var RBRB_AJUSTE_MARKER = null;
+
+window.rbrb_abrirAjusteGPS = function(btn) {
+  var rid = btn.dataset.rid;
+  var lat = parseFloat(btn.dataset.lat) || -34.6142;
+  var lng = parseFloat(btn.dataset.lng) || -58.3598;
+
+  // Crear modal
+  var modal = document.createElement('div');
+  modal.id = 'rbrb-gps-modal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.8);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px';
+  modal.innerHTML =
+    '<div style="width:100%;max-width:600px;background:var(--bg2);border-radius:14px;overflow:hidden;border:1px solid var(--border2)">' +
+    '<div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">' +
+    '<div style="font-size:14px;font-weight:700;color:var(--text)">📍 Ajustar punto GPS</div>' +
+    '<div style="font-size:11px;color:var(--text3)">Tocá el mapa para mover el pin</div>' +
+    '</div>' +
+    '<div id="rbrb-ajuste-mapa" style="width:100%;height:400px"></div>' +
+    '<div style="padding:12px 16px;display:flex;gap:10px;justify-content:flex-end;border-top:1px solid var(--border)">' +
+    '<button onclick="rbrb_cerrarAjusteGPS()" style="padding:9px 20px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-family:var(--font,-apple-system);font-size:13px;cursor:pointer">Cancelar</button>' +
+    '<button id="rbrb-ajuste-save" style="padding:9px 20px;border-radius:8px;border:none;background:var(--green);color:#fff;font-family:var(--font,-apple-system);font-size:13px;font-weight:700;cursor:pointer">✓ Guardar ubicación</button>' +
+    '</div>' +
+    '</div>';
+  document.body.appendChild(modal);
+  // Attach save listener via JS to avoid quote issues
+  var saveBtn = document.getElementById('rbrb-ajuste-save');
+  if (saveBtn) { saveBtn.addEventListener('click', function(){ rbrb_guardarAjusteGPS(rid); }); }
+
+  // Init Leaflet in modal
+  function initAjusteMapa() {
+    if (RBRB_AJUSTE_MAP) { RBRB_AJUSTE_MAP.remove(); RBRB_AJUSTE_MAP = null; }
+    RBRB_AJUSTE_MAP = L.map('rbrb-ajuste-mapa').setView([lat, lng], 18);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap', maxZoom: 21, maxNativeZoom: 19
+    }).addTo(RBRB_AJUSTE_MAP);
+    RBRB_AJUSTE_MARKER = L.marker([lat, lng], { draggable: true }).addTo(RBRB_AJUSTE_MAP);
+    RBRB_AJUSTE_MARKER.bindPopup('Arrastrá para ajustar').openPopup();
+    // Click on map moves marker
+    RBRB_AJUSTE_MAP.on('click', function(e) {
+      RBRB_AJUSTE_MARKER.setLatLng(e.latlng);
+    });
+    setTimeout(function(){ RBRB_AJUSTE_MAP.invalidateSize(); }, 100);
+  }
+
+  if (typeof L !== 'undefined') {
+    initAjusteMapa();
+  } else {
+    var css = document.createElement('link');
+    css.rel = 'stylesheet'; css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    document.head.appendChild(css);
+    var js = document.createElement('script');
+    js.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    js.onload = initAjusteMapa;
+    document.head.appendChild(js);
+  }
+};
+
+window.rbrb_cerrarAjusteGPS = function() {
+  var modal = document.getElementById('rbrb-gps-modal');
+  if (modal) modal.remove();
+  if (RBRB_AJUSTE_MAP) { RBRB_AJUSTE_MAP.remove(); RBRB_AJUSTE_MAP = null; }
+  RBRB_AJUSTE_MARKER = null;
+};
+
+window.rbrb_guardarAjusteGPS = function(rid) {
+  if (!RBRB_AJUSTE_MARKER) return;
+  var pos = RBRB_AJUSTE_MARKER.getLatLng();
+  var lat = parseFloat(pos.lat.toFixed(6));
+  var lng = parseFloat(pos.lng.toFixed(6));
+
+  db.from('relevamiento_rb').update({ lat: lat, lng: lng }).eq('id', rid).then(function(res) {
+    if (res && res.error) { toast('Error al guardar: ' + res.error.message, 'err'); return; }
+    // Update local record
+    var rec = RBRB_REGISTROS.find(function(r){ return String(r.id) === String(rid); });
+    if (rec) { rec.lat = lat; rec.lng = lng; rec._gps_ajustado = true; }
+    rbrb_cerrarAjusteGPS();
+    // Update the button in the list to show checkmark
+    var btn = document.querySelector('[data-rid="'+rid+'"][onclick*="AjusteGPS"]');
+    if (btn) {
+      btn.textContent = '📍 Ajustar mapa';
+      var tick = btn.nextSibling;
+      if (!tick || tick.nodeType !== 1 || !tick.classList.contains('gps-tick')) {
+        var span = document.createElement('span');
+        span.className = 'gps-tick';
+        span.style.cssText = 'color:#10b981;font-weight:700;margin-left:4px';
+        span.textContent = '✓';
+        btn.parentNode.insertBefore(span, btn.nextSibling);
+      }
+    }
+    if (RBRB_MAP) rbrb_actualizarMapa();
+    toast('GPS actualizado', 'ok');
+  });
+};
+
 function rbrb_buildItems() {
   var items = rbrb_itemsFiltrados(true);
   var count = document.getElementById('rbrb-count');
@@ -27516,9 +27612,14 @@ function rbrb_buildItems() {
       var c = rbrb_colorDe(r.tipo);
       var certColor = r.certeza==='Confirmado'?'#10b981':r.certeza==='Probable'?'#f59e0b':'#ef4444';
       var fecha = r.created_at ? r.created_at.substring(0,10) : '';
+      var _gpsOk = r._gps_ajustado ? ' <span style="color:#10b981;font-weight:700" title="GPS ajustado">✓</span>' : '';
       var gpsLink = (r.lat&&r.lng)
-        ? '<a href="https://maps.google.com/?q='+r.lat+','+r.lng+'" target="_blank" '+
-          'style="font-size:10px;color:var(--accent3);text-decoration:none">📍 Maps</a>' : '';
+        ? '<button type="button" data-rid="'+r.id+'" data-lat="'+r.lat+'" data-lng="'+r.lng+'" '+
+          'onclick="rbrb_abrirAjusteGPS(this)" '+
+          'style="font-size:10px;color:var(--accent3);background:transparent;border:none;cursor:pointer;padding:0;font-family:var(--font,-apple-system)">📍 Ajustar mapa</button>'+_gpsOk
+        : '<button type="button" data-rid="'+r.id+'" data-lat="-34.6142" data-lng="-58.3598" '+
+          'onclick="rbrb_abrirAjusteGPS(this)" '+
+          'style="font-size:10px;color:var(--text3);background:transparent;border:none;cursor:pointer;padding:0;font-family:var(--font,-apple-system)">📍 Sin GPS · agregar</button>';
 
       var fotosUrls = [];
       if (r.fotos_urls && r.fotos_urls !== 'null') {
