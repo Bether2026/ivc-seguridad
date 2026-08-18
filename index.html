@@ -4355,9 +4355,9 @@ body {
               <!-- MINI MAPA PARA AJUSTAR PUNTO -->
               <div id="rbrb-minimapa-wrap" style="display:none">
                 <div style="font-size:11px;color:var(--text3);margin-bottom:6px">
-                  Usá + / − para hacer zoom · Tocá para poner el punto · Arrastrá el marcador para afinar
+                  📌 Tocá el mapa para ubicar el punto exacto · Arrastrá el marcador para afinar · Usá + / − para hacer zoom
                 </div>
-                <div id="rbrb-minimapa" style="width:100%;height:340px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2)"></div>
+                <div id="rbrb-minimapa" style="width:100%;height:420px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2)"></div>
               </div>
 
               <input type="hidden" id="rbrb-lat">
@@ -27039,6 +27039,12 @@ window.rbrb_quitarFoto = function(idx) {
 };
 
 window.rbrb_getGPS = function() {
+  // Proteger corrección manual: confirmar antes de sobreescribir
+  var latActual = parseFloat((document.getElementById('rbrb-lat') || {}).value);
+  var lngActual = parseFloat((document.getElementById('rbrb-lng') || {}).value);
+  if (!isNaN(latActual) && !isNaN(lngActual)) {
+    if (!confirm('Ya hay un punto guardado. ¿Reemplazar con la ubicación actual del dispositivo?')) return;
+  }
   var txt = document.getElementById('rbrb-gps-txt');
   if (txt) txt.textContent = 'Obteniendo ubicación...';
   if (!navigator.geolocation) {
@@ -27111,16 +27117,19 @@ function rbrb_crearMiniMapa() {
   // Punto inicial: coords cargadas o centro de Rodrigo Bueno
   var lat = parseFloat((document.getElementById('rbrb-lat') || {}).value);
   var lng = parseFloat((document.getElementById('rbrb-lng') || {}).value);
-  var centro = (!isNaN(lat) && !isNaN(lng)) ? [lat, lng] : RBRB_RB_CENTRO;
+  var tieneCoords = !isNaN(lat) && !isNaN(lng);
+  var centro = tieneCoords ? [lat, lng] : RBRB_RB_CENTRO;
 
   if (!RBRB_MINI_MAP) {
     RBRB_MINI_MAP = L.map('rbrb-minimapa', {
       scrollWheelZoom: true,
       touchZoom: true,
       zoomControl: true
-    }).setView(centro, 18);
+    }).setView(centro, 19);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap'
+      attribution: '© OpenStreetMap',
+      maxZoom: 21,
+      maxNativeZoom: 19
     }).addTo(RBRB_MINI_MAP);
 
     RBRB_MINI_MARKER = L.marker(centro, { draggable: true }).addTo(RBRB_MINI_MAP);
@@ -27135,9 +27144,15 @@ function rbrb_crearMiniMapa() {
     RBRB_MINI_MAP.on('click', function(e) {
       rbrb_setPunto(e.latlng.lat, e.latlng.lng);
     });
+
+    // Si ya hay coords en el form, confirmarlas como punto activo
+    if (tieneCoords) rbrb_setPunto(lat, lng);
+
   } else {
-    RBRB_MINI_MAP.setView(centro, 17);
+    // Mini-mapa ya existe: reposicionar al punto actual
+    RBRB_MINI_MAP.setView(centro, Math.max(RBRB_MINI_MAP.getZoom(), 19));
     RBRB_MINI_MARKER.setLatLng(centro);
+    if (tieneCoords) rbrb_setPunto(lat, lng);
   }
 
   // Leaflet necesita recalcular tamaño cuando el div recién se muestra
@@ -28002,57 +28017,37 @@ window.rbrb_guardarPuntoManual = function(lat, lng) {
 
 // ── HERRAMIENTA DISPERSAR PUNTOS ──
 var RBRB_DISPERSADO = false;
-var RBRB_POS_ORIGINALES = []; // [{marker, lat, lng}]
+var RBRB_POS_ORIGINALES = [];
 
 window.rbrb_dispersar = function() {
-  if (!RBRB_MAP || !RBRB_MARKERS.length) {
-    toast('No hay puntos en el mapa', 'err'); return;
-  }
-
-  // Guardar posiciones originales
+  if (!RBRB_MAP || !RBRB_MARKERS.length) { toast('No hay puntos en el mapa', 'err'); return; }
   RBRB_POS_ORIGINALES = RBRB_MARKERS.map(function(m) {
     var ll = m.getLatLng();
     return { marker: m, lat: ll.lat, lng: ll.lng };
   });
-
-  // Agrupar por coordenada exacta (o muy cercana: <1m)
   var grupos = [];
   RBRB_POS_ORIGINALES.forEach(function(item) {
     var encontrado = false;
     for (var i = 0; i < grupos.length; i++) {
       var g = grupos[i];
-      var dlat = Math.abs(item.lat - g.lat);
-      var dlng = Math.abs(item.lng - g.lng);
-      if (dlat < 0.000009 && dlng < 0.000009) { // ~1 metro
-        g.items.push(item);
-        encontrado = true;
-        break;
+      if (Math.abs(item.lat - g.lat) < 0.000009 && Math.abs(item.lng - g.lng) < 0.000009) {
+        g.items.push(item); encontrado = true; break;
       }
     }
-    if (!encontrado) {
-      grupos.push({ lat: item.lat, lng: item.lng, items: [item] });
-    }
+    if (!encontrado) grupos.push({ lat: item.lat, lng: item.lng, items: [item] });
   });
-
-  // Dispersar en espiral los grupos con más de 1 punto
-  var radio = 0.000045; // ~5 metros de separación entre puntos
+  var radio = 0.000045;
   grupos.forEach(function(g) {
     if (g.items.length <= 1) return;
-    // Espiral: el primero queda en centro, resto se disponen en arco
     var n = g.items.length;
     g.items.forEach(function(item, i) {
-      if (i === 0) return; // el primero queda en el centro
+      if (i === 0) return;
       var angulo = (2 * Math.PI / (n - 1)) * (i - 1);
       var r = radio + (Math.floor((i - 1) / 8) * radio * 0.6);
-      var newLat = g.lat + r * Math.cos(angulo);
-      var newLng = g.lng + r * Math.sin(angulo) / Math.cos(g.lat * Math.PI / 180);
-      item.marker.setLatLng([newLat, newLng]);
+      item.marker.setLatLng([g.lat + r * Math.cos(angulo), g.lng + r * Math.sin(angulo) / Math.cos(g.lat * Math.PI / 180)]);
     });
   });
-
-  var solosCount = grupos.filter(function(g) { return g.items.length === 1; }).length;
   var gruposCount = grupos.filter(function(g) { return g.items.length > 1; }).length;
-
   RBRB_DISPERSADO = true;
   var btn = document.getElementById('rbrb-reagrupar-btn');
   if (btn) btn.style.display = 'inline-block';
@@ -28061,15 +28056,12 @@ window.rbrb_dispersar = function() {
 
 window.rbrb_reagrupar = function() {
   if (!RBRB_DISPERSADO) return;
-  RBRB_POS_ORIGINALES.forEach(function(item) {
-    item.marker.setLatLng([item.lat, item.lng]);
-  });
+  RBRB_POS_ORIGINALES.forEach(function(item) { item.marker.setLatLng([item.lat, item.lng]); });
   RBRB_DISPERSADO = false;
   var btn = document.getElementById('rbrb-reagrupar-btn');
   if (btn) btn.style.display = 'none';
   toast('🔁 Puntos vueltos a posición real', 'ok');
 };
-
 
 })(); // fin IIFE RBRB
 // fin MÓDULO RELEVAMIENTO RB
