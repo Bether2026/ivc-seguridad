@@ -29204,7 +29204,7 @@ window.frfr_limpiarForm = function frfr_limpiarForm() {
 function frfr_cargarDatos() {
   db.from('relevamiento_fr')
     .select('*')
-    .eq('barrio', 'Rodrigo Bueno')
+    .eq('barrio', 'Fraga')
     .order('created_at', { ascending: false })
     .then(function(res) {
       if (res.error) return;
