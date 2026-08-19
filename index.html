@@ -4309,6 +4309,18 @@ body {
                 <input id="rbrb-titular" class="form-input" type="text" placeholder="Opcional">
               </div>
 
+              <!-- PERTENECE AL IVC -->
+              <div class="form-group">
+                <label class="form-label" style="margin-bottom:8px">Relacion con el IVC</label>
+                <button type="button" id="rbrb-ivc-toggle"
+                  onclick="rbrb_toggleIVC()"
+                  style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:10px;border:1px solid var(--border2);background:transparent;cursor:pointer;font-family:var(--font);font-size:13px;font-weight:600;color:var(--text2);width:100%;text-align:left;transition:all .2s">
+                  <span id="rbrb-ivc-icon" style="width:22px;height:22px;border-radius:6px;border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;transition:all .2s"></span>
+                  <span>Pertenece al IVC</span>
+                </button>
+                <input type="hidden" id="rbrb-ivc" value="no">
+              </div>
+
               <!-- OBSERVACIONES -->
               <div class="form-group">
                 <label class="form-label">Observaciones adicionales</label>
@@ -26991,6 +27003,29 @@ window.rbrb_toggleTipo = function(t) {
   rbrb_renderTipoSel();
 };
 
+window.rbrb_toggleIVC = function() {
+  var inp = document.getElementById('rbrb-ivc');
+  var icon = document.getElementById('rbrb-ivc-icon');
+  var btn = document.getElementById('rbrb-ivc-toggle');
+  if (!inp) return;
+  var esIVC = inp.value === 'si';
+  if (esIVC) {
+    inp.value = 'no';
+    if (icon) { icon.textContent = ''; icon.style.borderColor = 'var(--border2)'; icon.style.background = 'transparent'; }
+    if (btn) { btn.style.borderColor = 'var(--border2)'; btn.style.color = 'var(--text2)'; btn.style.background = 'transparent'; }
+  } else {
+    inp.value = 'si';
+    if (icon) { icon.textContent = '✓'; icon.style.borderColor = '#10b981'; icon.style.background = 'rgba(16,185,129,.15)'; icon.style.color = '#10b981'; }
+    if (btn) { btn.style.borderColor = '#10b981'; btn.style.color = '#10b981'; btn.style.background = 'rgba(16,185,129,.06)'; }
+  }
+};
+
+function rbrb_setIVC(val) {
+  var inp = document.getElementById('rbrb-ivc');
+  if (inp) inp.value = val === 'si' ? 'no' : 'no'; // reset first
+  if (val === 'si') window.rbrb_toggleIVC();
+}
+
 // Color para un tipo (soporta strings compuestos "A + B")
 function rbrb_colorDe(tipo) {
   if (!tipo) return '#6b7280';
@@ -27209,6 +27244,7 @@ window.rbrb_guardar = function() {
   var titular = (document.getElementById('rbrb-titular') || {}).value || '';
   var obs = (document.getElementById('rbrb-obs') || {}).value || '';
   var obsVivienda = (document.getElementById('rbrb-obs-vivienda') || {}).value || '';
+  var esIVC = (document.getElementById('rbrb-ivc') || {}).value === 'si';
   var lat = parseFloat((document.getElementById('rbrb-lat') || {}).value) || null;
   var lng = parseFloat((document.getElementById('rbrb-lng') || {}).value) || null;
 
@@ -27236,6 +27272,7 @@ window.rbrb_guardar = function() {
     certeza: RBRB_CERTEZA,
     titular: titular.trim(),
     observaciones: obs.trim(),
+    pertenece_ivc: esIVC,
     obs_vivienda: obsVivienda.trim(),
     lat: lat,
     lng: lng,
@@ -27306,6 +27343,10 @@ window.rbrb_guardar = function() {
 window.rbrb_limpiarForm = function rbrb_limpiarForm() {
   var ids = ['rbrb-mza','rbrb-orden','rbrb-desc','rbrb-titular','rbrb-obs','rbrb-obs-vivienda','rbrb-lat','rbrb-lng','rbrb-tipo-otro'];
   ids.forEach(function(id) { var el = document.getElementById(id); if (el) el.value = ''; });
+  // Reset IVC toggle
+  var ivcInp = document.getElementById('rbrb-ivc');
+  if (ivcInp && ivcInp.value === 'si') window.rbrb_toggleIVC();
+  else if (ivcInp) ivcInp.value = 'no';
   RBRB_TIPOS_SEL = [];
   rbrb_renderTipoSel();
   var grid = document.getElementById('rbrb-fotos-grid');
@@ -27343,7 +27384,10 @@ function rbrb_cargarDatos() {
     .order('created_at', { ascending: false })
     .then(function(res) {
       if (res.error) return;
-      RBRB_REGISTROS = res.data || [];
+      RBRB_REGISTROS = (res.data || []).map(function(r) {
+        if (r.tipo) r.tipo = r.tipo.replace(/Comercio sin habilitaci[oó]n/g, 'Comercio');
+        return r;
+      });
       // Debug: ver qué columnas llegan
       if (RBRB_REGISTROS.length) {
         var r0 = RBRB_REGISTROS[0];
@@ -27666,6 +27710,7 @@ function rbrb_buildItems() {
           '<span style="font-size:9px;font-family:var(--mono);color:var(--text3)">'+fecha+'</span>'+
           '<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;background:'+c+'22;color:'+c+'">'+r.tipo+'</span>'+
           '<span style="font-size:9px;font-weight:700;color:'+certColor+';margin-left:auto">'+r.certeza+'</span>'+
+          (r.pertenece_ivc?'<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.4);color:#10b981">&#127968; IVC</span>':'')+
         '</div>'+
         '<div style="font-size:13px;color:var(--text);line-height:1.55;margin-bottom:5px">'+r.descripcion+'</div>'+
         (r.titular?'<div style="font-size:11px;color:var(--text2)">👤 '+r.titular+'</div>':'')+
@@ -27836,6 +27881,14 @@ window.rbrb_editar = function(id) {
   set('rbrb-obs-vivienda', r.obs_vivienda);
   set('rbrb-lat', r.lat || '');
   set('rbrb-lng', r.lng || '');
+  // Restaurar toggle IVC
+  var ivcInp = document.getElementById('rbrb-ivc');
+  var ivcIcon = document.getElementById('rbrb-ivc-icon');
+  var ivcBtn = document.getElementById('rbrb-ivc-toggle');
+  if (ivcInp) ivcInp.value = 'no';
+  if (ivcIcon) { ivcIcon.textContent = ''; ivcIcon.style.borderColor = 'var(--border2)'; ivcIcon.style.background = 'transparent'; }
+  if (ivcBtn) { ivcBtn.style.borderColor = 'var(--border2)'; ivcBtn.style.color = 'var(--text2)'; ivcBtn.style.background = 'transparent'; }
+  if (r.pertenece_ivc === true) window.rbrb_toggleIVC();
 
   // Tipos: parsear string compuesto "A + B" y marcar chips
   RBRB_TIPOS_SEL = [];
@@ -28141,7 +28194,7 @@ function rbrb_actualizarMapa() {
       '<div style="font-weight:700;color:'+c+';margin-bottom:5px;font-size:13px">'+_rReg.tipo+'</div>'+
       (_rReg.manzana ? '<div style="font-size:11px;color:#7cb0ff;margin-bottom:3px">Mza '+rbrb_normMza(_rReg.manzana)+(_rReg.orden?' · Ord. '+_rReg.orden:'')+'</div>' : '')+
       (_rReg.descripcion ? '<div style="font-size:13px;color:#f1f5fc;line-height:1.6;margin-bottom:8px;padding:8px 10px;background:rgba(0,0,0,.28);border-radius:7px;border-left:3px solid '+c+'">'+_rReg.descripcion.substring(0,220)+(_rReg.descripcion.length>220?'…':'')+' </div>' : '')+
-      '<div style="font-size:10px;color:#6b85a8;margin-bottom:8px">'+_rReg.agente+' · '+_rReg.certeza+'</div>'+
+      '<div style="font-size:10px;color:#6b85a8;margin-bottom:8px">'+_rReg.agente+' · '+_rReg.certeza+(_rReg.pertenece_ivc?' · <span style="color:#10b981;font-weight:700">&#127968; IVC</span>':'')+' </div>'+
       fotosHtml+
       '<button class="rbrb-popup-edit" type="button" '+
         'style="margin-top:8px;width:100%;padding:8px;background:rgba(37,99,235,.2);border:1px solid rgba(124,176,255,.4);'+
