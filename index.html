@@ -26887,56 +26887,6 @@ window.rbrb_onOpen = function() {
   }
 };
 
-function rbrb_buildMapaFilters() {
-  var mzaSet = {}, tipoSet = {}, certSet = {};
-  RBRB_REGISTROS.filter(function(r){ return r && r.lat && r.lng; }).forEach(function(r) {
-    mzaSet[r.manzana||'—'] = 1;
-    if (r.tipo) r.tipo.split(' + ').forEach(function(t){ tipoSet[t.trim()] = 1; });
-    if (r.certeza) certSet[r.certeza] = 1;
-  });
-  var cs = 'padding:4px 10px;border-radius:20px;border:1px solid;font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font,-apple-system);transition:all .15s;background:transparent;';
-  var mzas = Object.keys(mzaSet).sort(function(a,b){
-    var na=parseInt(a),nb=parseInt(b);
-    if(!isNaN(na)&&!isNaN(nb))return na-nb;
-    return a.localeCompare(b);
-  });
-  var mzaEl = document.getElementById('rbrb-mapa-chips-mza');
-  if (mzaEl) {
-    mzaEl.innerHTML = '<button data-v="todas" onclick="rbrb_setMapaFilter(&quot;mza&quot;,&quot;todas&quot;,this)" style="'+cs+'background:var(--accent);border-color:var(--accent);color:#fff">Todas</button>';
-    mzas.forEach(function(m) {
-      var b = document.createElement('button');
-      b.dataset.v = m;
-      b.setAttribute('onclick', 'rbrb_setMapaFilter(&quot;mza&quot;,&quot;'+m+'&quot;,this)');
-      b.style.cssText = cs + 'border-color:var(--border2);color:var(--text2)';
-      b.textContent = isNaN(parseInt(m)) ? m : 'Mza ' + m;
-      mzaEl.appendChild(b);
-    });
-  }
-  var tipoEl = document.getElementById('rbrb-mapa-chips-tipo');
-  if (tipoEl) {
-    tipoEl.innerHTML = '<button data-v="todos" onclick="rbrb_setMapaFilter(&quot;tipo&quot;,&quot;todos&quot;,this)" style="'+cs+'background:var(--accent);border-color:var(--accent);color:#fff">Todos</button>';
-    Object.keys(tipoSet).forEach(function(t) {
-      var c = rbrb_colorDe(t);
-      var b = document.createElement('button');
-      b.dataset.v = t;
-      b.setAttribute('onclick', 'rbrb_setMapaFilter(&quot;tipo&quot;,&quot;'+t+'&quot;,this)');
-      b.style.cssText = cs + 'color:'+c+';border-color:'+c+'44;background:'+c+'12';
-      b.textContent = t;
-      tipoEl.appendChild(b);
-    });
-  }
-  var certEl = document.getElementById('rbrb-mapa-chips-cert');
-  if (certEl) {
-    certEl.innerHTML = [
-      '<button data-v="todas" onclick="rbrb_setMapaFilter(&quot;cert&quot;,&quot;todas&quot;,this)" style="'+cs+'background:var(--accent);border-color:var(--accent);color:#fff">Todas</button>',
-      '<button data-v="Confirmado" onclick="rbrb_setMapaFilter(&quot;cert&quot;,&quot;Confirmado&quot;,this)" style="'+cs+'color:#10b981;border-color:rgba(16,185,129,.4)">&#10003; Confirmado</button>',
-      '<button data-v="Probable" onclick="rbrb_setMapaFilter(&quot;cert&quot;,&quot;Probable&quot;,this)" style="'+cs+'color:#f59e0b;border-color:rgba(245,158,11,.4)">~ Probable</button>',
-      '<button data-v="A verificar" onclick="rbrb_setMapaFilter(&quot;cert&quot;,&quot;A verificar&quot;,this)" style="'+cs+'color:#ef4444;border-color:rgba(239,68,68,.4)">? A verificar</button>'
-    ].join('');
-  }
-}
-
-
 function rbrb_mostrarTabAudit() {
   var t = document.getElementById('rbrb-tab-audit');
   if (t) t.style.display = (window.USER && USER.rol === 'ADMIN') ? 'block' : 'none';
@@ -28012,6 +27962,74 @@ window.rbrb_exportar = function() {
   toast('Informe generado', 'ok');
 }
 
+
+var RBRB_MAPA_FILTER_MZA = 'todas';
+var RBRB_MAPA_FILTER_TIPO = 'todos';
+var RBRB_MAPA_FILTER_CERT = 'todas';
+
+function rbrb_buildMapaFilters() {
+  var mzaSet = {}, tipoSet = {};
+  RBRB_REGISTROS.filter(function(r){ return r && r.lat && r.lng; }).forEach(function(r) {
+    mzaSet[r.manzana||'Sin manzana'] = 1;
+    if (r.tipo) r.tipo.split(' + ').forEach(function(t){ tipoSet[t.trim()] = 1; });
+  });
+  var mzas = Object.keys(mzaSet).sort(function(a,b){
+    var na=parseInt(a),nb=parseInt(b);
+    if(!isNaN(na)&&!isNaN(nb))return na-nb;
+    return a.localeCompare(b);
+  });
+  var cs = 'padding:4px 10px;border-radius:20px;border:1px solid;font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font,-apple-system);background:transparent;';
+  var mzaEl = document.getElementById('rbrb-mapa-chips-mza');
+  if (mzaEl) {
+    mzaEl.innerHTML = '';
+    var all = document.createElement('button');
+    all.textContent='Todas'; all.dataset.v='todas';
+    all.style.cssText=cs+'background:var(--accent);border-color:var(--accent);color:#fff';
+    all.addEventListener('click',function(){rbrb_setMapaFilter('mza','todas',this);});
+    mzaEl.appendChild(all);
+    mzas.forEach(function(m){
+      var b=document.createElement('button');
+      b.textContent=isNaN(parseInt(m))?m:'Mza '+m; b.dataset.v=m;
+      b.style.cssText=cs+'border-color:var(--border2);color:var(--text2)';
+      b.addEventListener('click',function(){rbrb_setMapaFilter('mza',m,this);});
+      mzaEl.appendChild(b);
+    });
+  }
+  var tipoEl = document.getElementById('rbrb-mapa-chips-tipo');
+  if (tipoEl) {
+    tipoEl.innerHTML = '';
+    var allt = document.createElement('button');
+    allt.textContent='Todos'; allt.dataset.v='todos';
+    allt.style.cssText=cs+'background:var(--accent);border-color:var(--accent);color:#fff';
+    allt.addEventListener('click',function(){rbrb_setMapaFilter('tipo','todos',this);});
+    tipoEl.appendChild(allt);
+    Object.keys(tipoSet).forEach(function(t){
+      var c=rbrb_colorDe(t);
+      var b=document.createElement('button');
+      b.textContent=t; b.dataset.v=t;
+      b.style.cssText=cs+'color:'+c+';border-color:'+c+'44;background:'+c+'12';
+      b.addEventListener('click',function(){rbrb_setMapaFilter('tipo',t,this);});
+      tipoEl.appendChild(b);
+    });
+  }
+  var certEl = document.getElementById('rbrb-mapa-chips-cert');
+  if (certEl) {
+    certEl.innerHTML = '';
+    var certs = [
+      {v:'todas',label:'Todas',style:'background:var(--accent);border-color:var(--accent);color:#fff'},
+      {v:'Confirmado',label:'&#10003; Confirmado',style:'color:#10b981;border-color:rgba(16,185,129,.4)'},
+      {v:'Probable',label:'~ Probable',style:'color:#f59e0b;border-color:rgba(245,158,11,.4)'},
+      {v:'A verificar',label:'? A verificar',style:'color:#ef4444;border-color:rgba(239,68,68,.4)'}
+    ];
+    certs.forEach(function(cfg){
+      var b=document.createElement('button');
+      b.innerHTML=cfg.label; b.dataset.v=cfg.v;
+      b.style.cssText=cs+cfg.style;
+      b.addEventListener('click',function(){rbrb_setMapaFilter('cert',cfg.v,this);});
+      certEl.appendChild(b);
+    });
+  }
+}
 
 window.rbrb_setMapaFilter = function(tipo, val, btn) {
   // Support being called with (group, val, btn) or from onclick with encoded params
