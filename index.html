@@ -27572,12 +27572,12 @@ window.rbrb_guardar = function() {
     certeza: RBRB_CERTEZA,
     titular: titular.trim(),
     observaciones: obs.trim(),
-    pertenece_ivc: esIVC,
     obs_vivienda: obsVivienda.trim(),
     lat: lat,
     lng: lng,
     agente: window.USER ? (USER.nombre || USER.puesto) : 'Desconocido'
   };
+  if (_puedeIVC) payload.pertenece_ivc = esIVC;
 
   // Capturar el ID de edición ANTES de cualquier async
   var editId = RBRB_EDIT_ID;
@@ -29102,12 +29102,12 @@ window.frfr_guardar = function() {
     certeza: FRFR_CERTEZA,
     titular: titular.trim(),
     observaciones: obs.trim(),
-    pertenece_ivc: esIVC,
     obs_vivienda: obsVivienda.trim(),
     lat: lat,
     lng: lng,
     agente: window.USER ? (USER.nombre || USER.puesto) : 'Desconocido'
   };
+  if (_puedeIVC) payload.pertenece_ivc = esIVC;
 
   // Capturar el ID de edición ANTES de cualquier async
   var editId = FRFR_EDIT_ID;
