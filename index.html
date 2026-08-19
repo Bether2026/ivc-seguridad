@@ -9054,11 +9054,11 @@ function initApp() {
   // Relevamiento RB: Rodrigo Bueno, Gerencia, Administrador
   var _esGerAdmin = ['Gerencia', 'Administrador'].indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN';
   var canSeeRelevRB = ['Rodrigo Bueno', 'Rodrigo bueno'].indexOf(USER.puesto) >= 0 || _esGerAdmin;
-  if ($('si-relev-rb')) $('si-relev-rb').style.display = (canSeeRelevRB && !_esGerAdmin) ? 'flex' : 'none';
-  if ($('nb-relev-rb')) $('nb-relev-rb').style.display = (canSeeRelevRB && !_esGerAdmin) ? 'flex' : 'none';
+  if ($('si-relev-rb')) $('si-relev-rb').style.display = canSeeRelevRB ? 'flex' : 'none';
+  if ($('nb-relev-rb')) $('nb-relev-rb').style.display = canSeeRelevRB ? 'flex' : 'none';
   var canSeeRelevFR = ['Fraga'].indexOf(USER.puesto) >= 0 || _esGerAdmin;
-  if ($('si-relev-fr')) $('si-relev-fr').style.display = (canSeeRelevFR && !_esGerAdmin) ? 'flex' : 'none';
-  if ($('nb-relev-fr')) $('nb-relev-fr').style.display = (canSeeRelevFR && !_esGerAdmin) ? 'flex' : 'none';
+  if ($('si-relev-fr')) $('si-relev-fr').style.display = canSeeRelevFR ? 'flex' : 'none';
+  if ($('nb-relev-fr')) $('nb-relev-fr').style.display = canSeeRelevFR ? 'flex' : 'none';
   // Pañol: exclusivo Emergencias y Administración del sistema
   var canSeePanol = USER.puesto === 'Emergencias' || USER.rol === 'ADMIN';
   if ($('si-panol')) $('si-panol').style.display = canSeePanol ? 'block' : 'none';
