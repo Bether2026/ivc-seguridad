@@ -494,6 +494,7 @@ body::after { display: none; }
 
 #nb-relevamiento   { --nc: #a78bfa; }
 #nb-relev-rb       { --nc: #34d399; }
+#nb-relev-fr       { --nc: #f472b6; }
 #nb-rrhh            { --nc: #4ade80; }
 #nb-pendientes      { --nc: #f43f5e; }
 #nb-inventario      { --nc: #fb923c; }
@@ -2003,6 +2004,10 @@ body {
       <button class="sidebar-item" onclick="goView('relev-rb')" id="si-relev-rb" style="display:none">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/><circle cx="12" cy="5" r="1" fill="currentColor"/></svg>
         <span>Relev. RB</span>
+      </button>
+      <button class="sidebar-item" onclick="goView('relev-fr')" id="si-relev-fr" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/><circle cx="12" cy="5" r="1" fill="currentColor"/></svg>
+        <span>Relev. FR</span>
       </button>
       <button class="sidebar-item" onclick="goView('relevamiento')" id="si-relevamiento" style="display:none">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
@@ -4463,6 +4468,272 @@ body {
 
           </div><!-- /rbrb-content -->
         </div><!-- /view-relev-rb -->
+
+        <div class="view" id="view-relev-fr" style="padding:0">
+
+          <!-- PIN GATE -->
+          <div id="frfr-gate" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:60vh;padding:32px 20px;gap:20px">
+            <div style="font-size:32px">🔒</div>
+            <div style="font-size:16px;font-weight:700;color:var(--text)">Relevamiento Fraga</div>
+            <div style="font-size:13px;color:var(--text3);text-align:center;max-width:280px">Sección restringida. Ingresá el PIN de acceso para continuar.</div>
+            <div style="display:flex;gap:10px;margin-top:8px">
+              <input id="frfr-pin" type="password" inputmode="numeric" maxlength="4" placeholder="PIN"
+                style="width:110px;padding:12px;text-align:center;font-size:22px;font-family:var(--mono);font-weight:700;
+                  background:var(--bg2);border:1px solid var(--border2);border-radius:12px;color:var(--text);outline:none;letter-spacing:8px"
+                onkeydown="if(event.key==='Enter')frfr_checkPin()">
+              <button onclick="frfr_checkPin()" style="padding:12px 20px;border-radius:12px;border:none;
+                background:var(--accent,#2563eb);color:#fff;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer">
+                Entrar
+              </button>
+            </div>
+            <div id="frfr-pin-err" style="font-size:12px;color:#ef4444;display:none">PIN incorrecto</div>
+          </div>
+
+          <!-- CONTENIDO -->
+          <div id="frfr-content" style="display:none">
+
+            <!-- TABS -->
+            <div style="display:flex;gap:0;border-bottom:1px solid var(--border);background:var(--bg2);position:sticky;top:0;z-index:10;overflow-x:auto">
+              <button class="tab active" id="frfr-tab-form" onclick="frfr_tab('form',this)" style="flex:1;padding:12px;font-size:12px;font-weight:700">
+                ➕ Cargar novedad
+              </button>
+              <button class="tab" id="frfr-tab-mapa" onclick="frfr_tab('mapa',this)" style="flex:1;padding:12px;font-size:12px;font-weight:700">
+                🗺 Mapa
+              </button>
+              <button class="tab" id="frfr-tab-lista" onclick="frfr_tab('lista',this)" style="flex:1;padding:12px;font-size:12px;font-weight:700">
+                📋 Listado
+              </button>
+              <button class="tab" id="frfr-tab-audit" onclick="frfr_tab('audit',this)" style="flex:1;padding:12px;font-size:12px;font-weight:700;display:none">
+                🕓 Auditoría
+              </button>
+            </div>
+
+            <!-- TAB: FORMULARIO -->
+            <div id="frfr-panel-form" style="padding:16px;display:flex;flex-direction:column;gap:12px">
+
+              <!-- BANNER MODO EDICIÓN -->
+              <div id="frfr-edit-banner" style="display:none;background:rgba(245,158,11,.12);border:1px solid #f59e0b;
+                border-radius:10px;padding:10px 14px;align-items:center;gap:10px">
+                <span style="font-size:12px;color:#f59e0b;font-weight:700;flex:1">✏️ Editando registro existente</span>
+                <button onclick="frfr_limpiarForm()" type="button"
+                  style="padding:5px 12px;border-radius:7px;border:1px solid #f59e0b;background:transparent;
+                    color:#f59e0b;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">
+                  ✕ Cancelar
+                </button>
+              </div>
+
+              <!-- SELECTOR MACIZO / VIVIENDAS NUEVAS -->
+              <div class="form-group">
+                <label class="form-label">Tipo de relevamiento</label>
+                <div style="display:flex;gap:10px">
+                  <button type="button" class="frfr-sector-btn active" data-val="Macizo"
+                    onclick="frfr_setSector(this)"
+                    style="flex:1;padding:12px;border-radius:10px;border:2px solid #2563eb;background:rgba(37,99,235,.18);
+                      color:#60a5fa;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">
+                    🏘 Macizo
+                  </button>
+                  <button type="button" class="frfr-sector-btn" data-val="Viviendas nuevas"
+                    onclick="frfr_setSector(this)"
+                    style="flex:1;padding:12px;border-radius:10px;border:2px solid var(--border2);background:transparent;
+                      color:var(--text2);font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">
+                    🏗 Viviendas nuevas
+                  </button>
+                </div>
+                <input type="hidden" id="frfr-sector" value="Macizo">
+              </div>
+
+              <!-- MANZANA + ORDEN -->
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+                <div class="form-group">
+                  <label class="form-label">Manzana</label>
+                  <input id="frfr-mza" class="form-input" type="text" placeholder="Ej: 3">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">N° de Orden</label>
+                  <input id="frfr-orden" class="form-input" type="text" placeholder="Ej: 126">
+                </div>
+              </div>
+
+              <!-- OBSERVACIONES DE LA VIVIENDA -->
+              <div class="form-group">
+                <label class="form-label">Observaciones de la vivienda</label>
+                <textarea id="frfr-obs-vivienda" class="form-textarea" rows="2" style="min-height:60px" placeholder="Estado edilicio, accesos, características físicas, etc."></textarea>
+              </div>
+
+              <!-- TIPO (multi-selección) -->
+              <div class="form-group">
+                <label class="form-label">Tipo de situación <span style="color:var(--text3);font-weight:400">(podés elegir varios)</span></label>
+                <div id="frfr-tipo-sel" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+                <input id="frfr-tipo-otro" class="form-input" type="text" placeholder="Describí el tipo de situación..."
+                  style="display:none;margin-top:8px">
+              </div>
+
+              <!-- FUENTE -->
+              <div class="form-group">
+                <label class="form-label">Fuente de información</label>
+                <select id="frfr-fuente" class="form-select">
+                  <option value="Observación directa">Observación directa</option>
+                  <option value="Comentario de vecino">Comentario de vecino</option>
+                  <option value="Referencia indirecta">Referencia indirecta</option>
+                </select>
+              </div>
+
+              <!-- CERTEZA (solo 2 opciones) -->
+              <div class="form-group">
+                <label class="form-label">Nivel de certeza</label>
+                <div style="display:flex;gap:8px">
+                  <button type="button" class="frfr-cert-btn active" data-val="Confirmado"
+                    onclick="frfr_setCert(this)"
+                    style="flex:1;padding:8px;border-radius:8px;border:1px solid #10b981;background:rgba(16,185,129,.18);
+                      color:#10b981;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">
+                    ✓ Confirmado
+                  </button>
+                  <button type="button" class="frfr-cert-btn" data-val="A verificar"
+                    onclick="frfr_setCert(this)"
+                    style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border2);background:transparent;
+                      color:var(--text2);font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">
+                    ? A verificar
+                  </button>
+                </div>
+              </div>
+
+              <!-- DESCRIPCION -->
+              <div class="form-group">
+                <label class="form-label">Descripción</label>
+                <textarea id="frfr-desc" class="form-textarea" rows="3" style="min-height:80px" placeholder=""></textarea>
+              </div>
+
+              <!-- TITULAR -->
+              <div class="form-group">
+                <label class="form-label">Nombre del titular / ocupante <span style="color:var(--text3);font-weight:400">(si se conoce)</span></label>
+                <input id="frfr-titular" class="form-input" type="text" placeholder="Opcional">
+              </div>
+
+              <!-- FOTOS MÚLTIPLES -->
+              <div class="form-group">
+                <label class="form-label">Fotos <span style="color:var(--text3);font-weight:400">(opcional)</span></label>
+                <div id="frfr-fotos-grid" style="display:none;grid-template-columns:repeat(auto-fill,80px);gap:6px;margin-bottom:8px"></div>
+                <div style="display:flex;gap:8px">
+                  <label style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 12px;background:var(--bg2);
+                    border:1px dashed var(--border2);border-radius:10px;cursor:pointer">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;color:var(--text3)"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                    <span style="font-size:12px;color:var(--text2)">Galería</span>
+                    <input type="file" accept="image/*" multiple id="frfr-foto-input" style="display:none" onchange="frfr_previewFotos(this)">
+                  </label>
+                  <label style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 12px;background:var(--bg2);
+                    border:1px dashed var(--border2);border-radius:10px;cursor:pointer">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;color:var(--text3)"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                    <span style="font-size:12px;color:var(--text2)">Cámara</span>
+                    <input type="file" accept="image/*" capture="environment" id="frfr-camara-input" style="display:none" onchange="frfr_previewFotos(this)">
+                  </label>
+                </div>
+              </div>
+
+              <!-- GPS -->
+              <div style="display:flex;align-items:center;gap:10px;padding:10px 14px;
+                background:var(--bg2);border:1px solid var(--border);border-radius:10px">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;flex-shrink:0;color:var(--text3)"><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 010 16c-2 0-6-4-8-8a8 8 0 018-8z"/></svg>
+                <span id="frfr-gps-txt" style="font-size:12px;color:var(--text3);flex:1">GPS: tocá para capturar ubicación</span>
+                <button onclick="frfr_getGPS()" type="button"
+                  style="padding:5px 10px;border-radius:7px;border:1px solid var(--border2);background:transparent;
+                    color:var(--accent2);font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">
+                  Capturar
+                </button>
+                <button onclick="frfr_toggleMiniMapa()" type="button" id="frfr-minimapa-btn"
+                  style="padding:5px 10px;border-radius:7px;border:1px solid var(--border2);background:transparent;
+                    color:var(--accent3);font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">
+                  📍 Ajustar en mapa
+                </button>
+              </div>
+
+              <!-- MINI MAPA -->
+              <div id="frfr-minimapa-wrap" style="display:none">
+                <div style="font-size:11px;color:var(--text3);margin-bottom:6px">
+                  📌 Tocá el mapa para ubicar el punto exacto · Arrastrá el marcador para afinar · Usá + / − para hacer zoom
+                </div>
+                <div id="frfr-minimapa" style="width:100%;height:420px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2)"></div>
+              </div>
+
+              <input type="hidden" id="frfr-lat">
+              <input type="hidden" id="frfr-lng">
+
+              <!-- GUARDAR -->
+              <button onclick="frfr_guardar()" type="button" id="frfr-guardar-btn"
+                style="padding:14px;border-radius:12px;border:none;
+                  background:var(--green,#10b981);color:#fff;
+                  font-family:var(--font);font-size:15px;font-weight:700;cursor:pointer;margin-top:4px">
+                💾 Guardar relevamiento
+              </button>
+
+            </div><!-- /panel-form -->
+
+            <!-- TAB: MAPA -->
+            <div id="frfr-panel-mapa" style="display:none">
+              <div id="frfr-mapa-filters" style="display:flex;gap:10px;flex-wrap:wrap;padding:10px 14px;background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:200">
+                <div>
+                  <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:5px">Manzana</div>
+                  <div id="frfr-mapa-chips-mza" style="display:flex;gap:5px;flex-wrap:wrap"></div>
+                </div>
+                <div>
+                  <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:5px">Tipo</div>
+                  <div id="frfr-mapa-chips-tipo" style="display:flex;gap:5px;flex-wrap:wrap"></div>
+                </div>
+                <div>
+                  <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-bottom:5px">Certeza</div>
+                  <div id="frfr-mapa-chips-cert" style="display:flex;gap:5px;flex-wrap:wrap"></div>
+                </div>
+              </div>
+              <div id="frfr-mapa-wrap" style="height:calc(100vh - 220px);position:relative;background:var(--bg2)">
+                <div id="frfr-mapa" style="width:100%;height:100%"></div>
+                <div id="frfr-mapa-loading" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+                  font-size:13px;color:var(--text3);background:var(--bg2)">Cargando mapa...</div>
+                <div id="frfr-mapa-toolbar" style="position:absolute;bottom:16px;left:50%;transform:translateX(-50%);z-index:1000;display:flex;gap:8px;pointer-events:auto">
+                  <button onclick="frfr_dispersar()" type="button"
+                    style="padding:9px 16px;background:rgba(6,27,52,.88);backdrop-filter:blur(6px);border:1px solid rgba(124,176,255,.4);border-radius:22px;
+                    color:#7cb0ff;font-family:var(--font,-apple-system);font-size:12px;font-weight:700;
+                    cursor:pointer;box-shadow:0 2px 14px rgba(0,0,0,.5);white-space:nowrap">
+                    🔀 Dispersar puntos
+                  </button>
+                  <button onclick="frfr_reagrupar()" type="button" id="frfr-reagrupar-btn"
+                    style="display:none;padding:9px 16px;background:rgba(6,27,52,.88);backdrop-filter:blur(6px);border:1px solid rgba(245,158,11,.5);border-radius:22px;
+                    color:#f59e0b;font-family:var(--font,-apple-system);font-size:12px;font-weight:700;
+                    cursor:pointer;box-shadow:0 2px 14px rgba(0,0,0,.5);white-space:nowrap">
+                    🔁 Posiciones reales
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- TAB: LISTADO -->
+            <div id="frfr-panel-lista" style="display:none">
+              <div id="frfr-mza-nav" style="display:flex;overflow-x:auto;border-bottom:1px solid var(--border);
+                background:var(--bg2);scrollbar-width:none;-webkit-overflow-scrolling:touch"></div>
+              <div id="frfr-stats-bar" style="display:flex;background:var(--bg2);border-bottom:1px solid var(--border);overflow-x:auto"></div>
+              <div id="frfr-tipo-chips" style="display:flex;gap:6px;flex-wrap:wrap;padding:10px 14px;
+                border-bottom:1px solid var(--border);background:var(--bg)"></div>
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px">
+                <span id="frfr-count" style="font-size:12px;color:var(--text3)"></span>
+                <button onclick="frfr_exportar()" type="button"
+                  style="padding:5px 12px;border-radius:7px;border:1px solid var(--border2);
+                    background:transparent;color:var(--text2);font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">
+                  📄 Informe HTML
+                </button>
+              </div>
+              <div id="frfr-lista-items" style="display:flex;flex-direction:column;gap:8px;padding:0 14px 20px"></div>
+            </div>
+
+            <!-- TAB: AUDITORÍA -->
+            <div id="frfr-panel-audit" style="display:none;padding:16px">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+                <span style="font-size:13px;font-weight:800;color:var(--text)">🕓 Historial de cambios</span>
+                <span style="font-size:10px;color:var(--text3)">Registro automático · no se puede alterar desde la app</span>
+              </div>
+              <div id="frfr-audit-count" style="font-size:12px;color:var(--text3);margin-bottom:12px"></div>
+              <div id="frfr-audit-items" style="display:flex;flex-direction:column;gap:10px"></div>
+            </div>
+
+          </div><!-- /frfr-content -->
+        </div><!-- /view-relev-fr -->
         <!-- VISTA HORAS REALES — Gerencia (reutiliza adm-panel-horas) -->
         <div class="view" id="view-horas">
           <div style="padding:16px">
@@ -4522,7 +4793,11 @@ body {
     </button>
     <button class="nav-btn" onclick="goView('relev-rb')" id="nb-relev-rb" style="display:none">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-      <span>Relev.</span>
+      <span>Relev. RB</span>
+    </button>
+    <button class="nav-btn" onclick="goView('relev-fr')" id="nb-relev-fr" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span>Relev. FR</span>
     </button>
     <button class="nav-btn" onclick="goView('relevamiento')" id="nb-relevamiento" style="display:none">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
@@ -8777,9 +9052,15 @@ function initApp() {
   if ($('si-relevamiento')) $('si-relevamiento').style.display = canSeeRelev ? 'block' : 'none';
   if ($('nb-relevamiento')) $('nb-relevamiento').style.display = canSeeRelev ? 'flex' : 'none';
   // Relevamiento RB: Rodrigo Bueno, Gerencia, Administrador
-  var canSeeRelevRB = ['Rodrigo Bueno', 'Rodrigo bueno', 'Gerencia', 'Administrador'].indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN';
-  if ($('si-relev-rb')) $('si-relev-rb').style.display = canSeeRelevRB ? 'flex' : 'none';
-  if ($('nb-relev-rb')) $('nb-relev-rb').style.display = canSeeRelevRB ? 'flex' : 'none';
+  // RB: solo Rodrigo Bueno + Gerencia/Admin
+  var _esGerAdmin = ['Gerencia', 'Administrador'].indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN';
+  var canSeeRelevRB = ['Rodrigo Bueno', 'Rodrigo bueno'].indexOf(USER.puesto) >= 0 || _esGerAdmin;
+  if ($('si-relev-rb')) $('si-relev-rb').style.display = (canSeeRelevRB && !_esGerAdmin) ? 'flex' : 'none';
+  if ($('nb-relev-rb')) $('nb-relev-rb').style.display = (canSeeRelevRB && !_esGerAdmin) ? 'flex' : 'none';
+  // FR: solo Fraga + Gerencia/Admin
+  var canSeeRelevFR = ['Fraga'].indexOf(USER.puesto) >= 0 || _esGerAdmin;
+  if ($('si-relev-fr')) $('si-relev-fr').style.display = (canSeeRelevFR && !_esGerAdmin) ? 'flex' : 'none';
+  if ($('nb-relev-fr')) $('nb-relev-fr').style.display = (canSeeRelevFR && !_esGerAdmin) ? 'flex' : 'none';
   // Pañol: exclusivo Emergencias y Administración del sistema
   var canSeePanol = USER.puesto === 'Emergencias' || USER.rol === 'ADMIN';
   if ($('si-panol')) $('si-panol').style.display = canSeePanol ? 'block' : 'none';
@@ -10381,7 +10662,1560 @@ function descargarInformeRecorridos() {
   tmpDiv.innerHTML = frame.innerHTML;
   tmpDiv.querySelectorAll('.btn-del-row').forEach(function(b) { b.remove(); });
   tmpDiv.querySelectorAll('[contenteditable]').forEach(function(el) { el.removeAttribute('contenteditable'); });
-  var htmlFinal = '<!DOCTYPE html>\n<html lang="es">\n<head>\n<meta charset="UTF-8">\n<title>Informe de Recorridos IVC</title>\n</head>\n<body style="margin:0;padding:0;background:#fff">\n' + tmpDiv.innerHTML + '\n</body>\n</html>';
+  var htmlFinal = '<!DOCTYPE html>\n<html lang="es">\n<head>\n<meta charset="UTF-8">\n<title>Informe de Recorridos IVC</title>\n</head>\n<body style="margin:0;padding:0;background:#fff">\n' + tmpDiv.innerHTML + '\n
+<script>
+// ══ MÓDULO: RELEVAMIENTO FR ════════════════════════════════════════════════
+(function() {
+
+var FRFR_PIN = '3041';
+var FRFR_UNLOCKED = false;
+var FRFR_REGISTROS = [];
+var FRFR_CERTEZA = 'Confirmado';
+var FRFR_MAP = null;
+var FRFR_MARKERS = [];
+var FRFR_MAP_INIT = false;
+
+// Colores por tipo
+var FRFR_COLORES = {
+  'Comercio': '#f59e0b',
+  'Puesto en vía pública': '#a855f7',
+  'Construcción que invade línea municipal': '#ef4444',
+  'Taller clandestino': '#f97316',
+  'Ampliación sin protocolo': '#ec4899',
+  'Ocupación espacio común': '#06b6d4',
+  'Vehículos abandonados': '#22d3ee',
+  'Otro': '#94a3b8'
+};
+
+// Iconos SVG únicos por tipo
+var FRFR_ICONOS = {
+  'Comercio': '<path d="M2 7l10-6 10 6v2H2V7zm2 3v8h4v-5h8v5h4V10H4zm5 3h6v5H9v-5z" fill="COLOR"/>',
+  'Puesto en vía pública': '<path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z" fill="COLOR"/>',
+  'Construcción que invade línea municipal': '<path d="M13.7 2.3L12 1 5 5v6c0 4.2 3 7.7 7 8.9 4-1.2 7-4.7 7-8.9V5l-5.3-2.7zm-1.7 9.7H9V10h3V7h2v3h3v2h-3v3h-2v-3z" fill="COLOR"/>',
+  'Taller clandestino': '<path d="M22.7 19l-9.1-9.1c.9-2.3.4-5-1.5-6.9-2-2-5-2.4-7.4-1.3L9 6 6 9 1.6 4.7C.4 7.1.9 10.1 2.9 12.1c1.9 1.9 4.6 2.4 6.9 1.5l9.1 9.1c.4.4 1 .4 1.4 0l2.3-2.3c.5-.4.5-1.1.1-1.4z" fill="COLOR"/>',
+  'Ampliación sin protocolo': '<rect x="3" y="13" width="4" height="8" fill="COLOR"/><rect x="10" y="9" width="4" height="12" fill="COLOR"/><rect x="17" y="5" width="4" height="16" fill="COLOR"/>',
+  'Ocupación espacio común': '<path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" fill="COLOR"/>',
+  'Vehículos abandonados': '<path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.85 7h10.29l1.08 3.11H5.77L6.85 7zM19 17H5v-5h14v5zM7.5 14c-.83 0-1.5.67-1.5 1.5S6.67 17 7.5 17 9 16.33 9 15.5 8.33 14 7.5 14zm9 0c-.83 0-1.5.67-1.5 1.5s.67 1.5 1.5 1.5 1.5-.67 1.5-1.5-.67-1.5-1.5-1.5z" fill="COLOR"/>',
+  'Otro': '<circle cx="12" cy="12" r="10" fill="none" stroke="COLOR" stroke-width="2"/><path d="M12 8v4m0 4h.01" stroke="COLOR" stroke-width="2" stroke-linecap="round"/>'
+};
+
+window.frfr_onOpen = function() {
+  frfr_renderTipoSel();
+  frfr_mostrarTabAudit();
+  frfr_mostrarCampoIVC();
+  // Si ya desbloqueado, cargar datos
+  if (FRFR_UNLOCKED) {
+    frfr_cargarDatos();
+  }
+};
+
+function frfr_mostrarTabAudit() {
+  var t = document.getElementById('frfr-tab-audit');
+  if (t) t.style.display = (window.USER && USER.rol === 'ADMIN') ? 'block' : 'none';
+}
+
+function frfr_mostrarCampoIVC() { return; // No aplica en Fraga
+  // original:
+  var w = document.getElementById('frfr-ivc-wrap');
+  if (!w) return;
+  var puedeVer = window.USER && (
+    USER.puesto === 'Gerencia' ||
+    USER.puesto === 'Administrador' ||
+    USER.rol === 'ADMIN'
+  );
+  w.style.display = puedeVer ? 'block' : 'none';
+}
+
+window.frfr_checkPin = function() {
+  var pin = (document.getElementById('frfr-pin') || {}).value || '';
+  if (pin === FRFR_PIN) {
+    FRFR_UNLOCKED = true;
+    document.getElementById('frfr-gate').style.display = 'none';
+    document.getElementById('frfr-content').style.display = 'block';
+    frfr_renderTipoSel();
+    frfr_mostrarTabAudit();
+    frfr_mostrarCampoIVC();
+    frfr_cargarDatos();
+  } else {
+    var err = document.getElementById('frfr-pin-err');
+    if (err) { err.style.display = 'block'; }
+    var inp = document.getElementById('frfr-pin');
+    if (inp) { inp.value = ''; inp.focus(); }
+  }
+};
+
+var FRFR_SKIP_CLEAR = false;
+var FRFR_SECTOR = 'Macizo'; // flag interno: frfr_editar lo activa para no limpiar
+
+window.frfr_tab = function(name, btn) {
+  // Si el usuario toca "Cargar novedad" estando en edición, resetear (salvo que venga de frfr_editar)
+  if (name === 'form' && FRFR_EDIT_ID && !FRFR_SKIP_CLEAR) {
+    frfr_limpiarForm();
+  }
+  FRFR_SKIP_CLEAR = false;
+  ['form','mapa','lista','audit'].forEach(function(t) {
+    var p = document.getElementById('frfr-panel-'+t);
+    var b = document.getElementById('frfr-tab-'+t);
+    if (p) p.style.display = (t === name) ? 'block' : 'none';
+    if (b) b.classList.toggle('active', t === name);
+  });
+  if (name === 'mapa') {
+    // Inicializar mapa si no existe
+    var mapaWrap = document.getElementById('frfr-mapa-wrap');
+    if (mapaWrap && !FRFR_MAP) {
+      if (typeof L === 'undefined') {
+        var _css = document.createElement('link');
+        _css.rel = 'stylesheet'; _css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+        document.head.appendChild(_css);
+        var _js = document.createElement('script');
+        _js.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+        _js.onload = function() {
+          frfr_crearMapaPrincipal();
+          frfr_buildMapaFilters();
+          frfr_actualizarMapa();
+        };
+        document.head.appendChild(_js);
+      } else {
+        frfr_crearMapaPrincipal();
+        frfr_buildMapaFilters();
+        frfr_actualizarMapa();
+      }
+    } else if (FRFR_MAP) {
+      frfr_actualizarMapa();
+      setTimeout(function(){ FRFR_MAP.invalidateSize(); }, 80);
+    }
+  }
+  if (name === 'lista') frfr_renderLista();
+  if (name === 'audit') frfr_cargarAudit();
+};
+
+// ── TIPOS multi-selección ──
+var FRFR_TIPOS_LISTA = [
+  'Comercio',
+  'Puesto en vía pública',
+  'Taller clandestino',
+  'Ampliación sin protocolo',
+  'Ocupación espacio común',
+  'Vehículos abandonados',
+  'Otro'
+];
+var FRFR_TIPOS_SEL = [];
+
+function frfr_renderTipoSel() {
+  var wrap = document.getElementById('frfr-tipo-sel');
+  if (!wrap) return;
+  var chipBase = 'padding:7px 13px;border-radius:20px;border:1px solid;font-family:var(--font);'+
+    'font-size:11px;font-weight:700;cursor:pointer;transition:all .15s';
+  wrap.innerHTML = FRFR_TIPOS_LISTA.map(function(t) {
+    var sel = FRFR_TIPOS_SEL.indexOf(t) >= 0;
+    var c = FRFR_COLORES[t] || '#6b7280';
+    return '<button type="button" onclick="frfr_toggleTipo(\''+t.replace(/'/g,"\\'")+'\')" style="'+chipBase+
+      ';background:'+(sel ? c+'30' : 'transparent')+
+      ';border-color:'+(sel ? c : 'var(--border2)')+
+      ';color:'+(sel ? c : 'var(--text2)')+'">'+
+      (sel?'✓ ':'')+t+'</button>';
+  }).join('');
+  // Mostrar/ocultar campo Otro
+  var otro = document.getElementById('frfr-tipo-otro');
+  if (otro) otro.style.display = FRFR_TIPOS_SEL.indexOf('Otro') >= 0 ? 'block' : 'none';
+}
+
+window.frfr_toggleTipo = function(t) {
+  var i = FRFR_TIPOS_SEL.indexOf(t);
+  if (i >= 0) FRFR_TIPOS_SEL.splice(i, 1);
+  else FRFR_TIPOS_SEL.push(t);
+  frfr_renderTipoSel();
+};
+
+window.frfr_toggleIVC = function() {
+  var inp = document.getElementById('frfr-ivc');
+  var icon = document.getElementById('frfr-ivc-icon');
+  var btn = document.getElementById('frfr-ivc-toggle');
+  if (!inp) return;
+  var esIVC = inp.value === 'si';
+  if (esIVC) {
+    inp.value = 'no';
+    if (icon) { icon.textContent = ''; icon.style.borderColor = 'var(--border2)'; icon.style.background = 'transparent'; }
+    if (btn) { btn.style.borderColor = 'var(--border2)'; btn.style.color = 'var(--text2)'; btn.style.background = 'transparent'; }
+  } else {
+    inp.value = 'si';
+    if (icon) { icon.textContent = '✓'; icon.style.borderColor = '#10b981'; icon.style.background = 'rgba(16,185,129,.15)'; icon.style.color = '#10b981'; }
+    if (btn) { btn.style.borderColor = '#10b981'; btn.style.color = '#10b981'; btn.style.background = 'rgba(16,185,129,.06)'; }
+  }
+};
+
+function frfr_setIVC(val) {
+  var inp = document.getElementById('frfr-ivc');
+  if (inp) inp.value = val === 'si' ? 'no' : 'no'; // reset first
+  if (val === 'si') window.frfr_toggleIVC();
+}
+
+// Color para un tipo (soporta strings compuestos "A + B")
+function frfr_colorDe(tipo) {
+  if (!tipo) return '#6b7280';
+  if (FRFR_COLORES[tipo]) return FRFR_COLORES[tipo];
+  var keys = Object.keys(FRFR_COLORES);
+  for (var i = 0; i < keys.length; i++) {
+    if (tipo.indexOf(keys[i]) >= 0) return FRFR_COLORES[keys[i]];
+  }
+  return '#6b7280';
+}
+
+// Normaliza el nombre de manzana: "MZA2", "mza 2", "Mza. 2" → "2"; "Borde costero" → "Borde costero"
+function frfr_normMza(raw) {
+  if (raw === null || raw === undefined) return 'Sin manzana';
+  var s = String(raw).trim();
+  if (!s) return 'Sin manzana';
+  // Quitar prefijos "mza", "manzana", "mz" con o sin punto/espacio, sin importar mayúsculas
+  var limpio = s.replace(/^\s*(manzana|mza|mz)\.?\s*/i, '').trim();
+  // Si lo que queda es un número, devolver solo el número (sin ceros a la izquierda)
+  var num = limpio.match(/^0*(\d+)$/);
+  if (num) return num[1];
+  // Si el original era solo un número
+  var num2 = s.match(/^0*(\d+)$/);
+  if (num2) return num2[1];
+  // Texto libre (ej: "Borde costero"): normalizar espacios y capitalización simple
+  var texto = limpio || s;
+  texto = texto.replace(/\s+/g, ' ').trim();
+  // Capitalizar primera letra, resto en minúscula para unificar "BORDE COSTERO" y "borde costero"
+  return texto.charAt(0).toUpperCase() + texto.slice(1).toLowerCase();
+}
+
+var FRFR_CERT_COLORS = {
+  'Confirmado': { bg: 'rgba(16,185,129,.18)', border: '#10b981', color: '#10b981' },
+  'Probable':   { bg: 'rgba(245,158,11,.18)', border: '#f59e0b', color: '#f59e0b' },
+  'A verificar':{ bg: 'rgba(239,68,68,.15)',  border: '#ef4444', color: '#ef4444' }
+};
+window.frfr_setCert = function(btn) {
+  FRFR_CERTEZA = btn.dataset.val;
+  document.querySelectorAll('.frfr-cert-btn').forEach(function(b) {
+    var isActive = b === btn;
+    var cfg = FRFR_CERT_COLORS[b.dataset.val] || {};
+    b.style.background = isActive ? (cfg.bg || 'transparent') : 'transparent';
+    b.style.borderColor = isActive ? (cfg.border || 'var(--border2)') : 'var(--border2)';
+    b.style.color = isActive ? (cfg.color || 'var(--text2)') : 'var(--text2)';
+  });
+};
+
+var FRFR_FOTOS_FILES = [];
+
+window.frfr_previewFotos = function(input) {
+  var files = Array.from(input.files || []);
+  if (!files.length) return;
+  files.forEach(function(f) { FRFR_FOTOS_FILES.push(f); });
+  var grid = document.getElementById('frfr-fotos-grid');
+  if (!grid) return;
+  grid.style.display = 'grid';
+  grid.innerHTML = '';
+  FRFR_FOTOS_FILES.forEach(function(f, idx) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var cell = document.createElement('div');
+      cell.style.cssText = 'position:relative;width:80px;height:80px;border-radius:8px;overflow:hidden;border:1px solid var(--border)';
+      cell.innerHTML = '<img src="'+e.target.result+'" style="width:100%;height:100%;object-fit:cover">'+
+        '<button onclick="frfr_quitarFoto('+idx+')" type="button" style="position:absolute;top:4px;right:4px;'+
+        'background:rgba(0,0,0,.65);border:none;color:#fff;border-radius:50%;width:20px;height:20px;'+
+        'font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">✕</button>';
+      grid.appendChild(cell);
+    };
+    reader.readAsDataURL(f);
+  });
+  // Reset input so same file can be selected again
+  input.value = '';
+};
+
+window.frfr_quitarFoto = function(idx) {
+  FRFR_FOTOS_FILES.splice(idx, 1);
+  // Re-render
+  var fakeInput = { files: [] };
+  var grid = document.getElementById('frfr-fotos-grid');
+  if (grid) { grid.innerHTML = ''; if (!FRFR_FOTOS_FILES.length) grid.style.display = 'none'; }
+  var saved = FRFR_FOTOS_FILES.slice();
+  FRFR_FOTOS_FILES = [];
+  saved.forEach(function(f, i) {
+    FRFR_FOTOS_FILES.push(f);
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var cell = document.createElement('div');
+      cell.style.cssText = 'position:relative;width:80px;height:80px;border-radius:8px;overflow:hidden;border:1px solid var(--border)';
+      cell.innerHTML = '<img src="'+e.target.result+'" style="width:100%;height:100%;object-fit:cover">'+
+        '<button onclick="frfr_quitarFoto('+i+')" type="button" style="position:absolute;top:4px;right:4px;'+
+        'background:rgba(0,0,0,.65);border:none;color:#fff;border-radius:50%;width:20px;height:20px;'+
+        'font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">✕</button>';
+      if (grid) grid.appendChild(cell);
+    };
+    reader.readAsDataURL(f);
+  });
+};
+
+window.frfr_getGPS = function() {
+  var latActual = parseFloat((document.getElementById('frfr-lat') || {}).value);
+  var lngActual = parseFloat((document.getElementById('frfr-lng') || {}).value);
+  if (!isNaN(latActual) && !isNaN(lngActual)) {
+    if (!confirm('Ya hay un punto guardado. ¿Reemplazar con la ubicación actual del dispositivo?')) return;
+  }
+  var txt = document.getElementById('frfr-gps-txt');
+  if (txt) txt.textContent = 'Obteniendo ubicación...';
+  if (!navigator.geolocation) {
+    if (txt) txt.textContent = 'GPS no disponible en este dispositivo';
+    return;
+  }
+  navigator.geolocation.getCurrentPosition(
+    function(pos) {
+      var lat = pos.coords.latitude.toFixed(6);
+      var lng = pos.coords.longitude.toFixed(6);
+      frfr_setPunto(parseFloat(lat), parseFloat(lng));
+    },
+    function() {
+      if (txt) txt.textContent = 'No se pudo obtener la ubicación. Intentá al aire libre.';
+    },
+    { enableHighAccuracy: true, timeout: 10000 }
+  );
+};
+
+// ── MINI MAPA para ajustar el punto manualmente ──
+var FRFR_MINI_MAP = null;
+var FRFR_MINI_MARKER = null;
+var FRFR_FR_CENTRO = [-34.5886, -58.4614]; // Rodrigo Bueno
+
+// Setea el punto en inputs + texto + marker (fuente única de verdad)
+function frfr_setPunto(lat, lng) {
+  var latEl = document.getElementById('frfr-lat');
+  var lngEl = document.getElementById('frfr-lng');
+  if (latEl) latEl.value = lat.toFixed(6);
+  if (lngEl) lngEl.value = lng.toFixed(6);
+  var txt = document.getElementById('frfr-gps-txt');
+  if (txt) txt.textContent = 'GPS: ' + lat.toFixed(6) + ', ' + lng.toFixed(6) + ' ✓';
+  if (FRFR_MINI_MAP && FRFR_MINI_MARKER) {
+    FRFR_MINI_MARKER.setLatLng([lat, lng]);
+    FRFR_MINI_MAP.setView([lat, lng], Math.max(FRFR_MINI_MAP.getZoom(), 18));
+  }
+}
+
+window.frfr_toggleMiniMapa = function() {
+  var wrap = document.getElementById('frfr-minimapa-wrap');
+  var btn = document.getElementById('frfr-minimapa-btn');
+  if (!wrap) return;
+
+  var abierto = wrap.style.display !== 'none';
+  if (abierto) {
+    wrap.style.display = 'none';
+    if (btn) btn.textContent = '📍 Ajustar en mapa';
+    return;
+  }
+
+  wrap.style.display = 'block';
+  if (btn) btn.textContent = '▲ Cerrar mapa';
+
+  // Cargar Leaflet si hace falta (mismo loader que el tab mapa)
+  if (typeof L === 'undefined') {
+    var css = document.createElement('link');
+    css.rel = 'stylesheet';
+    css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    document.head.appendChild(css);
+    var js = document.createElement('script');
+    js.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    js.onload = function() { frfr_crearMiniMapa(); };
+    document.head.appendChild(js);
+  } else {
+    frfr_crearMiniMapa();
+  }
+};
+
+function frfr_crearMiniMapa() {
+  var lat = parseFloat((document.getElementById('frfr-lat') || {}).value);
+  var lng = parseFloat((document.getElementById('frfr-lng') || {}).value);
+  var tieneCoords = !isNaN(lat) && !isNaN(lng);
+  var centro = tieneCoords ? [lat, lng] : FRFR_FR_CENTRO;
+
+  if (!FRFR_MINI_MAP) {
+    FRFR_MINI_MAP = L.map('frfr-minimapa', {
+      scrollWheelZoom: true,
+      touchZoom: true,
+      zoomControl: true
+    }).setView(centro, 19);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap',
+      maxZoom: 21,
+      maxNativeZoom: 19
+    }).addTo(FRFR_MINI_MAP);
+    FRFR_MINI_MARKER = L.marker(centro, { draggable: true }).addTo(FRFR_MINI_MAP);
+    FRFR_MINI_MARKER.on('dragend', function() {
+      var p = FRFR_MINI_MARKER.getLatLng();
+      frfr_setPunto(p.lat, p.lng);
+    });
+    FRFR_MINI_MAP.on('click', function(e) {
+      frfr_setPunto(e.latlng.lat, e.latlng.lng);
+    });
+    if (tieneCoords) frfr_setPunto(lat, lng);
+  } else {
+    FRFR_MINI_MAP.setView(centro, Math.max(FRFR_MINI_MAP.getZoom(), 19));
+    FRFR_MINI_MARKER.setLatLng(centro);
+    if (tieneCoords) frfr_setPunto(lat, lng);
+  }
+
+  // Leaflet necesita recalcular tamaño cuando el div recién se muestra
+  setTimeout(function() { if (FRFR_MINI_MAP) FRFR_MINI_MAP.invalidateSize(); }, 100);
+}
+
+var FRFR_EDIT_ID = null; // id del registro en edición, null = nuevo
+
+window.frfr_guardar = function() {
+  var mza = (document.getElementById('frfr-mza') || {}).value || '';
+  var orden = (document.getElementById('frfr-orden') || {}).value || '';
+  var desc = (document.getElementById('frfr-desc') || {}).value || '';
+  var fuente = (document.getElementById('frfr-fuente') || {}).value || 'Observación directa';
+  var titular = (document.getElementById('frfr-titular') || {}).value || '';
+  var obs = (document.getElementById('frfr-obs') || {}).value || '';
+  var obsVivienda = (document.getElementById('frfr-obs-vivienda') || {}).value || '';
+  var _puedeIVC = window.USER && (
+    USER.puesto === 'Gerencia' ||
+    USER.puesto === 'Administrador' ||
+    USER.rol === 'ADMIN'
+  );
+  var esIVC = _puedeIVC && (document.getElementById('frfr-ivc') || {}).value === 'si';
+  var lat = parseFloat((document.getElementById('frfr-lat') || {}).value) || null;
+  var lng = parseFloat((document.getElementById('frfr-lng') || {}).value) || null;
+
+  // Tipos multi-selección
+  if (!FRFR_TIPOS_SEL.length) { toast('Seleccioná al menos un tipo de situación', 'err'); return; }
+  var tipos = FRFR_TIPOS_SEL.slice();
+  var otroIdx = tipos.indexOf('Otro');
+  if (otroIdx >= 0) {
+    var otroTxt = ((document.getElementById('frfr-tipo-otro') || {}).value || '').trim();
+    if (otroTxt) tipos[otroIdx] = otroTxt;
+    else if (tipos.length === 1) { toast('Describí el tipo de situación en el campo "Otro"', 'err'); return; }
+    else tipos.splice(otroIdx, 1);
+  }
+  var tipo = tipos.join(' + ');
+
+  if (!desc.trim()) { toast('Agregá una descripción', 'err'); return; }
+
+  var payload = {
+    barrio: 'Fraga',
+    manzana: mza,
+    orden: orden,
+    tipo: tipo,
+    descripcion: desc.trim(),
+    fuente: fuente,
+    certeza: FRFR_CERTEZA,
+    titular: titular.trim(),
+    observaciones: obs.trim(),
+    pertenece_ivc: esIVC,
+    obs_vivienda: obsVivienda.trim(),
+    lat: lat,
+    lng: lng,
+    agente: window.USER ? (USER.nombre || USER.puesto) : 'Desconocido'
+  };
+
+  // Capturar el ID de edición ANTES de cualquier async
+  var editId = FRFR_EDIT_ID;
+  if (!editId) payload.created_at = new Date().toISOString();
+
+  var files = FRFR_FOTOS_FILES.slice();
+
+  // Deshabilitar botón mientras guarda
+  var btnG = document.getElementById('frfr-guardar-btn');
+  if (btnG) { btnG.disabled = true; btnG.textContent = files.length ? '⏳ Subiendo fotos...' : '⏳ Guardando...'; }
+
+  function restaurarBtn() {
+    if (btnG) { btnG.disabled = false; btnG.textContent = editId ? '✏️ Actualizar registro' : '💾 Guardar relevamiento'; }
+  }
+
+  function guardarConUrls(urls) {
+    if (urls.length === 1) { payload.foto_url = urls[0]; payload.fotos_urls = null; }
+    else if (urls.length > 1) { payload.foto_url = urls[0]; payload.fotos_urls = JSON.stringify(urls); }
+    // Edición sin fotos nuevas: no tocar foto_url/fotos_urls existentes
+
+    var op = editId
+      ? db.from('relevamiento_fr').update(payload).eq('id', editId).select()
+      : db.from('relevamiento_fr').insert(payload).select();
+
+    op.then(function(res) {
+      if (res.error) { restaurarBtn(); toast('Error: ' + res.error.message, 'err'); return; }
+      if (editId && (!res.data || !res.data.length)) {
+        restaurarBtn();
+        toast('⚠️ No se actualizó: falta permiso UPDATE en Supabase (RLS)', 'err');
+        console.error('[RBRB] Update devolvió 0 filas — revisar policy RLS de UPDATE en relevamiento_fr');
+        return;
+      }
+      toast(editId ? '✓ Registro actualizado' : '✓ Relevamiento guardado', 'ok');
+      frfr_limpiarForm();
+      frfr_cargarDatos();
+    }).catch(function(e) {
+      restaurarBtn();
+      toast('Error inesperado al guardar', 'err');
+      console.error('[RBRB] Error guardar:', e);
+    });
+  }
+
+  if (files.length) {
+    // Usar el mismo upload probado que usa toda la app (proxy R2)
+    var promesas = files.map(function(f) {
+      return uploadToR2Comprimido(f, 'relevamiento_fr').catch(function(e) {
+        console.error('[RBRB] Error subiendo foto:', e);
+        return null;
+      });
+    });
+    Promise.all(promesas).then(function(urls) {
+      var ok = urls.filter(Boolean);
+      if (!ok.length && files.length) {
+        toast('⚠️ No se pudieron subir las fotos, se guarda sin fotos', 'err');
+      }
+      guardarConUrls(ok);
+    });
+  } else {
+    guardarConUrls([]);
+  }
+};
+
+window.frfr_limpiarForm = function frfr_limpiarForm() {
+  var ids = ['frfr-mza','frfr-orden','frfr-desc','frfr-titular','frfr-obs','frfr-obs-vivienda','frfr-lat','frfr-lng','frfr-tipo-otro'];
+  ids.forEach(function(id) { var el = document.getElementById(id); if (el) el.value = ''; });
+  // Reset IVC toggle
+  var ivcInp = document.getElementById('frfr-ivc');
+  if (ivcInp && ivcInp.value === 'si') window.frfr_toggleIVC();
+  else if (ivcInp) ivcInp.value = 'no';
+  FRFR_TIPOS_SEL = [];
+  frfr_renderTipoSel();
+  var grid = document.getElementById('frfr-fotos-grid');
+  if (grid) { grid.style.display = 'none'; grid.innerHTML = ''; }
+  var fi = document.getElementById('frfr-foto-input');
+  if (fi) fi.value = '';
+  var ci = document.getElementById('frfr-camara-input');
+  if (ci) ci.value = '';
+  FRFR_FOTOS_FILES = [];
+  FRFR_EDIT_ID = null;
+  var gps = document.getElementById('frfr-gps-txt');
+  if (gps) gps.textContent = 'GPS: tocá para capturar ubicación';
+  // Cerrar mini-mapa
+  var mmWrap = document.getElementById('frfr-minimapa-wrap');
+  if (mmWrap) mmWrap.style.display = 'none';
+  var mmBtn = document.getElementById('frfr-minimapa-btn');
+  if (mmBtn) mmBtn.textContent = '📍 Ajustar en mapa';
+  var btn = document.getElementById('frfr-guardar-btn');
+  if (btn) { btn.textContent = '💾 Guardar relevamiento'; btn.disabled = false; }
+  var banner = document.getElementById('frfr-edit-banner');
+  if (banner) banner.style.display = 'none';
+  FRFR_CERTEZA = 'Confirmado';
+  document.querySelectorAll('.frfr-cert-btn').forEach(function(b, i) {
+    var cfg = FRFR_CERT_COLORS[b.dataset.val] || {};
+    b.style.background = i === 0 ? (cfg.bg || 'transparent') : 'transparent';
+    b.style.borderColor = i === 0 ? (cfg.border || 'var(--border2)') : 'var(--border2)';
+    b.style.color = i === 0 ? (cfg.color || 'var(--text2)') : 'var(--text2)';
+  });
+}
+
+function frfr_cargarDatos() {
+  db.from('relevamiento_fr')
+    .select('*')
+    .eq('barrio', 'Rodrigo Bueno')
+    .order('created_at', { ascending: false })
+    .then(function(res) {
+      if (res.error) return;
+      FRFR_REGISTROS = (res.data || []).map(function(r) {
+        if (r.tipo) r.tipo = r.tipo.replace(/Comercio sin habilitaci[oó]n/g, 'Comercio');
+        return r;
+      });
+      // Debug: ver qué columnas llegan
+      if (FRFR_REGISTROS.length) {
+        var r0 = FRFR_REGISTROS[0];
+        console.log('[RBRB] Primer registro:', { foto_url: r0.foto_url, fotos_urls: r0.fotos_urls, id: r0.id });
+      }
+      // Actualizar tab badge
+      var btn = document.getElementById('frfr-tab-lista');
+      if (btn) btn.textContent = '📋 Listado (' + FRFR_REGISTROS.length + ')';
+      frfr_renderLista();
+      if (FRFR_MAP_INIT) { frfr_buildMapaFilters(); frfr_actualizarMapa(); }
+    });
+}
+
+// ── LISTADO: estado de filtros ──
+var FRFR_ACTIVE_MZA = 'todas';
+var FRFR_ACTIVE_TIPO = '';
+
+window.frfr_renderLista = function() {
+  frfr_buildMzaTabs();
+  frfr_buildStatsBar();
+  frfr_buildTipoChips();
+  frfr_buildItems();
+};
+
+// Construye las pestañas de manzana
+function frfr_buildMzaTabs() {
+  var nav = document.getElementById('frfr-mza-nav');
+  if (!nav) return;
+
+  // Agrupar por manzana
+  var mzas = {};
+  FRFR_REGISTROS.forEach(function(r) {
+    var m = frfr_normMza(r.manzana);
+    mzas[m] = (mzas[m] || 0) + 1;
+  });
+
+  var todas = FRFR_REGISTROS.length;
+  var tabStyle = 'padding:11px 16px;font-family:var(--font);font-size:12px;font-weight:700;'+
+    'background:none;border:none;cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent;'+
+    'transition:all .15s;display:flex;align-items:center;gap:7px;flex-shrink:0';
+
+  var html = '<button onclick="frfr_selMza(\'todas\',this)" style="'+tabStyle+
+    (FRFR_ACTIVE_MZA==='todas'?';color:var(--accent2);border-bottom-color:var(--accent2)':';color:var(--text3)')+'">'+
+    'Todas <span style="font-size:10px;padding:2px 7px;border-radius:20px;background:var(--bg3)">'+todas+'</span></button>';
+
+  Object.keys(mzas).sort(function(a,b){
+    var na=parseInt(a)||999, nb=parseInt(b)||999; return na-nb;
+  }).forEach(function(m) {
+    var isAct = FRFR_ACTIVE_MZA === m;
+    var label = /^\d+$/.test(m) ? 'Mza '+m : m;
+    html += '<button onclick="frfr_selMza(\''+m.replace(/'/g,"\\'")+'\',this)" style="'+tabStyle+
+      (isAct?';color:var(--accent2);border-bottom-color:var(--accent2)':';color:var(--text3)')+'">'+
+      label+' <span style="font-size:10px;padding:2px 7px;border-radius:20px;background:var(--bg3)">'+mzas[m]+'</span></button>';
+  });
+
+  nav.innerHTML = html;
+}
+
+window.frfr_selMza = function(mza, btn) {
+  FRFR_ACTIVE_MZA = mza;
+  FRFR_ACTIVE_TIPO = ''; // reset tipo al cambiar manzana
+  frfr_renderLista();
+};
+
+// Stats bar para la manzana activa
+function frfr_buildStatsBar() {
+  var bar = document.getElementById('frfr-stats-bar');
+  if (!bar) return;
+  var items = frfr_itemsFiltrados(false); // sin filtro de tipo para stats reales
+  var tipos = {};
+  items.forEach(function(r) { (r.tipo||'').split(' + ').forEach(function(t){ t=t.trim(); if(t) tipos[t]=(tipos[t]||0)+1; }); });
+  var ordenes = {};
+  items.forEach(function(r) { ordenes[r.orden||'—'] = true; });
+  var conFoto = items.filter(function(r){ return r.foto_url || r.fotos_urls; }).length;
+
+  var statStyle = 'flex:1;min-width:70px;padding:10px 12px;text-align:center;border-right:1px solid var(--border)';
+  var valStyle = 'font-family:var(--mono);font-size:20px;font-weight:700;color:var(--accent2);line-height:1';
+  var lblStyle = 'font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-top:3px';
+
+  var html = '<div style="'+statStyle+'"><div style="'+valStyle+'">'+items.length+'</div><div style="'+lblStyle+'">Registros</div></div>'+
+    '<div style="'+statStyle+'"><div style="'+valStyle+'">'+Object.keys(ordenes).length+'</div><div style="'+lblStyle+'">Órdenes</div></div>'+
+    '<div style="'+statStyle+';border-right:none"><div style="'+valStyle+'">'+conFoto+'</div><div style="'+lblStyle+'">Con foto</div></div>';
+
+  // Stats por tipo
+  Object.keys(tipos).forEach(function(t) {
+    var c = FRFR_COLORES[t] || '#6b7280';
+    html += '<div style="'+statStyle+';border-right:none;min-width:80px">'+
+      '<div style="font-family:var(--mono);font-size:18px;font-weight:700;color:'+c+';line-height:1">'+tipos[t]+'</div>'+
+      '<div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:'+c+';margin-top:3px;opacity:.8">'+
+        t.substring(0,14)+(t.length>14?'…':'')+'</div></div>';
+  });
+
+  bar.innerHTML = html;
+  bar.style.display = items.length ? 'flex' : 'none';
+}
+
+// Chips de tipo según manzana activa
+function frfr_buildTipoChips() {
+  var wrap = document.getElementById('frfr-tipo-chips');
+  if (!wrap) return;
+  var items = frfr_itemsFiltrados(false);
+  var tipos = {};
+  items.forEach(function(r){ (r.tipo||'').split(' + ').forEach(function(t){ t=t.trim(); if(t) tipos[t]=(tipos[t]||0)+1; }); });
+  if (!Object.keys(tipos).length) { wrap.innerHTML=''; return; }
+
+  var chipBase = 'padding:5px 12px;border-radius:20px;border:1px solid;font-family:var(--font);'+
+    'font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;white-space:nowrap';
+
+  var html = '<span style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);align-self:center;margin-right:2px">Tipo:</span>';
+
+  // "Todos" chip
+  var allAct = !FRFR_ACTIVE_TIPO;
+  html += '<button onclick="frfr_selTipo(\'\')" style="'+chipBase+
+    ';background:'+(allAct?'var(--accent2)':'transparent')+
+    ';border-color:'+(allAct?'var(--accent2)':'var(--border2)')+
+    ';color:'+(allAct?'#fff':'var(--text2)')+'">Todos</button>';
+
+  Object.keys(tipos).sort().forEach(function(t) {
+    var isAct = FRFR_ACTIVE_TIPO === t;
+    var c = FRFR_COLORES[t] || '#6b7280';
+    html += '<button onclick="frfr_selTipo(\''+t.replace(/'/g,"\\'")+'\')" style="'+chipBase+
+      ';background:'+(isAct ? c+'30' : 'transparent')+
+      ';border-color:'+(isAct ? c : 'var(--border2)')+
+      ';color:'+(isAct ? c : 'var(--text2)')+'">'+
+      t+' <span style="opacity:.7">'+tipos[t]+'</span></button>';
+  });
+
+  wrap.innerHTML = html;
+}
+
+window.frfr_selTipo = function(tipo) {
+  FRFR_ACTIVE_TIPO = tipo;
+  frfr_buildTipoChips();
+  frfr_buildItems();
+  var count = document.getElementById('frfr-count');
+  if (count) {
+    var items = frfr_itemsFiltrados(true);
+    count.textContent = items.length + ' registro' + (items.length!==1?'s':'');
+  }
+};
+
+// Devuelve los items filtrados
+function frfr_itemsFiltrados(conTipo) {
+  return FRFR_REGISTROS.filter(function(r) {
+    var m = frfr_normMza(r.manzana);
+    if (FRFR_ACTIVE_MZA !== 'todas' && m !== FRFR_ACTIVE_MZA) return false;
+    if (conTipo && FRFR_ACTIVE_TIPO && (r.tipo || '').indexOf(FRFR_ACTIVE_TIPO) < 0) return false;
+    return true;
+  });
+}
+
+// Renderiza los items agrupados por orden
+// ── AJUSTE GPS DESDE LISTADO ──
+var RBRB_AJUSTE_MAP = null;
+var RBRB_AJUSTE_MARKER = null;
+
+window.frfr_abrirAjusteGPS = function(btn) {
+  var rid = btn.dataset.rid;
+  var lat = parseFloat(btn.dataset.lat) || -34.6142;
+  var lng = parseFloat(btn.dataset.lng) || -58.3598;
+
+  // Crear modal
+  var modal = document.createElement('div');
+  modal.id = 'frfr-gps-modal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.8);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px';
+  modal.innerHTML =
+    '<div style="width:100%;max-width:600px;background:var(--bg2);border-radius:14px;overflow:hidden;border:1px solid var(--border2)">' +
+    '<div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">' +
+    '<div style="font-size:14px;font-weight:700;color:var(--text)">📍 Ajustar punto GPS</div>' +
+    '<div style="font-size:11px;color:var(--text3)">Tocá el mapa para mover el pin</div>' +
+    '</div>' +
+    '<div id="frfr-ajuste-mapa" style="width:100%;height:400px"></div>' +
+    '<div style="padding:12px 16px;display:flex;gap:10px;justify-content:flex-end;border-top:1px solid var(--border)">' +
+    '<button onclick="frfr_cerrarAjusteGPS()" style="padding:9px 20px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-family:var(--font,-apple-system);font-size:13px;cursor:pointer">Cancelar</button>' +
+    '<button id="frfr-ajuste-save" style="padding:9px 20px;border-radius:8px;border:none;background:var(--green);color:#fff;font-family:var(--font,-apple-system);font-size:13px;font-weight:700;cursor:pointer">✓ Guardar ubicación</button>' +
+    '</div>' +
+    '</div>';
+  document.body.appendChild(modal);
+  // Attach save listener via JS to avoid quote issues
+  var saveBtn = document.getElementById('frfr-ajuste-save');
+  if (saveBtn) { saveBtn.addEventListener('click', function(){ frfr_guardarAjusteGPS(rid); }); }
+
+  // Init Leaflet in modal
+  function initAjusteMapa() {
+    if (RBRB_AJUSTE_MAP) { RBRB_AJUSTE_MAP.remove(); RBRB_AJUSTE_MAP = null; }
+    RBRB_AJUSTE_MAP = L.map('frfr-ajuste-mapa').setView([lat, lng], 18);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap', maxZoom: 21, maxNativeZoom: 19
+    }).addTo(RBRB_AJUSTE_MAP);
+    RBRB_AJUSTE_MARKER = L.marker([lat, lng], { draggable: true }).addTo(RBRB_AJUSTE_MAP);
+    RBRB_AJUSTE_MARKER.bindPopup('Arrastrá para ajustar').openPopup();
+    // Click on map moves marker
+    RBRB_AJUSTE_MAP.on('click', function(e) {
+      RBRB_AJUSTE_MARKER.setLatLng(e.latlng);
+    });
+    setTimeout(function(){ RBRB_AJUSTE_MAP.invalidateSize(); }, 100);
+  }
+
+  if (typeof L !== 'undefined') {
+    initAjusteMapa();
+  } else {
+    var css = document.createElement('link');
+    css.rel = 'stylesheet'; css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    document.head.appendChild(css);
+    var js = document.createElement('script');
+    js.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    js.onload = initAjusteMapa;
+    document.head.appendChild(js);
+  }
+};
+
+window.frfr_cerrarAjusteGPS = function() {
+  var modal = document.getElementById('frfr-gps-modal');
+  if (modal) modal.remove();
+  if (RBRB_AJUSTE_MAP) { RBRB_AJUSTE_MAP.remove(); RBRB_AJUSTE_MAP = null; }
+  RBRB_AJUSTE_MARKER = null;
+};
+
+window.frfr_guardarAjusteGPS = function(rid) {
+  if (!RBRB_AJUSTE_MARKER) return;
+  var pos = RBRB_AJUSTE_MARKER.getLatLng();
+  var lat = parseFloat(pos.lat.toFixed(6));
+  var lng = parseFloat(pos.lng.toFixed(6));
+
+  db.from('relevamiento_fr').update({ lat: lat, lng: lng }).eq('id', rid).then(function(res) {
+    if (res && res.error) { toast('Error al guardar: ' + res.error.message, 'err'); return; }
+    // Update local record
+    var rec = FRFR_REGISTROS.find(function(r){ return String(r.id) === String(rid); });
+    if (rec) { rec.lat = lat; rec.lng = lng; rec._gps_ajustado = true; }
+    frfr_cerrarAjusteGPS();
+    // Update the button in the list to show checkmark
+    var btn = document.querySelector('[data-rid="'+rid+'"][onclick*="AjusteGPS"]');
+    if (btn) {
+      btn.textContent = '📍 Ajustar mapa';
+      var tick = btn.nextSibling;
+      if (!tick || tick.nodeType !== 1 || !tick.classList.contains('gps-tick')) {
+        var span = document.createElement('span');
+        span.className = 'gps-tick';
+        span.style.cssText = 'color:#10b981;font-weight:700;margin-left:4px';
+        span.textContent = '✓';
+        btn.parentNode.insertBefore(span, btn.nextSibling);
+      }
+    }
+    if (FRFR_MAP) frfr_actualizarMapa();
+    toast('GPS actualizado', 'ok');
+  });
+};
+
+function frfr_buildItems() {
+  var items = frfr_itemsFiltrados(true);
+  var count = document.getElementById('frfr-count');
+  if (count) count.textContent = items.length + ' registro' + (items.length!==1?'s':'');
+
+  var cont = document.getElementById('frfr-lista-items');
+  if (!cont) return;
+
+  if (!items.length) {
+    cont.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3)">Sin registros</div>';
+    return;
+  }
+
+  // Agrupar por orden
+  var porOrden = {};
+  items.forEach(function(r) {
+    var key = (r.orden || '—').trim() || '—';
+    if (!porOrden[key]) porOrden[key] = [];
+    porOrden[key].push(r);
+  });
+
+  // Ordenar: primero numéricos, luego otros
+  var claves = Object.keys(porOrden).sort(function(a,b){
+    var na=parseInt(a), nb=parseInt(b);
+    if (!isNaN(na)&&!isNaN(nb)) return na-nb;
+    if (!isNaN(na)) return -1;
+    if (!isNaN(nb)) return 1;
+    return a.localeCompare(b);
+  });
+
+  cont.innerHTML = claves.map(function(ord) {
+    var regs = porOrden[ord];
+    // Header de la orden
+    var mzaLabel = FRFR_ACTIVE_MZA === 'todas' ? ' · Mza ' + frfr_normMza(regs[0].manzana) : '';
+    var headerHtml = '<div style="display:flex;align-items:center;gap:8px;padding:6px 0 8px;'+
+      'border-bottom:1px solid var(--border);margin-bottom:8px">'+
+      '<span style="font-family:var(--mono);font-size:15px;font-weight:800;color:var(--text)">Orden '+ord+'</span>'+
+      '<span style="font-size:11px;color:var(--text3)">'+mzaLabel+'</span>'+
+      '<span style="margin-left:auto;font-size:11px;font-weight:700;color:var(--text3)">'+regs.length+' reg.</span>'+
+    '</div>';
+
+    var regsHtml = regs.map(function(r) {
+      var c = frfr_colorDe(r.tipo);
+      var certColor = r.certeza==='Confirmado'?'#10b981':r.certeza==='Probable'?'#f59e0b':'#ef4444';
+      var fecha = r.created_at ? r.created_at.substring(0,10) : '';
+      var _gpsOk = r._gps_ajustado ? ' <span style="color:#10b981;font-weight:700" title="GPS ajustado">✓</span>' : '';
+      var gpsLink = (r.lat&&r.lng)
+        ? '<button type="button" data-rid="'+r.id+'" data-lat="'+r.lat+'" data-lng="'+r.lng+'" '+
+          'onclick="frfr_abrirAjusteGPS(this)" '+
+          'style="font-size:10px;color:var(--accent3);background:transparent;border:none;cursor:pointer;padding:0;font-family:var(--font,-apple-system)">📍 Ajustar mapa</button>'+_gpsOk
+        : '<button type="button" data-rid="'+r.id+'" data-lat="-34.6142" data-lng="-58.3598" '+
+          'onclick="frfr_abrirAjusteGPS(this)" '+
+          'style="font-size:10px;color:var(--text3);background:transparent;border:none;cursor:pointer;padding:0;font-family:var(--font,-apple-system)">📍 Sin GPS · agregar</button>';
+
+      var fotosUrls = [];
+      if (r.fotos_urls && r.fotos_urls !== 'null') {
+        try { fotosUrls = JSON.parse(r.fotos_urls); } catch(e){}
+      }
+      if (!fotosUrls.length && r.foto_url) fotosUrls = [r.foto_url];
+      var fotosHtml = fotosUrls.length
+        ? '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">'
+          + fotosUrls.map(function(u){
+              return '<img src="'+u+'" onclick="abrirFotoLightbox(\''+u+'\')" '+
+                'style="width:80px;height:80px;object-fit:cover;border-radius:6px;cursor:zoom-in;'+
+                'border:1px solid var(--border)" loading="lazy">';
+            }).join('')+'</div>' : '';
+
+      var rid = r.id || '';
+      return '<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid '+c+';'+
+        'border-radius:10px;padding:12px 14px;margin-bottom:6px">'+
+        '<div style="display:flex;align-items:flex-start;gap:6px;margin-bottom:6px;flex-wrap:wrap">'+
+          '<span style="font-size:9px;font-family:var(--mono);color:var(--text3)">'+fecha+'</span>'+
+          '<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;background:'+c+'22;color:'+c+'">'+r.tipo+'</span>'+
+          '<span style="font-size:9px;font-weight:700;color:'+certColor+';margin-left:auto">'+r.certeza+'</span>'+
+          (r.pertenece_ivc&&window.USER&&(USER.puesto==='Gerencia'||USER.puesto==='Administrador'||USER.rol==='ADMIN')?'<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.4);color:#10b981">&#127968; IVC</span>':'')+
+        '</div>'+
+        '<div style="font-size:13px;color:var(--text);line-height:1.55;margin-bottom:5px">'+r.descripcion+'</div>'+
+        (r.titular?'<div style="font-size:11px;color:var(--text2)">👤 '+r.titular+'</div>':'')+
+        (r.observaciones?'<div style="font-size:11px;color:var(--text3);font-style:italic;margin-top:2px">'+r.observaciones+'</div>':'')+
+        (r.obs_vivienda?'<div style="font-size:11px;color:var(--text3);font-style:italic;margin-top:2px">🏠 '+r.obs_vivienda+'</div>':'')+
+        '<div style="display:flex;gap:8px;align-items:center;margin-top:7px;flex-wrap:wrap">'+
+          '<span style="font-size:10px;color:var(--text3)">'+r.fuente+'</span>'+
+          '<span style="font-size:10px;color:var(--text3)">· '+r.agente+'</span>'+
+          gpsLink+
+          (rid?'<button onclick="frfr_editar(\''+rid+'\')" type="button" '+
+            'style="margin-left:auto;padding:3px 9px;border-radius:6px;border:1px solid var(--border2);'+
+            'background:transparent;color:var(--accent3);font-family:var(--font);font-size:10px;font-weight:700;cursor:pointer">✏️ Editar</button>':'')+
+          (rid && window.USER && USER.rol === 'ADMIN'
+            ?'<button onclick="frfr_eliminar(\''+rid+'\')" type="button" '+
+             'style="padding:3px 9px;border-radius:6px;border:1px solid rgba(239,68,68,.4);'+
+             'background:transparent;color:#ef4444;font-family:var(--font);font-size:10px;font-weight:700;cursor:pointer">🗑 Eliminar</button>':'')+
+        '</div>'+
+        fotosHtml+
+      '</div>';
+    }).join('');
+
+    return '<div style="margin-bottom:14px">'+headerHtml+regsHtml+'</div>';
+  }).join('');
+}
+
+window.frfr_eliminar = function(id) {
+  if (!window.USER || USER.rol !== 'ADMIN') { toast('Sin permiso', 'err'); return; }
+  if (!confirm('¿Eliminar este registro definitivamente?')) return;
+  db.from('relevamiento_fr').delete().eq('id', id).select().then(function(res) {
+    if (res.error) { toast('Error: ' + res.error.message, 'err'); return; }
+    if (!res.data || !res.data.length) {
+      toast('⚠️ No se eliminó: falta permiso DELETE en Supabase (RLS)', 'err');
+      return;
+    }
+    toast('🗑 Registro eliminado', 'ok');
+    frfr_cargarDatos();
+  });
+};
+
+// ── AUDITORÍA (solo ADMIN) ──
+window.frfr_cargarAudit = function() {
+  if (!window.USER || USER.rol !== 'ADMIN') {
+    var cont0 = document.getElementById('frfr-audit-items');
+    if (cont0) cont0.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3)">Sin permiso</div>';
+    return;
+  }
+  var cont = document.getElementById('frfr-audit-items');
+  if (cont) cont.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3)">Cargando...</div>';
+
+  db.from('relevamiento_fr_audit')
+    .select('*')
+    .order('fecha', { ascending: false })
+    .limit(200)
+    .then(function(res) {
+      if (res.error) {
+        if (cont) cont.innerHTML = '<div style="padding:30px;text-align:center;color:#ef4444;font-size:12px">'+
+          'Error: '+res.error.message+'<br><br>'+
+          '<span style="color:var(--text3)">¿Ejecutaste el SQL de auditoría en Supabase?</span></div>';
+        return;
+      }
+      var items = res.data || [];
+      var count = document.getElementById('frfr-audit-count');
+      if (count) count.textContent = items.length + ' evento' + (items.length!==1?'s':'') + ' registrado' + (items.length!==1?'s':'');
+
+      if (!items.length) {
+        if (cont) cont.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3)">Sin cambios registrados todavía</div>';
+        return;
+      }
+
+      var CAMPOS = ['manzana','orden','tipo','certeza','fuente','descripcion','titular','observaciones','obs_vivienda','lat','lng','foto_url','fotos_urls'];
+      var LABELS = { manzana:'Manzana', orden:'Orden', tipo:'Tipo', certeza:'Certeza', fuente:'Fuente',
+        descripcion:'Descripción', titular:'Titular', observaciones:'Observaciones',
+        obs_vivienda:'Obs. vivienda', lat:'Lat', lng:'Lng', foto_url:'Foto', fotos_urls:'Fotos' };
+
+      function esc(v) {
+        if (v === null || v === undefined || v === '') return '<span style="opacity:.5">—</span>';
+        return String(v).replace(/</g,'&lt;').substring(0, 200);
+      }
+
+      cont.innerHTML = items.map(function(a) {
+        var esDelete = a.accion === 'DELETE';
+        var ant = a.datos_anteriores || {};
+        var nue = a.datos_nuevos || {};
+        var fecha = a.fecha ? new Date(a.fecha).toLocaleString('es-AR') : '';
+        var quien = esDelete ? (ant.agente || '—') : (nue.agente || ant.agente || '—');
+        var color = esDelete ? '#ef4444' : '#f59e0b';
+        var icono = esDelete ? '🗑 ELIMINADO' : '✏️ MODIFICADO';
+
+        var cuerpo = '';
+        if (esDelete) {
+          // Mostrar el registro completo que se borró
+          cuerpo = '<div style="font-size:11px;color:var(--text3);margin-bottom:6px;font-weight:700">Registro eliminado (original completo):</div>'+
+            CAMPOS.map(function(c) {
+              if (ant[c] === null || ant[c] === undefined || ant[c] === '') return '';
+              return '<div style="font-size:11px;margin-bottom:3px"><span style="color:var(--text3)">'+LABELS[c]+':</span> '+
+                '<span style="color:var(--text)">'+esc(ant[c])+'</span></div>';
+            }).join('');
+        } else {
+          // Diff: solo campos que cambiaron
+          var cambios = CAMPOS.filter(function(c) {
+            return String(ant[c] === null || ant[c] === undefined ? '' : ant[c]) !==
+                   String(nue[c] === null || nue[c] === undefined ? '' : nue[c]);
+          });
+          if (!cambios.length) {
+            cuerpo = '<div style="font-size:11px;color:var(--text3)">Sin cambios en los campos (posible re-guardado)</div>';
+          } else {
+            cuerpo = '<div style="font-size:11px;color:var(--text3);margin-bottom:6px;font-weight:700">Campos modificados:</div>'+
+              cambios.map(function(c) {
+                return '<div style="font-size:11px;margin-bottom:5px;padding:6px 8px;background:var(--bg3);border-radius:6px">'+
+                  '<div style="color:var(--text2);font-weight:700;margin-bottom:2px">'+LABELS[c]+'</div>'+
+                  '<div><span style="color:#ef4444;text-decoration:line-through;opacity:.8">'+esc(ant[c])+'</span></div>'+
+                  '<div><span style="color:#10b981">'+esc(nue[c])+'</span></div>'+
+                '</div>';
+              }).join('');
+          }
+        }
+
+        var regRef = ant.manzana || ant.orden
+          ? ' · Mza '+(ant.manzana||'—')+' Ord. '+(ant.orden||'—') : '';
+
+        return '<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid '+color+';'+
+          'border-radius:10px;padding:12px 14px">'+
+          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">'+
+            '<span style="font-size:10px;font-weight:800;color:'+color+'">'+icono+'</span>'+
+            '<span style="font-size:10px;color:var(--text3)">'+regRef+'</span>'+
+            '<span style="font-size:10px;font-family:var(--mono);color:var(--text3);margin-left:auto">'+fecha+'</span>'+
+          '</div>'+
+          '<div style="font-size:11px;color:var(--text2);margin-bottom:8px">👤 Agente del registro: '+esc(quien)+'</div>'+
+          cuerpo+
+        '</div>';
+      }).join('');
+    });
+};
+
+window.frfr_openFoto = function(url) {
+  var lb = document.getElementById('lb');
+  if (lb) {
+    window.lbAll = [{url:url, texto:'', autor:'', fecha_foto:''}];
+    window.lbIdx = 0;
+    if (typeof window.updLB === 'function') window.updLB();
+    lb.classList.add('open');
+  } else {
+    window.open(url, '_blank');
+  }
+};
+
+window.frfr_editar = function(id) {
+  var r = (typeof id === 'object' && id !== null && id.id)
+    ? id
+    : FRFR_REGISTROS.find(function(x){ return String(x.id) === String(id); });
+  if (!r) { toast('Registro no encontrado', 'err'); return; }
+
+  // Ir a la pestaña formulario SIN limpiar (flag)
+  FRFR_SKIP_CLEAR = true;
+  frfr_tab('form', document.getElementById('frfr-tab-form'));
+
+  // Setear el ID de edición DESPUÉS del cambio de tab
+  FRFR_EDIT_ID = r.id;
+
+  // Rellenar campos
+  var set = function(id, val) { var el = document.getElementById(id); if (el) el.value = val || ''; };
+  // Restaurar sector
+  FRFR_SECTOR = r.sector || 'Macizo';
+  var _si = document.getElementById('frfr-sector');
+  if (_si) _si.value = FRFR_SECTOR;
+  document.querySelectorAll('.frfr-sector-btn').forEach(function(b) {
+    var isA = b.dataset.val === FRFR_SECTOR;
+    b.style.background = isA ? 'rgba(37,99,235,.18)' : 'transparent';
+    b.style.borderColor = isA ? '#2563eb' : 'var(--border2)';
+    b.style.color = isA ? '#60a5fa' : 'var(--text2)';
+  });
+  set('frfr-mza', r.manzana);
+  set('frfr-orden', r.orden);
+  set('frfr-desc', r.descripcion);
+  set('frfr-fuente', r.fuente);
+  set('frfr-titular', r.titular);
+  set('frfr-obs', r.observaciones);
+  set('frfr-obs-vivienda', r.obs_vivienda);
+  set('frfr-lat', r.lat || '');
+  set('frfr-lng', r.lng || '');
+  // Restaurar toggle IVC
+  var ivcInp = document.getElementById('frfr-ivc');
+  var ivcIcon = document.getElementById('frfr-ivc-icon');
+  var ivcBtn = document.getElementById('frfr-ivc-toggle');
+  if (ivcInp) ivcInp.value = 'no';
+  if (ivcIcon) { ivcIcon.textContent = ''; ivcIcon.style.borderColor = 'var(--border2)'; ivcIcon.style.background = 'transparent'; }
+  if (ivcBtn) { ivcBtn.style.borderColor = 'var(--border2)'; ivcBtn.style.color = 'var(--text2)'; ivcBtn.style.background = 'transparent'; }
+  if (r.pertenece_ivc === true) window.frfr_toggleIVC();
+
+  // Tipos: parsear string compuesto "A + B" y marcar chips
+  FRFR_TIPOS_SEL = [];
+  var otroTxt = '';
+  (r.tipo || '').split(' + ').forEach(function(t) {
+    t = t.trim();
+    if (!t) return;
+    if (FRFR_TIPOS_LISTA.indexOf(t) >= 0) FRFR_TIPOS_SEL.push(t);
+    else { // tipo custom → es "Otro"
+      if (FRFR_TIPOS_SEL.indexOf('Otro') < 0) FRFR_TIPOS_SEL.push('Otro');
+      otroTxt = otroTxt ? otroTxt + ' + ' + t : t;
+    }
+  });
+  frfr_renderTipoSel();
+  set('frfr-tipo-otro', otroTxt);
+
+  // GPS texto
+  var gps = document.getElementById('frfr-gps-txt');
+  if (gps && r.lat && r.lng) gps.textContent = 'GPS: ' + r.lat + ', ' + r.lng + ' ✓';
+  // Si el mini-mapa está abierto, mover el marker al punto del registro
+  if (r.lat && r.lng && FRFR_MINI_MAP && FRFR_MINI_MARKER) {
+    FRFR_MINI_MARKER.setLatLng([r.lat, r.lng]);
+    FRFR_MINI_MAP.setView([r.lat, r.lng], 17);
+  }
+
+  // Certeza
+  FRFR_CERTEZA = r.certeza || 'Confirmado';
+  document.querySelectorAll('.frfr-cert-btn').forEach(function(b) {
+    var isActive = b.dataset.val === FRFR_CERTEZA;
+    var cfg = FRFR_CERT_COLORS[b.dataset.val] || {};
+    b.style.background = isActive ? (cfg.bg || 'transparent') : 'transparent';
+    b.style.borderColor = isActive ? (cfg.border || 'var(--border2)') : 'var(--border2)';
+    b.style.color = isActive ? (cfg.color || 'var(--text2)') : 'var(--text2)';
+  });
+
+  // Fotos existentes: mostrar en grid como previews (sin re-subir)
+  FRFR_FOTOS_FILES = [];
+  var grid = document.getElementById('frfr-fotos-grid');
+  var fotosUrls = [];
+  if (r.fotos_urls && r.fotos_urls !== 'null') { try { fotosUrls = JSON.parse(r.fotos_urls); } catch(e){} }
+  if (!fotosUrls.length && r.foto_url) fotosUrls = [r.foto_url];
+  if (grid && fotosUrls.length) {
+    grid.style.display = 'grid';
+    grid.innerHTML = fotosUrls.map(function(u) {
+      return '<div style="position:relative;width:80px;height:80px;border-radius:8px;overflow:hidden;border:1px solid var(--border)">'+
+        '<img src="'+u+'" style="width:100%;height:100%;object-fit:cover">'+
+        '<span style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,.55);color:#fff;border-radius:4px;font-size:9px;padding:2px 5px">Guardada</span>'+
+      '</div>';
+    }).join('');
+  }
+
+  // Cambiar texto del botón y mostrar banner
+  var btn = document.getElementById('frfr-guardar-btn');
+  if (btn) btn.textContent = '✏️ Actualizar registro';
+  var banner = document.getElementById('frfr-edit-banner');
+  if (banner) banner.style.display = 'flex';
+
+  // Scroll al formulario
+  var panel = document.getElementById('frfr-panel-form');
+  if (panel) panel.scrollTo({ top: 0, behavior: 'smooth' });
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+
+  toast('Editando registro · guardá para actualizar', 'ok');
+};
+
+window.frfr_limpiarFiltros = function() {
+  FRFR_ACTIVE_MZA = 'todas';
+  FRFR_ACTIVE_TIPO = '';
+  frfr_renderLista();
+};
+
+window.frfr_exportar = function() {
+  if (!FRFR_REGISTROS.length) { toast('Sin datos para exportar', 'err'); return; }
+  var items = frfr_itemsFiltrados(true);
+  if (!items.length) { toast('Sin registros con el filtro actual', 'err'); return; }
+
+  function ff(iso) {
+    if (!iso) return '';
+    var p = iso.substring(0,10).split('-');
+    return p[2]+'/'+p[1]+'/'+p[0];
+  }
+
+  var datos = items.map(function(r) {
+    var fotos = [];
+    if (r.fotos_urls && r.fotos_urls !== 'null' && r.fotos_urls !== '[]') {
+      try { fotos = JSON.parse(r.fotos_urls); } catch(e) {}
+    }
+    if (!fotos.length && r.foto_url) fotos = [r.foto_url];
+    return {
+      manzana: (r.manzana||'Sin manzana').trim(),
+      orden: (r.orden||'Sin orden').trim(),
+      tipo: r.tipo||'',
+      certeza: r.certeza||'',
+      fuente: r.fuente||'',
+      descripcion: r.descripcion||'',
+      titular: r.titular||'',
+      observaciones: r.observaciones||'',
+      obs_vivienda: r.obs_vivienda||'',
+      agente: r.agente||'',
+      lat: r.lat||null,
+      lng: r.lng||null,
+      fecha: ff(r.created_at),
+      fotos: fotos
+    };
+  });
+
+  var ahora = new Date();
+  var fechaGen = ahora.getDate()+'/'+(ahora.getMonth()+1)+'/'+ahora.getFullYear()+
+    ' '+('0'+ahora.getHours()).slice(-2)+':'+('0'+ahora.getMinutes()).slice(-2);
+
+  var template = '<!DOCTYPE html>\n<html lang="es">\n<head>\n<meta charset="UTF-8">\n<meta name="viewport" content="width=device-width,initial-scale=1">\n<title>Relevamiento Fraga</title>\n<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">\n<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>\n<style>\n*{box-sizing:border-box;margin:0;padding:0}\n:root{--bg:#061b34;--bg2:#0a2747;--bg3:#0f3158;--border:rgba(124,176,255,.08);--border2:rgba(124,176,255,.18);--border3:rgba(124,176,255,.32);--accent:#2563eb;--accent3:#7cb0ff;--green:#10b981;--yellow:#f59e0b;--red:#ef4444;--text:#f1f5fc;--text2:#a4bbd9;--text3:#6b85a8;--font:"Plus Jakarta Sans",system-ui,sans-serif;--mono:"JetBrains Mono",monospace}\nbody{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased}\n.hdr{background:linear-gradient(140deg,#030f1e 0%,#061b34 60%);border-bottom:1px solid rgba(124,176,255,.15);padding:44px 48px 36px;position:relative;overflow:hidden}\n.hdr::before{content:"";position:absolute;top:-80px;right:-40px;width:400px;height:400px;background:radial-gradient(circle,rgba(37,99,235,.15) 0%,transparent 65%);pointer-events:none}\n.stats{display:grid;grid-template-columns:repeat(4,1fr);background:var(--bg2);border-bottom:1px solid var(--border)}\n.stat{padding:16px 20px;text-align:center;border-right:1px solid var(--border)}\n.sv{font-family:var(--mono);font-size:28px;font-weight:700;line-height:1}\n.sl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-top:4px}\n.filters{background:var(--bg2);border-bottom:1px solid var(--border);padding:14px 48px;display:flex;gap:14px;flex-wrap:wrap;position:sticky;top:0;z-index:100}\n.fg{display:flex;flex-direction:column;gap:6px}\n.fl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text3)}\n.chips{display:flex;gap:6px;flex-wrap:wrap}\n.chip{padding:5px 12px;border-radius:20px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;white-space:nowrap}\n.chip:hover{border-color:var(--accent3);color:var(--text)}\n.chip.on{background:var(--accent);border-color:var(--accent);color:#fff}\n#mapa-wrap{padding:20px 48px;background:var(--bg)}\n#mapa-leg{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;align-items:center}\n.leg-it{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--text2)}\n#mapa{width:100%;height:480px;border-radius:12px;border:1px solid var(--border2);overflow:hidden}\n/* Popup */\n.lpop{font-family:var(--font);min-width:220px;max-width:300px}\n.lpop-tipo{font-size:13px;font-weight:700;margin-bottom:4px}\n.lpop-mza{font-size:11px;color:#7cb0ff;margin-bottom:6px}\n.lpop-desc{font-size:12px;line-height:1.55;color:#f1f5fc;padding:8px;background:rgba(0,0,0,.25);border-radius:6px;margin-bottom:8px}\n.lpop-fotos{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}\n.lpop-fotos img{width:80px;height:62px;object-fit:cover;border-radius:6px;cursor:zoom-in;border:1px solid rgba(255,255,255,.15)}\n.lpop-meta{font-size:10px;color:#6b85a8}\n/* Lightbox */\n#lb{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.95);flex-direction:column;align-items:center;justify-content:center;gap:12px}\n#lb.open{display:flex}\n#lb img{max-width:90vw;max-height:78vh;object-fit:contain;border-radius:8px}\n#lb-x{position:absolute;top:16px;right:18px;font-size:24px;color:#fff;cursor:pointer;background:rgba(255,255,255,.1);border:none;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center}\n#lb-prev,#lb-next{padding:8px 18px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#fff;font-size:14px;cursor:pointer}\n#lb-cnt{font-size:11px;color:#6b85a8;font-family:monospace;min-width:50px;text-align:center}\n/* Content */\n.main{padding:28px 48px;max-width:1200px;margin:0 auto}\n.mza-block{padding-bottom:36px;margin-bottom:36px;border-bottom:2px solid rgba(124,176,255,.2)}\n.mza-block:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}\n.mh{display:flex;align-items:center;gap:14px;padding:14px 22px;background:linear-gradient(135deg,rgba(124,176,255,.15),rgba(124,176,255,.04));border:1px solid rgba(124,176,255,.35);border-left:5px solid var(--accent3);border-radius:12px;margin-bottom:18px}\n.mn{font-family:var(--mono);font-size:22px;font-weight:900;color:var(--accent3);letter-spacing:.04em}\n.mza-sub{font-size:13px;font-weight:700;color:var(--accent3);opacity:.7}\n.ms{font-size:12px;color:var(--text3);margin-left:auto}\n.oh{display:flex;align-items:center;gap:10px;padding:8px 0 10px;border-bottom:1px solid var(--border);margin-bottom:10px}\n.on{font-family:var(--mono);font-size:16px;font-weight:800;color:var(--text)}\n.card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:8px}\n.card:hover{border-color:var(--border3)}\n.ch{display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}\n.bdg{font-size:9px;font-weight:700;padding:2px 9px;border-radius:20px}\n.cd{font-size:13px;color:var(--text);line-height:1.6;margin-bottom:8px;padding:8px 10px;background:rgba(0,0,0,.2);border-radius:6px}\n.cm{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px}\n.cm span,.cm a{font-size:10px;color:var(--text3)}\n.cm a{color:var(--accent3);text-decoration:none}\n.fgrid{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}\n.fgrid img{width:100px;height:78px;object-fit:cover;border-radius:8px;border:1px solid var(--border2);cursor:zoom-in}\n.fgrid img:hover{border-color:var(--accent3)}\n.empty{padding:60px;text-align:center;color:var(--text3);font-size:14px}\n.foot{padding:22px 48px;background:var(--bg2);border-top:1px solid var(--border);display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px}\n.foot span{font-size:11px;color:var(--text3)}\n@media(max-width:640px){.hdr,.filters,.main,.foot,#mapa-wrap{padding-left:16px;padding-right:16px}.stats{grid-template-columns:1fr 1fr}.filters{position:static}#mapa{height:300px}}\n</style>\n</head>\n<body>\n<div class="hdr"><div style="position:relative">\n<div style="display:flex;align-items:center;gap:10px;font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--accent3);margin-bottom:14px">\n<div style="width:28px;height:2px;background:var(--accent3);border-radius:2px"></div>IVC &middot; Gerencia Operativa de Apoyo Territorial</div>\n<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-wrap:wrap">\n<div>\n<h1 style="font-size:clamp(28px,5vw,52px);font-weight:900;letter-spacing:-.03em;line-height:1.05">Relevamiento<br><span style="color:var(--accent3)">Rodrigo Bueno</span></h1>\n<div style="display:flex;gap:20px;flex-wrap:wrap;margin-top:16px;font-size:12px;color:var(--text3)">\n<span>&#128197; Generado: <strong style="color:var(--text)" id="hdr-fecha"></strong></span>\n<span>&#128269; Fuente: <strong style="color:var(--text)">IVC Seguridad</strong></span>\n</div></div>\n<div style="background:rgba(37,99,235,.12);border:1px solid rgba(124,176,255,.3);border-radius:12px;padding:16px 24px;text-align:center;flex-shrink:0">\n<div id="tb" style="font-family:var(--mono);font-size:42px;font-weight:700;color:var(--accent3);line-height:1">0</div>\n<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text3);margin-top:4px">registros</div>\n</div></div></div></div>\n<div class="stats">\n<div class="stat"><div class="sv" style="color:var(--accent3)" id="s-mzas">0</div><div class="sl">Manzanas</div></div>\n<div class="stat"><div class="sv" style="color:var(--green)" id="s-conf">0</div><div class="sl">Confirmados</div></div>\n<div class="stat"><div class="sv" style="color:var(--accent3)" id="s-fotos">0</div><div class="sl">Con fotos</div></div>\n<div class="stat"><div class="sv" style="color:var(--yellow)" id="s-tipos">0</div><div class="sl">Tipos</div></div>\n</div>\n<div class="filters">\n<div class="fg"><div class="fl">Manzana</div><div class="chips" id="f-mza"></div></div>\n<div class="fg"><div class="fl">Tipo</div><div class="chips" id="f-tipo"></div></div>\n<div class="fg"><div class="fl">Certeza</div><div class="chips" id="f-cert"></div></div>\n</div>\n<div id="mapa-wrap">\n<div style="display:flex;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap">\n<span style="font-size:13px;font-weight:700;color:var(--text)">&#128205; Mapa unificado de puntos</span>\n<div id="mapa-leg"></div>\n</div>\n<div id="mapa"></div>\n</div>\n<div class="main" id="mc"></div>\n<div class="foot">\n<span>IVC Seguridad y Emergencias &middot; Gerencia Operativa de Apoyo Territorial</span>\n<span id="fc"></span>\n</div>\n<!-- Lightbox -->\n<div id="lb">\n<button id="lb-x" onclick="lbClose()">&#x2715;</button>\n<img id="lb-img" src="" alt="">\n<div style="display:flex;gap:10px;align-items:center">\n<button id="lb-prev" onclick="lbNav(-1)">&#8249;</button>\n<span id="lb-cnt"></span>\n<button id="lb-next" onclick="lbNav(1)">&#8250;</button>\n</div>\n</div>\n<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>\n<script>\nvar D=__DATA__;\nvar C=__COLORES__;\nvar IC=__ICONOS__;\ndocument.getElementById("hdr-fecha").textContent="__FECHA__";\nvar MAP=null,MARKERS=[];\nvar LB_ALL=[],LB_IDX=0;\n\nfunction gc(t){if(!t)return"#6b7280";if(C[t])return C[t];var k=Object.keys(C);for(var i=0;i<k.length;i++){if(t.indexOf(k[i])>=0)return C[k[i]];}return"#6b7280";}\n\nfunction mkIcon(r){\n  var tipos=(r.tipo||"").split(" + ").map(function(t){return t.trim();}).filter(Boolean);\n  var c1=gc(tipos[0]||""),c2=tipos[1]?gc(tipos[1]):"";\n  var tipoKey=Object.keys(IC).find(function(k){return (r.tipo||"").indexOf(k)>=0;})||"Otro";\n  var svg;\n  if(tipos.length>=2){\n    svg=\'<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" style="filter:drop-shadow(0 2px 5px rgba(0,0,0,.6))">\'+\'<defs><clipPath id="cl"><rect x="0" y="0" width="12" height="24"/></clipPath><clipPath id="cr"><rect x="12" y="0" width="12" height="24"/></clipPath></defs>\'+\'<circle cx="12" cy="12" r="11.5" fill="\'+c1+\'" clip-path="url(#cl)"/>\'+\'<circle cx="12" cy="12" r="11.5" fill="\'+c2+\'" clip-path="url(#cr)"/>\'+\'<circle cx="12" cy="12" r="11.5" fill="none" stroke="rgba(255,255,255,.7)" stroke-width="1.5"/>\'+\'</svg>\';\n  } else {\n    var p=(IC[tipoKey]||IC["Otro"]||"").replace(/COLOR/g,"#fff");\n    svg=\'<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" style="filter:drop-shadow(0 2px 5px rgba(0,0,0,.6))">\'+\'<circle cx="12" cy="12" r="12" fill="\'+c1+\'"/>\'+p+\'</svg>\';\n  }\n  return L.divIcon({html:svg,className:"",iconSize:[30,30],iconAnchor:[15,15],popupAnchor:[0,-18]});\n}\n\nfunction lbOpen(urls,idx){LB_ALL=urls;LB_IDX=idx;lbUpd();document.getElementById("lb").classList.add("open");}\nfunction lbClose(){document.getElementById("lb").classList.remove("open");}\nfunction lbNav(d){LB_IDX=Math.max(0,Math.min(LB_ALL.length-1,LB_IDX+d));lbUpd();}\nfunction lbUpd(){document.getElementById("lb-img").src=LB_ALL[LB_IDX];document.getElementById("lb-cnt").textContent=(LB_IDX+1)+" / "+LB_ALL.length;document.getElementById("lb-prev").disabled=LB_IDX===0;document.getElementById("lb-next").disabled=LB_IDX===LB_ALL.length-1;}\ndocument.addEventListener("keydown",function(e){if(!document.getElementById("lb").classList.contains("open"))return;if(e.key==="ArrowLeft")lbNav(-1);if(e.key==="ArrowRight")lbNav(1);if(e.key==="Escape")lbClose();});\ndocument.getElementById("lb").addEventListener("click",function(e){if(e.target===this)lbClose();});\n\nfunction sel(id){return document.querySelector("#"+id+" .chip.on");}\n\nfunction initMap(items){\n  if(!MAP){MAP=L.map("mapa",{zoomControl:true});L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"&copy; OpenStreetMap",maxZoom:21,maxNativeZoom:19}).addTo(MAP);}\n  MARKERS.forEach(function(m){MAP.removeLayer(m);});MARKERS=[];\n  var bounds=[],tipos={};\n  items.forEach(function(r){\n    if(!r.lat||!r.lng)return;\n    var c=gc(r.tipo);tipos[r.tipo]=c;\n    var popEl=document.createElement("div");popEl.className="lpop";\n    var fotosHtml="";\n    if(r.fotos&&r.fotos.length){\n      var fotUrls=r.fotos;\n      fotosHtml=\'<div class="lpop-fotos">\'+fotUrls.map(function(u,i){return\'<img src="\'+u+\'" onclick="lbOpen(\'+JSON.stringify(fotUrls)+\',\'+i+\')" loading="lazy">\';}).join("")+\'</div>\';\n    }\n    popEl.innerHTML=\n      \'<div class="lpop-tipo" style="color:\'+c+\'">\'+r.tipo+\'</div>\'+\n      (r.manzana?\'<div class="lpop-mza">Mza \'+r.manzana+(r.orden?\' &middot; Orden \'+r.orden:\'\')+\'</div>\':\'\')+\n      (r.descripcion?\'<div class="lpop-desc">\'+r.descripcion+\'</div>\':\'\')+\n      fotosHtml+\n      \'<div class="lpop-meta">\'+r.agente+\' &middot; \'+r.certeza+\' &middot; \'+r.fecha+\'</div>\';\n    var m=L.marker([r.lat,r.lng],{icon:mkIcon(r)}).addTo(MAP);\n    m.bindPopup(L.popup({maxWidth:320,className:"frfr-popup"}).setContent(popEl));\n    MARKERS.push(m);bounds.push([r.lat,r.lng]);\n  });\n  if(bounds.length)MAP.fitBounds(bounds,{padding:[30,30]});\n  else MAP.setView([-34.5886,-58.4614],15);\n  setTimeout(function(){if(MAP)MAP.invalidateSize();},100);\n  var leg=document.getElementById("mapa-leg");\n  var conGPS=MARKERS.length;\n  leg.innerHTML=\'<span style="font-size:11px;color:var(--text3)">\'+conGPS+\' puntos con ubicaci&oacute;n</span>\';\n  Object.entries(tipos).forEach(function(e){\n    var c=e[1],t=e[0];\n    var tipoKey=Object.keys(IC).find(function(k){return t.indexOf(k)>=0;})||"Otro";\n    var p=(IC[tipoKey]||"").replace(/COLOR/g,c);\n    var ico=\'<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"><circle cx="12" cy="12" r="12" fill="\'+c+\'"/>\'+p+\'</svg>\';\n    leg.innerHTML+=\'<div class="leg-it">\'+ico+\'<span>\'+t+\'</span></div>\';\n  });\n}\n\nfunction initFilters(){\n  var mzaSet={},tipoSet={};\n  D.forEach(function(r){mzaSet[r.manzana]=(mzaSet[r.manzana]||0)+1;if(r.tipo)r.tipo.split(" + ").forEach(function(t){tipoSet[t.trim()]=(tipoSet[t.trim()]||0)+1;});});\n  var mzas=Object.keys(mzaSet).sort(function(a,b){var na=parseInt(a),nb=parseInt(b);if(!isNaN(na)&&!isNaN(nb))return na-nb;if(!isNaN(na))return-1;if(!isNaN(nb))return 1;return a.localeCompare(b);});\n  var mzaEl=document.getElementById("f-mza");\n  mzaEl.innerHTML=\'<button class="chip on" data-v="todas">Todas</button>\';\n  mzas.forEach(function(m){var b=document.createElement("button");b.className="chip";b.dataset.v=m;b.textContent=isNaN(parseInt(m))?m:"Mza "+m;mzaEl.appendChild(b);});\n  var tipoEl=document.getElementById("f-tipo");\n  tipoEl.innerHTML=\'<button class="chip on" data-v="todos">Todos</button>\';\n  Object.entries(tipoSet).sort(function(a,b){return b[1]-a[1];}).forEach(function(e){var c=gc(e[0]);var b=document.createElement("button");b.className="chip";b.dataset.v=e[0];b.textContent=e[0]+" ("+e[1]+")";b.style.color=c;b.style.borderColor=c+"44";b.style.background=c+"12";tipoEl.appendChild(b);});\n  var certEl=document.getElementById("f-cert");\n  certEl.innerHTML=["<button class=\'chip on\' data-v=\'todas\'>Todas</button>","<button class=\'chip\' data-v=\'Confirmado\' style=\'color:#10b981;border-color:rgba(16,185,129,.4)\'>&#10003; Confirmado</button>","<button class=\'chip\' data-v=\'Probable\' style=\'color:#f59e0b;border-color:rgba(245,158,11,.4)\'>~ Probable</button>","<button class=\'chip\' data-v=\'A verificar\' style=\'color:#ef4444;border-color:rgba(239,68,68,.4)\'>? A verificar</button>"].join("");\n  document.getElementById("s-mzas").textContent=mzas.length;\n  document.getElementById("s-conf").textContent=D.filter(function(r){return r.certeza==="Confirmado";}).length;\n  document.getElementById("s-fotos").textContent=D.filter(function(r){return r.fotos&&r.fotos.length;}).length;\n  document.getElementById("s-tipos").textContent=Object.keys(tipoSet).length;\n  document.querySelector(".filters").addEventListener("click",function(e){\n    var btn=e.target.closest(".chip");if(!btn)return;\n    var chips=btn.parentNode;chips.querySelectorAll(".chip").forEach(function(c){c.classList.remove("on");});btn.classList.add("on");\n    render();\n  });\n}\n\nfunction render(){\n  var mzaV=sel("f-mza")?sel("f-mza").dataset.v:"todas";\n  var tipV=sel("f-tipo")?sel("f-tipo").dataset.v:"todos";\n  var cerV=sel("f-cert")?sel("f-cert").dataset.v:"todas";\n  var it=D.filter(function(r){\n    if(mzaV!=="todas"&&r.manzana!==mzaV)return false;\n    if(tipV!=="todos"&&(r.tipo||"").indexOf(tipV)<0)return false;\n    if(cerV!=="todas"&&r.certeza!==cerV)return false;\n    return true;\n  });\n  document.getElementById("tb").textContent=it.length;\n  document.getElementById("fc").textContent=it.length+" registro"+(it.length!==1?"s":"")+" mostrados";\n  initMap(it);\n  var mc=document.getElementById("mc");\n  if(!it.length){mc.innerHTML="<div class=\'empty\'>Sin registros para este filtro</div>";return;}\n  var pm={};\n  it.forEach(function(r){if(!pm[r.manzana])pm[r.manzana]={};if(!pm[r.manzana][r.orden])pm[r.manzana][r.orden]=[];pm[r.manzana][r.orden].push(r);});\n  var mk=Object.keys(pm).sort(function(a,b){var na=parseInt(a),nb=parseInt(b);if(!isNaN(na)&&!isNaN(nb))return na-nb;if(!isNaN(na))return-1;if(!isNaN(nb))return 1;return a.localeCompare(b);});\n  var frag=document.createDocumentFragment();\n  mk.forEach(function(mz){\n    var ords=pm[mz];var tot=0;Object.values(ords).forEach(function(a){tot+=a.length;});\n    var ok=Object.keys(ords).sort(function(a,b){var na=parseInt(a),nb=parseInt(b);if(!isNaN(na)&&!isNaN(nb))return na-nb;if(!isNaN(na))return-1;if(!isNaN(nb))return 1;return a.localeCompare(b);});\n    var mzDiv=document.createElement("div");mzDiv.className="mza-block";\n    var mzH=document.createElement("div");mzH.className="mh";\n    mzH.innerHTML="<div class=\'mn\'>"+(isNaN(parseInt(mz))?"":"MZA "+mz)+"</div><div class=\'mza-sub\'>"+(isNaN(parseInt(mz))?mz:"MANZANA N° "+mz)+"</div><div class=\'ms\'>"+tot+" registro"+(tot>1?"s":"")+" &middot; "+ok.length+" orden"+(ok.length>1?"es":"")+"</div>";\n    mzDiv.appendChild(mzH);\n    ok.forEach(function(or){\n      var rs=ords[or];var oDiv=document.createElement("div");oDiv.style.marginBottom="20px";\n      var oH=document.createElement("div");oH.className="oh";\n      oH.innerHTML="<span class=\'on\'>Orden "+or+"</span><span style=\'font-size:11px;color:var(--text3)\'>"+rs.length+" registro"+(rs.length>1?"s":"")+"</span>";\n      oDiv.appendChild(oH);\n      rs.forEach(function(r){\n        var c=gc(r.tipo);\n        var cc=r.certeza==="Confirmado"?{bg:"rgba(16,185,129,.18)",bc:"#10b981",tc:"#10b981",ic:"&#10003;"}:r.certeza==="Probable"?{bg:"rgba(245,158,11,.18)",bc:"#f59e0b",tc:"#f59e0b",ic:"~"}:{bg:"rgba(239,68,68,.15)",bc:"#ef4444",tc:"#ef4444",ic:"?"};\n        var tipoKey=Object.keys(IC).find(function(k){return(r.tipo||"").indexOf(k)>=0;})||"Otro";\n        var p=(IC[tipoKey]||"").replace(/COLOR/g,c);\n        var icoSvg="<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'16\' height=\'16\' viewBox=\'0 0 24 24\' style=\'flex-shrink:0\'><circle cx=\'12\' cy=\'12\' r=\'12\' fill=\'"+c+"\'/>"+p+"</svg>";\n        var card=document.createElement("div");card.className="card";card.style.borderLeft="3px solid "+c;\n        var inner=\n          "<div class=\'ch\'>"+icoSvg+\n          "<span class=\'bdg\' style=\'background:"+c+"22;border:1px solid "+c+"55;color:"+c+"\'>"+r.tipo+"</span>"+\n          "<span class=\'bdg\' style=\'background:"+cc.bg+";border:1px solid "+cc.bc+";color:"+cc.tc+"\'>"+cc.ic+" "+r.certeza+"</span>"+\n          "<span style=\'margin-left:auto;font-size:10px;color:var(--text3)\'>"+r.fecha+"</span></div>"+\n          (r.descripcion?"<div class=\'cd\'>"+r.descripcion+"</div>":"")+\n          (r.titular?"<div style=\'font-size:11px;color:var(--text2);margin-bottom:4px\'>&#128100; <strong>"+r.titular+"</strong></div>":"")+\n          (r.obs_vivienda?"<div style=\'font-size:11px;color:var(--text2);margin-bottom:4px\'>&#127968; "+r.obs_vivienda+"</div>":"")+\n          (r.observaciones?"<div style=\'font-size:11px;color:var(--text3);font-style:italic;margin-bottom:4px\'>"+r.observaciones+"</div>":"")+\n          "<div class=\'cm\'><span>&#128100; "+r.agente+"</span>"+\n          (r.lat&&r.lng?"<a href=\'https://maps.google.com/?q="+r.lat+","+r.lng+"\' target=\'_blank\'>&#128205; Maps</a>":"")+\n          "</div>";\n        if(r.fotos&&r.fotos.length){\n          var fu=r.fotos;\n          inner+="<div class=\'fgrid\'>"+fu.map(function(u,i){return"<img src=\'"+u+"\' onclick=\'lbOpen("+JSON.stringify(fu)+","+i+")\' loading=\'lazy\'>";}).join("")+"</div>";\n        }\n        card.innerHTML=inner;oDiv.appendChild(card);\n      });\n      mzDiv.appendChild(oDiv);\n    });\n    frag.appendChild(mzDiv);\n  });\n  mc.innerHTML="";mc.appendChild(frag);\n}\ninitFilters();render();\n<\/script>\n</body></html>';
+  var html = template
+    .replace('__DATA__', JSON.stringify(datos))
+    .replace('__COLORES__', JSON.stringify(FRFR_COLORES || {}))
+    .replace('__ICONOS__', JSON.stringify(FRFR_ICONOS || {}))
+    .replace('__FECHA__', fechaGen);
+
+  var blob = new Blob([html], { type: 'text/html;charset=utf-8;' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'relevamiento_fr_' + new Date().toISOString().substring(0,10) + '.html';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('Informe generado', 'ok');
+}
+
+
+var RBRB_MAPA_FILTER_MZA = 'todas';
+var RBRB_MAPA_FILTER_TIPO = 'todos';
+var RBRB_MAPA_FILTER_CERT = 'todas';
+
+function frfr_buildMapaFilters() {
+  var mzaSet = {}, tipoSet = {};
+  FRFR_REGISTROS.filter(function(r){ return r && r.lat && r.lng; }).forEach(function(r) {
+    mzaSet[frfr_normMza(r.manzana)] = 1;
+    if (r.tipo) r.tipo.split(' + ').forEach(function(t){ tipoSet[t.trim()] = 1; });
+  });
+  var mzas = Object.keys(mzaSet).sort(function(a,b){
+    var na=parseInt(a),nb=parseInt(b);
+    if(!isNaN(na)&&!isNaN(nb))return na-nb;
+    return a.localeCompare(b);
+  });
+  var cs = 'padding:4px 10px;border-radius:20px;border:1px solid;font-size:10px;font-weight:700;cursor:pointer;font-family:var(--font,-apple-system);background:transparent;';
+  var mzaEl = document.getElementById('frfr-mapa-chips-mza');
+  if (mzaEl) {
+    mzaEl.innerHTML = '';
+    var all = document.createElement('button');
+    all.textContent='Todas'; all.dataset.v='todas';
+    all.style.cssText=cs+'background:var(--accent);border-color:var(--accent);color:#fff';
+    all.addEventListener('click',function(){frfr_setMapaFilter('mza','todas',this);});
+    mzaEl.appendChild(all);
+    mzas.forEach(function(m){
+      var b=document.createElement('button');
+      b.textContent=isNaN(parseInt(m))?m:'Mza '+m; b.dataset.v=m;
+      b.style.cssText=cs+'border-color:var(--border2);color:var(--text2)';
+      b.addEventListener('click',function(){frfr_setMapaFilter('mza',m,this);});
+      mzaEl.appendChild(b);
+    });
+  }
+  var tipoEl = document.getElementById('frfr-mapa-chips-tipo');
+  if (tipoEl) {
+    tipoEl.innerHTML = '';
+    var allt = document.createElement('button');
+    allt.textContent='Todos'; allt.dataset.v='todos';
+    allt.style.cssText=cs+'background:var(--accent);border-color:var(--accent);color:#fff';
+    allt.addEventListener('click',function(){frfr_setMapaFilter('tipo','todos',this);});
+    tipoEl.appendChild(allt);
+    Object.keys(tipoSet).forEach(function(t){
+      var c=frfr_colorDe(t);
+      var b=document.createElement('button');
+      b.textContent=t; b.dataset.v=t;
+      b.style.cssText=cs+'color:'+c+';border-color:'+c+'44;background:'+c+'12';
+      b.addEventListener('click',function(){frfr_setMapaFilter('tipo',t,this);});
+      tipoEl.appendChild(b);
+    });
+  }
+  var certEl = document.getElementById('frfr-mapa-chips-cert');
+  if (certEl) {
+    certEl.innerHTML = '';
+    var certs = [
+      {v:'todas',label:'Todas',style:'background:var(--accent);border-color:var(--accent);color:#fff'},
+      {v:'Confirmado',label:'&#10003; Confirmado',style:'color:#10b981;border-color:rgba(16,185,129,.4)'},
+      {v:'Probable',label:'~ Probable',style:'color:#f59e0b;border-color:rgba(245,158,11,.4)'},
+      {v:'A verificar',label:'? A verificar',style:'color:#ef4444;border-color:rgba(239,68,68,.4)'}
+    ];
+    certs.forEach(function(cfg){
+      var b=document.createElement('button');
+      b.innerHTML=cfg.label; b.dataset.v=cfg.v;
+      b.style.cssText=cs+cfg.style;
+      b.addEventListener('click',function(){frfr_setMapaFilter('cert',cfg.v,this);});
+      certEl.appendChild(b);
+    });
+  }
+}
+
+window.frfr_setMapaFilter = function(tipo, val, btn) {
+  // Support being called with (group, val, btn) or from onclick with encoded params
+  if (typeof tipo === 'string' && tipo.indexOf('mza') >= 0) tipo = 'mza';
+  if (tipo === 'mza') RBRB_MAPA_FILTER_MZA = val;
+  else if (tipo === 'tipo') RBRB_MAPA_FILTER_TIPO = val;
+  else if (tipo === 'cert') RBRB_MAPA_FILTER_CERT = val;
+  var groupId = tipo === 'mza' ? 'frfr-mapa-chips-mza' : tipo === 'tipo' ? 'frfr-mapa-chips-tipo' : 'frfr-mapa-chips-cert';
+  var grp = document.getElementById(groupId);
+  if (grp) grp.querySelectorAll('button').forEach(function(b) {
+    var active = b.dataset.v === val;
+    b.style.background = active ? 'var(--accent)' : (b.dataset.bg || 'transparent');
+    b.style.borderColor = active ? 'var(--accent)' : (b.dataset.bc || 'var(--border2)');
+    b.style.color = active ? '#fff' : (b.dataset.tc || 'var(--text2)');
+  });
+  frfr_actualizarMapa();
+};
+
+function frfr_crearMapaPrincipal() {
+  if (FRFR_MAP) { return; }
+  var el = document.getElementById('frfr-mapa-wrap');
+  if (!el) return;
+  FRFR_MAP = L.map(el, { zoomControl: true });
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap', maxZoom: 21, maxNativeZoom: 19
+  }).addTo(FRFR_MAP);
+  FRFR_MAP_INIT = true;
+}
+
+function frfr_actualizarMapa() {
+  if (!FRFR_MAP) return;
+  FRFR_MARKERS.forEach(function(m) { FRFR_MAP.removeLayer(m); });
+  FRFR_MARKERS = [];
+  if (RBRB_MANUAL_MARKER) { FRFR_MAP.removeLayer(RBRB_MANUAL_MARKER); RBRB_MANUAL_MARKER = null; }
+  var conGPS = FRFR_REGISTROS.filter(function(r) {
+    if (!r || typeof r !== 'object') return false;
+    if (!r.lat || !r.lng) return false;
+    if (RBRB_MAPA_FILTER_MZA !== 'todas' && frfr_normMza(r.manzana) !== RBRB_MAPA_FILTER_MZA) return false;
+    if (RBRB_MAPA_FILTER_TIPO !== 'todos' && (r.tipo||'').indexOf(RBRB_MAPA_FILTER_TIPO) < 0) return false;
+    if (RBRB_MAPA_FILTER_CERT !== 'todas' && r.certeza !== RBRB_MAPA_FILTER_CERT) return false;
+    return true;
+  });
+
+  conGPS.forEach(function(r) {
+    var c = frfr_colorDe(r.tipo);
+    var _tipoKey = Object.keys(FRFR_ICONOS).find(function(k){ return ((r&&r.tipo)||'').indexOf(k)>=0; }) || 'Otro';
+    var _svgPath = FRFR_ICONOS[_tipoKey].replace(/COLOR/g, '#fff');
+    // Multi-tipo: split tipo por ' + ' y hacer icono partido
+    var _tipos = ((r&&r.tipo)||'').split(' + ').map(function(t){return t.trim();}).filter(Boolean);
+    var _iconHtml;
+    if (_tipos.length >= 2) {
+      var c1 = frfr_colorDe(_tipos[0]), c2 = frfr_colorDe(_tipos[1]);
+      _iconHtml = '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24">' +
+        '<defs><clipPath id="lh"><rect x="0" y="0" width="12" height="24"/></clipPath>' +
+        '<clipPath id="rh"><rect x="12" y="0" width="12" height="24"/></clipPath></defs>' +
+        '<circle cx="12" cy="12" r="11" fill="'+c1+'" clip-path="url(#lh)"/>' +
+        '<circle cx="12" cy="12" r="11" fill="'+c2+'" clip-path="url(#rh)"/>' +
+        '<circle cx="12" cy="12" r="11" fill="none" stroke="#fff" stroke-width="1.5"/>' +
+        '</svg>';
+    } else {
+      var _p = (FRFR_ICONOS[_tipoKey]||FRFR_ICONOS['Otro']).replace(/COLOR/g, '#fff');
+      _iconHtml = '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" style="filter:drop-shadow(0 2px 4px rgba(0,0,0,.6))">' +
+        '<circle cx="12" cy="12" r="12" fill="'+c+'"/>' +
+        _p +
+        '</svg>';
+    }
+    var icon = L.divIcon({
+      html: _iconHtml,
+      iconSize: [28,28], iconAnchor: [14,14], className: ''
+    });
+    var marker = L.marker([r.lat, r.lng], { icon: icon });
+
+    // Fotos: puede haber varias
+    var fotosUrls = [];
+    if (r.fotos_urls && r.fotos_urls !== 'null') {
+      try { fotosUrls = JSON.parse(r.fotos_urls); } catch(e) {}
+    }
+    if (!fotosUrls.length && r.foto_url) fotosUrls = [r.foto_url];
+
+    // Popup con info + miniaturas + lightbox inline
+    var uid = 'pp_' + (r.id || Math.random().toString(36).slice(2));
+    var fotosHtml = fotosUrls.length
+      ? '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:8px" id="'+uid+'_grid">'+
+          fotosUrls.map(function(u, i) {
+            return '<img src="'+u+'" onclick="frfr_popupZoom(\''+uid+'\','+i+')" '+
+              'style="width:72px;height:55px;object-fit:cover;border-radius:5px;cursor:zoom-in;'+
+              'border:1px solid rgba(255,255,255,.2)" loading="lazy">';
+          }).join('') + '</div>' +
+          // Lightbox inline (inicialmente oculto)
+          '<div id="'+uid+'_lb" style="display:none;margin-top:6px;position:relative">'+
+            '<img id="'+uid+'_lbimg" src="" style="width:100%;border-radius:6px;max-height:200px;object-fit:contain">'+
+            '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">'+
+              '<button onclick="frfr_popupNav(\''+uid+'\',-1)" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:5px;padding:3px 8px;cursor:pointer;font-size:12px">‹</button>'+
+              '<span id="'+uid+'_lbcount" style="font-size:10px;color:#a4bbd9"></span>'+
+              '<button onclick="frfr_popupNav(\''+uid+'\',1)" style="background:rgba(255,255,255,.15);border:none;color:#fff;border-radius:5px;padding:3px 8px;cursor:pointer;font-size:12px">›</button>'+
+            '</div>'+
+            '<button onclick="document.getElementById(\''+uid+'_lb\').style.display=\'none\';document.getElementById(\''+uid+'_grid\').style.display=\'flex\'" '+
+              'style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,.7);border:none;color:#fff;border-radius:50%;width:22px;height:22px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center">✕</button>'+
+          '</div>'
+      : '';
+
+    // Registrar URLs para el lightbox
+    if (fotosUrls.length) FRFR_POPUP_URLS[uid] = fotosUrls;
+
+    var _rReg = r; // captura del registro para el closure
+    var popupContent = document.createElement('div');
+    popupContent.style.cssText = 'font-size:12px;min-width:200px;font-family:var(--font,-apple-system)';
+    popupContent.innerHTML =
+      '<div style="font-weight:700;color:'+c+';margin-bottom:5px;font-size:13px">'+_rReg.tipo+'</div>'+
+      (_rReg.manzana ? '<div style="font-size:11px;color:#7cb0ff;margin-bottom:3px">Mza '+frfr_normMza(_rReg.manzana)+(_rReg.orden?' · Ord. '+_rReg.orden:'')+'</div>' : '')+
+      (_rReg.descripcion ? '<div style="font-size:13px;color:#f1f5fc;line-height:1.6;margin-bottom:8px;padding:8px 10px;background:rgba(0,0,0,.28);border-radius:7px;border-left:3px solid '+c+'">'+_rReg.descripcion.substring(0,220)+(_rReg.descripcion.length>220?'…':'')+' </div>' : '')+
+      '<div style="font-size:10px;color:#6b85a8;margin-bottom:8px">'+_rReg.agente+' · '+_rReg.certeza+(_rReg.pertenece_ivc&&window.USER&&(USER.puesto==='Gerencia'||USER.puesto==='Administrador'||USER.rol==='ADMIN')?' · <span style="color:#10b981;font-weight:700">&#127968; IVC</span>':'')+' </div>'+
+      fotosHtml+
+      '<button class="frfr-popup-edit" type="button" '+
+        'style="margin-top:8px;width:100%;padding:8px;background:rgba(37,99,235,.2);border:1px solid rgba(124,176,255,.4);'+
+        'border-radius:8px;color:#7cb0ff;font-family:var(--font,-apple-system);font-size:12px;font-weight:700;cursor:pointer">'+
+        '✏️ Ver / Editar registro'+
+      '</button>';
+    // Adjuntar listener al botón (sin inline onclick, evita problemas de escape)
+    popupContent.querySelector('.frfr-popup-edit').addEventListener('click', function() {
+      if (FRFR_MAP) FRFR_MAP.closePopup();
+      frfr_tab('form', document.getElementById('frfr-tab-form'));
+      setTimeout(function() { frfr_editar(_rReg); }, 80);
+    });
+    var popup = L.popup({ maxWidth: 280, className: 'frfr-popup' }).setContent(popupContent);
+    marker.bindPopup(popup);
+    marker.addTo(FRFR_MAP);
+    FRFR_MARKERS.push(marker);
+  });
+
+  // Click en el mapa → colocar marcador manual
+  if (!FRFR_MAP._rbrb_click_bound) {
+    FRFR_MAP.on('click', function(e) {
+      // Solo si NO hay popup abierto
+      if (FRFR_MAP._popup && FRFR_MAP._popup.isOpen()) return;
+      frfr_colocarManual(e.latlng.lat, e.latlng.lng);
+    });
+    FRFR_MAP._rbrb_click_bound = true;
+  }
+
+  // Solo puntos válidos dentro de Buenos Aires (evita coords 0,0 o erróneas)
+  var pts = conGPS
+    .filter(function(r) {
+      return Math.abs(r.lat + 34.59) < 0.05 && Math.abs(r.lng + 58.46) < 0.05;
+    })
+    .map(function(r) { return [r.lat, r.lng]; });
+
+  if (pts.length) {
+    try { FRFR_MAP.fitBounds(pts, { padding: [50, 50], minZoom: 16, maxZoom: 21 }); } catch(e) {}
+  } else {
+    FRFR_MAP.setView([-34.5886, -58.4614], 17);
+  }
+} // cierra frfr_actualizarMapa
+
+// ── POPUP LIGHTBOX ──
+var FRFR_POPUP_IDX = {};
+var FRFR_POPUP_URLS = {};
+
+window.frfr_popupZoom = function(uid, idx) {
+  var urls = FRFR_POPUP_URLS[uid];
+  if (!urls) return;
+  FRFR_POPUP_IDX[uid] = idx;
+  var lb = document.getElementById(uid+'_lb');
+  var grid = document.getElementById(uid+'_grid');
+  var img = document.getElementById(uid+'_lbimg');
+  var cnt = document.getElementById(uid+'_lbcount');
+  if (!lb || !img) return;
+  img.src = urls[idx];
+  if (cnt) cnt.textContent = (idx+1)+' / '+urls.length;
+  lb.style.display = 'block';
+  if (grid) grid.style.display = 'none';
+};
+
+window.frfr_popupNav = function(uid, dir) {
+  var urls = FRFR_POPUP_URLS[uid];
+  if (!urls) return;
+  var idx = ((FRFR_POPUP_IDX[uid] || 0) + dir + urls.length) % urls.length;
+  frfr_popupZoom(uid, idx);
+};
+
+// ── MARCADOR MANUAL EN MAPA ──
+var RBRB_MANUAL_MARKER = null;
+
+function frfr_colocarManual(lat, lng) {
+  if (RBRB_MANUAL_MARKER) FRFR_MAP.removeLayer(RBRB_MANUAL_MARKER);
+
+  var icon = L.divIcon({
+    html: '<div style="width:20px;height:20px;border-radius:50%;background:#3b82f6;border:3px solid #fff;'+
+      'box-shadow:0 0 0 2px #3b82f6,0 3px 10px rgba(0,0,0,.5);animation:frfr_pulse 1.2s infinite"></div>',
+    iconSize: [20,20], iconAnchor: [10,10], className: ''
+  });
+
+  RBRB_MANUAL_MARKER = L.marker([lat, lng], { icon: icon, draggable: true });
+
+  RBRB_MANUAL_MARKER.on('dragend', function() {
+    var p = RBRB_MANUAL_MARKER.getLatLng();
+    frfr_colocarManual(p.lat, p.lng);
+  });
+
+  var popHtml = '<div style="font-size:12px;text-align:center;font-family:var(--font,-apple-system)">'+
+    '<div style="font-weight:700;color:#3b82f6;margin-bottom:6px">📍 Punto manual</div>'+
+    '<div style="font-size:10px;color:#a4bbd9;margin-bottom:8px">'+lat.toFixed(5)+', '+lng.toFixed(5)+'</div>'+
+    '<button onclick="frfr_guardarPuntoManual('+lat+','+lng+')" '+
+      'style="padding:6px 14px;background:#3b82f6;border:none;border-radius:7px;color:#fff;'+
+      'font-family:var(--font,-apple-system);font-size:11px;font-weight:700;cursor:pointer;width:100%;margin-bottom:4px">'+
+      '💾 Guardar este punto en un registro</button>'+
+    '<button onclick="if(RBRB_MANUAL_MARKER){FRFR_MAP.removeLayer(RBRB_MANUAL_MARKER);RBRB_MANUAL_MARKER=null;}" '+
+      'style="padding:4px 10px;background:transparent;border:1px solid rgba(255,255,255,.2);border-radius:7px;color:#a4bbd9;'+
+      'font-family:var(--font,-apple-system);font-size:10px;cursor:pointer;width:100%">Quitar marcador</button>'+
+    '</div>';
+
+  RBRB_MANUAL_MARKER.bindPopup(L.popup({ maxWidth: 220 }).setContent(popHtml), { autoClose: false }).openPopup();
+  RBRB_MANUAL_MARKER.addTo(FRFR_MAP);
+}
+
+window.frfr_guardarPuntoManual = function(lat, lng) {
+  // Pasa las coords al formulario y lleva al tab form
+  FRFR_SKIP_CLEAR = true;
+  frfr_tab('form', document.getElementById('frfr-tab-form'));
+  var latEl = document.getElementById('frfr-lat');
+  var lngEl = document.getElementById('frfr-lng');
+  if (latEl) latEl.value = lat.toFixed(6);
+  if (lngEl) lngEl.value = lng.toFixed(6);
+  var gps = document.getElementById('frfr-gps-txt');
+  if (gps) gps.textContent = 'GPS: '+lat.toFixed(6)+', '+lng.toFixed(6)+' ✓ (punto manual)';
+  // Sincronizar mini-mapa si está abierto
+  if (FRFR_MINI_MAP && FRFR_MINI_MARKER) {
+    FRFR_MINI_MARKER.setLatLng([lat, lng]);
+    FRFR_MINI_MAP.setView([lat, lng], 18);
+  }
+  toast('📍 Coordenadas cargadas en el formulario', 'ok');
+};
+
+// ── HERRAMIENTA DISPERSAR PUNTOS ──
+var FRFR_DISPERSADO = false;
+var FRFR_POS_ORIGINALES = [];
+
+window.frfr_dispersar = function() {
+  if (!FRFR_MAP || !FRFR_MARKERS.length) { toast('No hay puntos en el mapa', 'err'); return; }
+  FRFR_POS_ORIGINALES = FRFR_MARKERS.map(function(m) {
+    var ll = m.getLatLng(); return { marker: m, lat: ll.lat, lng: ll.lng };
+  });
+  var grupos = [];
+  FRFR_POS_ORIGINALES.forEach(function(item) {
+    var encontrado = false;
+    for (var i = 0; i < grupos.length; i++) {
+      var g = grupos[i];
+      if (Math.abs(item.lat - g.lat) < 0.000009 && Math.abs(item.lng - g.lng) < 0.000009) { g.items.push(item); encontrado = true; break; }
+    }
+    if (!encontrado) grupos.push({ lat: item.lat, lng: item.lng, items: [item] });
+  });
+  var radio = 0.000045;
+  grupos.forEach(function(g) {
+    if (g.items.length <= 1) return;
+    var n = g.items.length;
+    g.items.forEach(function(item, i) {
+      if (i === 0) return;
+      var angulo = (2 * Math.PI / (n - 1)) * (i - 1);
+      var r = radio + (Math.floor((i - 1) / 8) * radio * 0.6);
+      item.marker.setLatLng([g.lat + r * Math.cos(angulo), g.lng + r * Math.sin(angulo) / Math.cos(g.lat * Math.PI / 180)]);
+    });
+  });
+  FRFR_DISPERSADO = true;
+  var btn = document.getElementById('frfr-reagrupar-btn');
+  if (btn) btn.style.display = 'inline-block';
+  toast('🔀 ' + FRFR_MARKERS.length + ' puntos dispersados', 'ok');
+};
+
+window.frfr_reagrupar = function() {
+  if (!FRFR_DISPERSADO) return;
+  FRFR_POS_ORIGINALES.forEach(function(item) { item.marker.setLatLng([item.lat, item.lng]); });
+  FRFR_DISPERSADO = false;
+  var btn = document.getElementById('frfr-reagrupar-btn');
+  if (btn) btn.style.display = 'none';
+  toast('🔁 Posiciones reales restauradas', 'ok');
+};
+
+})(); // fin IIFE RBRB
+
+window.frfr_setSector = function(btn) {
+  FRFR_SECTOR = btn.dataset.val;
+  document.querySelectorAll('.frfr-sector-btn').forEach(function(b) {
+    var isActive = b === btn;
+    b.style.background = isActive ? 'rgba(37,99,235,.18)' : 'transparent';
+    b.style.borderColor = isActive ? '#2563eb' : 'var(--border2)';
+    b.style.color = isActive ? '#60a5fa' : 'var(--text2)';
+  });
+  var inp = document.getElementById('frfr-sector');
+  if (inp) inp.value = FRFR_SECTOR;
+};
+// fin MÓDULO RELEVAMIENTO FR
+
+</script>
+</body>\n</html>';
   var blob = new Blob([htmlFinal], { type: 'text/html;charset=utf-8' });
   var url  = URL.createObjectURL(blob);
   var a    = document.createElement('a');
@@ -17178,6 +19012,7 @@ function goView(name) {
     if (name === 'pendientes' && typeof loadPendientes === 'function') loadPendientes();
     if (name === 'relevamiento' && typeof loadRelevamientos === 'function') loadRelevamientos();
     if (name === 'relev-rb') rbrb_onOpen();
+    if (name === 'relev-fr') frfr_onOpen();
     if (name === 'panol' && typeof loadPanol === 'function') loadPanol();
     if (name === 'pdpu' && typeof selPdpuTab === 'function') selPdpuTab('48h');
     if (name === 'horas') {
