@@ -29069,12 +29069,6 @@ window.frfr_guardar = function() {
   var titular = (document.getElementById('frfr-titular') || {}).value || '';
   var obs = (document.getElementById('frfr-obs') || {}).value || '';
   var obsVivienda = (document.getElementById('frfr-obs-vivienda') || {}).value || '';
-  var _puedeIVC = window.USER && (
-    USER.puesto === 'Gerencia' ||
-    USER.puesto === 'Administrador' ||
-    USER.rol === 'ADMIN'
-  );
-  var esIVC = _puedeIVC && (document.getElementById('frfr-ivc') || {}).value === 'si';
   var lat = parseFloat((document.getElementById('frfr-lat') || {}).value) || null;
   var lng = parseFloat((document.getElementById('frfr-lng') || {}).value) || null;
 
@@ -29107,7 +29101,7 @@ window.frfr_guardar = function() {
     lng: lng,
     agente: window.USER ? (USER.nombre || USER.puesto) : 'Desconocido'
   };
-  if (_puedeIVC) payload.pertenece_ivc = esIVC;
+  // pertenece_ivc no existe en relevamiento_fr — columna solo en relevamiento_rb
 
   // Capturar el ID de edición ANTES de cualquier async
   var editId = FRFR_EDIT_ID;
