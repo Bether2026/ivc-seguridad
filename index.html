@@ -27970,7 +27970,7 @@ var RBRB_MAPA_FILTER_CERT = 'todas';
 function rbrb_buildMapaFilters() {
   var mzaSet = {}, tipoSet = {};
   RBRB_REGISTROS.filter(function(r){ return r && r.lat && r.lng; }).forEach(function(r) {
-    mzaSet[r.manzana||'Sin manzana'] = 1;
+    mzaSet[rbrb_normMza(r.manzana)] = 1;
     if (r.tipo) r.tipo.split(' + ').forEach(function(t){ tipoSet[t.trim()] = 1; });
   });
   var mzas = Object.keys(mzaSet).sort(function(a,b){
@@ -28067,7 +28067,7 @@ function rbrb_actualizarMapa() {
   var conGPS = RBRB_REGISTROS.filter(function(r) {
     if (!r || typeof r !== 'object') return false;
     if (!r.lat || !r.lng) return false;
-    if (RBRB_MAPA_FILTER_MZA !== 'todas' && (r.manzana||'—') !== RBRB_MAPA_FILTER_MZA) return false;
+    if (RBRB_MAPA_FILTER_MZA !== 'todas' && rbrb_normMza(r.manzana) !== RBRB_MAPA_FILTER_MZA) return false;
     if (RBRB_MAPA_FILTER_TIPO !== 'todos' && (r.tipo||'').indexOf(RBRB_MAPA_FILTER_TIPO) < 0) return false;
     if (RBRB_MAPA_FILTER_CERT !== 'todas' && r.certeza !== RBRB_MAPA_FILTER_CERT) return false;
     return true;
