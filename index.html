@@ -4309,16 +4309,18 @@ body {
                 <input id="rbrb-titular" class="form-input" type="text" placeholder="Opcional">
               </div>
 
-              <!-- PERTENECE AL IVC -->
-              <div class="form-group">
-                <label class="form-label" style="margin-bottom:8px">Relacion con el IVC</label>
-                <button type="button" id="rbrb-ivc-toggle"
-                  onclick="rbrb_toggleIVC()"
-                  style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:10px;border:1px solid var(--border2);background:transparent;cursor:pointer;font-family:var(--font);font-size:13px;font-weight:600;color:var(--text2);width:100%;text-align:left;transition:all .2s">
-                  <span id="rbrb-ivc-icon" style="width:22px;height:22px;border-radius:6px;border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;transition:all .2s"></span>
-                  <span>Pertenece al IVC</span>
-                </button>
-                <input type="hidden" id="rbrb-ivc" value="no">
+              <!-- PERTENECE AL IVC — solo Gerencia/Administrador -->
+              <div id="rbrb-ivc-wrap" style="display:none">
+                <div class="form-group">
+                  <label class="form-label" style="margin-bottom:8px">Relacion con el IVC</label>
+                  <button type="button" id="rbrb-ivc-toggle"
+                    onclick="rbrb_toggleIVC()"
+                    style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:10px;border:1px solid var(--border2);background:transparent;cursor:pointer;font-family:var(--font);font-size:13px;font-weight:600;color:var(--text2);width:100%;text-align:left;transition:all .2s">
+                    <span id="rbrb-ivc-icon" style="width:22px;height:22px;border-radius:6px;border:2px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;transition:all .2s"></span>
+                    <span>Pertenece al IVC</span>
+                  </button>
+                  <input type="hidden" id="rbrb-ivc" value="no">
+                </div>
               </div>
 
               <!-- OBSERVACIONES -->
@@ -26893,6 +26895,7 @@ var RBRB_ICONOS = {
 window.rbrb_onOpen = function() {
   rbrb_renderTipoSel();
   rbrb_mostrarTabAudit();
+  rbrb_mostrarCampoIVC();
   // Si ya desbloqueado, cargar datos
   if (RBRB_UNLOCKED) {
     rbrb_cargarDatos();
@@ -26904,6 +26907,17 @@ function rbrb_mostrarTabAudit() {
   if (t) t.style.display = (window.USER && USER.rol === 'ADMIN') ? 'block' : 'none';
 }
 
+function rbrb_mostrarCampoIVC() {
+  var w = document.getElementById('rbrb-ivc-wrap');
+  if (!w) return;
+  var puedeVer = window.USER && (
+    USER.puesto === 'Gerencia' ||
+    USER.puesto === 'Administrador' ||
+    USER.rol === 'ADMIN'
+  );
+  w.style.display = puedeVer ? 'block' : 'none';
+}
+
 window.rbrb_checkPin = function() {
   var pin = (document.getElementById('rbrb-pin') || {}).value || '';
   if (pin === RBRB_PIN) {
@@ -26912,6 +26926,7 @@ window.rbrb_checkPin = function() {
     document.getElementById('rbrb-content').style.display = 'block';
     rbrb_renderTipoSel();
     rbrb_mostrarTabAudit();
+    rbrb_mostrarCampoIVC();
     rbrb_cargarDatos();
   } else {
     var err = document.getElementById('rbrb-pin-err');
@@ -27244,7 +27259,12 @@ window.rbrb_guardar = function() {
   var titular = (document.getElementById('rbrb-titular') || {}).value || '';
   var obs = (document.getElementById('rbrb-obs') || {}).value || '';
   var obsVivienda = (document.getElementById('rbrb-obs-vivienda') || {}).value || '';
-  var esIVC = (document.getElementById('rbrb-ivc') || {}).value === 'si';
+  var _puedeIVC = window.USER && (
+    USER.puesto === 'Gerencia' ||
+    USER.puesto === 'Administrador' ||
+    USER.rol === 'ADMIN'
+  );
+  var esIVC = _puedeIVC && (document.getElementById('rbrb-ivc') || {}).value === 'si';
   var lat = parseFloat((document.getElementById('rbrb-lat') || {}).value) || null;
   var lng = parseFloat((document.getElementById('rbrb-lng') || {}).value) || null;
 
@@ -27710,7 +27730,7 @@ function rbrb_buildItems() {
           '<span style="font-size:9px;font-family:var(--mono);color:var(--text3)">'+fecha+'</span>'+
           '<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;background:'+c+'22;color:'+c+'">'+r.tipo+'</span>'+
           '<span style="font-size:9px;font-weight:700;color:'+certColor+';margin-left:auto">'+r.certeza+'</span>'+
-          (r.pertenece_ivc?'<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.4);color:#10b981">&#127968; IVC</span>':'')+
+          (r.pertenece_ivc&&window.USER&&(USER.puesto==='Gerencia'||USER.puesto==='Administrador'||USER.rol==='ADMIN')?'<span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.4);color:#10b981">&#127968; IVC</span>':'')+
         '</div>'+
         '<div style="font-size:13px;color:var(--text);line-height:1.55;margin-bottom:5px">'+r.descripcion+'</div>'+
         (r.titular?'<div style="font-size:11px;color:var(--text2)">👤 '+r.titular+'</div>':'')+
@@ -28194,7 +28214,7 @@ function rbrb_actualizarMapa() {
       '<div style="font-weight:700;color:'+c+';margin-bottom:5px;font-size:13px">'+_rReg.tipo+'</div>'+
       (_rReg.manzana ? '<div style="font-size:11px;color:#7cb0ff;margin-bottom:3px">Mza '+rbrb_normMza(_rReg.manzana)+(_rReg.orden?' · Ord. '+_rReg.orden:'')+'</div>' : '')+
       (_rReg.descripcion ? '<div style="font-size:13px;color:#f1f5fc;line-height:1.6;margin-bottom:8px;padding:8px 10px;background:rgba(0,0,0,.28);border-radius:7px;border-left:3px solid '+c+'">'+_rReg.descripcion.substring(0,220)+(_rReg.descripcion.length>220?'…':'')+' </div>' : '')+
-      '<div style="font-size:10px;color:#6b85a8;margin-bottom:8px">'+_rReg.agente+' · '+_rReg.certeza+(_rReg.pertenece_ivc?' · <span style="color:#10b981;font-weight:700">&#127968; IVC</span>':'')+' </div>'+
+      '<div style="font-size:10px;color:#6b85a8;margin-bottom:8px">'+_rReg.agente+' · '+_rReg.certeza+(_rReg.pertenece_ivc&&window.USER&&(USER.puesto==='Gerencia'||USER.puesto==='Administrador'||USER.rol==='ADMIN')?' · <span style="color:#10b981;font-weight:700">&#127968; IVC</span>':'')+' </div>'+
       fotosHtml+
       '<button class="rbrb-popup-edit" type="button" '+
         'style="margin-top:8px;width:100%;padding:8px;background:rgba(37,99,235,.2);border:1px solid rgba(124,176,255,.4);'+
