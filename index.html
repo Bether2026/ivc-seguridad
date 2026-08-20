@@ -4610,6 +4610,26 @@ body {
                   </select>
                 </div>
 
+                <!-- Fotos -->
+                <div style="margin-bottom:16px">
+                  <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:6px">Fotos <span style="color:var(--text3);font-weight:400;text-transform:none">(opcional)</span></label>
+                  <div id="rbrb-plano-fotos-grid" style="display:none;grid-template-columns:repeat(auto-fill,80px);gap:6px;margin-bottom:8px"></div>
+                  <div style="display:flex;gap:8px">
+                    <label style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 12px;background:var(--bg2);
+                      border:1px dashed var(--border2);border-radius:10px;cursor:pointer">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;color:var(--text3)"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                      <span style="font-size:12px;color:var(--text2)">Galería</span>
+                      <input type="file" accept="image/*" multiple id="rbrb-plano-foto-input" style="display:none" onchange="rbrb_planoPreviewFotos(this)">
+                    </label>
+                    <label style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 12px;background:var(--bg2);
+                      border:1px dashed var(--border2);border-radius:10px;cursor:pointer">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:18px;height:18px;color:var(--text3)"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                      <span style="font-size:12px;color:var(--text2)">Cámara</span>
+                      <input type="file" accept="image/*" capture="environment" id="rbrb-plano-camara-input" style="display:none" onchange="rbrb_planoPreviewFotos(this)">
+                    </label>
+                  </div>
+                </div>
+
                 <!-- Botón guardar -->
                 <button id="rbrb-plano-guardar-btn" onclick="rbrb_planoGuardar()"
                   style="width:100%;padding:14px;border-radius:12px;border:none;background:#ef4444;
@@ -4617,6 +4637,21 @@ body {
                   💾 Guardar en plano
                 </button>
               </div>
+            </div>
+
+            <!-- MODAL AJUSTE PUNTO EN PLANO (post-guardado) -->
+            <div id="rbrb-plano-ajuste-modal" style="display:none;position:fixed;inset:0;z-index:9100;flex-direction:column;background:var(--bg)">
+              <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--bg2);border-bottom:1px solid var(--border)">
+                <div>
+                  <div style="font-size:13px;font-weight:800;color:var(--text)">📍 Ajustar punto en plano</div>
+                  <div style="font-size:11px;color:var(--text3);margin-top:2px">Arrastrá el marcador para afinar la posición exacta</div>
+                </div>
+                <button onclick="rbrb_planoAjusteClose()" style="padding:8px 16px;border-radius:10px;border:1px solid var(--border2);
+                  background:transparent;color:var(--text2);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">
+                  ✓ Listo
+                </button>
+              </div>
+              <div id="rbrb-plano-ajuste-mapa" style="flex:1;width:100%"></div>
             </div>
 
           </div><!-- /rbrb-content -->
@@ -28877,15 +28912,45 @@ window.rbrb_reagrupar = function() {
 
 // ══ PLANO RB — MAPA CRS.SIMPLE CON IMAGEN DEL BARRIO ══════════════════════
 
-var RBRB_PLANO_MAP = null;          // instancia Leaflet CRS.Simple
-var RBRB_PLANO_MARKERS = [];        // marcadores sobre el plano
-var RBRB_PLANO_PENDING = null;      // {x, y} del punto tocado, esperando modal
-var RBRB_PLANO_SUB = 'historico';   // subtab activo
-var RBRB_PLANO_IMG_W = 3308;        // ancho px de rb_plano.png a 200dpi
-var RBRB_PLANO_IMG_H = 2339;        // alto px de rb_plano.png a 200dpi
+var RBRB_PLANO_MAP = null;
+var RBRB_PLANO_MARKERS = [];
+var RBRB_PLANO_PENDING = null;
+var RBRB_PLANO_SUB = 'historico';
+var RBRB_PLANO_IMG_W = 3308;
+var RBRB_PLANO_IMG_H = 2339;
 var RBRB_PLANO_URL = '/rb_plano.png';
+var RBRB_PLANO_FOTOS_FILES = [];        // archivos foto pendientes
+var RBRB_PLANO_AJUSTE_MAP = null;       // mapa del modal de ajuste
+var RBRB_PLANO_AJUSTE_MARKER = null;    // marcador arrastrable en ajuste
+var RBRB_PLANO_AJUSTE_ID = null;        // id del registro a ajustar
 
-// Subtabs del plano
+// ── SVG ícono construcción (casa con tachado rojo) ──
+function rbrb_planoIcono() {
+  var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="36" height="42" viewBox="0 0 36 42">'
+    + '<filter id="sh"><feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="rgba(0,0,0,.5)"/></filter>'
+    + '<g filter="url(#sh)">'
+    // Pin rojo
+    + '<ellipse cx="18" cy="40" rx="5" ry="2" fill="rgba(0,0,0,.3)"/>'
+    + '<path d="M18 2C10.3 2 4 8.3 4 16c0 9 14 24 14 24S32 25 32 16C32 8.3 25.7 2 18 2z" fill="#ef4444"/>'
+    + '<path d="M18 2C10.3 2 4 8.3 4 16c0 9 14 24 14 24S32 25 32 16C32 8.3 25.7 2 18 2z" fill="none" stroke="#b91c1c" stroke-width="1.5"/>'
+    // Casa blanca
+    + '<path d="M9 18l9-8 9 8v10H9V18z" fill="#fff" opacity=".95"/>'
+    + '<rect x="14" y="21" width="4" height="5" fill="#ef4444" opacity=".7"/>'
+    // Cruz roja de alerta
+    + '<line x1="13" y1="13" x2="23" y2="23" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>'
+    + '<line x1="23" y1="13" x2="13" y2="23" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>'
+    + '</g>'
+    + '</svg>';
+  return L.divIcon({
+    className: '',
+    html: svg,
+    iconSize: [36, 42],
+    iconAnchor: [18, 40],
+    popupAnchor: [0, -38]
+  });
+}
+
+// ── Subtabs ──
 window.rbrb_planoSub = function(sub) {
   RBRB_PLANO_SUB = sub;
   var btnH = document.getElementById('rbrb-plano-sub-historico');
@@ -28902,7 +28967,7 @@ window.rbrb_planoSub = function(sub) {
   rbrb_planoFiltrarMarcadores();
 };
 
-// Inicializar mapa CRS.Simple con imagen del plano
+// ── Inicializar mapa CRS.Simple ──
 function rbrb_planoInit() {
   if (RBRB_PLANO_MAP) {
     setTimeout(function() { RBRB_PLANO_MAP.invalidateSize(); }, 80);
@@ -28912,9 +28977,7 @@ function rbrb_planoInit() {
   function _crear() {
     if (typeof L === 'undefined') { setTimeout(_crear, 300); return; }
     var loading = document.getElementById('rbrb-plano-loading');
-
     var bounds = [[0, 0], [RBRB_PLANO_IMG_H, RBRB_PLANO_IMG_W]];
-
     RBRB_PLANO_MAP = L.map('rbrb-plano-mapa', {
       crs: L.CRS.Simple,
       minZoom: -3,
@@ -28923,26 +28986,18 @@ function rbrb_planoInit() {
       attributionControl: false,
       zoomControl: true
     });
-
     L.imageOverlay(RBRB_PLANO_URL, bounds).addTo(RBRB_PLANO_MAP);
     RBRB_PLANO_MAP.fitBounds(bounds);
-    RBRB_PLANO_MAP.setMaxBounds(bounds.map(function(b) { return [b[0] - 200, b[1] - 200]; }).concat(bounds.map(function(b) { return [b[0] + 200, b[1] + 200]; })));
-
     if (loading) loading.style.display = 'none';
-
-    // Click en el plano → abrir modal
     RBRB_PLANO_MAP.on('click', function(e) {
       var x = Math.round(e.latlng.lng);
       var y = Math.round(e.latlng.lat);
-      // Ignorar clicks fuera de la imagen
       if (x < 0 || x > RBRB_PLANO_IMG_W || y < 0 || y > RBRB_PLANO_IMG_H) return;
       RBRB_PLANO_PENDING = { x: x, y: y };
       rbrb_planoModalOpen(x, y);
     });
-
     rbrb_planoRefrescar();
   }
-
   if (typeof L === 'undefined') {
     var _css = document.createElement('link');
     _css.rel = 'stylesheet'; _css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
@@ -28956,23 +29011,26 @@ function rbrb_planoInit() {
   }
 }
 
-// Abrir modal con coordenadas del punto tocado
+// ── Modal de carga ──
 window.rbrb_planoModalOpen = function(x, y) {
   var modal = document.getElementById('rbrb-plano-modal');
   if (!modal) return;
   var coords = document.getElementById('rbrb-plano-modal-coords');
-  if (coords) coords.textContent = 'Punto: x=' + x + ' y=' + y + ' · Subtab: ' + (RBRB_PLANO_SUB === 'historico' ? 'Barrio histórico' : 'Vivienda nueva');
-  // Reset campos
+  if (coords) coords.textContent = 'Punto: x=' + x + ' y=' + y + ' · ' + (RBRB_PLANO_SUB === 'historico' ? 'Barrio histórico' : 'Vivienda nueva');
+  var tipoEl = document.getElementById('rbrb-plano-tipo');
   var mzaEl = document.getElementById('rbrb-plano-mza');
   var ordenEl = document.getElementById('rbrb-plano-orden');
   var descEl = document.getElementById('rbrb-plano-desc');
   var certEl = document.getElementById('rbrb-plano-certeza');
-  var tipoEl = document.getElementById('rbrb-plano-tipo');
   if (tipoEl) tipoEl.value = 'Construcción indebida';
   if (mzaEl) mzaEl.value = '';
   if (ordenEl) ordenEl.value = '';
   if (descEl) descEl.value = '';
   if (certEl) certEl.value = 'Confirmado';
+  // Reset fotos
+  RBRB_PLANO_FOTOS_FILES = [];
+  var grid = document.getElementById('rbrb-plano-fotos-grid');
+  if (grid) { grid.innerHTML = ''; grid.style.display = 'none'; }
   modal.style.display = 'flex';
 };
 
@@ -28980,9 +29038,57 @@ window.rbrb_planoModalClose = function() {
   var modal = document.getElementById('rbrb-plano-modal');
   if (modal) modal.style.display = 'none';
   RBRB_PLANO_PENDING = null;
+  RBRB_PLANO_FOTOS_FILES = [];
 };
 
-// Guardar registro en relevamiento_rb desde el plano
+// ── Preview fotos ──
+window.rbrb_planoPreviewFotos = function(input) {
+  var files = Array.from(input.files || []);
+  if (!files.length) return;
+  files.forEach(function(f) { RBRB_PLANO_FOTOS_FILES.push(f); });
+  var grid = document.getElementById('rbrb-plano-fotos-grid');
+  if (!grid) return;
+  grid.style.display = 'grid';
+  grid.innerHTML = '';
+  RBRB_PLANO_FOTOS_FILES.forEach(function(f, idx) {
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      var cell = document.createElement('div');
+      cell.style.cssText = 'position:relative;width:80px;height:80px;border-radius:8px;overflow:hidden;border:1px solid var(--border)';
+      cell.innerHTML = '<img src="' + ev.target.result + '" style="width:100%;height:100%;object-fit:cover">'
+        + '<button onclick="rbrb_planoQuitarFoto(' + idx + ')" type="button" style="position:absolute;top:4px;right:4px;'
+        + 'background:rgba(0,0,0,.65);border:none;color:#fff;border-radius:50%;width:20px;height:20px;'
+        + 'font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">✕</button>';
+      grid.appendChild(cell);
+    };
+    reader.readAsDataURL(f);
+  });
+  input.value = '';
+};
+
+window.rbrb_planoQuitarFoto = function(idx) {
+  RBRB_PLANO_FOTOS_FILES.splice(idx, 1);
+  var grid = document.getElementById('rbrb-plano-fotos-grid');
+  if (grid) { grid.innerHTML = ''; if (!RBRB_PLANO_FOTOS_FILES.length) { grid.style.display = 'none'; return; } }
+  var saved = RBRB_PLANO_FOTOS_FILES.slice();
+  RBRB_PLANO_FOTOS_FILES = [];
+  saved.forEach(function(f, i) {
+    RBRB_PLANO_FOTOS_FILES.push(f);
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      var cell = document.createElement('div');
+      cell.style.cssText = 'position:relative;width:80px;height:80px;border-radius:8px;overflow:hidden;border:1px solid var(--border)';
+      cell.innerHTML = '<img src="' + ev.target.result + '" style="width:100%;height:100%;object-fit:cover">'
+        + '<button onclick="rbrb_planoQuitarFoto(' + i + ')" type="button" style="position:absolute;top:4px;right:4px;'
+        + 'background:rgba(0,0,0,.65);border:none;color:#fff;border-radius:50%;width:20px;height:20px;'
+        + 'font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1">✕</button>';
+      if (grid) grid.appendChild(cell);
+    };
+    reader.readAsDataURL(f);
+  });
+};
+
+// ── Guardar registro ──
 window.rbrb_planoGuardar = function() {
   if (!RBRB_PLANO_PENDING) { toast('No hay punto seleccionado', 'err'); return; }
   var descEl = document.getElementById('rbrb-plano-desc');
@@ -28993,7 +29099,6 @@ window.rbrb_planoGuardar = function() {
   var desc = (descEl ? descEl.value : '').trim();
   if (!desc) { toast('Agregá una descripción', 'err'); return; }
   var tipo = (tipoEl ? tipoEl.value : '') || 'Construcción indebida';
-
   var payload = {
     barrio: 'Rodrigo Bueno',
     manzana: mzaEl ? mzaEl.value.trim() : '',
@@ -29010,77 +29115,160 @@ window.rbrb_planoGuardar = function() {
 
   var btn = document.getElementById('rbrb-plano-guardar-btn');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Guardando...'; }
+  function restaurarBtn() { if (btn) { btn.disabled = false; btn.textContent = '💾 Guardar en plano'; } }
 
-  function restaurarBtn() {
-    if (btn) { btn.disabled = false; btn.textContent = '💾 Guardar en plano'; }
+  var pendingCoords = { x: RBRB_PLANO_PENDING.x, y: RBRB_PLANO_PENDING.y };
+  var files = RBRB_PLANO_FOTOS_FILES.slice();
+
+  function guardarConUrls(urls) {
+    if (urls.length === 1) { payload.foto_url = urls[0]; }
+    else if (urls.length > 1) { payload.foto_url = urls[0]; payload.fotos_urls = JSON.stringify(urls); }
+    db.from('relevamiento_rb').insert(payload).select().then(function(res) {
+      if (res.error) { restaurarBtn(); toast('Error: ' + res.error.message, 'err'); return; }
+      var newId = res.data && res.data[0] ? res.data[0].id : null;
+      toast('✓ Registro guardado', 'ok');
+      rbrb_planoModalClose();
+      restaurarBtn();
+      rbrb_cargarDatos();
+      // Abrir ajuste de punto inmediatamente
+      if (newId) {
+        setTimeout(function() { rbrb_planoAjusteOpen(newId, pendingCoords.x, pendingCoords.y); }, 400);
+      }
+    }).catch(function(e) {
+      restaurarBtn();
+      toast('Error inesperado al guardar', 'err');
+      console.error('[RBRB-PLANO] guardar:', e);
+    });
   }
 
-  db.from('relevamiento_rb').insert(payload).select().then(function(res) {
-    if (res.error) { restaurarBtn(); toast('Error: ' + res.error.message, 'err'); return; }
-    toast('✓ Registro guardado en plano', 'ok');
-    rbrb_planoModalClose();
-    restaurarBtn();
-    // Recargar datos y refrescar marcadores
-    rbrb_cargarDatos();
-  }).catch(function(e) {
-    restaurarBtn();
-    toast('Error inesperado al guardar', 'err');
-    console.error('[RBRB-PLANO] guardar:', e);
-  });
+  if (files.length) {
+    if (btn) btn.textContent = '⏳ Subiendo fotos...';
+    var promesas = files.map(function(f) {
+      return uploadToR2Comprimido(f, 'relevamiento_rb').catch(function() { return null; });
+    });
+    Promise.all(promesas).then(function(urls) {
+      guardarConUrls(urls.filter(Boolean));
+    });
+  } else {
+    guardarConUrls([]);
+  }
 };
 
-// Refrescar marcadores desde RBRB_REGISTROS (ya cargados)
+// ── Modal ajuste de punto sobre el plano ──
+window.rbrb_planoAjusteOpen = function(registroId, x, y) {
+  RBRB_PLANO_AJUSTE_ID = registroId;
+  var modal = document.getElementById('rbrb-plano-ajuste-modal');
+  if (!modal) return;
+  modal.style.display = 'flex';
+
+  function _initAjuste() {
+    if (typeof L === 'undefined') { setTimeout(_initAjuste, 300); return; }
+    var contenedor = document.getElementById('rbrb-plano-ajuste-mapa');
+    if (!contenedor) return;
+
+    // Destruir instancia anterior si existe
+    if (RBRB_PLANO_AJUSTE_MAP) {
+      try { RBRB_PLANO_AJUSTE_MAP.remove(); } catch(e) {}
+      RBRB_PLANO_AJUSTE_MAP = null;
+      RBRB_PLANO_AJUSTE_MARKER = null;
+    }
+
+    var bounds = [[0, 0], [RBRB_PLANO_IMG_H, RBRB_PLANO_IMG_W]];
+    RBRB_PLANO_AJUSTE_MAP = L.map('rbrb-plano-ajuste-mapa', {
+      crs: L.CRS.Simple,
+      minZoom: -2,
+      maxZoom: 2,
+      zoomSnap: 0.25,
+      attributionControl: false,
+      zoomControl: true
+    });
+    L.imageOverlay(RBRB_PLANO_URL, bounds).addTo(RBRB_PLANO_AJUSTE_MAP);
+
+    // Centrar en el punto con zoom más cercano
+    RBRB_PLANO_AJUSTE_MAP.setView([y, x], 0);
+
+    // Marcador arrastrable con ícono rojo
+    RBRB_PLANO_AJUSTE_MARKER = L.marker([y, x], {
+      icon: rbrb_planoIcono(),
+      draggable: true
+    }).addTo(RBRB_PLANO_AJUSTE_MAP);
+
+    RBRB_PLANO_AJUSTE_MARKER.bindTooltip('Arrastrá para ajustar', { permanent: true, direction: 'top', offset: [0, -38] }).openTooltip();
+  }
+
+  setTimeout(_initAjuste, 150);
+};
+
+window.rbrb_planoAjusteClose = function() {
+  var modal = document.getElementById('rbrb-plano-ajuste-modal');
+  if (modal) modal.style.display = 'none';
+
+  // Guardar nueva posición si el marcador fue movido
+  if (RBRB_PLANO_AJUSTE_ID && RBRB_PLANO_AJUSTE_MARKER) {
+    var ll = RBRB_PLANO_AJUSTE_MARKER.getLatLng();
+    var newX = Math.round(ll.lng);
+    var newY = Math.round(ll.lat);
+    db.from('relevamiento_rb')
+      .update({ lat: newY, lng: newX })
+      .eq('id', RBRB_PLANO_AJUSTE_ID)
+      .then(function(res) {
+        if (!res.error) {
+          toast('📍 Posición actualizada', 'ok');
+          rbrb_cargarDatos();
+        }
+      });
+  }
+
+  if (RBRB_PLANO_AJUSTE_MAP) {
+    try { RBRB_PLANO_AJUSTE_MAP.remove(); } catch(e) {}
+    RBRB_PLANO_AJUSTE_MAP = null;
+    RBRB_PLANO_AJUSTE_MARKER = null;
+  }
+  RBRB_PLANO_AJUSTE_ID = null;
+};
+
+// ── Refrescar marcadores desde RBRB_REGISTROS ──
 function rbrb_planoRefrescar() {
   if (!RBRB_PLANO_MAP) return;
-  // Limpiar marcadores previos
   RBRB_PLANO_MARKERS.forEach(function(m) { RBRB_PLANO_MAP.removeLayer(m); });
   RBRB_PLANO_MARKERS = [];
-
-  // Solo registros con fuente='Plano RB'
   var registros = (RBRB_REGISTROS || []).filter(function(r) {
     return r.fuente === 'Plano RB' && r.lat != null && r.lng != null;
   });
-
   registros.forEach(function(r) {
     var x = parseFloat(r.lng);
     var y = parseFloat(r.lat);
     if (isNaN(x) || isNaN(y)) return;
-
-    var svgIcon = L.divIcon({
-      className: '',
-      html: '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24">'
-        + '<circle cx="12" cy="12" r="10" fill="#ef4444" opacity=".9"/>'
-        + '<path d="M13.7 2.3L12 1 5 5v6c0 4.2 3 7.7 7 8.9 4-1.2 7-4.7 7-8.9V5l-5.3-2.7zm-1.7 9.7H9V10h3V7h2v3h3v2h-3v3h-2v-3z" fill="#fff"/>'
-        + '</svg>',
-      iconSize: [28, 28],
-      iconAnchor: [14, 14]
-    });
-
-    var marker = L.marker([y, x], { icon: svgIcon })
-      .addTo(RBRB_PLANO_MAP);
-
-    // Popup con info del registro
+    var marker = L.marker([y, x], { icon: rbrb_planoIcono() }).addTo(RBRB_PLANO_MAP);
     var certColor = r.certeza === 'Confirmado' ? '#22c55e' : r.certeza === 'Resuelto' ? '#06b6d4' : '#f59e0b';
-    var popupHtml = '<div style="font-family:system-ui;min-width:180px;max-width:240px">'
-      + '<div style="font-weight:700;font-size:13px;margin-bottom:4px">🏗 Construcción indebida</div>'
+    var fotos = '';
+    if (r.foto_url) {
+      var urls = r.fotos_urls ? JSON.parse(r.fotos_urls) : [r.foto_url];
+      fotos = '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px">';
+      urls.forEach(function(u) {
+        fotos += '<img src="' + u + '" style="width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid #334155;cursor:pointer" onclick="window.open(\'' + u + '\',\'_blank\')">';
+      });
+      fotos += '</div>';
+    }
+    var popupHtml = '<div style="font-family:system-ui;min-width:190px;max-width:250px">'
+      + '<div style="font-weight:700;font-size:13px;margin-bottom:4px;color:#ef4444">🏗 ' + (r.tipo || 'Construcción indebida') + '</div>'
       + (r.manzana ? '<div style="font-size:11px;color:#64748b;margin-bottom:2px">📦 ' + r.manzana + (r.orden ? ' · Ord ' + r.orden : '') + '</div>' : '')
-      + '<div style="font-size:12px;margin:6px 0">' + (r.descripcion || '') + '</div>'
-      + '<div style="font-size:10px;color:#94a3b8;margin-bottom:4px">👤 ' + (r.agente || '—') + '</div>'
-      + '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:' + certColor + '22;color:' + certColor + '">'
-      + (r.certeza || '') + '</span>'
+      + '<div style="font-size:12px;margin:6px 0;color:#e2e8f0">' + (r.descripcion || '') + '</div>'
+      + '<div style="font-size:10px;color:#94a3b8;margin-bottom:6px">👤 ' + (r.agente || '—') + '</div>'
+      + '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:' + certColor + '22;color:' + certColor + '">' + (r.certeza || '') + '</span>'
+      + fotos
+      + '<div style="margin-top:8px">'
+      + '<button onclick="rbrb_planoAjusteOpen(\'' + r.id + '\',' + x + ',' + y + ')" style="font-size:11px;padding:5px 10px;border-radius:7px;border:1px solid #334155;background:transparent;color:#7cb0ff;cursor:pointer;font-family:system-ui;font-weight:700">📍 Ajustar punto</button>'
+      + '</div>'
       + '</div>';
-
-    marker.bindPopup(popupHtml, { maxWidth: 260 });
-
+    marker.bindPopup(popupHtml, { maxWidth: 270 });
     marker._rbPlanoSector = r.sector;
     RBRB_PLANO_MARKERS.push(marker);
   });
-
-  // Actualizar contador
   rbrb_planoFiltrarMarcadores();
 }
 
-// Filtrar marcadores por subtab activo
+// ── Filtrar por subtab ──
 function rbrb_planoFiltrarMarcadores() {
   var sectorActivo = RBRB_PLANO_SUB === 'historico' ? 'Barrio historico' : 'Vivienda nueva';
   var visibles = 0;
@@ -29093,17 +29281,15 @@ function rbrb_planoFiltrarMarcadores() {
   if (cnt) cnt.textContent = visibles + (visibles === 1 ? ' registro' : ' registros');
 }
 
-// Hook en rbrb_cargarDatos para refrescar el plano también
+// ── Hook en cargarDatos para refrescar el plano ──
 var _rbrb_cargarDatos_orig = window.rbrb_cargarDatos;
 window.rbrb_cargarDatos = function() {
   if (_rbrb_cargarDatos_orig) _rbrb_cargarDatos_orig.apply(this, arguments);
-  // Refrescar plano si ya fue inicializado
-  if (RBRB_PLANO_MAP) {
-    setTimeout(rbrb_planoRefrescar, 800);
-  }
+  if (RBRB_PLANO_MAP) { setTimeout(rbrb_planoRefrescar, 800); }
 };
 
 // ══ FIN PLANO RB ══════════════════════════════════════════════════════════
+
 
 })(); // fin IIFE RBRB
 // fin MÓDULO RELEVAMIENTO RB
