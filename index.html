@@ -27953,6 +27953,7 @@ window.rbrb_cargarDatos = function rbrb_cargarDatos() {
       if (btn) btn.textContent = '📋 Listado (' + RBRB_REGISTROS.length + ')';
       rbrb_renderLista();
       if (RBRB_MAP_INIT) { rbrb_buildMapaFilters(); rbrb_actualizarMapa(); }
+      if (RBRB_PLANO_MAP) { setTimeout(rbrb_planoRefrescar, 500); }
     });
 }
 
@@ -29304,13 +29305,6 @@ function rbrb_planoFiltrarMarcadores() {
   var cnt = document.getElementById('rbrb-plano-count');
   if (cnt) cnt.textContent = visibles + (visibles === 1 ? ' registro' : ' registros');
 }
-
-// ── Hook en cargarDatos para refrescar el plano ──
-var _rbrb_cargarDatos_orig = window.rbrb_cargarDatos;
-window.rbrb_cargarDatos = function() {
-  if (_rbrb_cargarDatos_orig) _rbrb_cargarDatos_orig.apply(this, arguments);
-  if (RBRB_PLANO_MAP) { setTimeout(rbrb_planoRefrescar, 800); }
-};
 
 // ══ FIN PLANO RB ══════════════════════════════════════════════════════════
 
