@@ -4254,6 +4254,9 @@ body {
               <button class="tab" id="rbrb-tab-lista" onclick="rbrb_tab('lista',this)" style="flex:1;padding:12px;font-size:12px;font-weight:700">
                 📋 Listado
               </button>
+              <button class="tab" id="rbrb-tab-plano" onclick="rbrb_tab('plano',this)" style="flex:1;padding:12px;font-size:12px;font-weight:700">
+                🏗 Plano RB
+              </button>
               <button class="tab" id="rbrb-tab-audit" onclick="rbrb_tab('audit',this)" style="flex:1;padding:12px;font-size:12px;font-weight:700;display:none">
                 🕓 Auditoría
               </button>
@@ -4504,6 +4507,112 @@ body {
               </div>
               <div id="rbrb-audit-count" style="font-size:12px;color:var(--text3);margin-bottom:12px"></div>
               <div id="rbrb-audit-items" style="display:flex;flex-direction:column;gap:10px"></div>
+            </div>
+
+            <!-- TAB: PLANO RB (Construcciones indebidas - CRS.Simple) -->
+            <div id="rbrb-panel-plano" style="display:none;flex-direction:column;height:calc(100vh - 96px)">
+
+              <!-- Subtabs: Barrio histórico / Vivienda nueva -->
+              <div style="display:flex;border-bottom:1px solid var(--border);background:var(--bg3)">
+                <button id="rbrb-plano-sub-historico" onclick="rbrb_planoSub('historico')"
+                  style="flex:1;padding:10px;font-size:11px;font-weight:700;background:var(--accent,#2563eb);color:#fff;border:none;cursor:pointer;font-family:var(--font);border-bottom:2px solid var(--accent,#2563eb)">
+                  🏘 Barrio Histórico
+                </button>
+                <button id="rbrb-plano-sub-nueva" onclick="rbrb_planoSub('nueva')"
+                  style="flex:1;padding:10px;font-size:11px;font-weight:700;background:transparent;color:var(--text2);border:none;cursor:pointer;font-family:var(--font);border-bottom:2px solid transparent">
+                  🏢 Vivienda Nueva
+                </button>
+              </div>
+
+              <!-- Info bar -->
+              <div id="rbrb-plano-infobar" style="padding:8px 14px;background:rgba(239,68,68,.08);border-bottom:1px solid rgba(239,68,68,.2);
+                font-size:11px;color:#fca5a5;display:flex;align-items:center;gap:8px">
+                <span>📌</span>
+                <span>Tocá un punto en el plano para registrar una construcción indebida</span>
+                <span id="rbrb-plano-count" style="margin-left:auto;background:rgba(239,68,68,.2);padding:2px 8px;border-radius:10px;font-weight:700;color:#ef4444"></span>
+              </div>
+
+              <!-- Mapa CRS.Simple -->
+              <div style="flex:1;position:relative;overflow:hidden">
+                <div id="rbrb-plano-mapa" style="width:100%;height:100%"></div>
+                <div id="rbrb-plano-loading" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+                  background:var(--bg2);gap:12px;font-size:13px;color:var(--text3)">
+                  <div style="font-size:28px">🗺</div>
+                  <div>Cargando plano...</div>
+                </div>
+              </div>
+
+            </div>
+
+            <!-- MODAL: Registrar construcción indebida desde plano -->
+            <div id="rbrb-plano-modal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.7);
+              align-items:flex-end;justify-content:center">
+              <div style="background:var(--bg);border-radius:18px 18px 0 0;width:100%;max-width:520px;padding:20px;
+                max-height:85vh;overflow-y:auto;box-shadow:0 -4px 40px rgba(0,0,0,.5)">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+                  <div>
+                    <div style="font-size:14px;font-weight:800;color:var(--text)">🏗 Nueva construcción indebida</div>
+                    <div style="font-size:11px;color:var(--text3);margin-top:2px" id="rbrb-plano-modal-coords"></div>
+                  </div>
+                  <button onclick="rbrb_planoModalClose()" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--border2);
+                    background:var(--bg2);color:var(--text2);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">×</button>
+                </div>
+
+                <!-- Manzana -->
+                <div style="margin-bottom:12px">
+                  <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:6px">Manzana</label>
+                  <select id="rbrb-plano-mza" style="width:100%;padding:11px;border-radius:10px;border:1px solid var(--border2);
+                    background:var(--bg2);color:var(--text);font-family:var(--font);font-size:13px">
+                    <option value="">— Seleccionar —</option>
+                    <option value="Mz1">Mz1</option>
+                    <option value="Mz2a">Mz2a</option>
+                    <option value="Mz2b">Mz2b</option>
+                    <option value="Mz3">Mz3</option>
+                    <option value="Mz4a">Mz4a</option>
+                    <option value="Mz4b">Mz4b</option>
+                    <option value="Mc1">Mc1</option>
+                    <option value="Mc2">Mc2</option>
+                    <option value="Mc3">Mc3</option>
+                    <option value="Mc4">Mc4</option>
+                    <option value="Vivienda nueva">Vivienda nueva</option>
+                    <option value="Otro">Otro</option>
+                  </select>
+                </div>
+
+                <!-- Orden / Nro -->
+                <div style="margin-bottom:12px">
+                  <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:6px">Nro. de orden / vivienda</label>
+                  <input id="rbrb-plano-orden" type="text" inputmode="numeric" placeholder="Ej: 3, 15, 4A..."
+                    style="width:100%;padding:11px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);
+                    color:var(--text);font-family:var(--font);font-size:13px">
+                </div>
+
+                <!-- Descripción -->
+                <div style="margin-bottom:12px">
+                  <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:6px">Descripción <span style="color:#ef4444">*</span></label>
+                  <textarea id="rbrb-plano-desc" rows="3" placeholder="Describí la construcción indebida..."
+                    style="width:100%;padding:11px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);
+                    color:var(--text);font-family:var(--font);font-size:13px;resize:none"></textarea>
+                </div>
+
+                <!-- Certeza -->
+                <div style="margin-bottom:16px">
+                  <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:6px">Certeza</label>
+                  <select id="rbrb-plano-certeza" style="width:100%;padding:11px;border-radius:10px;border:1px solid var(--border2);
+                    background:var(--bg2);color:var(--text);font-family:var(--font);font-size:13px">
+                    <option value="A verificar">A verificar</option>
+                    <option value="Confirmado">Confirmado</option>
+                    <option value="Resuelto">Resuelto</option>
+                  </select>
+                </div>
+
+                <!-- Botón guardar -->
+                <button id="rbrb-plano-guardar-btn" onclick="rbrb_planoGuardar()"
+                  style="width:100%;padding:14px;border-radius:12px;border:none;background:#ef4444;
+                  color:#fff;font-family:var(--font);font-size:14px;font-weight:800;cursor:pointer">
+                  💾 Guardar en plano
+                </button>
+              </div>
             </div>
 
           </div><!-- /rbrb-content -->
@@ -27291,10 +27400,10 @@ window.rbrb_tab = function(name, btn) {
     rbrb_limpiarForm();
   }
   RBRB_SKIP_CLEAR = false;
-  ['form','mapa','lista','audit'].forEach(function(t) {
+  ['form','mapa','lista','audit','plano'].forEach(function(t) {
     var p = document.getElementById('rbrb-panel-'+t);
     var b = document.getElementById('rbrb-tab-'+t);
-    if (p) p.style.display = (t === name) ? 'block' : 'none';
+    if (p) p.style.display = (t === name) ? (t === 'plano' ? 'flex' : 'block') : 'none';
     if (b) b.classList.toggle('active', t === name);
   });
   if (name === 'mapa') {
@@ -27326,6 +27435,7 @@ window.rbrb_tab = function(name, btn) {
   if (name === 'form') { rbrb_renderTipoSel(); rbrb_mostrarCampoIVC(); }
   if (name === 'lista') rbrb_renderLista();
   if (name === 'audit') rbrb_cargarAudit();
+  if (name === 'plano') { rbrb_planoInit(); }
 };
 
 // ── TIPOS multi-selección ──
@@ -28760,6 +28870,234 @@ window.rbrb_reagrupar = function() {
   toast('🔁 Posiciones reales restauradas', 'ok');
 };
 
+
+// ══ PLANO RB — MAPA CRS.SIMPLE CON IMAGEN DEL BARRIO ══════════════════════
+
+var RBRB_PLANO_MAP = null;          // instancia Leaflet CRS.Simple
+var RBRB_PLANO_MARKERS = [];        // marcadores sobre el plano
+var RBRB_PLANO_PENDING = null;      // {x, y} del punto tocado, esperando modal
+var RBRB_PLANO_SUB = 'historico';   // subtab activo
+var RBRB_PLANO_IMG_W = 3308;        // ancho px de rb_plano.png a 200dpi
+var RBRB_PLANO_IMG_H = 2339;        // alto px de rb_plano.png a 200dpi
+var RBRB_PLANO_URL = '/rb_plano.png';
+
+// Subtabs del plano
+window.rbrb_planoSub = function(sub) {
+  RBRB_PLANO_SUB = sub;
+  var btnH = document.getElementById('rbrb-plano-sub-historico');
+  var btnN = document.getElementById('rbrb-plano-sub-nueva');
+  if (btnH && btnN) {
+    if (sub === 'historico') {
+      btnH.style.background = 'var(--accent,#2563eb)'; btnH.style.color = '#fff'; btnH.style.borderBottom = '2px solid var(--accent,#2563eb)';
+      btnN.style.background = 'transparent'; btnN.style.color = 'var(--text2)'; btnN.style.borderBottom = '2px solid transparent';
+    } else {
+      btnN.style.background = 'var(--accent,#2563eb)'; btnN.style.color = '#fff'; btnN.style.borderBottom = '2px solid var(--accent,#2563eb)';
+      btnH.style.background = 'transparent'; btnH.style.color = 'var(--text2)'; btnH.style.borderBottom = '2px solid transparent';
+    }
+  }
+  rbrb_planoFiltrarMarcadores();
+};
+
+// Inicializar mapa CRS.Simple con imagen del plano
+function rbrb_planoInit() {
+  if (RBRB_PLANO_MAP) {
+    setTimeout(function() { RBRB_PLANO_MAP.invalidateSize(); }, 80);
+    rbrb_planoRefrescar();
+    return;
+  }
+  function _crear() {
+    if (typeof L === 'undefined') { setTimeout(_crear, 300); return; }
+    var loading = document.getElementById('rbrb-plano-loading');
+
+    var bounds = [[0, 0], [RBRB_PLANO_IMG_H, RBRB_PLANO_IMG_W]];
+
+    RBRB_PLANO_MAP = L.map('rbrb-plano-mapa', {
+      crs: L.CRS.Simple,
+      minZoom: -3,
+      maxZoom: 2,
+      zoomSnap: 0.25,
+      attributionControl: false,
+      zoomControl: true
+    });
+
+    L.imageOverlay(RBRB_PLANO_URL, bounds).addTo(RBRB_PLANO_MAP);
+    RBRB_PLANO_MAP.fitBounds(bounds);
+    RBRB_PLANO_MAP.setMaxBounds(bounds.map(function(b) { return [b[0] - 200, b[1] - 200]; }).concat(bounds.map(function(b) { return [b[0] + 200, b[1] + 200]; })));
+
+    if (loading) loading.style.display = 'none';
+
+    // Click en el plano → abrir modal
+    RBRB_PLANO_MAP.on('click', function(e) {
+      var x = Math.round(e.latlng.lng);
+      var y = Math.round(e.latlng.lat);
+      // Ignorar clicks fuera de la imagen
+      if (x < 0 || x > RBRB_PLANO_IMG_W || y < 0 || y > RBRB_PLANO_IMG_H) return;
+      RBRB_PLANO_PENDING = { x: x, y: y };
+      rbrb_planoModalOpen(x, y);
+    });
+
+    rbrb_planoRefrescar();
+  }
+
+  if (typeof L === 'undefined') {
+    var _css = document.createElement('link');
+    _css.rel = 'stylesheet'; _css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    document.head.appendChild(_css);
+    var _js = document.createElement('script');
+    _js.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    _js.onload = _crear;
+    document.head.appendChild(_js);
+  } else {
+    _crear();
+  }
+}
+
+// Abrir modal con coordenadas del punto tocado
+window.rbrb_planoModalOpen = function(x, y) {
+  var modal = document.getElementById('rbrb-plano-modal');
+  if (!modal) return;
+  var coords = document.getElementById('rbrb-plano-modal-coords');
+  if (coords) coords.textContent = 'Punto: x=' + x + ' y=' + y + ' · Subtab: ' + (RBRB_PLANO_SUB === 'historico' ? 'Barrio histórico' : 'Vivienda nueva');
+  // Reset campos
+  var mzaEl = document.getElementById('rbrb-plano-mza');
+  var ordenEl = document.getElementById('rbrb-plano-orden');
+  var descEl = document.getElementById('rbrb-plano-desc');
+  var certEl = document.getElementById('rbrb-plano-certeza');
+  if (mzaEl) mzaEl.value = '';
+  if (ordenEl) ordenEl.value = '';
+  if (descEl) descEl.value = '';
+  if (certEl) certEl.value = 'A verificar';
+  modal.style.display = 'flex';
+};
+
+window.rbrb_planoModalClose = function() {
+  var modal = document.getElementById('rbrb-plano-modal');
+  if (modal) modal.style.display = 'none';
+  RBRB_PLANO_PENDING = null;
+};
+
+// Guardar registro en relevamiento_rb desde el plano
+window.rbrb_planoGuardar = function() {
+  if (!RBRB_PLANO_PENDING) { toast('No hay punto seleccionado', 'err'); return; }
+  var descEl = document.getElementById('rbrb-plano-desc');
+  var mzaEl = document.getElementById('rbrb-plano-mza');
+  var ordenEl = document.getElementById('rbrb-plano-orden');
+  var certEl = document.getElementById('rbrb-plano-certeza');
+  var desc = (descEl ? descEl.value : '').trim();
+  if (!desc) { toast('Agregá una descripción', 'err'); return; }
+
+  var sector = RBRB_PLANO_SUB === 'historico' ? 'Barrio historico' : 'Vivienda nueva';
+  var payload = {
+    barrio: 'Rodrigo Bueno',
+    manzana: mzaEl ? mzaEl.value : '',
+    orden: ordenEl ? ordenEl.value.trim() : '',
+    tipo: 'Construcción indebida',
+    descripcion: desc,
+    fuente: 'Plano RB',
+    certeza: certEl ? certEl.value : 'A verificar',
+    sector: sector,
+    lat: RBRB_PLANO_PENDING.y,  // coordenadas de píxel guardadas en lat/lng
+    lng: RBRB_PLANO_PENDING.x,
+    agente: window.USER ? (USER.nombre || USER.puesto) : 'Desconocido',
+    created_at: new Date().toISOString()
+  };
+
+  var btn = document.getElementById('rbrb-plano-guardar-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Guardando...'; }
+
+  function restaurarBtn() {
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Guardar en plano'; }
+  }
+
+  db.from('relevamiento_rb').insert(payload).select().then(function(res) {
+    if (res.error) { restaurarBtn(); toast('Error: ' + res.error.message, 'err'); return; }
+    toast('✓ Registro guardado en plano', 'ok');
+    rbrb_planoModalClose();
+    restaurarBtn();
+    // Recargar datos y refrescar marcadores
+    rbrb_cargarDatos();
+  }).catch(function(e) {
+    restaurarBtn();
+    toast('Error inesperado al guardar', 'err');
+    console.error('[RBRB-PLANO] guardar:', e);
+  });
+};
+
+// Refrescar marcadores desde RBRB_REGISTROS (ya cargados)
+function rbrb_planoRefrescar() {
+  if (!RBRB_PLANO_MAP) return;
+  // Limpiar marcadores previos
+  RBRB_PLANO_MARKERS.forEach(function(m) { RBRB_PLANO_MAP.removeLayer(m); });
+  RBRB_PLANO_MARKERS = [];
+
+  // Solo registros con fuente='Plano RB'
+  var registros = (RBRB_REGISTROS || []).filter(function(r) {
+    return r.fuente === 'Plano RB' && r.lat != null && r.lng != null;
+  });
+
+  registros.forEach(function(r) {
+    var x = parseFloat(r.lng);
+    var y = parseFloat(r.lat);
+    if (isNaN(x) || isNaN(y)) return;
+
+    var svgIcon = L.divIcon({
+      className: '',
+      html: '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24">'
+        + '<circle cx="12" cy="12" r="10" fill="#ef4444" opacity=".9"/>'
+        + '<path d="M13.7 2.3L12 1 5 5v6c0 4.2 3 7.7 7 8.9 4-1.2 7-4.7 7-8.9V5l-5.3-2.7zm-1.7 9.7H9V10h3V7h2v3h3v2h-3v3h-2v-3z" fill="#fff"/>'
+        + '</svg>',
+      iconSize: [28, 28],
+      iconAnchor: [14, 14]
+    });
+
+    var marker = L.marker([y, x], { icon: svgIcon })
+      .addTo(RBRB_PLANO_MAP);
+
+    // Popup con info del registro
+    var certColor = r.certeza === 'Confirmado' ? '#22c55e' : r.certeza === 'Resuelto' ? '#06b6d4' : '#f59e0b';
+    var popupHtml = '<div style="font-family:system-ui;min-width:180px;max-width:240px">'
+      + '<div style="font-weight:700;font-size:13px;margin-bottom:4px">🏗 Construcción indebida</div>'
+      + (r.manzana ? '<div style="font-size:11px;color:#64748b;margin-bottom:2px">📦 ' + r.manzana + (r.orden ? ' · Ord ' + r.orden : '') + '</div>' : '')
+      + '<div style="font-size:12px;margin:6px 0">' + (r.descripcion || '') + '</div>'
+      + '<div style="font-size:10px;color:#94a3b8;margin-bottom:4px">👤 ' + (r.agente || '—') + '</div>'
+      + '<span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:' + certColor + '22;color:' + certColor + '">'
+      + (r.certeza || '') + '</span>'
+      + '</div>';
+
+    marker.bindPopup(popupHtml, { maxWidth: 260 });
+
+    marker._rbPlanoSector = r.sector;
+    RBRB_PLANO_MARKERS.push(marker);
+  });
+
+  // Actualizar contador
+  rbrb_planoFiltrarMarcadores();
+}
+
+// Filtrar marcadores por subtab activo
+function rbrb_planoFiltrarMarcadores() {
+  var sectorActivo = RBRB_PLANO_SUB === 'historico' ? 'Barrio historico' : 'Vivienda nueva';
+  var visibles = 0;
+  RBRB_PLANO_MARKERS.forEach(function(m) {
+    var show = (!m._rbPlanoSector) || m._rbPlanoSector === sectorActivo;
+    if (show) { if (!RBRB_PLANO_MAP.hasLayer(m)) RBRB_PLANO_MAP.addLayer(m); visibles++; }
+    else { if (RBRB_PLANO_MAP.hasLayer(m)) RBRB_PLANO_MAP.removeLayer(m); }
+  });
+  var cnt = document.getElementById('rbrb-plano-count');
+  if (cnt) cnt.textContent = visibles + (visibles === 1 ? ' registro' : ' registros');
+}
+
+// Hook en rbrb_cargarDatos para refrescar el plano también
+var _rbrb_cargarDatos_orig = window.rbrb_cargarDatos;
+window.rbrb_cargarDatos = function() {
+  if (_rbrb_cargarDatos_orig) _rbrb_cargarDatos_orig.apply(this, arguments);
+  // Refrescar plano si ya fue inicializado
+  if (RBRB_PLANO_MAP) {
+    setTimeout(rbrb_planoRefrescar, 800);
+  }
+};
+
+// ══ FIN PLANO RB ══════════════════════════════════════════════════════════
 
 })(); // fin IIFE RBRB
 // fin MÓDULO RELEVAMIENTO RB
