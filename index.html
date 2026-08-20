@@ -28237,19 +28237,13 @@ function rbrb_buildItems() {
       var c = rbrb_colorDe(r.tipo);
       var certColor = r.certeza==='Confirmado'?'#10b981':'#ef4444';
       var fecha = r.created_at ? r.created_at.substring(0,10) : '';
-      var _gpsOk = r._gps_ajustado ? ' <span style=\"color:#10b981;font-weight:700\" title=\"GPS ajustado\">✓</span>' : '';
+      var _gpsOk = r._gps_ajustado ? ' <span style="color:#10b981;font-weight:700" title="GPS ajustado">✓</span>' : '';
       var _esPlanoRB = r.fuente && r.fuente.indexOf('Plano RB') === 0;
       var gpsLink = _esPlanoRB
-        ? '<button type=\"button\" '+
-          'onclick=\"rbrb_planoAjusteOpen(\\'' + r.id + '\\',' + parseFloat(r.lng||0) + ',' + parseFloat(r.lat||0) + ')\" '+
-          'style=\"font-size:10px;color:#ef4444;background:transparent;border:none;cursor:pointer;padding:0;font-family:var(--font,-apple-system);font-weight:700\">🏗 Ajustar en plano</button>'
+        ? '<button type="button" onclick="rbrb_planoAjusteOpen(\'' + r.id + '\',' + parseFloat(r.lng||0) + ',' + parseFloat(r.lat||0) + ')" style="font-size:10px;color:#ef4444;background:transparent;border:none;cursor:pointer;padding:0;font-family:var(--font,-apple-system);font-weight:700">🏗 Ajustar en plano</button>'
         : (r.lat&&r.lng)
-          ? '<button type=\"button\" data-rid=\"'+r.id+'\" data-lat=\"'+r.lat+'\" data-lng=\"'+r.lng+'\" '+
-            'onclick=\"rbrb_abrirAjusteGPS(this)\" '+
-            'style=\"font-size:10px;color:var(--accent3);background:transparent;border:none;cursor:pointer;padding:0;font-family:var(--font,-apple-system)\">📍 Ajustar mapa</button>'+_gpsOk
-          : '<button type=\"button\" data-rid=\"'+r.id+'\" data-lat=\"-34.6142\" data-lng=\"-58.3598\" '+
-            'onclick=\"rbrb_abrirAjusteGPS(this)\" '+
-            'style=\"font-size:10px;color:var(--text3);background:transparent;border:none;cursor:pointer;padding:0;font-family:var(--font,-apple-system)\">📍 Sin GPS · agregar</button>';
+          ? '<button type="button" data-rid="'+r.id+'" data-lat="'+r.lat+'" data-lng="'+r.lng+'" onclick="rbrb_abrirAjusteGPS(this)" style="font-size:10px;color:var(--accent3);background:transparent;border:none;cursor:pointer;padding:0;font-family:var(--font,-apple-system)">📍 Ajustar mapa</button>'+_gpsOk
+          : '<button type="button" data-rid="'+r.id+'" data-lat="-34.6142" data-lng="-58.3598" onclick="rbrb_abrirAjusteGPS(this)" style="font-size:10px;color:var(--text3);background:transparent;border:none;cursor:pointer;padding:0;font-family:var(--font,-apple-system)">📍 Sin GPS · agregar</button>';
 
       var fotosUrls = [];
       if (r.fotos_urls && r.fotos_urls !== 'null') {
