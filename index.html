@@ -4591,6 +4591,20 @@ body {
                     color:var(--text);font-family:var(--font);font-size:13px">
                 </div>
 
+                <!-- Fuente de información -->
+                <div style="margin-bottom:12px">
+                  <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:6px">Fuente de información</label>
+                  <select id="rbrb-plano-fuente" style="width:100%;padding:11px;border-radius:10px;border:1px solid var(--border2);
+                    background:var(--bg2);color:var(--text);font-family:var(--font);font-size:13px">
+                    <option value="Observación directa" selected>Observación directa</option>
+                    <option value="Denuncia vecinal">Denuncia vecinal</option>
+                    <option value="Relevamiento técnico">Relevamiento técnico</option>
+                    <option value="Fotografía aérea">Fotografía aérea</option>
+                    <option value="Informe de agente">Informe de agente</option>
+                    <option value="Otro">Otro</option>
+                  </select>
+                </div>
+
                 <!-- Descripción -->
                 <div style="margin-bottom:12px">
                   <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:6px">Descripción <span style="color:#ef4444">*</span></label>
@@ -27368,6 +27382,7 @@ var RBRB_COLORES = {
   'Comercio': '#f59e0b',
   'Puesto en vía pública': '#a855f7',
   'Construcción que invade línea municipal': '#ef4444',
+  'Construcción indebida': '#ef4444',
   'Taller clandestino': '#f97316',
   'Ampliación sin protocolo': '#ec4899',
   'Ocupación espacio común': '#06b6d4',
@@ -28221,14 +28236,19 @@ function rbrb_buildItems() {
       var c = rbrb_colorDe(r.tipo);
       var certColor = r.certeza==='Confirmado'?'#10b981':'#ef4444';
       var fecha = r.created_at ? r.created_at.substring(0,10) : '';
-      var _gpsOk = r._gps_ajustado ? ' <span style="color:#10b981;font-weight:700" title="GPS ajustado">✓</span>' : '';
-      var gpsLink = (r.lat&&r.lng)
-        ? '<button type="button" data-rid="'+r.id+'" data-lat="'+r.lat+'" data-lng="'+r.lng+'" '+
-          'onclick="rbrb_abrirAjusteGPS(this)" '+
-          'style="font-size:10px;color:var(--accent3);background:transparent;border:none;cursor:pointer;padding:0;font-family:var(--font,-apple-system)">📍 Ajustar mapa</button>'+_gpsOk
-        : '<button type="button" data-rid="'+r.id+'" data-lat="-34.6142" data-lng="-58.3598" '+
-          'onclick="rbrb_abrirAjusteGPS(this)" '+
-          'style="font-size:10px;color:var(--text3);background:transparent;border:none;cursor:pointer;padding:0;font-family:var(--font,-apple-system)">📍 Sin GPS · agregar</button>';
+      var _gpsOk = r._gps_ajustado ? ' <span style=\"color:#10b981;font-weight:700\" title=\"GPS ajustado\">✓</span>' : '';
+      var _esPlanoRB = r.fuente && r.fuente.indexOf('Plano RB') === 0;
+      var gpsLink = _esPlanoRB
+        ? '<button type=\"button\" '+
+          'onclick=\"rbrb_planoAjusteOpen(\\'' + r.id + '\\',' + parseFloat(r.lng||0) + ',' + parseFloat(r.lat||0) + ')\" '+
+          'style=\"font-size:10px;color:#ef4444;background:transparent;border:none;cursor:pointer;padding:0;font-family:var(--font,-apple-system);font-weight:700\">🏗 Ajustar en plano</button>'
+        : (r.lat&&r.lng)
+          ? '<button type=\"button\" data-rid=\"'+r.id+'\" data-lat=\"'+r.lat+'\" data-lng=\"'+r.lng+'\" '+
+            'onclick=\"rbrb_abrirAjusteGPS(this)\" '+
+            'style=\"font-size:10px;color:var(--accent3);background:transparent;border:none;cursor:pointer;padding:0;font-family:var(--font,-apple-system)\">📍 Ajustar mapa</button>'+_gpsOk
+          : '<button type=\"button\" data-rid=\"'+r.id+'\" data-lat=\"-34.6142\" data-lng=\"-58.3598\" '+
+            'onclick=\"rbrb_abrirAjusteGPS(this)\" '+
+            'style=\"font-size:10px;color:var(--text3);background:transparent;border:none;cursor:pointer;padding:0;font-family:var(--font,-apple-system)\">📍 Sin GPS · agregar</button>';
 
       var fotosUrls = [];
       if (r.fotos_urls && r.fotos_urls !== 'null') {
@@ -29022,7 +29042,9 @@ window.rbrb_planoModalOpen = function(x, y) {
   var ordenEl = document.getElementById('rbrb-plano-orden');
   var descEl = document.getElementById('rbrb-plano-desc');
   var certEl = document.getElementById('rbrb-plano-certeza');
+  var fuenteEl = document.getElementById('rbrb-plano-fuente');
   if (tipoEl) tipoEl.value = 'Construcción indebida';
+  if (fuenteEl) fuenteEl.value = 'Observación directa';
   if (mzaEl) mzaEl.value = '';
   if (ordenEl) ordenEl.value = '';
   if (descEl) descEl.value = '';
@@ -29096,16 +29118,18 @@ window.rbrb_planoGuardar = function() {
   var ordenEl = document.getElementById('rbrb-plano-orden');
   var certEl = document.getElementById('rbrb-plano-certeza');
   var tipoEl = document.getElementById('rbrb-plano-tipo');
+  var fuenteEl = document.getElementById('rbrb-plano-fuente');
   var desc = (descEl ? descEl.value : '').trim();
   if (!desc) { toast('Agregá una descripción', 'err'); return; }
   var tipo = (tipoEl ? tipoEl.value : '') || 'Construcción indebida';
+  var fuenteInfo = (fuenteEl ? fuenteEl.value : '') || 'Observación directa';
   var payload = {
     barrio: 'Rodrigo Bueno',
     manzana: mzaEl ? mzaEl.value.trim() : '',
     orden: ordenEl ? ordenEl.value.trim() : '',
     tipo: tipo,
     descripcion: desc,
-    fuente: 'Plano RB',
+    fuente: 'Plano RB · ' + fuenteInfo,
     certeza: certEl ? certEl.value : 'Confirmado',
     lat: RBRB_PLANO_PENDING.y,
     lng: RBRB_PLANO_PENDING.x,
@@ -29233,7 +29257,7 @@ function rbrb_planoRefrescar() {
   RBRB_PLANO_MARKERS.forEach(function(m) { RBRB_PLANO_MAP.removeLayer(m); });
   RBRB_PLANO_MARKERS = [];
   var registros = (RBRB_REGISTROS || []).filter(function(r) {
-    return r.fuente === 'Plano RB' && r.lat != null && r.lng != null;
+    return r.fuente && r.fuente.indexOf('Plano RB') === 0 && r.lat != null && r.lng != null;
   });
   registros.forEach(function(r) {
     var x = parseFloat(r.lng);
