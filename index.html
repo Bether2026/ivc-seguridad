@@ -4558,25 +4558,29 @@ body {
                     background:var(--bg2);color:var(--text2);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">×</button>
                 </div>
 
+                <!-- Tipo de situación -->
+                <div style="margin-bottom:12px">
+                  <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:6px">Tipo de situación</label>
+                  <select id="rbrb-plano-tipo" style="width:100%;padding:11px;border-radius:10px;border:1px solid var(--border2);
+                    background:var(--bg2);color:var(--text);font-family:var(--font);font-size:13px">
+                    <option value="Construcción indebida" selected>Construcción indebida</option>
+                    <option value="Comercio">Comercio</option>
+                    <option value="Puesto en vía pública">Puesto en vía pública</option>
+                    <option value="Construcción que invade línea municipal">Construcción que invade línea municipal</option>
+                    <option value="Taller clandestino">Taller clandestino</option>
+                    <option value="Ampliación sin protocolo">Ampliación sin protocolo</option>
+                    <option value="Ocupación espacio común">Ocupación espacio común</option>
+                    <option value="Vehículos abandonados">Vehículos abandonados</option>
+                    <option value="Otro">Otro</option>
+                  </select>
+                </div>
+
                 <!-- Manzana -->
                 <div style="margin-bottom:12px">
                   <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:6px">Manzana</label>
-                  <select id="rbrb-plano-mza" style="width:100%;padding:11px;border-radius:10px;border:1px solid var(--border2);
-                    background:var(--bg2);color:var(--text);font-family:var(--font);font-size:13px">
-                    <option value="">— Seleccionar —</option>
-                    <option value="Mz1">Mz1</option>
-                    <option value="Mz2a">Mz2a</option>
-                    <option value="Mz2b">Mz2b</option>
-                    <option value="Mz3">Mz3</option>
-                    <option value="Mz4a">Mz4a</option>
-                    <option value="Mz4b">Mz4b</option>
-                    <option value="Mc1">Mc1</option>
-                    <option value="Mc2">Mc2</option>
-                    <option value="Mc3">Mc3</option>
-                    <option value="Mc4">Mc4</option>
-                    <option value="Vivienda nueva">Vivienda nueva</option>
-                    <option value="Otro">Otro</option>
-                  </select>
+                  <input id="rbrb-plano-mza" type="text" placeholder="Ej: Mz1, Mz3, Mc2..."
+                    style="width:100%;padding:11px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);
+                    color:var(--text);font-family:var(--font);font-size:13px">
                 </div>
 
                 <!-- Orden / Nro -->
@@ -4590,7 +4594,7 @@ body {
                 <!-- Descripción -->
                 <div style="margin-bottom:12px">
                   <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:6px">Descripción <span style="color:#ef4444">*</span></label>
-                  <textarea id="rbrb-plano-desc" rows="3" placeholder="Describí la construcción indebida..."
+                  <textarea id="rbrb-plano-desc" rows="3" placeholder="Describí la situación..."
                     style="width:100%;padding:11px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);
                     color:var(--text);font-family:var(--font);font-size:13px;resize:none"></textarea>
                 </div>
@@ -4600,8 +4604,8 @@ body {
                   <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:6px">Certeza</label>
                   <select id="rbrb-plano-certeza" style="width:100%;padding:11px;border-radius:10px;border:1px solid var(--border2);
                     background:var(--bg2);color:var(--text);font-family:var(--font);font-size:13px">
+                    <option value="Confirmado" selected>Confirmado</option>
                     <option value="A verificar">A verificar</option>
-                    <option value="Confirmado">Confirmado</option>
                     <option value="Resuelto">Resuelto</option>
                   </select>
                 </div>
@@ -28963,10 +28967,12 @@ window.rbrb_planoModalOpen = function(x, y) {
   var ordenEl = document.getElementById('rbrb-plano-orden');
   var descEl = document.getElementById('rbrb-plano-desc');
   var certEl = document.getElementById('rbrb-plano-certeza');
+  var tipoEl = document.getElementById('rbrb-plano-tipo');
+  if (tipoEl) tipoEl.value = 'Construcción indebida';
   if (mzaEl) mzaEl.value = '';
   if (ordenEl) ordenEl.value = '';
   if (descEl) descEl.value = '';
-  if (certEl) certEl.value = 'A verificar';
+  if (certEl) certEl.value = 'Confirmado';
   modal.style.display = 'flex';
 };
 
@@ -28983,20 +28989,20 @@ window.rbrb_planoGuardar = function() {
   var mzaEl = document.getElementById('rbrb-plano-mza');
   var ordenEl = document.getElementById('rbrb-plano-orden');
   var certEl = document.getElementById('rbrb-plano-certeza');
+  var tipoEl = document.getElementById('rbrb-plano-tipo');
   var desc = (descEl ? descEl.value : '').trim();
   if (!desc) { toast('Agregá una descripción', 'err'); return; }
+  var tipo = (tipoEl ? tipoEl.value : '') || 'Construcción indebida';
 
-  var sector = RBRB_PLANO_SUB === 'historico' ? 'Barrio historico' : 'Vivienda nueva';
   var payload = {
     barrio: 'Rodrigo Bueno',
-    manzana: mzaEl ? mzaEl.value : '',
+    manzana: mzaEl ? mzaEl.value.trim() : '',
     orden: ordenEl ? ordenEl.value.trim() : '',
-    tipo: 'Construcción indebida',
+    tipo: tipo,
     descripcion: desc,
     fuente: 'Plano RB',
-    certeza: certEl ? certEl.value : 'A verificar',
-    sector: sector,
-    lat: RBRB_PLANO_PENDING.y,  // coordenadas de píxel guardadas en lat/lng
+    certeza: certEl ? certEl.value : 'Confirmado',
+    lat: RBRB_PLANO_PENDING.y,
     lng: RBRB_PLANO_PENDING.x,
     agente: window.USER ? (USER.nombre || USER.puesto) : 'Desconocido',
     created_at: new Date().toISOString()
