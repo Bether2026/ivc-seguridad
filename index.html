@@ -495,6 +495,7 @@ body::after { display: none; }
 #nb-relevamiento   { --nc: #a78bfa; }
 #nb-relev-rb       { --nc: #34d399; }
 #nb-relev-fr       { --nc: #f472b6; }
+#nb-barrios        { --nc: #818cf8; }
 #nb-rrhh            { --nc: #4ade80; }
 #nb-pendientes      { --nc: #f43f5e; }
 #nb-inventario      { --nc: #fb923c; }
@@ -2008,6 +2009,10 @@ body {
       <button class="sidebar-item" onclick="goView('relev-fr')" id="si-relev-fr" style="display:none">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/><circle cx="12" cy="5" r="1" fill="currentColor"/></svg>
         <span>Relev. FR</span>
+      </button>
+      <button class="sidebar-item" onclick="goView('barrios')" id="si-barrios" style="display:none">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/><line x1="12" y1="2" x2="12" y2="8"/></svg>
+        <span>Barrios</span>
       </button>
       <button class="sidebar-item" onclick="goView('relevamiento')" id="si-relevamiento" style="display:none">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
@@ -4188,6 +4193,33 @@ body {
         <!-- ══════════════════════════════════════════════
              VISTA: RELEVAMIENTO RB — PIN 2072
         ══════════════════════════════════════════════ -->
+        <!-- ══ VISTA BARRIOS — solo Gerencia / Administrador ══ -->
+        <!-- ══ VISTA BARRIOS UNIFICADA — Gerencia / Administrador ══ -->
+        <div class="view" id="view-barrios" style="padding:0">
+
+          <!-- SELECTOR DE BARRIO — fijo arriba -->
+          <div id="barrios-selector" style="display:flex;gap:0;background:var(--bg2);border-bottom:2px solid var(--border);position:sticky;top:0;z-index:100">
+            <button type="button" id="barrios-btn-rb" onclick="barrios_seleccionar('rb')"
+              style="flex:1;display:flex;align-items:center;justify-content:center;gap:10px;padding:14px 16px;
+                border:none;border-bottom:3px solid #34d399;background:rgba(52,211,153,.08);
+                cursor:pointer;font-family:var(--font);font-size:13px;font-weight:800;color:#34d399;transition:all .2s">
+              <span style="font-size:18px">&#127961;</span>
+              Rodrigo Bueno
+            </button>
+            <button type="button" id="barrios-btn-fr" onclick="barrios_seleccionar('fr')"
+              style="flex:1;display:flex;align-items:center;justify-content:center;gap:10px;padding:14px 16px;
+                border:none;border-bottom:3px solid transparent;background:transparent;
+                cursor:pointer;font-family:var(--font);font-size:13px;font-weight:800;color:var(--text3);transition:all .2s">
+              <span style="font-size:18px">&#127959;</span>
+              Fraga
+            </button>
+          </div>
+
+          <!-- CONTENIDO: tabs + panel — se rellena dinámicamente -->
+          <div id="barrios-contenido" style="min-height:60vh"></div>
+
+        </div><!-- /view-barrios -->
+
         <div class="view" id="view-relev-rb" style="padding:0">
 
           <!-- PIN GATE -->
@@ -4241,6 +4273,26 @@ body {
                 </button>
               </div>
 
+              <!-- SECTOR -->
+              <div class="form-group">
+                <label class="form-label">Sector</label>
+                <div style="display:flex;gap:8px">
+                  <button type="button" class="rbrb-sector-btn active" data-val="Barrio historico"
+                    onclick="rbrb_setSector(this)"
+                    style="flex:1;padding:10px;border-radius:8px;border:1px solid #34d399;background:rgba(52,211,153,.18);
+                      color:#34d399;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">
+                    &#127968; Barrio hist&#243;rico
+                  </button>
+                  <button type="button" class="rbrb-sector-btn" data-val="Vivienda nueva"
+                    onclick="rbrb_setSector(this)"
+                    style="flex:1;padding:10px;border-radius:8px;border:1px solid var(--border2);background:transparent;
+                      color:var(--text2);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">
+                    &#127959; Vivienda nueva
+                  </button>
+                </div>
+                <input type="hidden" id="rbrb-sector" value="Barrio historico">
+              </div>
+
               <!-- MANZANA + ORDEN -->
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
                 <div class="form-group">
@@ -4287,12 +4339,6 @@ body {
                       color:#10b981;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">
                     ✓ Confirmado
                   </button>
-                  <button type="button" class="rbrb-cert-btn" data-val="Probable"
-                    onclick="rbrb_setCert(this)"
-                    style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border2);background:transparent;
-                      color:var(--text2);font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">
-                    ~ Probable
-                  </button>
                   <button type="button" class="rbrb-cert-btn" data-val="A verificar"
                     onclick="rbrb_setCert(this)"
                     style="flex:1;padding:8px;border-radius:8px;border:1px solid var(--border2);background:transparent;
@@ -4326,12 +4372,6 @@ body {
                   </button>
                   <input type="hidden" id="rbrb-ivc" value="no">
                 </div>
-              </div>
-
-              <!-- OBSERVACIONES -->
-              <div class="form-group">
-                <label class="form-label">Observaciones adicionales</label>
-                <textarea id="rbrb-obs" class="form-textarea" rows="2" style="min-height:60px" placeholder="Información extra, contexto, antecedentes..."></textarea>
               </div>
 
               <!-- FOTOS MÚLTIPLES -->
@@ -4798,6 +4838,10 @@ body {
     <button class="nav-btn" onclick="goView('relev-fr')" id="nb-relev-fr" style="display:none">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
       <span>Relev. FR</span>
+    </button>
+    <button class="nav-btn" onclick="goView('barrios')" id="nb-barrios" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/><line x1="12" y1="2" x2="12" y2="8"/></svg>
+      <span>Barrios</span>
     </button>
     <button class="nav-btn" onclick="goView('relevamiento')" id="nb-relevamiento" style="display:none">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
@@ -9053,12 +9097,19 @@ function initApp() {
   if ($('nb-relevamiento')) $('nb-relevamiento').style.display = canSeeRelev ? 'flex' : 'none';
   // Relevamiento RB: Rodrigo Bueno, Gerencia, Administrador
   var _esGerAdmin = ['Gerencia', 'Administrador'].indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN';
-  var canSeeRelevRB = ['Rodrigo Bueno', 'Rodrigo bueno'].indexOf(USER.puesto) >= 0 || _esGerAdmin;
+  // Rodrigo Bueno: solo ve su módulo
+  var canSeeRelevRB = ['Rodrigo Bueno', 'Rodrigo bueno'].indexOf(USER.puesto) >= 0;
   if ($('si-relev-rb')) $('si-relev-rb').style.display = canSeeRelevRB ? 'flex' : 'none';
   if ($('nb-relev-rb')) $('nb-relev-rb').style.display = canSeeRelevRB ? 'flex' : 'none';
-  var canSeeRelevFR = ['Fraga'].indexOf(USER.puesto) >= 0 || _esGerAdmin;
+  // Fraga: solo ve su módulo
+  var canSeeRelevFR = USER.puesto === 'Fraga';
   if ($('si-relev-fr')) $('si-relev-fr').style.display = canSeeRelevFR ? 'flex' : 'none';
   if ($('nb-relev-fr')) $('nb-relev-fr').style.display = canSeeRelevFR ? 'flex' : 'none';
+  // Gerencia / Administrador: ven "Barrios" (selector unificado)
+  var canSeeBarrios = _esGerAdmin;
+  if ($('si-barrios')) $('si-barrios').style.display = canSeeBarrios ? 'flex' : 'none';
+  if ($('nb-barrios')) $('nb-barrios').style.display = canSeeBarrios ? 'flex' : 'none';
+
   // Pañol: exclusivo Emergencias y Administración del sistema
   var canSeePanol = USER.puesto === 'Emergencias' || USER.rol === 'ADMIN';
   if ($('si-panol')) $('si-panol').style.display = canSeePanol ? 'block' : 'none';
@@ -17458,6 +17509,7 @@ function goView(name) {
     if (name === 'relevamiento' && typeof loadRelevamientos === 'function') loadRelevamientos();
     if (name === 'relev-rb') rbrb_onOpen();
     if (name === 'relev-fr') frfr_onOpen();
+    if (name === 'barrios') barrios_onOpen();
     if (name === 'panol' && typeof loadPanol === 'function') loadPanol();
     if (name === 'pdpu' && typeof selPdpuTab === 'function') selPdpuTab('48h');
     if (name === 'horas') {
@@ -27144,6 +27196,7 @@ var RBRB_PIN = '2072';
 var RBRB_UNLOCKED = false;
 var RBRB_REGISTROS = [];
 var RBRB_CERTEZA = 'Confirmado';
+var RBRB_SECTOR = 'Barrio historico';
 var RBRB_MAP = null;
 var RBRB_MARKERS = [];
 var RBRB_MAP_INIT = false;
@@ -27187,7 +27240,7 @@ function rbrb_mostrarTabAudit() {
   if (t) t.style.display = (window.USER && USER.rol === 'ADMIN') ? 'block' : 'none';
 }
 
-function rbrb_mostrarCampoIVC() {
+window.rbrb_mostrarCampoIVC = function rbrb_mostrarCampoIVC() {
   var w = document.getElementById('rbrb-ivc-wrap');
   if (!w) return;
   var puedeVer = window.USER && (
@@ -27256,6 +27309,7 @@ window.rbrb_tab = function(name, btn) {
       setTimeout(function(){ RBRB_MAP.invalidateSize(); }, 80);
     }
   }
+  if (name === 'form') { rbrb_renderTipoSel(); rbrb_mostrarCampoIVC(); }
   if (name === 'lista') rbrb_renderLista();
   if (name === 'audit') rbrb_cargarAudit();
 };
@@ -27272,7 +27326,7 @@ var RBRB_TIPOS_LISTA = [
 ];
 var RBRB_TIPOS_SEL = [];
 
-function rbrb_renderTipoSel() {
+window.rbrb_renderTipoSel = function rbrb_renderTipoSel() {
   var wrap = document.getElementById('rbrb-tipo-sel');
   if (!wrap) return;
   var chipBase = 'padding:7px 13px;border-radius:20px;border:1px solid;font-family:var(--font);'+
@@ -27354,7 +27408,6 @@ function rbrb_normMza(raw) {
 
 var RBRB_CERT_COLORS = {
   'Confirmado': { bg: 'rgba(16,185,129,.18)', border: '#10b981', color: '#10b981' },
-  'Probable':   { bg: 'rgba(245,158,11,.18)', border: '#f59e0b', color: '#f59e0b' },
   'A verificar':{ bg: 'rgba(239,68,68,.15)',  border: '#ef4444', color: '#ef4444' }
 };
 window.rbrb_setCert = function(btn) {
@@ -27365,6 +27418,18 @@ window.rbrb_setCert = function(btn) {
     b.style.background = isActive ? (cfg.bg || 'transparent') : 'transparent';
     b.style.borderColor = isActive ? (cfg.border || 'var(--border2)') : 'var(--border2)';
     b.style.color = isActive ? (cfg.color || 'var(--text2)') : 'var(--text2)';
+  });
+};
+
+window.rbrb_setSector = function(btn) {
+  RBRB_SECTOR = btn.dataset.val;
+  var inp = document.getElementById('rbrb-sector');
+  if (inp) inp.value = RBRB_SECTOR;
+  document.querySelectorAll('.rbrb-sector-btn').forEach(function(b) {
+    var a = b.dataset.val === RBRB_SECTOR;
+    b.style.background = a ? 'rgba(52,211,153,.18)' : 'transparent';
+    b.style.borderColor = a ? '#34d399' : 'var(--border2)';
+    b.style.color = a ? '#34d399' : 'var(--text2)';
   });
 };
 
@@ -27539,6 +27604,7 @@ window.rbrb_guardar = function() {
   var titular = (document.getElementById('rbrb-titular') || {}).value || '';
   var obs = (document.getElementById('rbrb-obs') || {}).value || '';
   var obsVivienda = (document.getElementById('rbrb-obs-vivienda') || {}).value || '';
+  var sector = (document.getElementById('rbrb-sector') || {}).value || 'Barrio historico';
   var _puedeIVC = window.USER && (
     USER.puesto === 'Gerencia' ||
     USER.puesto === 'Administrador' ||
@@ -27573,6 +27639,7 @@ window.rbrb_guardar = function() {
     titular: titular.trim(),
     observaciones: obs.trim(),
     obs_vivienda: obsVivienda.trim(),
+    sector: sector,
     lat: lat,
     lng: lng,
     agente: window.USER ? (USER.nombre || USER.puesto) : 'Desconocido'
@@ -27643,6 +27710,16 @@ window.rbrb_guardar = function() {
 window.rbrb_limpiarForm = function rbrb_limpiarForm() {
   var ids = ['rbrb-mza','rbrb-orden','rbrb-desc','rbrb-titular','rbrb-obs','rbrb-obs-vivienda','rbrb-lat','rbrb-lng','rbrb-tipo-otro'];
   ids.forEach(function(id) { var el = document.getElementById(id); if (el) el.value = ''; });
+  // Reset sector
+  RBRB_SECTOR = 'Barrio historico';
+  var sInp = document.getElementById('rbrb-sector');
+  if (sInp) sInp.value = 'Barrio historico';
+  document.querySelectorAll('.rbrb-sector-btn').forEach(function(b) {
+    var a = b.dataset.val === 'Barrio historico';
+    b.style.background = a ? 'rgba(52,211,153,.18)' : 'transparent';
+    b.style.borderColor = a ? '#34d399' : 'var(--border2)';
+    b.style.color = a ? '#34d399' : 'var(--text2)';
+  });
   // Reset IVC toggle
   var ivcInp = document.getElementById('rbrb-ivc');
   if (ivcInp && ivcInp.value === 'si') window.rbrb_toggleIVC();
@@ -27677,7 +27754,7 @@ window.rbrb_limpiarForm = function rbrb_limpiarForm() {
   });
 }
 
-function rbrb_cargarDatos() {
+window.rbrb_cargarDatos = function rbrb_cargarDatos() {
   db.from('relevamiento_rb')
     .select('*')
     .eq('barrio', 'Rodrigo Bueno')
@@ -27979,7 +28056,7 @@ function rbrb_buildItems() {
 
     var regsHtml = regs.map(function(r) {
       var c = rbrb_colorDe(r.tipo);
-      var certColor = r.certeza==='Confirmado'?'#10b981':r.certeza==='Probable'?'#f59e0b':'#ef4444';
+      var certColor = r.certeza==='Confirmado'?'#10b981':'#ef4444';
       var fecha = r.created_at ? r.created_at.substring(0,10) : '';
       var _gpsOk = r._gps_ajustado ? ' <span style="color:#10b981;font-weight:700" title="GPS ajustado">✓</span>' : '';
       var gpsLink = (r.lat&&r.lng)
@@ -28181,6 +28258,16 @@ window.rbrb_editar = function(id) {
   set('rbrb-obs-vivienda', r.obs_vivienda);
   set('rbrb-lat', r.lat || '');
   set('rbrb-lng', r.lng || '');
+  // Restaurar sector
+  RBRB_SECTOR = r.sector || 'Barrio historico';
+  var sInp = document.getElementById('rbrb-sector');
+  if (sInp) sInp.value = RBRB_SECTOR;
+  document.querySelectorAll('.rbrb-sector-btn').forEach(function(b) {
+    var a = b.dataset.val === RBRB_SECTOR;
+    b.style.background = a ? 'rgba(52,211,153,.18)' : 'transparent';
+    b.style.borderColor = a ? '#34d399' : 'var(--border2)';
+    b.style.color = a ? '#34d399' : 'var(--text2)';
+  });
   // Restaurar toggle IVC
   var ivcInp = document.getElementById('rbrb-ivc');
   var ivcIcon = document.getElementById('rbrb-ivc-icon');
@@ -28371,7 +28458,6 @@ function rbrb_buildMapaFilters() {
     var certs = [
       {v:'todas',label:'Todas',style:'background:var(--accent);border-color:var(--accent);color:#fff'},
       {v:'Confirmado',label:'&#10003; Confirmado',style:'color:#10b981;border-color:rgba(16,185,129,.4)'},
-      {v:'Probable',label:'~ Probable',style:'color:#f59e0b;border-color:rgba(245,158,11,.4)'},
       {v:'A verificar',label:'? A verificar',style:'color:#ef4444;border-color:rgba(239,68,68,.4)'}
     ];
     certs.forEach(function(cfg){
@@ -28660,6 +28746,7 @@ window.rbrb_reagrupar = function() {
   toast('🔁 Posiciones reales restauradas', 'ok');
 };
 
+
 })(); // fin IIFE RBRB
 // fin MÓDULO RELEVAMIENTO RB
 </script>
@@ -28710,21 +28797,12 @@ window.frfr_onOpen = function() {
   }
 };
 
-function frfr_mostrarTabAudit() {
+window.frfr_mostrarTabAudit = function frfr_mostrarTabAudit() {
   var t = document.getElementById('frfr-tab-audit');
   if (t) t.style.display = (window.USER && USER.rol === 'ADMIN') ? 'block' : 'none';
 }
 
-function frfr_mostrarCampoIVC() { return; // No aplica en Fraga
-  // original:
-  var w = document.getElementById('frfr-ivc-wrap');
-  if (!w) return;
-  var puedeVer = window.USER && (
-    USER.puesto === 'Gerencia' ||
-    USER.puesto === 'Administrador' ||
-    USER.rol === 'ADMIN'
-  );
-  w.style.display = puedeVer ? 'block' : 'none';
+window.frfr_mostrarCampoIVC = function frfr_mostrarCampoIVC() { return; // pendiente: activar cuando se confirme columna pertenece_ivc en relevamiento_fr
 }
 
 window.frfr_checkPin = function() {
@@ -28786,6 +28864,7 @@ window.frfr_tab = function(name, btn) {
       setTimeout(function(){ FRFR_MAP.invalidateSize(); }, 80);
     }
   }
+  if (name === 'form') { frfr_renderTipoSel(); frfr_mostrarCampoIVC(); }
   if (name === 'lista') frfr_renderLista();
   if (name === 'audit') frfr_cargarAudit();
 };
@@ -28802,7 +28881,7 @@ var FRFR_TIPOS_LISTA = [
 ];
 var FRFR_TIPOS_SEL = [];
 
-function frfr_renderTipoSel() {
+window.frfr_renderTipoSel = function frfr_renderTipoSel() {
   var wrap = document.getElementById('frfr-tipo-sel');
   if (!wrap) return;
   var chipBase = 'padding:7px 13px;border-radius:20px;border:1px solid;font-family:var(--font);'+
@@ -29201,7 +29280,7 @@ window.frfr_limpiarForm = function frfr_limpiarForm() {
   });
 }
 
-function frfr_cargarDatos() {
+window.frfr_cargarDatos = function frfr_cargarDatos() {
   db.from('relevamiento_fr')
     .select('*')
     .eq('barrio', 'Fraga')
@@ -30208,6 +30287,105 @@ window.frfr_setSector = function(btn) {
   if (inp) inp.value = FRFR_SECTOR;
 };
 // fin MÓDULO RELEVAMIENTO FR
+
+
+// ══ BARRIOS ══
+// ══════════════════════════════════════════
+// BARRIOS — vista unificada Gerencia/Admin
+// ══════════════════════════════════════════
+var BARRIOS_ACTIVO = 'rb'; // 'rb' o 'fr'
+var BARRIOS_TAB_ACTIVO = 'form'; // tab actual dentro del barrio
+
+window.barrios_ir = function(view) {
+  // Compatibilidad con llamadas antiguas — ya no se usa
+  goView('barrios');
+};
+
+window.barrios_seleccionar = function(barrio) {
+  BARRIOS_ACTIVO = barrio;
+  // Actualizar visual del selector
+  var btnRB = document.getElementById('barrios-btn-rb');
+  var btnFR = document.getElementById('barrios-btn-fr');
+  if (btnRB) {
+    btnRB.style.borderBottomColor = barrio === 'rb' ? '#34d399' : 'transparent';
+    btnRB.style.background = barrio === 'rb' ? 'rgba(52,211,153,.08)' : 'transparent';
+    btnRB.style.color = barrio === 'rb' ? '#34d399' : 'var(--text3)';
+  }
+  if (btnFR) {
+    btnFR.style.borderBottomColor = barrio === 'fr' ? '#f472b6' : 'transparent';
+    btnFR.style.background = barrio === 'fr' ? 'rgba(244,114,182,.08)' : 'transparent';
+    btnFR.style.color = barrio === 'fr' ? '#f472b6' : 'var(--text3)';
+  }
+  // Mostrar el barrio seleccionado
+  barrios_mostrarBarrio();
+};
+
+window.barrios_tab = function(tab) {
+  BARRIOS_TAB_ACTIVO = tab;
+  if (BARRIOS_ACTIVO === 'rb') {
+    rbrb_tab(tab, null);
+  } else {
+    frfr_tab(tab, null);
+  }
+};
+
+window.barrios_onOpen = function() {
+  // Mover los paneles reales de RB y FR al contenedor de barrios
+  // Esto evita clonar — los elementos originales con sus listeners se mueven
+  var cont = document.getElementById('barrios-contenido');
+  if (!cont) return;
+
+  // Desbloquear RB automáticamente
+  if (!RBRB_UNLOCKED) {
+    RBRB_UNLOCKED = true;
+    var gateRB = document.getElementById('rbrb-gate');
+    if (gateRB) gateRB.style.display = 'none';
+    rbrb_renderTipoSel();
+    rbrb_mostrarCampoIVC();
+  }
+  // Desbloquear FR automáticamente
+  if (!FRFR_UNLOCKED) {
+    FRFR_UNLOCKED = true;
+    var gateFR = document.getElementById('frfr-gate');
+    if (gateFR) gateFR.style.display = 'none';
+    frfr_renderTipoSel();
+    frfr_mostrarCampoIVC();
+  }
+
+  // Resetear tab y seleccionar barrio activo
+  BARRIOS_TAB_ACTIVO = 'form';
+  barrios_seleccionar(BARRIOS_ACTIVO);
+};
+
+// Mostrar el contenido del barrio activo usando los elementos reales
+window.barrios_mostrarBarrio = function() {
+  var prefijo = BARRIOS_ACTIVO === 'rb' ? 'rbrb' : 'frfr';
+  var otroPrefix = BARRIOS_ACTIVO === 'rb' ? 'frfr' : 'rbrb';
+
+  // Ocultar el contenido del otro barrio
+  var otroContent = document.getElementById(otroPrefix + '-content');
+  if (otroContent) otroContent.style.display = 'none';
+
+  // Mostrar contenido del barrio activo
+  var miContent = document.getElementById(prefijo + '-content');
+  if (miContent) {
+    miContent.style.display = 'block';
+    // Moverlo al contenedor de barrios si no está ya ahí
+    var cont = document.getElementById('barrios-contenido');
+    if (cont && miContent.parentNode !== cont) {
+      cont.appendChild(miContent);
+    }
+  }
+
+  // Cargar datos si es necesario
+  if (BARRIOS_ACTIVO === 'rb') {
+    rbrb_cargarDatos();
+    rbrb_tab(BARRIOS_TAB_ACTIVO, null);
+  } else {
+    frfr_cargarDatos();
+    frfr_tab(BARRIOS_TAB_ACTIVO, null);
+  }
+};
 
 </script>
 
