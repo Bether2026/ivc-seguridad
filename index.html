@@ -30965,16 +30965,27 @@ window.construcc_exportar = function() {
         return;
       }
 
+      function extraerManzana(n) {
+        // Busca patrones como "mza 1", "manzana 3", "mz 2", "mza1", etc. en todos los campos de texto
+        var texto = [n.asunto, n.detalle, n.texto_informe, n.observaciones]
+          .map(function(v) { return (v || ''); }).join(' ');
+        var match = texto.match(/(?:manzana|mza|mz)\.?\s*(\w+)/i);
+        if (match) return 'Mza ' + match[1].toUpperCase();
+        return 'Sin manzana';
+      }
+
       function agruparPorManzana(lista) {
         var grupos = {};
         lista.forEach(function(n) {
-          var mza = (n.nro_pd || 'Sin manzana').toString().trim() || 'Sin manzana';
+          var mza = extraerManzana(n);
           if (!grupos[mza]) grupos[mza] = [];
           grupos[mza].push(n);
         });
         var keys = Object.keys(grupos).sort(function(a, b) {
-          var na = parseFloat(a), nb = parseFloat(b);
-          if (!isNaN(na) && !isNaN(nb)) return nb - na;
+          // Extraer número para ordenar numéricamente
+          var na = parseFloat((a.match(/\d+/) || [0])[0]);
+          var nb = parseFloat((b.match(/\d+/) || [0])[0]);
+          if (!isNaN(na) && !isNaN(nb) && na !== nb) return nb - na;
           return b.localeCompare(a);
         });
         var ordenado = {};
@@ -31015,7 +31026,7 @@ window.construcc_exportar = function() {
             html += '<span style="font-size:12px;font-weight:700;color:#f59e0b">' + (n.asunto || n.tipo || 'Sin asunto') + '</span>';
             html += '<span style="font-size:11px;color:#64748b;white-space:nowrap">' + formatFecha(n.created_at) + '</span>';
             html += '</div>';
-            if (n.nro_pu) html += '<div style="font-size:11px;color:#94a3b8;margin-bottom:4px">📍 Orden/Vivienda: <strong style="color:#cbd5e1">' + n.nro_pu + '</strong></div>';
+            if (n.nro_pu) html += '<div style="font-size:11px;color:#94a3b8;margin-bottom:4px">📄 PU N° <strong style="color:#cbd5e1">' + n.nro_pu + '</strong></div>';
             if (n.detalle) html += '<div style="font-size:12px;color:#e2e8f0;margin-bottom:4px;line-height:1.5">' + n.detalle + '</div>';
             if (n.texto_informe && n.texto_informe !== n.detalle) html += '<div style="font-size:12px;color:#94a3b8;margin-bottom:4px;line-height:1.5">' + n.texto_informe + '</div>';
             if (n.observaciones) html += '<div style="font-size:11px;color:#64748b;font-style:italic">' + n.observaciones + '</div>';
