@@ -2269,6 +2269,9 @@ body {
             <input type="text" id="hn-agente" class="form-input" placeholder="Nombre del agente..." style="font-size:13px">
           </div>
           <button class="btn-login" onclick="buscarHistorialNovedades()" style="width:100%">🔍 Buscar</button>
+          <button type="button" onclick="construcc_exportar()" style="width:100%;margin-top:8px;padding:12px;border-radius:10px;border:1px solid rgba(239,68,68,.4);background:rgba(239,68,68,.1);color:#fca5a5;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">
+            🏗 Exportar construcciones indebidas (RB y Fraga)
+          </button>
         </div>
         <div id="hn-resumen" style="font-size:12px;color:var(--text3);margin-bottom:10px;text-align:center"></div>
         <div id="hn-list"></div>
@@ -30907,6 +30910,165 @@ window.barrios_mostrarBarrio = function() {
   }
 };
 
+</script>
+
+<script>
+// ══ EXPORTADOR: Construcciones indebidas RB y Fraga ════════════════════════
+window.construcc_exportar = function() {
+  var desde = (document.getElementById('hn-desde') || {}).value || '';
+  var hasta = (document.getElementById('hn-hasta') || {}).value || '';
+
+  if (!desde || !hasta) {
+    toast('Seleccioná un rango de fechas antes de exportar', 'err');
+    return;
+  }
+
+  var desdeISO = desde + 'T03:00:00.000Z';
+  var d = new Date(hasta + 'T03:00:00.000Z');
+  d.setDate(d.getDate() + 1);
+  var hastaISO = d.toISOString();
+
+  var PALABRAS = ['construcc', 'clandestin', 'indebid', 'obra no autorizada', 'ampliacion no autorizada', 'edificacion'];
+  var PUESTOS  = ['Rodrigo Bueno', 'Fraga'];
+
+  toast('Buscando... puede tardar unos segundos', 'ok');
+
+  db.from('novedades')
+    .select('id,puesto,tipo,asunto,detalle,texto_informe,observaciones,cargado_por,created_at,fotos,nro_pd,nro_pu')
+    .in('puesto', PUESTOS)
+    .gte('created_at', desdeISO)
+    .lte('created_at', hastaISO)
+    .order('created_at', { ascending: false })
+    .then(function(r) {
+      if (r.error) { toast('Error al consultar: ' + r.error.message, 'err'); return; }
+      var todas = r.data || [];
+
+      // Filtrar por palabras clave en todos los campos de texto
+      var encontradas = todas.filter(function(n) {
+        var texto = [n.asunto, n.detalle, n.texto_informe, n.observaciones, n.tipo]
+          .map(function(v) { return (v || '').toLowerCase(); })
+          .join(' ');
+        return PALABRAS.some(function(p) { return texto.indexOf(p) >= 0; });
+      });
+
+      if (!encontradas.length) {
+        toast('No se encontraron novedades de construcciones en ese período', 'err');
+        return;
+      }
+
+      // Separar por barrio
+      var rb = encontradas.filter(function(n) { return n.puesto === 'Rodrigo Bueno'; });
+      var fr = encontradas.filter(function(n) { return n.puesto === 'Fraga'; });
+
+      // Agrupar por manzana (nro_pd) — ordenar descendente por fecha dentro de cada grupo
+      function agruparPorManzana(lista) {
+        var grupos = {};
+        lista.forEach(function(n) {
+          var mza = (n.nro_pd || 'Sin manzana').toString().trim() || 'Sin manzana';
+          if (!grupos[mza]) grupos[mza] = [];
+          grupos[mza].push(n);
+        });
+        // Ordenar manzanas descendente (numéricas primero)
+        var keys = Object.keys(grupos).sort(function(a, b) {
+          var na = parseFloat(a), nb = parseFloat(b);
+          if (!isNaN(na) && !isNaN(nb)) return nb - na;
+          return b.localeCompare(a);
+        });
+        var ordenado = {};
+        keys.forEach(function(k) { ordenado[k] = grupos[k]; });
+        return ordenado;
+      }
+
+      function formatFecha(iso) {
+        if (!iso) return '-';
+        var dt = new Date(iso);
+        return dt.toLocaleDateString('es-AR', { day:'2-digit', month:'2-digit', year:'numeric', timeZone:'America/Argentina/Buenos_Aires' })
+          + ' ' + dt.toLocaleTimeString('es-AR', { hour:'2-digit', minute:'2-digit', timeZone:'America/Argentina/Buenos_Aires' });
+      }
+
+      function renderGrupos(grupos, barrio) {
+        var html = '';
+        var mzas = Object.keys(grupos);
+        if (!mzas.length) return '<p style="color:#94a3b8;font-style:italic">Sin novedades para este barrio en el período seleccionado.</p>';
+        mzas.forEach(function(mza) {
+          var items = grupos[mza];
+          html += '<div style="margin-bottom:28px">';
+          html += '<div style="background:#1e3a5f;border-left:4px solid #3b82f6;padding:10px 14px;border-radius:6px 6px 0 0;display:flex;align-items:center;justify-content:space-between">';
+          html += '<span style="font-size:15px;font-weight:800;color:#93c5fd">📦 Manzana ' + mza + '</span>';
+          html += '<span style="font-size:12px;color:#64748b">' + items.length + ' novedad' + (items.length !== 1 ? 'es' : '') + '</span>';
+          html += '</div>';
+          items.forEach(function(n, i) {
+            var bg = i % 2 === 0 ? '#0f172a' : '#111827';
+            var fotosHtml = '';
+            if (n.fotos && n.fotos.length) {
+              fotosHtml = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">';
+              n.fotos.forEach(function(f) {
+                fotosHtml += '<a href="' + f + '" target="_blank"><img src="' + f + '" style="width:72px;height:72px;object-fit:cover;border-radius:6px;border:1px solid #334155"></a>';
+              });
+              fotosHtml += '</div>';
+            }
+            html += '<div style="background:' + bg + ';padding:12px 14px;border-left:4px solid #1e3a5f;border-bottom:1px solid #1e293b">';
+            html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px">';
+            html += '<span style="font-size:12px;font-weight:700;color:#f59e0b">' + (n.asunto || n.tipo || 'Sin asunto') + '</span>';
+            html += '<span style="font-size:11px;color:#64748b;white-space:nowrap">' + formatFecha(n.created_at) + '</span>';
+            html += '</div>';
+            if (n.nro_pu) html += '<div style="font-size:11px;color:#94a3b8;margin-bottom:4px">📍 Orden/Vivienda: <strong style="color:#cbd5e1">' + n.nro_pu + '</strong></div>';
+            if (n.detalle) html += '<div style="font-size:12px;color:#e2e8f0;margin-bottom:4px;line-height:1.5">' + n.detalle + '</div>';
+            if (n.texto_informe && n.texto_informe !== n.detalle) html += '<div style="font-size:12px;color:#94a3b8;margin-bottom:4px;line-height:1.5">' + n.texto_informe + '</div>';
+            if (n.observaciones) html += '<div style="font-size:11px;color:#64748b;font-style:italic">' + n.observaciones + '</div>';
+            html += '<div style="font-size:11px;color:#475569;margin-top:4px">👤 ' + (n.cargado_por || '-') + '</div>';
+            html += fotosHtml;
+            html += '</div>';
+          });
+          html += '</div>';
+        });
+        return html;
+      }
+
+      var rbGrupos = agruparPorManzana(rb);
+      var frGrupos = agruparPorManzana(fr);
+
+      var desdeLabel = desde.split('-').reverse().join('/');
+      var hastaLabel = hasta.split('-').reverse().join('/');
+
+      var doc = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">';
+      doc += '<meta name="viewport" content="width=device-width,initial-scale=1">';
+      doc += '<title>Construcciones Indebidas ' + desdeLabel + ' al ' + hastaLabel + '</title>';
+      doc += '<style>*{box-sizing:border-box;margin:0;padding:0}body{background:#0a1628;color:#e2e8f0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:20px}';
+      doc += 'h1{font-size:20px;margin-bottom:4px;color:#fff}';
+      doc += '.sub{font-size:13px;color:#64748b;margin-bottom:24px}';
+      doc += '.seccion{margin-bottom:40px}.sec-title{font-size:17px;font-weight:800;padding:12px 16px;border-radius:8px;margin-bottom:16px}';
+      doc += '.rb{background:rgba(59,130,246,.15);color:#93c5fd;border:1px solid rgba(59,130,246,.3)}';
+      doc += '.fr{background:rgba(16,185,129,.15);color:#6ee7b7;border:1px solid rgba(16,185,129,.3)}';
+      doc += '</style></head><body>';
+      doc += '<h1>🏗 Construcciones Indebidas / Clandestinas</h1>';
+      doc += '<div class="sub">Período: ' + desdeLabel + ' al ' + hastaLabel + ' · Total: ' + encontradas.length + ' novedad' + (encontradas.length !== 1 ? 'es' : '') + ' · Generado: ' + new Date().toLocaleString('es-AR') + '</div>';
+
+      doc += '<div class="seccion">';
+      doc += '<div class="sec-title rb">🏘 Rodrigo Bueno — ' + rb.length + ' novedad' + (rb.length !== 1 ? 'es' : '') + '</div>';
+      doc += renderGrupos(rbGrupos, 'rb');
+      doc += '</div>';
+
+      doc += '<div class="seccion">';
+      doc += '<div class="sec-title fr">🏗 Fraga — ' + fr.length + ' novedad' + (fr.length !== 1 ? 'es' : '') + '</div>';
+      doc += renderGrupos(frGrupos, 'fr');
+      doc += '</div>';
+
+      doc += '</body></html>';
+
+      var blob = new Blob([doc], { type: 'text/html;charset=utf-8' });
+      var url  = URL.createObjectURL(blob);
+      var a    = document.createElement('a');
+      a.href = url;
+      a.download = 'construcciones_' + desde + '_' + hasta + '.html';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast('✔ Exportado: ' + encontradas.length + ' novedades encontradas', 'ok');
+    });
+};
+// ══ FIN EXPORTADOR ═════════════════════════════════════════════════════════
 </script>
 
 </body>
