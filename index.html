@@ -27416,12 +27416,13 @@ window.rbrb_tab = function(name, btn) {
     rbrb_limpiarForm();
   }
   RBRB_SKIP_CLEAR = false;
-  ['form','mapa','lista','audit'].forEach(function(t) {
+  ['form','mapa','lista','audit','plano'].forEach(function(t) {
     var p = document.getElementById('rbrb-panel-'+t);
     var b = document.getElementById('rbrb-tab-'+t);
-    if (p) p.style.display = (t === name) ? 'block' : 'none';
+    if (p) p.style.display = (t === name) ? (t === 'plano' ? 'flex' : 'block') : 'none';
     if (b) b.classList.toggle('active', t === name);
   });
+  if (name === 'plano') { rbrb_planoInit(); }
   if (name === 'mapa') {
     // Inicializar mapa si no existe
     var mapaWrap = document.getElementById('rbrb-mapa-wrap');
