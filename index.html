@@ -30965,31 +30965,47 @@ window.construcc_exportar = function() {
         return;
       }
 
-      function extraerManzana(n) {
-        // Busca patrones como "mza 1", "manzana 3", "mz 2", "mza1", etc. en todos los campos de texto
-        var texto = [n.asunto, n.detalle, n.texto_informe, n.observaciones]
-          .map(function(v) { return (v || ''); }).join(' ');
+      function extraerManzana(texto) {
         var match = texto.match(/(?:manzana|mza|mz)\.?\s*(\w+)/i);
-        if (match) return 'Mza ' + match[1].toUpperCase();
-        return 'Sin manzana';
+        return match ? 'Mza ' + match[1].toUpperCase() : 'Sin manzana';
+      }
+
+      function extraerOrden(texto) {
+        var match = texto.match(/(?:orden|parcela|parc|ord|vivienda|viv)\.?\s*(\w+)/i);
+        return match ? match[1].toUpperCase() : null;
       }
 
       function agruparPorManzana(lista) {
+        // Estructura: { mza: { orden: [novedades] } }
         var grupos = {};
         lista.forEach(function(n) {
-          var mza = extraerManzana(n);
-          if (!grupos[mza]) grupos[mza] = [];
-          grupos[mza].push(n);
+          var texto = [n.asunto, n.detalle, n.texto_informe, n.observaciones]
+            .map(function(v) { return v || ''; }).join(' ');
+          var mza   = extraerManzana(texto);
+          var orden = extraerOrden(texto) || 'Sin orden';
+          if (!grupos[mza]) grupos[mza] = {};
+          if (!grupos[mza][orden]) grupos[mza][orden] = [];
+          grupos[mza][orden].push(n);
         });
-        var keys = Object.keys(grupos).sort(function(a, b) {
-          // Extraer número para ordenar numéricamente
+        // Ordenar manzanas descendente
+        var mzaKeys = Object.keys(grupos).sort(function(a, b) {
           var na = parseFloat((a.match(/\d+/) || [0])[0]);
           var nb = parseFloat((b.match(/\d+/) || [0])[0]);
           if (!isNaN(na) && !isNaN(nb) && na !== nb) return nb - na;
           return b.localeCompare(a);
         });
         var ordenado = {};
-        keys.forEach(function(k) { ordenado[k] = grupos[k]; });
+        mzaKeys.forEach(function(mk) {
+          // Ordenar órdenes dentro de cada manzana descendente
+          var ordKeys = Object.keys(grupos[mk]).sort(function(a, b) {
+            var na = parseFloat((a.match(/\d+/) || [0])[0]);
+            var nb = parseFloat((b.match(/\d+/) || [0])[0]);
+            if (!isNaN(na) && !isNaN(nb) && na !== nb) return nb - na;
+            return b.localeCompare(a);
+          });
+          ordenado[mk] = {};
+          ordKeys.forEach(function(ok) { ordenado[mk][ok] = grupos[mk][ok]; });
+        });
         return ordenado;
       }
 
@@ -31005,34 +31021,47 @@ window.construcc_exportar = function() {
         var mzas = Object.keys(grupos);
         if (!mzas.length) return '<p style="color:#94a3b8;font-style:italic">Sin novedades para este período.</p>';
         mzas.forEach(function(mza) {
-          var items = grupos[mza];
-          html += '<div style="margin-bottom:28px">';
+          var ordenes = grupos[mza];
+          var totalMza = 0;
+          Object.keys(ordenes).forEach(function(o) { totalMza += ordenes[o].length; });
+
+          html += '<div style="margin-bottom:32px">';
+          // Cabecera manzana
           html += '<div style="background:#1e3a5f;border-left:4px solid #3b82f6;padding:10px 14px;border-radius:6px 6px 0 0;display:flex;align-items:center;justify-content:space-between">';
-          html += '<span style="font-size:15px;font-weight:800;color:#93c5fd">📦 Manzana ' + mza + '</span>';
-          html += '<span style="font-size:12px;color:#64748b">' + items.length + ' novedad' + (items.length !== 1 ? 'es' : '') + '</span>';
+          html += '<span style="font-size:15px;font-weight:800;color:#93c5fd">📦 ' + mza + '</span>';
+          html += '<span style="font-size:12px;color:#64748b">' + totalMza + ' novedad' + (totalMza !== 1 ? 'es' : '') + '</span>';
           html += '</div>';
-          items.forEach(function(n, i) {
-            var bg = i % 2 === 0 ? '#0f172a' : '#111827';
-            var fotosHtml = '';
-            if (n.fotos && n.fotos.length) {
-              fotosHtml = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">';
-              n.fotos.forEach(function(f) {
-                fotosHtml += '<a href="' + f + '" target="_blank"><img src="' + f + '" style="width:72px;height:72px;object-fit:cover;border-radius:6px;border:1px solid #334155"></a>';
-              });
-              fotosHtml += '</div>';
-            }
-            html += '<div style="background:' + bg + ';padding:12px 14px;border-left:4px solid #1e3a5f;border-bottom:1px solid #1e293b">';
-            html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px">';
-            html += '<span style="font-size:12px;font-weight:700;color:#f59e0b">' + (n.asunto || n.tipo || 'Sin asunto') + '</span>';
-            html += '<span style="font-size:11px;color:#64748b;white-space:nowrap">' + formatFecha(n.created_at) + '</span>';
+
+          Object.keys(ordenes).forEach(function(ord) {
+            var items = ordenes[ord];
+            // Subcabecera orden/parcela
+            html += '<div style="background:#162032;border-left:4px solid #334155;padding:7px 14px;display:flex;align-items:center;justify-content:space-between;border-top:1px solid #1e293b">';
+            html += '<span style="font-size:12px;font-weight:700;color:#7cb0ff">📍 ' + (ord === 'Sin orden' ? 'Sin orden/parcela' : 'Orden / Parcela: ' + ord) + '</span>';
+            html += '<span style="font-size:11px;color:#475569">' + items.length + ' registro' + (items.length !== 1 ? 's' : '') + '</span>';
             html += '</div>';
-            if (n.nro_pu) html += '<div style="font-size:11px;color:#94a3b8;margin-bottom:4px">📄 PU N° <strong style="color:#cbd5e1">' + n.nro_pu + '</strong></div>';
-            if (n.detalle) html += '<div style="font-size:12px;color:#e2e8f0;margin-bottom:4px;line-height:1.5">' + n.detalle + '</div>';
-            if (n.texto_informe && n.texto_informe !== n.detalle) html += '<div style="font-size:12px;color:#94a3b8;margin-bottom:4px;line-height:1.5">' + n.texto_informe + '</div>';
-            if (n.observaciones) html += '<div style="font-size:11px;color:#64748b;font-style:italic">' + n.observaciones + '</div>';
-            html += '<div style="font-size:11px;color:#475569;margin-top:4px">👤 ' + (n.cargado_por || '-') + '</div>';
-            html += fotosHtml;
-            html += '</div>';
+
+            items.forEach(function(n, i) {
+              var bg = i % 2 === 0 ? '#0f172a' : '#111827';
+              var fotosHtml = '';
+              if (n.fotos && n.fotos.length) {
+                fotosHtml = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">';
+                n.fotos.forEach(function(f) {
+                  fotosHtml += '<a href="' + f + '" target="_blank"><img src="' + f + '" style="width:72px;height:72px;object-fit:cover;border-radius:6px;border:1px solid #334155"></a>';
+                });
+                fotosHtml += '</div>';
+              }
+              html += '<div style="background:' + bg + ';padding:12px 14px;border-left:4px solid #0f2744;border-bottom:1px solid #1e293b">';
+              html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px">';
+              html += '<span style="font-size:12px;font-weight:700;color:#f59e0b">' + (n.asunto || n.tipo || 'Sin asunto') + '</span>';
+              html += '<span style="font-size:11px;color:#64748b;white-space:nowrap">' + formatFecha(n.created_at) + '</span>';
+              html += '</div>';
+              if (n.detalle) html += '<div style="font-size:12px;color:#e2e8f0;margin-bottom:4px;line-height:1.5">' + n.detalle + '</div>';
+              if (n.texto_informe && n.texto_informe !== n.detalle) html += '<div style="font-size:12px;color:#94a3b8;margin-bottom:4px;line-height:1.5">' + n.texto_informe + '</div>';
+              if (n.observaciones) html += '<div style="font-size:11px;color:#64748b;font-style:italic">' + n.observaciones + '</div>';
+              html += '<div style="font-size:11px;color:#475569;margin-top:4px">👤 ' + (n.cargado_por || '-') + '</div>';
+              html += fotosHtml;
+              html += '</div>';
+            });
           });
           html += '</div>';
         });
