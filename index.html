@@ -8094,18 +8094,6 @@ window.addEventListener('unhandledrejection', function (e) {
       return false;
     } // Mac
   });
-  var devtoolsOpen = false;
-  setInterval(function () {
-    var threshold = 160;
-    var widthDiff = window.outerWidth - window.innerWidth;
-    var heightDiff = window.outerHeight - window.innerHeight;
-    if (widthDiff > threshold || heightDiff > threshold) {
-      if (!devtoolsOpen) {
-        devtoolsOpen = true;
-        document.body.innerHTML = '<div style="position:fixed;inset:0;background:#0b2442;color:white;display:flex;align-items:center;justify-content:center;flex-direction:column;font-family:sans-serif;text-align:center;padding:20px"><h1 style="font-size:48px;margin-bottom:20px">🔒</h1><h2>Acceso restringido</h2><p style="margin-top:10px;opacity:.7">Cerre las herramientas de desarrollador y recargue la pagina.</p></div>';
-      }
-    }
-  }, 1000);
 })();
 var R2_ENDPOINT = 'https://ivc-push.vercel.app'; // proxy seguro — credenciales solo en el servidor
 var R2_BUCKET = 'ivcfotos';
