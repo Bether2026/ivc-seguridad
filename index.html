@@ -4489,8 +4489,8 @@ body {
               <!-- COUNT + EXPORT -->
               <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px">
                 <span id="rbrb-count" style="font-size:12px;color:var(--text3)"></span>
-                <button onclick="rbrb_exportar()" type="button"
-                  style="padding:5px 12px;border-radius:7px;border:1px solid var(--border2);
+                <button id="rbrb-btn-export" onclick="rbrb_exportar()" type="button"
+                  style="display:none;padding:5px 12px;border-radius:7px;border:1px solid var(--border2);
                     background:transparent;color:var(--text2);font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">
                   📄 Informe HTML
                 </button>
@@ -4887,8 +4887,8 @@ body {
                 border-bottom:1px solid var(--border);background:var(--bg)"></div>
               <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 14px">
                 <span id="frfr-count" style="font-size:12px;color:var(--text3)"></span>
-                <button onclick="frfr_exportar()" type="button"
-                  style="padding:5px 12px;border-radius:7px;border:1px solid var(--border2);
+                <button id="frfr-btn-export" onclick="frfr_exportar()" type="button"
+                  style="display:none;padding:5px 12px;border-radius:7px;border:1px solid var(--border2);
                     background:transparent;color:var(--text2);font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">
                   📄 Informe HTML
                 </button>
@@ -27368,14 +27368,15 @@ function rbrb_mostrarTabAudit() {
 }
 
 window.rbrb_mostrarCampoIVC = function rbrb_mostrarCampoIVC() {
-  var w = document.getElementById('rbrb-ivc-wrap');
-  if (!w) return;
   var puedeVer = window.USER && (
     USER.puesto === 'Gerencia' ||
     USER.puesto === 'Administrador' ||
     USER.rol === 'ADMIN'
   );
-  w.style.display = puedeVer ? 'block' : 'none';
+  var w = document.getElementById('rbrb-ivc-wrap');
+  if (w) w.style.display = puedeVer ? 'block' : 'none';
+  var btn = document.getElementById('rbrb-btn-export');
+  if (btn) btn.style.display = puedeVer ? 'inline-block' : 'none';
 }
 
 window.rbrb_checkPin = function() {
@@ -29309,14 +29310,15 @@ window.frfr_mostrarTabAudit = function frfr_mostrarTabAudit() {
 }
 
 window.frfr_mostrarCampoIVC = function frfr_mostrarCampoIVC() {
-  var w = document.getElementById('frfr-ivc-wrap');
-  if (!w) return;
   var puedeVer = window.USER && (
     USER.puesto === 'Gerencia' ||
     USER.puesto === 'Administrador' ||
     USER.rol === 'ADMIN'
   );
-  w.style.display = puedeVer ? 'block' : 'none';
+  var w = document.getElementById('frfr-ivc-wrap');
+  if (w) w.style.display = puedeVer ? 'block' : 'none';
+  var btn = document.getElementById('frfr-btn-export');
+  if (btn) btn.style.display = puedeVer ? 'inline-block' : 'none';
 }
 
 window.frfr_checkPin = function() {
