@@ -9314,6 +9314,8 @@ function initApp() {
   // dinamicamente desde Supabase para que Administracion pueda agregar vehiculos sin
   // tener que editar codigo.
   if (typeof cargarVehiculosEnSelectores === 'function') cargarVehiculosEnSelectores();
+  // Suscribir alertas climáticas
+  setTimeout(function() { if (typeof window.clima_suscribir === 'function') window.clima_suscribir(); }, 2000);
 
   // Usuario Choferes: solo ve Fichaje y Choferes
   if (USER.puesto === 'Choferes' && USER.rol === 'POR PUESTO') {
@@ -31524,12 +31526,12 @@ function clima_insertar(payload, btn) {
 // ── Detectar alertas climáticas entrantes via realtime ────────────────────
 var CLIMA_CANAL = null;
 
-function clima_suscribir() {
+window.clima_suscribir = function() {
   if (!window.db || !window.USER) return;
-  if (CLIMA_CANAL) return; // ya suscrito
+  if (CLIMA_CANAL) { CLIMA_CANAL.unsubscribe(); CLIMA_CANAL = null; }
   var puesto = USER.puesto;
 
-  CLIMA_CANAL = db.channel('clima-alertas-' + puesto + '-' + Date.now())
+  CLIMA_CANAL = db.channel('clima-' + puesto)
     .on('postgres_changes', {
       event: 'INSERT',
       schema: 'public',
@@ -31541,21 +31543,25 @@ function clima_suscribir() {
       if (n.puesto !== puesto && n.puesto !== 'Todos') return;
       clima_mostrarBanner({ id: n.id, tipo: n.tipo, mensaje: n.mensaje });
     })
-    .subscribe(function(status) {
-      if (status === 'SUBSCRIBED') {
-        console.log('[CLIMA] Suscrito a alertas climaticas para puesto:', puesto);
-      }
-    });
-}
+    .subscribe();
+};
 
-// Arrancar la suscripción cuando la app esté lista
-// Usar setInterval para asegurarse que db y USER estén disponibles
-var _climaInitInterval = setInterval(function() {
-  if (window.db && window.USER && !CLIMA_CANAL) {
-    clearInterval(_climaInitInterval);
-    clima_suscribir();
+// Verificar cada 2 segundos hasta que USER esté disponible
+var _climaCheck = setInterval(function() {
+  if (window.USER && window.db) {
+    clearInterval(_climaCheck);
+    window.clima_suscribir();
   }
-}, 1000);
+}, 2000);
+
+// También engancharse a initApp si existe
+var _origInitApp = window.initApp;
+window.initApp = function() {
+  if (typeof _origInitApp === 'function') _origInitApp.apply(this, arguments);
+  setTimeout(function() {
+    if (window.USER && window.db) window.clima_suscribir();
+  }, 1500);
+};
 
 })();
 // ══ FIN MÓDULO ALERTAS CLIMÁTICAS ══════════════════════════════════════════
