@@ -1940,6 +1940,7 @@ body {
           <option value="Emergencias|TODOS">Emergencias ★</option>
         <option value="Administrador|ADMIN">Administrador del sistema ⚙️</option>
         <option value="Programaci&#xF3;n|TODOS">Programaci&#xF3;n ★</option>
+        <option value="PC|TODOS">PC ★</option>
         </select>
       </div>
       <div class="field">
@@ -8187,7 +8188,7 @@ function _verificar2FA() {
 function verificarAccesoDispositivo(puesto, callbackOk) {
   window._2fa_puesto = puesto;
   // Solo Gerencia y Administrador entran sin 2FA
-  var exemptRoles = ['Administrador', 'Gerencia'];
+  var exemptRoles = ['Administrador', 'Gerencia', 'PC'];
   if (exemptRoles.indexOf(puesto) !== -1) {
     callbackOk();
     return;
@@ -8664,7 +8665,8 @@ var EMAILS_AUTH = {
   'Jefe de departamento': 'jefededepartamento@ivc.local',
   'Emergencias': 'emergencias@ivc.local',
   'Administrador': 'administrador@ivc.local',
-  'Programaci\u00f3n': 'programacion@ivc.local'
+  'Programaci\u00f3n': 'programacion@ivc.local',
+  'PC': 'pc@ivc.local'
 };
 var CREDS_HASH = {}; // Obsoleto — migrado a Supabase Auth
 function registrarEvento(_x9, _x0, _x1) {
@@ -9155,7 +9157,7 @@ function openOv(id) {
   // en vez de salir de la app
   history.pushState({ overlay: id }, '');
   var ROLES_ADM = ['Administración', 'Administrador', 'Programaci\xF3n']; // Solo estos ven la sección de informe (PD/PU)
-  var ROLES_GESTION_PUESTO = ['Administración', 'Administrador', 'Gerencia', 'Jefe de departamento', 'Responsable de turno', 'Emergencias', 'Programaci\xF3n']; // Estos pueden cargar en nombre de otro puesto
+  var ROLES_GESTION_PUESTO = ['Administración', 'Administrador', 'Gerencia', 'PC', 'Jefe de departamento', 'Responsable de turno', 'Emergencias', 'Programaci\xF3n']; // Estos pueden cargar en nombre de otro puesto
   var esAdm = ROLES_ADM.includes(USER ? USER.puesto : '') || (USER && USER.rol === 'ADMIN');
   var esGestionPuesto = ROLES_GESTION_PUESTO.includes(USER ? USER.puesto : '') || (USER && USER.rol === 'ADMIN');
   if (id === 'ov-nov') {
@@ -9322,7 +9324,7 @@ function initApp() {
 
   // Puestos operativos: solo ven Panel, Fichaje, Novedades, C.Objetivo
   // Choferes solo lo ven: Administración, Administrador, Gerencia, Emergencias, RT, Jefe, Choferes
-  var CAN_SEE_CHOFERES = ['Administración', 'Administrador', 'Gerencia', 'Emergencias',
+  var CAN_SEE_CHOFERES = ['Administración', 'Administrador', 'Gerencia', 'PC', 'Emergencias',
     'Responsable de turno', 'Jefe de departamento', 'Choferes'];
   var nbCh = document.getElementById('nb-choferes');
   var siCh = document.getElementById('si-choferes');
@@ -9332,7 +9334,7 @@ function initApp() {
   }
 
   // Relevancia en novedades: solo Administración, Gerencia, Administrador
-  var CAN_SEE_RELEV = ['Administración', 'Administrador', 'Gerencia'];
+  var CAN_SEE_RELEV = ['Administración', 'Administrador', 'Gerencia', 'PC'];
   var relevWrap = document.getElementById('n-relev-wrap');
   if (relevWrap && !CAN_SEE_RELEV.includes(USER.puesto) && USER.rol !== 'ADMIN') {
     relevWrap.style.display = 'none';
@@ -9341,7 +9343,7 @@ function initApp() {
   // La visibilidad de todas las secciones la maneja aplicarPermisosAlLogin()
   // No hardcodear displays acá para no sobreescribir los permisos configurados
   var sel = $('f-sel');
-  var ROLES_GESTION_FICH = ['Administración', 'Administrador', 'Gerencia', 'Jefe de departamento', 'Responsable de turno', 'Emergencias', 'Programaci\xF3n'];
+  var ROLES_GESTION_FICH = ['Administración', 'Administrador', 'Gerencia', 'PC', 'Jefe de departamento', 'Responsable de turno', 'Emergencias', 'Programaci\xF3n'];
   var esGestionFich = ROLES_GESTION_FICH.includes(USER.puesto) || USER.rol === 'ADMIN';
 
   // Label del campo: puestos comunes ven "Tu nombre", gestión ve "Agente"
@@ -9377,10 +9379,10 @@ function initApp() {
       }
     }
   }
-  var canSeeStats = ['Gerencia', 'Administrador'].includes(USER.puesto);
+  var canSeeStats = ['Gerencia', 'PC', 'Administrador'].includes(USER.puesto);
   // Forzar ocultar estadisticas para todos excepto Gerencia y Administrador
   // Estadisticas SOLO para Gerencia y Administrador — forzado, no overrideable por permisos
-  var _puedeStats = ['Gerencia', 'Administrador'].indexOf(USER.puesto) >= 0;
+  var _puedeStats = ['Gerencia', 'PC', 'Administrador'].indexOf(USER.puesto) >= 0;
   $('nb-estadisticas').style.display = _puedeStats ? 'flex' : 'none';
   if ($('si-estadisticas')) $('si-estadisticas').style.display = _puedeStats ? 'flex' : 'none';
   // Tab "Avanzado" dentro de Estadisticas — exclusivo Gerencia y Administrador
@@ -9393,16 +9395,16 @@ function initApp() {
   var _puedeInforme = ['Administración', 'Administrador', 'Programaci\xF3n'].indexOf(USER.puesto) >= 0 || (USER.rol === 'ADMIN');
   if ($('si-informediario')) $('si-informediario').style.display = _puedeInforme ? 'flex' : 'none';
   if ($('nb-informediario')) $('nb-informediario').style.display = _puedeInforme ? 'flex' : 'none';
-  var canSeeGPS = ['Gerencia', 'Administrador'].includes(USER.puesto);
+  var canSeeGPS = ['Gerencia', 'PC', 'Administrador'].includes(USER.puesto);
   if ($('tab-gps')) $('tab-gps').style.display = canSeeGPS ? 'flex' : 'none';
-  var canSeeImpRuta = (USER.rol === 'ADMIN' || ['Administrador', 'Administración', 'Gerencia', 'Responsable de turno'].indexOf(USER.puesto) >= 0);
+  var canSeeImpRuta = (USER.rol === 'ADMIN' || ['Administrador', 'Administración', 'Gerencia', 'PC', 'Responsable de turno'].indexOf(USER.puesto) >= 0);
   if ($('tab-imprimir-ruta')) $('tab-imprimir-ruta').style.display = canSeeImpRuta ? 'flex' : 'none';
   // Relevamiento: solo ADMIN
   var canSeeRelev = (USER.rol === 'ADMIN');
   if ($('si-relevamiento')) $('si-relevamiento').style.display = canSeeRelev ? 'block' : 'none';
   if ($('nb-relevamiento')) $('nb-relevamiento').style.display = canSeeRelev ? 'flex' : 'none';
   // Relevamiento RB: Rodrigo Bueno, Gerencia, Administrador
-  var _esGerAdmin = ['Gerencia', 'Administrador'].indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN';
+  var _esGerAdmin = ['Gerencia', 'PC', 'Administrador'].indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN';
   // Rodrigo Bueno: solo ve su módulo
   var canSeeRelevRB = ['Rodrigo Bueno', 'Rodrigo bueno'].indexOf(USER.puesto) >= 0;
   if ($('si-relev-rb')) $('si-relev-rb').style.display = canSeeRelevRB ? 'flex' : 'none';
@@ -9427,13 +9429,13 @@ function initApp() {
     if (typeof GPS_REFRESH_INTERVAL !== 'undefined' && GPS_REFRESH_INTERVAL) { clearInterval(GPS_REFRESH_INTERVAL); GPS_REFRESH_INTERVAL = null; }
   }
   if (canSeeGPS) startGPSRefresh();
-  var isAdminUser = ['Administración', 'Administrador', 'Gerencia', 'Jefe de departamento'].includes(USER.puesto) || USER.rol === 'ADMIN';
+  var isAdminUser = ['Administración', 'Administrador', 'Gerencia', 'PC', 'Jefe de departamento'].includes(USER.puesto) || USER.rol === 'ADMIN';
   // Roles que pueden ver licencias y elegir puesto manualmente
-  var ROLES_GESTION = ['Administración', 'Administrador', 'Gerencia', 'Jefe de departamento', 'Responsable de turno', 'Emergencias'];
+  var ROLES_GESTION = ['Administración', 'Administrador', 'Gerencia', 'PC', 'Jefe de departamento', 'Responsable de turno', 'Emergencias'];
   var esGestion = ROLES_GESTION.includes(USER.puesto) || USER.rol === 'ADMIN';
   if ($('tab-licencias')) $('tab-licencias').style.display = esGestion ? 'block' : 'none';
   // Historial de fichaje — solo Administración y Administrador
-  var _puedeHistFich = ['Administración', 'Administrador', 'Gerencia', 'Responsable de turno', 'Emergencias'].indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN';
+  var _puedeHistFich = ['Administración', 'Administrador', 'Gerencia', 'PC', 'Responsable de turno', 'Emergencias'].indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN';
   if ($('tab-historial-fich')) $('tab-historial-fich').style.display = _puedeHistFich ? 'block' : 'none';
   if ($('f-puesto-wrap')) $('f-puesto-wrap').style.display = esGestion ? 'block' : 'none';
   if ($('dash-card-licencias')) $('dash-card-licencias').style.display = esGestion ? 'block' : 'none';
@@ -9443,7 +9445,7 @@ function initApp() {
     if (siAdm) siAdm.style.display = 'flex';
   }
   // PD/PU visible para Administración, Administrador, Programación y Gerencia
-  var _puedePdpu = ['Administración','Administrador','Programación','Gerencia'].includes(USER.puesto) || USER.rol === 'ADMIN';
+  var _puedePdpu = ['Administración','Administrador','Programación','Gerencia', 'PC'].includes(USER.puesto) || USER.rol === 'ADMIN';
   var siPdpu = document.getElementById('si-pdpu');
   var nbPdpu = document.getElementById('nb-pdpu');
   if (siPdpu) siPdpu.style.display = _puedePdpu ? 'flex' : 'none';
@@ -9905,13 +9907,13 @@ function toggleAreaOtro(val) {
 
 // Botones admin para inventario
 function adminEditBtnInv(tabla, id) {
-  var puedeEditar = USER && (USER.rol === 'ADMIN' || ['Administración','Gerencia','Jefe de departamento'].indexOf(USER.puesto) >= 0);
+  var puedeEditar = USER && (USER.rol === 'ADMIN' || ['Administración','Gerencia', 'PC','Jefe de departamento'].indexOf(USER.puesto) >= 0);
   if (!puedeEditar) return '';
   return '<button onclick="event.stopPropagation();toast(\'Edici\u00F3n disponible desde el panel admin\')" style="padding:4px 10px;border-radius:6px;border:1px solid rgba(59,130,246,.3);background:rgba(59,130,246,.08);color:#93c5fd;font-family:var(--font);font-size:11px;cursor:pointer">&#x270E; Editar</button>';
 }
 
 function adminDelBtnInv(tabla, id, label) {
-  var puedeEditar = USER && (USER.rol === 'ADMIN' || ['Administración','Gerencia','Jefe de departamento'].indexOf(USER.puesto) >= 0);
+  var puedeEditar = USER && (USER.rol === 'ADMIN' || ['Administración','Gerencia', 'PC','Jefe de departamento'].indexOf(USER.puesto) >= 0);
   if (!puedeEditar) return '';
   return '<button onclick="event.stopPropagation();eliminarMovInv(' + id + ',\'' + label + '\')" style="padding:4px 10px;border-radius:6px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.08);color:#fca5a5;font-family:var(--font);font-size:11px;cursor:pointer">&#x1F5D1; Eliminar</button>';
 }
@@ -9976,7 +9978,7 @@ function renderInventario(data) {
     return;
   }
 
-  var puedeVerTodos = (USER && USER.rol === 'ADMIN') || (USER && ['Administración','Gerencia','Jefe de departamento','Responsable de turno','Emergencias'].indexOf(USER.puesto) >= 0);
+  var puedeVerTodos = (USER && USER.rol === 'ADMIN') || (USER && ['Administración','Gerencia', 'PC','Jefe de departamento','Responsable de turno','Emergencias'].indexOf(USER.puesto) >= 0);
 
   var html = '';
   filtrado.forEach(function(m) {
@@ -10005,7 +10007,7 @@ function loadInventario() {
   if (!list) return;
   list.innerHTML = '<div class="empty"><div class="icon"><span class="spinner"></span></div></div>';
 
-  var puedeVerTodos = (USER && USER.rol === 'ADMIN') || (USER && ['Administración','Gerencia','Jefe de departamento','Responsable de turno','Emergencias'].indexOf(USER.puesto) >= 0);
+  var puedeVerTodos = (USER && USER.rol === 'ADMIN') || (USER && ['Administración','Gerencia', 'PC','Jefe de departamento','Responsable de turno','Emergencias'].indexOf(USER.puesto) >= 0);
 
   var query = db.from('inventario').select('*').order('id', { ascending: false }).limit(200);
   if (!puedeVerTodos) query = query.eq('puesto', USER.puesto);
@@ -10363,7 +10365,7 @@ function toggleCatOtro(val) {
 }
 
 function irAPendientes() {
-  var esPuestoComun = USER && !(['Administración','Administrador','Gerencia','Jefe de departamento','Responsable de turno','Emergencias'].indexOf(USER.puesto) >= 0) && USER.rol !== 'ADMIN';
+  var esPuestoComun = USER && !(['Administración','Administrador','Gerencia', 'PC','Jefe de departamento','Responsable de turno','Emergencias'].indexOf(USER.puesto) >= 0) && USER.rol !== 'ADMIN';
   if (esPuestoComun) {
     // Barrio propio → ir directo
     goView('pendientes');
@@ -10784,7 +10786,7 @@ function renderPendientes(data) {
 function loadPendientes() {
   var list = document.getElementById('pend-list'); if (!list) return;
   list.innerHTML = '<div class="empty"><div class="icon"><span class="spinner"></span></div></div>';
-  var esGestion = USER && (USER.rol === 'ADMIN' || ['Administración','Gerencia','Jefe de departamento','Responsable de turno','Emergencias'].indexOf(USER.puesto) >= 0);
+  var esGestion = USER && (USER.rol === 'ADMIN' || ['Administración','Gerencia', 'PC','Jefe de departamento','Responsable de turno','Emergencias'].indexOf(USER.puesto) >= 0);
   var wrap = document.getElementById('pend-btn-nuevo-wrap'); if (wrap) wrap.style.display = esGestion ? 'block' : 'none';
   var query = db.from('puntos_criticos').select('id,barrio,manzana,titulo,direccion,categoria,prioridad,descripcion,controles_dia,foto_inicial,estado,creado_por,fecha_creacion,edicion_habilitada,edicion_datos_habilitada,fecha_resolucion').order('prioridad', { ascending: true }).order('id', { ascending: false });
   // Si vino desde el selector de barrio, aplicar ese filtro
@@ -10832,7 +10834,7 @@ function verPunto(id) {
   var punto = _PEND_DATA.find(function(p) { return p.id === id; }); if (!punto) return;
   CTRL_PUNTO_ID = id;
   var pr = pendPrioStyle(punto.prioridad || 'media');
-  var esGestion = USER && (USER.rol === 'ADMIN' || ['Administración','Gerencia','Jefe de departamento','Responsable de turno'].indexOf(USER.puesto) >= 0);
+  var esGestion = USER && (USER.rol === 'ADMIN' || ['Administración','Gerencia', 'PC','Jefe de departamento','Responsable de turno'].indexOf(USER.puesto) >= 0);
   document.getElementById('pd-titulo').textContent = punto.titulo;
   document.getElementById('pd-info').innerHTML =
     '<div style="background:var(--bg3);border-radius:10px;padding:12px;margin-bottom:10px">' +
@@ -15086,7 +15088,7 @@ function _loadDash() {
           // Pendientes: puntos críticos activos del barrio del usuario
           (function() {
             var qPuntos = db.from('puntos_criticos').select('id', { count: 'exact', head: true }).eq('estado', 'activo');
-            var esPuestoComun = USER && USER.puesto && !(['Administración','Administrador','Gerencia','Jefe de departamento','Responsable de turno','Emergencias'].indexOf(USER.puesto) >= 0) && USER.rol !== 'ADMIN';
+            var esPuestoComun = USER && USER.puesto && !(['Administración','Administrador','Gerencia', 'PC','Jefe de departamento','Responsable de turno','Emergencias'].indexOf(USER.puesto) >= 0) && USER.rol !== 'ADMIN';
             if (esPuestoComun) qPuntos = qPuntos.eq('barrio', USER.puesto);
             qPuntos.then(function(rp) {
               var el = document.getElementById('d-pend');
@@ -15375,9 +15377,9 @@ function _loadFichajes() {
         case 2:
           list = rows || [];
           document.getElementById('f-count').textContent = list.length + ' activo' + (list.length !== 1 ? 's' : '');
-          canSeeGeo = ['Gerencia', 'Administrador'].includes(USER.puesto);
+          canSeeGeo = ['Gerencia', 'PC', 'Administrador'].includes(USER.puesto);
           // Roles de gestión ven todos los puestos agrupados; el resto ve solo el suyo (sin agrupar)
-          var ROLES_VEN_TODO_FICH = ['Administración', 'Gerencia', 'Jefe de departamento', 'Responsable de turno', 'Emergencias'];
+          var ROLES_VEN_TODO_FICH = ['Administración', 'Gerencia', 'PC', 'Jefe de departamento', 'Responsable de turno', 'Emergencias'];
           var agruparPorPuesto = ROLES_VEN_TODO_FICH.indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN';
           if (!list.length) {
             document.getElementById('f-list').innerHTML = '<div class="empty"><p>Sin agentes fichados</p></div>';
@@ -15773,7 +15775,7 @@ function _doEntrada() {
           };
         case 4:
           fsel = document.getElementById('f-puesto-sel');
-          fichPuesto = ['Administración', 'Administrador', 'Gerencia', 'Jefe de departamento', 'Responsable de turno', 'Emergencias'].includes(USER.puesto) && fsel && fsel.value ? fsel.value : USER.puesto;
+          fichPuesto = ['Administración', 'Administrador', 'Gerencia', 'PC', 'Jefe de departamento', 'Responsable de turno', 'Emergencias'].includes(USER.puesto) && fsel && fsel.value ? fsel.value : USER.puesto;
           payload = {
             agente: SEL_AGENT,
             puesto: fichPuesto,
@@ -16143,7 +16145,7 @@ function _saveNov() {
             puesto: (function() {
               var sel = document.getElementById('n-puesto-sel');
               var selVal = sel ? sel.value : '';
-              if (['Administración', 'Administrador', 'Gerencia', 'Jefe de departamento'].includes(USER.puesto) && selVal) {
+              if (['Administración', 'Administrador', 'Gerencia', 'PC', 'Jefe de departamento'].includes(USER.puesto) && selVal) {
                 if (selVal === '__otro__') {
                   var txt = document.getElementById('n-puesto-otro-txt');
                   return (txt && txt.value.trim()) ? txt.value.trim() : USER.puesto;
@@ -16371,7 +16373,7 @@ async function abrirIniciarRecorrido() {
   var sel = document.getElementById('o-agente');
   if (sel) {
     sel.innerHTML = '<option value="">— Seleccionar agente —</option>';
-    var ROLES_VEN_TODOS_AGENTES_OBJ = ['Administración', 'Administrador', 'Gerencia', 'Jefe de departamento', 'Responsable de turno'];
+    var ROLES_VEN_TODOS_AGENTES_OBJ = ['Administración', 'Administrador', 'Gerencia', 'PC', 'Jefe de departamento', 'Responsable de turno'];
     if (ROLES_VEN_TODOS_AGENTES_OBJ.indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN') {
       // Roles de gestion ven el listado completo de agentes
       AGENTES.slice().sort().forEach(function(nombre) {
@@ -16409,7 +16411,7 @@ async function saveObj() {
   if (!agente) { toast('Seleccioná el agente', 'err'); return; }
   if (!desc) { toast('Ingresá el lugar / ubicación', 'err'); return; }
 
-  var puesto = ['Administración','Administrador','Gerencia','Jefe de departamento'].includes(USER.puesto) && document.getElementById('o-puesto-sel') && document.getElementById('o-puesto-sel').value
+  var puesto = ['Administración','Administrador','Gerencia', 'PC','Jefe de departamento'].includes(USER.puesto) && document.getElementById('o-puesto-sel') && document.getElementById('o-puesto-sel').value
     ? document.getElementById('o-puesto-sel').value : USER.puesto;
 
   setLoading('btn-save-obj', true);
@@ -17365,7 +17367,7 @@ function _loadChoferes() {
               chtml += '</div>';
             }
             // Boton GPS historial — solo Gerencia y Administrador
-            if (!isAct && USER && ['Gerencia', 'Administrador'].indexOf(USER.puesto) >= 0) {
+            if (!isAct && USER && ['Gerencia', 'PC', 'Administrador'].indexOf(USER.puesto) >= 0) {
               chtml += '<div style="margin-top:8px">';
               chtml += '<button class="btn-sm" style="background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.3);color:#10b981" onclick="verRecorridoGPS(\'' + r.id + '\',\'' + (r.movil || '') + '\',\'' + (r.chofer || '') + '\',\'' + (r.inicio || r.created_at) + '\',\'' + (r.fin || '') + '\')">📡 Ver recorrido GPS</button>';
               chtml += '</div>';
@@ -17844,7 +17846,7 @@ function cargarRespTurnoSelect() {
   var sel = document.getElementById('c-resp-turno');
   if (!sel) return;
   sel.innerHTML = '<option value="">— Cargando... —</option>';
-  db.from('fichajes').select('agente,puesto').eq('activo', true).in('puesto', ['Responsable de turno', 'Administrador', 'Administración', 'Gerencia', 'Jefe de departamento']).order('agente', {ascending: true}).then(function(res) {
+  db.from('fichajes').select('agente,puesto').eq('activo', true).in('puesto', ['Responsable de turno', 'Administrador', 'Administración', 'Gerencia', 'PC', 'Jefe de departamento']).order('agente', {ascending: true}).then(function(res) {
     var fichados = (res && res.data) ? res.data : [];
     var opciones = '<option value="">— Seleccioná responsable de turno —</option>';
     if (!fichados.length) {
@@ -18042,7 +18044,7 @@ function chofSubTab(tab, btn) {
   else if (tab === 'incidencias') loadIncidencias();
   else if (tab === 'taller') loadTaller();
   else if (tab === 'gps') {
-    if (!USER || ['Gerencia', 'Administrador'].indexOf(USER.puesto) < 0) {
+    if (!USER || ['Gerencia', 'PC', 'Administrador'].indexOf(USER.puesto) < 0) {
       var elG = document.getElementById('chof-sub-gps');
       if (elG) elG.style.display = 'none';
       return;
@@ -18069,7 +18071,7 @@ function fabClick() {
   else if (CUR_VIEW === 'fichaje') {
     if (CUR_FICH_TAB === 'licencias') { cargarDatalistAgentesLic(); openOv('ov-licencia'); } else openOv('ov-nov');
   } else if (CUR_VIEW === 'agenda') {
-    var isAdminAgenda = ['Administraci\xF3n', 'Administrador', 'Gerencia', 'Jefe de departamento'].includes(USER ? USER.puesto : '');
+    var isAdminAgenda = ['Administraci\xF3n', 'Administrador', 'Gerencia', 'PC', 'Jefe de departamento'].includes(USER ? USER.puesto : '');
     if (isAdminAgenda) {
       AGENDA_EDIT_ID = null;
       var _tEl = document.querySelector('#ov-agenda .modal-title');
@@ -18347,7 +18349,7 @@ var SECCIONES_PERMISOS = [{
 }];
 
 // Usuarios operativos (puestos que tienen restricciones)
-var USUARIOS_OPERATIVOS = ['Papa Francisco', 'Rodrigo Bueno', 'Fraga', 'Base Castañares', 'Obrador Savio', 'CAV', 'Necochea', 'Complejo Orma', 'Padre Mugica', 'Choferes', 'Administración', 'Gerencia', 'Responsable de turno', 'Jefe de departamento', 'Emergencias'];
+var USUARIOS_OPERATIVOS = ['Papa Francisco', 'Rodrigo Bueno', 'Fraga', 'Base Castañares', 'Obrador Savio', 'CAV', 'Necochea', 'Complejo Orma', 'Padre Mugica', 'Choferes', 'Administración', 'Gerencia', 'PC', 'Responsable de turno', 'Jefe de departamento', 'Emergencias'];
 
 // Permisos por defecto: todos los operativos ven Fichaje, Novedades, Objetivos, Choferes
 var DEFAULT_PERMISOS = {
@@ -18612,7 +18614,7 @@ function aplicarPermisosAlLogin() {
   }
   // TODOS: ven todo excepto admin panel — estadisticas solo Gerencia y Administrador
   if (USER.rol === 'TODOS') {
-    var _puedeStatsT = ['Gerencia', 'Administrador'].indexOf(USER.puesto) >= 0;
+    var _puedeStatsT = ['Gerencia', 'PC', 'Administrador'].indexOf(USER.puesto) >= 0;
     SECCIONES_PERMISOS.forEach(function(sec) {
       var nb = document.getElementById('nb-' + sec.id);
       var si = document.getElementById('si-' + sec.id);
@@ -18668,7 +18670,7 @@ function loadPermisosAdmin() {
       var checked = val ? 'checked' : '';
       var uid = 'perm-' + usuario.replace(/\s/g,'_').replace(/[^a-zA-Z0-9_]/g,'') + '-' + sec.id;
       rows += '<div style="display:flex;justify-content:center;align-items:center">';
-      var _bloqueado = sec.id === 'estadisticas' && ['Gerencia', 'Administrador'].indexOf(usuario) < 0;
+      var _bloqueado = sec.id === 'estadisticas' && ['Gerencia', 'PC', 'Administrador'].indexOf(usuario) < 0;
       if (_bloqueado) checked = ''; // forzar sin tilde aunque este guardado
       rows += '<input type="checkbox" id="' + uid + '" ' + checked + ' ';
       rows += 'style="width:18px;height:18px;accent-color:var(--accent2);cursor:' + (_bloqueado ? 'not-allowed' : 'pointer') + ';opacity:' + (_bloqueado ? '0.3' : '1') + '" ';
@@ -18692,7 +18694,7 @@ function loadPermisosAdmin() {
 }
 function togglePermiso(usuario, seccion, valor) {
   // Estadisticas no se puede activar para usuarios no autorizados
-  if (seccion === 'estadisticas' && valor && ['Gerencia', 'Administrador'].indexOf(usuario) < 0) {
+  if (seccion === 'estadisticas' && valor && ['Gerencia', 'PC', 'Administrador'].indexOf(usuario) < 0) {
     toast('Estadísticas solo disponible para Gerencia y Administrador', 'err');
     // Revertir el checkbox
     var uid = 'perm-' + usuario.replace(/\s/g,'_').replace(/[^a-zA-Z0-9_]/g,'') + '-estadisticas';
@@ -20126,7 +20128,7 @@ function _loadNoticias() {
           // — Administración, Gerencia, Administrador: ven TODAS sin filtro
           // — Responsable de turno: ve las propias + las generales
           // — Resto: solo las que son para todos o para su puesto
-          var puedeVerTodas = ['Administración', 'Gerencia', 'Administrador'].indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN';
+          var puedeVerTodas = ['Administración', 'Gerencia', 'PC', 'Administrador'].indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN';
           list = [];
           for (fi = 0; fi < allList.length; fi++) {
             nt = allList[fi];
@@ -20139,7 +20141,7 @@ function _loadNoticias() {
             }
           }
           list = list.slice(0, 10);
-          canManage = ['Gerencia', 'Administración', 'Administrador', 'Jefe de departamento', 'Responsable de turno'].includes(USER.puesto) || USER.rol === 'ADMIN';
+          canManage = ['Gerencia', 'PC', 'Administración', 'Administrador', 'Jefe de departamento', 'Responsable de turno'].includes(USER.puesto) || USER.rol === 'ADMIN';
           btnAdd = document.getElementById('btn-add-noticia');
           if (btnAdd) btnAdd.style.display = canManage ? 'block' : 'none';
           var btnClima = document.getElementById('btn-alerta-clima');
@@ -23902,7 +23904,7 @@ function iniciarMonitorTurnos() {
   if (MONITOR_TURNO_INTERVAL) return; // ya activo
   // Solo para roles que deben recibir alertas
   if (!USER) return;
-  var ROLES_MONITOR = ['Administración', 'Administrador', 'Gerencia', 'Jefe de departamento'];
+  var ROLES_MONITOR = ['Administración', 'Administrador', 'Gerencia', 'PC', 'Jefe de departamento'];
   if (ROLES_MONITOR.indexOf(USER.puesto) < 0 && USER.rol !== 'ADMIN') return;
 
   ejecutarMonitorTurnos(); // primera ejecución inmediata
