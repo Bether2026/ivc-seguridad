@@ -31522,30 +31522,40 @@ function clima_insertar(payload, btn) {
 }
 
 // ── Detectar alertas climáticas entrantes via realtime ────────────────────
+var CLIMA_CANAL = null;
+
 function clima_suscribir() {
   if (!window.db || !window.USER) return;
+  if (CLIMA_CANAL) return; // ya suscrito
   var puesto = USER.puesto;
-  db.channel('clima-alertas-' + puesto)
+
+  CLIMA_CANAL = db.channel('clima-alertas-' + puesto + '-' + Date.now())
     .on('postgres_changes', {
       event: 'INSERT',
       schema: 'public',
-      table: 'alertas_turno',
-      filter: 'tipo=eq.clima'
+      table: 'alertas_turno'
     }, function(payload) {
       var n = payload.new;
-      if (n && (n.puesto === puesto || n.puesto === 'Todos')) {
-        clima_mostrarBanner({ id: n.id, tipo: n.tipo, mensaje: n.mensaje });
-      }
+      if (!n) return;
+      if (n.tipo !== 'clima') return;
+      if (n.puesto !== puesto && n.puesto !== 'Todos') return;
+      clima_mostrarBanner({ id: n.id, tipo: n.tipo, mensaje: n.mensaje });
     })
-    .subscribe();
+    .subscribe(function(status) {
+      if (status === 'SUBSCRIBED') {
+        console.log('[CLIMA] Suscrito a alertas climaticas para puesto:', puesto);
+      }
+    });
 }
 
-// Inicializar cuando el usuario esté listo
-var _origIniciarApp = window.iniciarApp;
-window.iniciarApp = function() {
-  if (typeof _origIniciarApp === 'function') _origIniciarApp.apply(this, arguments);
-  setTimeout(clima_suscribir, 2000);
-};
+// Arrancar la suscripción cuando la app esté lista
+// Usar setInterval para asegurarse que db y USER estén disponibles
+var _climaInitInterval = setInterval(function() {
+  if (window.db && window.USER && !CLIMA_CANAL) {
+    clearInterval(_climaInitInterval);
+    clima_suscribir();
+  }
+}, 1000);
 
 })();
 // ══ FIN MÓDULO ALERTAS CLIMÁTICAS ══════════════════════════════════════════
