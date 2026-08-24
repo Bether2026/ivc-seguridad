@@ -4000,6 +4000,13 @@ body {
             <span style="color:var(--text2);font-size:13px;font-weight:600">Alertas del día — <span id="trn-fecha-hoy"></span></span>
             <button onclick="cargarAlertasTurno()" style="padding:6px 14px;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-family:var(--font);font-size:12px;cursor:pointer">🔄 Actualizar</button>
           </div>
+          <!-- BOTÓN ALERTA CLIMÁTICA — solo Gerencia/Admin -->
+          <div id="clima-btn-wrap" style="display:none;margin-bottom:14px">
+            <button type="button" onclick="clima_abrirModal()"
+              style="width:100%;padding:13px;border-radius:12px;border:1px solid rgba(59,130,246,.4);background:rgba(59,130,246,.1);color:#93c5fd;font-family:var(--font);font-size:13px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">
+              🌧 Enviar alerta de riesgo climático
+            </button>
+          </div>
           <div id="trn-alertas-lista"><div class="empty"><div class="icon">✅</div><p>Sin alertas pendientes hoy</p></div></div>
         </div>
 
@@ -5754,6 +5761,153 @@ body {
     </div>
 
     <button class="btn-login" id="btn-save-llave" onclick="saveLlave()">🔑 Registrar Llave</button>
+  </div>
+</div>
+
+<!-- MODAL ENVÍO ALERTA CLIMÁTICA -->
+<div id="clima-modal" style="display:none;position:fixed;inset:0;z-index:9200;background:rgba(0,0,0,.75);align-items:flex-end;justify-content:center">
+  <div style="background:var(--bg);border-radius:20px 20px 0 0;width:100%;max-width:520px;padding:22px;max-height:90vh;overflow-y:auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+      <div>
+        <div style="font-size:15px;font-weight:900;color:var(--text)">🌧 Alerta de riesgo climático</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">Se notificará a los puestos seleccionados</div>
+      </div>
+      <button onclick="clima_cerrarModal()" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--border2);background:var(--bg2);color:var(--text2);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">×</button>
+    </div>
+
+    <!-- Tipo de alerta -->
+    <div style="margin-bottom:14px">
+      <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:8px">Tipo de alerta</label>
+      <select id="clima-tipo" style="width:100%;padding:11px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);color:var(--text);font-family:var(--font);font-size:13px">
+        <option value="Alerta preventiva">⚠️ Alerta preventiva — lluvia esperada</option>
+        <option value="Lluvia fuerte">🌧 Lluvia fuerte en curso</option>
+        <option value="Tormenta severa">⛈ Tormenta severa</option>
+        <option value="Inundación activa">🚨 Inundación activa</option>
+      </select>
+    </div>
+
+    <!-- Mensaje personalizado -->
+    <div style="margin-bottom:14px">
+      <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:8px">Mensaje (opcional)</label>
+      <textarea id="clima-mensaje" rows="3" placeholder="Instrucciones adicionales para los agentes..." style="width:100%;padding:11px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);color:var(--text);font-family:var(--font);font-size:13px;resize:none"></textarea>
+    </div>
+
+    <!-- Puestos destino -->
+    <div style="margin-bottom:18px">
+      <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:10px">Enviar a</label>
+      <div style="display:flex;flex-direction:column;gap:8px" id="clima-puestos-lista">
+        <label style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);cursor:pointer">
+          <input type="checkbox" id="clima-p-rb" value="Rodrigo Bueno" style="width:16px;height:16px;accent-color:#3b82f6">
+          <span style="font-size:13px;font-weight:600;color:var(--text)">🏘 Rodrigo Bueno</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);cursor:pointer">
+          <input type="checkbox" id="clima-p-fr" value="Fraga" style="width:16px;height:16px;accent-color:#3b82f6">
+          <span style="font-size:13px;font-weight:600;color:var(--text)">🏗 Fraga</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);cursor:pointer">
+          <input type="checkbox" id="clima-p-adm" value="Administración" style="width:16px;height:16px;accent-color:#3b82f6">
+          <span style="font-size:13px;font-weight:600;color:var(--text)">🏢 Administración</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);cursor:pointer">
+          <input type="checkbox" id="clima-p-ger" value="Gerencia" style="width:16px;height:16px;accent-color:#3b82f6">
+          <span style="font-size:13px;font-weight:600;color:var(--text)">📊 Gerencia</span>
+        </label>
+      </div>
+    </div>
+
+    <button onclick="clima_enviarAlerta()" style="width:100%;padding:14px;border-radius:12px;border:none;background:#3b82f6;color:#fff;font-family:var(--font);font-size:14px;font-weight:800;cursor:pointer">
+      📡 Enviar alerta climática
+    </button>
+  </div>
+</div>
+
+<!-- BANNER ALERTA CLIMÁTICA (recepción en campo) -->
+<div id="clima-banner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9199;padding:14px 16px;border-bottom:3px solid #3b82f6;background:rgba(30,58,138,.95);backdrop-filter:blur(10px);flex-direction:column;gap:8px">
+  <div style="display:flex;align-items:center;justify-content:space-between">
+    <div style="font-size:14px;font-weight:900;color:#93c5fd;letter-spacing:.02em" id="clima-banner-titulo">🌧 Alerta climática</div>
+    <button onclick="clima_cerrarBanner()" style="background:transparent;border:none;color:#64748b;font-size:20px;cursor:pointer">×</button>
+  </div>
+  <div id="clima-banner-msg" style="font-size:12px;color:#bfdbfe;line-height:1.4"></div>
+  <button onclick="clima_abrirRelevamiento()" style="margin-top:4px;padding:10px;border-radius:10px;border:none;background:#1d4ed8;color:#fff;font-family:var(--font);font-size:13px;font-weight:800;cursor:pointer;width:100%">
+    📋 Hacer relevamiento ahora
+  </button>
+</div>
+
+<!-- MODAL RELEVAMIENTO CLIMÁTICO (agentes de campo) -->
+<div id="clima-relev-modal" style="display:none;position:fixed;inset:0;z-index:9300;background:rgba(0,0,0,.8);align-items:flex-end;justify-content:center">
+  <div style="background:var(--bg);border-radius:20px 20px 0 0;width:100%;max-width:520px;padding:22px;max-height:92vh;overflow-y:auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+      <div>
+        <div style="font-size:15px;font-weight:900;color:var(--text)">🌧 Relevamiento climático</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px">Marcá todo lo que observás en el barrio</div>
+      </div>
+      <button onclick="clima_cerrarRelevamiento()" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--border2);background:var(--bg2);color:var(--text2);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">×</button>
+    </div>
+
+    <!-- Checkboxes de riesgo -->
+    <div style="margin-bottom:16px">
+      <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:10px">Riesgos detectados</label>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <label style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);cursor:pointer">
+          <input type="checkbox" id="cr-basura" style="width:18px;height:18px;accent-color:#ef4444;flex-shrink:0">
+          <span style="font-size:13px;color:var(--text)">🗑 Acumulación de basura</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);cursor:pointer">
+          <input type="checkbox" id="cr-desague" style="width:18px;height:18px;accent-color:#ef4444;flex-shrink:0">
+          <span style="font-size:13px;color:var(--text)">🕳 Desagüe tapado</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);cursor:pointer">
+          <input type="checkbox" id="cr-arbol" style="width:18px;height:18px;accent-color:#ef4444;flex-shrink:0">
+          <span style="font-size:13px;color:var(--text)">🌳 Riesgo de caída de árbol</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);cursor:pointer">
+          <input type="checkbox" id="cr-poste" style="width:18px;height:18px;accent-color:#ef4444;flex-shrink:0">
+          <span style="font-size:13px;color:var(--text)">🔌 Riesgo de caída de poste</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);cursor:pointer">
+          <input type="checkbox" id="cr-inundacion" style="width:18px;height:18px;accent-color:#ef4444;flex-shrink:0">
+          <span style="font-size:13px;color:var(--text)">🌊 Inundación activa</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);cursor:pointer">
+          <input type="checkbox" id="cr-otro" style="width:18px;height:18px;accent-color:#ef4444;flex-shrink:0" onchange="clima_toggleOtroDetalle()">
+          <span style="font-size:13px;color:var(--text)">⚠️ Otro</span>
+        </label>
+        <div id="cr-otro-wrap" style="display:none;padding-left:4px">
+          <input id="cr-otro-detalle" type="text" placeholder="Describí el riesgo..." style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);color:var(--text);font-family:var(--font);font-size:13px">
+        </div>
+      </div>
+    </div>
+
+    <!-- Observaciones -->
+    <div style="margin-bottom:14px">
+      <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:8px">Observaciones</label>
+      <textarea id="cr-obs" rows="3" placeholder="Descripción de la situación general..." style="width:100%;padding:11px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);color:var(--text);font-family:var(--font);font-size:13px;resize:none"></textarea>
+    </div>
+
+    <!-- Fotos -->
+    <div style="margin-bottom:14px">
+      <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:8px">Fotos <span style="color:var(--text3);font-weight:400;text-transform:none">(opcional)</span></label>
+      <div id="cr-fotos-grid" style="display:none;grid-template-columns:repeat(auto-fill,80px);gap:6px;margin-bottom:8px"></div>
+      <div style="display:flex;gap:8px">
+        <label style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px;background:var(--bg2);border:1px dashed var(--border2);border-radius:10px;cursor:pointer">
+          <span style="font-size:12px;color:var(--text2)">📷 Galería</span>
+          <input type="file" accept="image/*" multiple id="cr-foto-input" style="display:none" onchange="clima_previewFotos(this)">
+        </label>
+        <label style="flex:1;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px;background:var(--bg2);border:1px dashed var(--border2);border-radius:10px;cursor:pointer">
+          <span style="font-size:12px;color:var(--text2)">📸 Cámara</span>
+          <input type="file" accept="image/*" capture="environment" id="cr-camara-input" style="display:none" onchange="clima_previewFotos(this)">
+        </label>
+      </div>
+    </div>
+
+    <!-- GPS -->
+    <div id="cr-gps-info" style="margin-bottom:14px;padding:10px 14px;border-radius:10px;background:var(--bg2);border:1px solid var(--border2);font-size:12px;color:var(--text3)">
+      📍 Obteniendo ubicación...
+    </div>
+
+    <button onclick="clima_guardarRelevamiento()" id="cr-guardar-btn" style="width:100%;padding:14px;border-radius:12px;border:none;background:#ef4444;color:#fff;font-family:var(--font);font-size:14px;font-weight:800;cursor:pointer">
+      💾 Guardar relevamiento
+    </button>
   </div>
 </div>
 
@@ -31085,7 +31239,264 @@ window.construcc_exportar = function(barrio) {
       toast('✔ Exportado: ' + encontradas.length + ' novedades de ' + barrio, 'ok');
     });
 };
-// ══ FIN EXPORTADOR ═════════════════════════════════════════════════════════
+// ══ MÓDULO: ALERTAS CLIMÁTICAS ════════════════════════════════════════════
+(function() {
+
+var CLIMA_ALERTA_ID = null; // id de la alerta activa recibida
+var CLIMA_LAT = null;
+var CLIMA_LNG = null;
+var CLIMA_FOTOS_FILES = [];
+
+// ── Mostrar/ocultar botón según usuario ───────────────────────────────────
+function clima_initUI() {
+  var wrap = document.getElementById('clima-btn-wrap');
+  if (!wrap || !window.USER) return;
+  var puedeEnviar = USER.puesto === 'Gerencia' || USER.puesto === 'Administrador' || USER.rol === 'ADMIN';
+  wrap.style.display = puedeEnviar ? 'block' : 'none';
+}
+
+// Llamar al abrir la vista de turnos
+var _origSelTurnosTab = window.selTurnosTab;
+window.selTurnosTab = function(tab, btn) {
+  if (typeof _origSelTurnosTab === 'function') _origSelTurnosTab(tab, btn);
+  if (tab === 'alertas') clima_initUI();
+};
+
+// También al abrir la vista directamente
+var _origGoView = window.goView;
+window.goView = function(name) {
+  if (typeof _origGoView === 'function') _origGoView(name);
+  if (name === 'turnos') setTimeout(clima_initUI, 200);
+};
+
+// ── ENVÍO ─────────────────────────────────────────────────────────────────
+window.clima_abrirModal = function() {
+  var m = document.getElementById('clima-modal');
+  if (m) m.style.display = 'flex';
+};
+window.clima_cerrarModal = function() {
+  var m = document.getElementById('clima-modal');
+  if (m) m.style.display = 'none';
+};
+
+window.clima_enviarAlerta = function() {
+  var tipo = (document.getElementById('clima-tipo') || {}).value || 'Alerta preventiva';
+  var msg  = ((document.getElementById('clima-mensaje') || {}).value || '').trim();
+  var ids  = ['clima-p-rb','clima-p-fr','clima-p-adm','clima-p-ger'];
+  var puestos = [];
+  ids.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el && el.checked) puestos.push(el.value);
+  });
+  if (!puestos.length) { toast('Seleccioná al menos un puesto', 'err'); return; }
+
+  var titulo  = '\uD83C\uDF27 ' + tipo;
+  var cuerpo  = msg || 'Relevamiento de riesgo climático requerido en tu barrio.';
+  var ahora   = new Date().toISOString();
+
+  // Insertar una alerta por cada puesto seleccionado
+  var pendientes = puestos.length;
+  var alertaIdRef = null;
+
+  puestos.forEach(function(puesto) {
+    db.from('alertas_turno').insert({
+      tipo: 'clima',
+      puesto: puesto,
+      mensaje: titulo + ' — ' + cuerpo,
+      leida: false,
+      created_at: ahora
+    }).select('id').single().then(function(r) {
+      if (r && r.data && !alertaIdRef) alertaIdRef = r.data.id;
+      pendientes--;
+      if (pendientes === 0) {
+        // Push a los puestos seleccionados
+        if (typeof PUSH_SERVER_URL !== 'undefined') {
+          fetch(PUSH_SERVER_URL + '/api/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ titulo: titulo, cuerpo: cuerpo, url: '/', puestos: puestos })
+          }).catch(function() {});
+        }
+        clima_cerrarModal();
+        toast('\u2714 Alerta climática enviada a ' + puestos.join(', '), 'ok');
+      }
+    });
+  });
+};
+
+// ── RECEPCIÓN (banner en campo) ───────────────────────────────────────────
+window.clima_mostrarBanner = function(alerta) {
+  CLIMA_ALERTA_ID = alerta.id || null;
+  var banner = document.getElementById('clima-banner');
+  var tit    = document.getElementById('clima-banner-titulo');
+  var msgEl  = document.getElementById('clima-banner-msg');
+  if (!banner) return;
+  if (tit) tit.textContent = '\uD83C\uDF27 ' + (alerta.tipo || 'Alerta climática');
+  if (msgEl) msgEl.textContent = alerta.mensaje || 'Relevamiento de riesgo requerido en tu barrio.';
+  banner.style.display = 'flex';
+};
+window.clima_cerrarBanner = function() {
+  var b = document.getElementById('clima-banner');
+  if (b) b.style.display = 'none';
+};
+
+// ── RELEVAMIENTO (agentes) ────────────────────────────────────────────────
+window.clima_abrirRelevamiento = function() {
+  clima_cerrarBanner();
+  // Limpiar form
+  ['cr-basura','cr-desague','cr-arbol','cr-poste','cr-inundacion','cr-otro'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.checked = false;
+  });
+  var obsEl = document.getElementById('cr-obs');
+  if (obsEl) obsEl.value = '';
+  var detEl = document.getElementById('cr-otro-detalle');
+  if (detEl) detEl.value = '';
+  var wrap = document.getElementById('cr-otro-wrap');
+  if (wrap) wrap.style.display = 'none';
+  var grid = document.getElementById('cr-fotos-grid');
+  if (grid) { grid.innerHTML = ''; grid.style.display = 'none'; }
+  CLIMA_FOTOS_FILES = [];
+  CLIMA_LAT = null; CLIMA_LNG = null;
+
+  var gpsEl = document.getElementById('cr-gps-info');
+  if (gpsEl) gpsEl.textContent = '\uD83D\uDCCD Obteniendo ubicación...';
+
+  var modal = document.getElementById('clima-relev-modal');
+  if (modal) modal.style.display = 'flex';
+
+  // GPS
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(function(pos) {
+      CLIMA_LAT = pos.coords.latitude;
+      CLIMA_LNG = pos.coords.longitude;
+      if (gpsEl) gpsEl.textContent = '\uD83D\uDCCD Ubicación obtenida (' + CLIMA_LAT.toFixed(5) + ', ' + CLIMA_LNG.toFixed(5) + ')';
+    }, function() {
+      if (gpsEl) gpsEl.textContent = '\uD83D\uDCCD Sin acceso a ubicación — se guardará sin GPS';
+    }, { enableHighAccuracy: true, timeout: 10000 });
+  }
+};
+
+window.clima_cerrarRelevamiento = function() {
+  var m = document.getElementById('clima-relev-modal');
+  if (m) m.style.display = 'none';
+};
+
+window.clima_toggleOtroDetalle = function() {
+  var cb   = document.getElementById('cr-otro');
+  var wrap = document.getElementById('cr-otro-wrap');
+  if (wrap) wrap.style.display = (cb && cb.checked) ? 'block' : 'none';
+};
+
+window.clima_previewFotos = function(input) {
+  var grid = document.getElementById('cr-fotos-grid');
+  if (!grid || !input.files) return;
+  Array.prototype.forEach.call(input.files, function(f) {
+    CLIMA_FOTOS_FILES.push(f);
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var img = document.createElement('img');
+      img.src = e.target.result;
+      img.style.cssText = 'width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--border2)';
+      grid.appendChild(img);
+      grid.style.display = 'grid';
+    };
+    reader.readAsDataURL(f);
+  });
+};
+
+window.clima_guardarRelevamiento = function() {
+  var btn = document.getElementById('cr-guardar-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Guardando...'; }
+
+  var payload = {
+    alerta_id:         CLIMA_ALERTA_ID,
+    puesto:            window.USER ? (USER.puesto || '') : '',
+    agente:            window.USER ? (USER.nombre || USER.puesto || '') : '',
+    lat:               CLIMA_LAT,
+    lng:               CLIMA_LNG,
+    acumulacion_basura: !!(document.getElementById('cr-basura')     || {}).checked,
+    desague_tapado:     !!(document.getElementById('cr-desague')    || {}).checked,
+    riesgo_arbol:       !!(document.getElementById('cr-arbol')      || {}).checked,
+    riesgo_poste:       !!(document.getElementById('cr-poste')      || {}).checked,
+    inundacion_activa:  !!(document.getElementById('cr-inundacion') || {}).checked,
+    otro:               !!(document.getElementById('cr-otro')       || {}).checked,
+    otro_detalle:       ((document.getElementById('cr-otro-detalle') || {}).value || '').trim(),
+    observaciones:      ((document.getElementById('cr-obs')          || {}).value || '').trim(),
+    fotos_urls:         [],
+    certeza:            'A verificar',
+    created_at:         new Date().toISOString()
+  };
+
+  // Subir fotos si hay
+  if (CLIMA_FOTOS_FILES.length === 0) {
+    clima_insertar(payload, btn);
+    return;
+  }
+
+  var subidas = 0;
+  var urls = [];
+  CLIMA_FOTOS_FILES.forEach(function(file) {
+    var fd = new FormData();
+    fd.append('file', file);
+    fd.append('carpeta', 'clima');
+    fetch(typeof R2_ENDPOINT !== 'undefined' ? R2_ENDPOINT + '/api/r2-upload' : '/api/r2-upload', { method: 'POST', body: fd })
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (d && d.url) urls.push(d.url);
+        subidas++;
+        if (subidas === CLIMA_FOTOS_FILES.length) {
+          payload.fotos_urls = urls;
+          clima_insertar(payload, btn);
+        }
+      })
+      .catch(function() {
+        subidas++;
+        if (subidas === CLIMA_FOTOS_FILES.length) {
+          payload.fotos_urls = urls;
+          clima_insertar(payload, btn);
+        }
+      });
+  });
+};
+
+function clima_insertar(payload, btn) {
+  db.from('relevamiento_clima').insert(payload).then(function(r) {
+    if (btn) { btn.disabled = false; btn.textContent = '\uD83D\uDCBE Guardar relevamiento'; }
+    if (r && r.error) { toast('Error al guardar: ' + r.error.message, 'err'); return; }
+    clima_cerrarRelevamiento();
+    toast('\u2714 Relevamiento climático guardado', 'ok');
+  });
+}
+
+// ── Detectar alertas climáticas entrantes via realtime ────────────────────
+function clima_suscribir() {
+  if (!window.db || !window.USER) return;
+  var puesto = USER.puesto;
+  db.channel('clima-alertas-' + puesto)
+    .on('postgres_changes', {
+      event: 'INSERT',
+      schema: 'public',
+      table: 'alertas_turno',
+      filter: 'tipo=eq.clima'
+    }, function(payload) {
+      var n = payload.new;
+      if (n && (n.puesto === puesto || n.puesto === 'Todos')) {
+        clima_mostrarBanner({ id: n.id, tipo: n.tipo, mensaje: n.mensaje });
+      }
+    })
+    .subscribe();
+}
+
+// Inicializar cuando el usuario esté listo
+var _origIniciarApp = window.iniciarApp;
+window.iniciarApp = function() {
+  if (typeof _origIniciarApp === 'function') _origIniciarApp.apply(this, arguments);
+  setTimeout(clima_suscribir, 2000);
+};
+
+})();
+// ══ FIN MÓDULO ALERTAS CLIMÁTICAS ══════════════════════════════════════════
 </script>
 
 </body>
