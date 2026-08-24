@@ -28153,6 +28153,7 @@ window.rbrb_cargarDatos = function rbrb_cargarDatos() {
       if (btn) btn.textContent = '📋 Listado (' + RBRB_REGISTROS.length + ')';
       rbrb_renderLista();
       if (RBRB_MAP_INIT) { rbrb_buildMapaFilters(); rbrb_actualizarMapa(); }
+      if (RBRB_PLANO_MAP) { rbrb_planoRefrescar(); }
     });
 }
 
