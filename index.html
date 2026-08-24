@@ -28437,13 +28437,23 @@ function rbrb_buildItems() {
       var certColor = r.certeza==='Confirmado'?'#10b981':'#ef4444';
       var fecha = r.created_at ? r.created_at.substring(0,10) : '';
       var _gpsOk = r._gps_ajustado ? ' <span style="color:#10b981;font-weight:700" title="GPS ajustado">✓</span>' : '';
-      var gpsLink = (r.lat&&r.lng)
-        ? '<button type="button" data-rid="'+r.id+'" data-lat="'+r.lat+'" data-lng="'+r.lng+'" '+
+      var _esConstruccion = (r.tipo || '').toLowerCase().indexOf('construcc') !== -1;
+      var gpsLink;
+      if (_esConstruccion) {
+        var _tieneCoords = (r.lat != null && r.lng != null);
+        gpsLink = '<button type="button" data-rid="'+r.id+'" '+
+          (_tieneCoords ? 'data-px="'+r.lng+'" data-py="'+r.lat+'"' : '')+' '+
+          'onclick="rbrb_abrirAjustePlano(this)" '+
+          'style="font-size:10px;color:#f59e0b;background:transparent;border:none;cursor:pointer;padding:0;font-family:var(--font,-apple-system)">🏗 Ajustar plano</button>'+_gpsOk;
+      } else if (r.lat&&r.lng) {
+        gpsLink = '<button type="button" data-rid="'+r.id+'" data-lat="'+r.lat+'" data-lng="'+r.lng+'" '+
           'onclick="rbrb_abrirAjusteGPS(this)" '+
-          'style="font-size:10px;color:var(--accent3);background:transparent;border:none;cursor:pointer;padding:0;font-family:var(--font,-apple-system)">📍 Ajustar mapa</button>'+_gpsOk
-        : '<button type="button" data-rid="'+r.id+'" data-lat="-34.6142" data-lng="-58.3598" '+
+          'style="font-size:10px;color:var(--accent3);background:transparent;border:none;cursor:pointer;padding:0;font-family:var(--font,-apple-system)">📍 Ajustar mapa</button>'+_gpsOk;
+      } else {
+        gpsLink = '<button type="button" data-rid="'+r.id+'" data-lat="-34.6142" data-lng="-58.3598" '+
           'onclick="rbrb_abrirAjusteGPS(this)" '+
           'style="font-size:10px;color:var(--text3);background:transparent;border:none;cursor:pointer;padding:0;font-family:var(--font,-apple-system)">📍 Sin GPS · agregar</button>';
+      }
 
       var fotosUrls = [];
       if (r.fotos_urls && r.fotos_urls !== 'null') {
@@ -29497,6 +29507,35 @@ function rbrb_planoFiltrarMarcadores() {
   var cnt = document.getElementById('rbrb-plano-count');
   if (cnt) cnt.textContent = visibles + (visibles === 1 ? ' registro' : ' registros');
 }
+
+// ── Abrir Plano RB desde listado (Construcción indebida) ──
+window.rbrb_abrirAjustePlano = function(btn) {
+  var rid = btn.getAttribute('data-rid');
+  var px  = parseFloat(btn.getAttribute('data-px'));
+  var py  = parseFloat(btn.getAttribute('data-py'));
+  // Si no tiene coordenadas de plano, centrar en el centro de la imagen
+  var x = isNaN(px) ? Math.round(RBRB_PLANO_IMG_W / 2) : Math.round(px);
+  var y = isNaN(py) ? Math.round(RBRB_PLANO_IMG_H / 2) : Math.round(py);
+
+  // 1. Ir al tab Plano
+  var tabBtn = document.getElementById('rbrb-tab-plano');
+  rbrb_tab('plano', tabBtn);
+
+  // 2. Esperar a que el mapa esté listo y abrir modal de ajuste
+  function _esperar() {
+    if (!RBRB_PLANO_MAP) { setTimeout(_esperar, 200); return; }
+    // Refrescar marcadores (incluye el registro actual si ya tiene coords)
+    rbrb_planoRefrescar();
+    // Centrar el mapa en el punto
+    setTimeout(function() {
+      RBRB_PLANO_MAP.invalidateSize();
+      RBRB_PLANO_MAP.setView([y, x], 0);
+      // Abrir el modal de ajuste de posición
+      rbrb_planoAjusteOpen(rid, x, y);
+    }, 250);
+  }
+  _esperar();
+};
 
 // ══ FIN PLANO RB ══════════════════════════════════════════════════════════
 
