@@ -29460,7 +29460,13 @@ function rbrb_planoRefrescar() {
   RBRB_PLANO_MARKERS.forEach(function(m) { RBRB_PLANO_MAP.removeLayer(m); });
   RBRB_PLANO_MARKERS = [];
   var registros = (RBRB_REGISTROS || []).filter(function(r) {
-    return r.fuente && r.fuente.indexOf('Plano RB') === 0 && r.lat != null && r.lng != null;
+    if (r.lat == null || r.lng == null) return false;
+    if (r.fuente && r.fuente.indexOf("Plano RB") === 0) return true;
+    var esConstruccion = (r.tipo || "").toLowerCase().indexOf("construcc") !== -1;
+    var xVal = parseFloat(r.lng);
+    var yVal = parseFloat(r.lat);
+    var enRangoPlano = xVal >= 0 && xVal <= RBRB_PLANO_IMG_W && yVal >= 0 && yVal <= RBRB_PLANO_IMG_H;
+    return esConstruccion && enRangoPlano;
   });
   registros.forEach(function(r) {
     var x = parseFloat(r.lng);
