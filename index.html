@@ -5842,6 +5842,10 @@ body {
           <input type="checkbox" id="clima-p-rt" value="Responsable de turno" style="width:16px;height:16px;accent-color:#3b82f6">
           <span style="font-size:13px;font-weight:600;color:var(--text)">🔑 Responsable de turno</span>
         </label>
+        <label style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);cursor:pointer">
+          <input type="checkbox" id="clima-p-pc" value="PC" style="width:16px;height:16px;accent-color:#3b82f6">
+          <span style="font-size:13px;font-weight:600;color:var(--text)">💻 PC</span>
+        </label>
       </div>
     </div>
 
@@ -31330,7 +31334,7 @@ window.clima_cerrarModal = function() {
 window.clima_enviarAlerta = function() {
   var tipo = (document.getElementById('clima-tipo') || {}).value || 'Alerta preventiva';
   var msg  = ((document.getElementById('clima-mensaje') || {}).value || '').trim();
-  var ids  = ['clima-p-rb','clima-p-fr','clima-p-papa','clima-p-cast','clima-p-savio','clima-p-cav','clima-p-neco','clima-p-mugica','clima-p-adm','clima-p-ger','clima-p-rt'];
+  var ids  = ['clima-p-rb','clima-p-fr','clima-p-papa','clima-p-cast','clima-p-savio','clima-p-cav','clima-p-neco','clima-p-mugica','clima-p-adm','clima-p-ger','clima-p-rt','clima-p-pc'];
   var puestos = [];
   ids.forEach(function(id) {
     var el = document.getElementById(id);
