@@ -2074,6 +2074,7 @@ body {
             <span style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.1em;background:linear-gradient(135deg,#f472b6,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent">Noticias y Comunicaciones</span>
           </div>
           <button id="btn-add-noticia" style="display:none;font-size:11px;padding:5px 12px;border-radius:8px;border:1px solid rgba(244,114,182,0.35);background:rgba(244,114,182,0.1);color:#f472b6;font-family:var(--font);font-weight:700;cursor:pointer" onclick="openOv('ov-noticia')">+ Nueva</button>
+          <button id="btn-alerta-clima" onclick="clima_abrirModal()" style="display:none;font-size:11px;padding:5px 12px;border-radius:8px;border:1px solid rgba(59,130,246,0.35);background:rgba(59,130,246,0.1);color:#93c5fd;font-family:var(--font);font-weight:700;cursor:pointer">🌧 Alerta climática</button>
         </div>
         <div id="d-noticias"></div>
       </div>
@@ -20113,6 +20114,8 @@ function _loadNoticias() {
           canManage = ['Gerencia', 'Administración', 'Administrador', 'Jefe de departamento', 'Responsable de turno'].includes(USER.puesto) || USER.rol === 'ADMIN';
           btnAdd = document.getElementById('btn-add-noticia');
           if (btnAdd) btnAdd.style.display = canManage ? 'block' : 'none';
+          var btnClima = document.getElementById('btn-alerta-clima');
+          if (btnClima) btnClima.style.display = canManage ? 'inline-block' : 'none';
           if (list.length) {
             _context71.n = 3;
             break;
