@@ -5806,12 +5806,40 @@ body {
           <span style="font-size:13px;font-weight:600;color:var(--text)">🏗 Fraga</span>
         </label>
         <label style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);cursor:pointer">
+          <input type="checkbox" id="clima-p-papa" value="Papa Francisco" style="width:16px;height:16px;accent-color:#3b82f6">
+          <span style="font-size:13px;font-weight:600;color:var(--text)">⛪ Papa Francisco</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);cursor:pointer">
+          <input type="checkbox" id="clima-p-cast" value="Base Castañares" style="width:16px;height:16px;accent-color:#3b82f6">
+          <span style="font-size:13px;font-weight:600;color:var(--text)">🏠 Base Castañares</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);cursor:pointer">
+          <input type="checkbox" id="clima-p-savio" value="Obrador Savio" style="width:16px;height:16px;accent-color:#3b82f6">
+          <span style="font-size:13px;font-weight:600;color:var(--text)">🏗 Obrador Savio</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);cursor:pointer">
+          <input type="checkbox" id="clima-p-cav" value="CAV" style="width:16px;height:16px;accent-color:#3b82f6">
+          <span style="font-size:13px;font-weight:600;color:var(--text)">🏢 CAV</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);cursor:pointer">
+          <input type="checkbox" id="clima-p-neco" value="Necochea" style="width:16px;height:16px;accent-color:#3b82f6">
+          <span style="font-size:13px;font-weight:600;color:var(--text)">📍 Necochea</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);cursor:pointer">
+          <input type="checkbox" id="clima-p-mugica" value="Padre Mugica" style="width:16px;height:16px;accent-color:#3b82f6">
+          <span style="font-size:13px;font-weight:600;color:var(--text)">⛪ Padre Mugica</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);cursor:pointer">
           <input type="checkbox" id="clima-p-adm" value="Administración" style="width:16px;height:16px;accent-color:#3b82f6">
           <span style="font-size:13px;font-weight:600;color:var(--text)">🏢 Administración</span>
         </label>
         <label style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);cursor:pointer">
           <input type="checkbox" id="clima-p-ger" value="Gerencia" style="width:16px;height:16px;accent-color:#3b82f6">
           <span style="font-size:13px;font-weight:600;color:var(--text)">📊 Gerencia</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);cursor:pointer">
+          <input type="checkbox" id="clima-p-rt" value="Responsable de turno" style="width:16px;height:16px;accent-color:#3b82f6">
+          <span style="font-size:13px;font-weight:600;color:var(--text)">🔑 Responsable de turno</span>
         </label>
       </div>
     </div>
@@ -20115,7 +20143,8 @@ function _loadNoticias() {
           btnAdd = document.getElementById('btn-add-noticia');
           if (btnAdd) btnAdd.style.display = canManage ? 'block' : 'none';
           var btnClima = document.getElementById('btn-alerta-clima');
-          if (btnClima) btnClima.style.display = canManage ? 'inline-block' : 'none';
+          var puedeClima = window.USER && (USER.puesto === 'Gerencia' || USER.puesto === 'Administrador' || USER.rol === 'ADMIN');
+          if (btnClima) btnClima.style.display = puedeClima ? 'inline-block' : 'none';
           if (list.length) {
             _context71.n = 3;
             break;
@@ -31285,7 +31314,7 @@ window.clima_cerrarModal = function() {
 window.clima_enviarAlerta = function() {
   var tipo = (document.getElementById('clima-tipo') || {}).value || 'Alerta preventiva';
   var msg  = ((document.getElementById('clima-mensaje') || {}).value || '').trim();
-  var ids  = ['clima-p-rb','clima-p-fr','clima-p-adm','clima-p-ger'];
+  var ids  = ['clima-p-rb','clima-p-fr','clima-p-papa','clima-p-cast','clima-p-savio','clima-p-cav','clima-p-neco','clima-p-mugica','clima-p-adm','clima-p-ger','clima-p-rt'];
   var puestos = [];
   ids.forEach(function(id) {
     var el = document.getElementById(id);
