@@ -31138,12 +31138,21 @@ window.construcc_exportar = function(barrio) {
   var d = new Date(hasta + 'T03:00:00.000Z');
   d.setDate(d.getDate() + 1);
   var hastaISO = d.toISOString();
-  var PALABRAS = ['construcc', 'clandestin', 'indebid', 'obra no autorizada', 'ampliacion no autorizada', 'edificacion'];
+  var PALABRAS = [
+    'construcc', 'clandestin', 'indebid', 'obra no autorizada', 'ampliacion no autorizada', 'edificacion',
+    'albañil', 'albanil', 'ladrillo', 'hormigon', 'hormigón', 'losa', 'piso nuevo', 'techo nuevo',
+    'refaccion', 'refacción', 'materiales de construcc', 'material de construcc',
+    'ampliacion', 'ampliación', 'segundo piso', 'tercer piso', 'levantando', 'levanto pared',
+    'pared nueva', 'pared levantada', 'columna', 'revoque', 'mezcla', 'arena y cemento',
+    'cemento', 'andamio', 'obra en curso', 'trabajando en obra', 'trabajando con material',
+    'sin permiso', 'sin habilitacion', 'sin habilitación', 'sin autorizacion', 'sin autorización',
+    'obra clandestina', 'construccion no autorizada', 'construcción no autorizada'
+  ];
 
   toast('Buscando ' + barrio + '... puede tardar unos segundos', 'ok');
 
   db.from('novedades')
-    .select('id,puesto,tipo,asunto,detalle,texto_informe,observaciones,cargado_por,created_at,fotos,nro_pd,nro_pu')
+    .select('id,puesto,tipo,asunto,detalle,texto_informe,observaciones,cargado_por,created_at,fotos,nro_pd,nro_pu,hora_evento,fuerza_publica')
     .eq('puesto', barrio)
     .gte('created_at', desdeISO)
     .lte('created_at', hastaISO)
@@ -31228,10 +31237,15 @@ window.construcc_exportar = function(barrio) {
               html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px">';
               html += '<span style="font-size:12px;font-weight:700;color:#f59e0b">' + (n.asunto || n.tipo || 'Sin asunto') + '</span>';
               html += '<span style="font-size:11px;color:#64748b;white-space:nowrap">' + formatFecha(n.created_at) + '</span></div>';
-              if (n.detalle) html += '<div style="font-size:12px;color:#e2e8f0;margin-bottom:4px;line-height:1.5">' + n.detalle + '</div>';
-              if (n.texto_informe && n.texto_informe !== n.detalle) html += '<div style="font-size:12px;color:#94a3b8;margin-bottom:4px;line-height:1.5">' + n.texto_informe + '</div>';
-              if (n.observaciones) html += '<div style="font-size:11px;color:#64748b;font-style:italic">' + n.observaciones + '</div>';
-              html += '<div style="font-size:11px;color:#475569;margin-top:4px">👤 ' + (n.cargado_por || '-') + '</div>';
+              if (n.tipo && n.tipo !== n.asunto) html += '<div style="font-size:11px;color:#94a3b8;margin-bottom:3px">Tipo: <strong style="color:#cbd5e1">' + n.tipo + '</strong></div>';
+              if (n.hora_evento) html += '<div style="font-size:11px;color:#94a3b8;margin-bottom:3px">🕐 Hora del hecho: <strong style="color:#cbd5e1">' + n.hora_evento + '</strong></div>';
+              if (n.nro_pd) html += '<div style="font-size:11px;color:#94a3b8;margin-bottom:3px">📄 PD N°: <strong style="color:#cbd5e1">' + n.nro_pd + '</strong></div>';
+              if (n.nro_pu) html += '<div style="font-size:11px;color:#94a3b8;margin-bottom:3px">🏠 PU N°: <strong style="color:#cbd5e1">' + n.nro_pu + '</strong></div>';
+              if (n.fuerza_publica) html += '<div style="font-size:11px;color:#fbbf24;margin-bottom:3px">👮 Fuerza pública: <strong>' + n.fuerza_publica + '</strong></div>';
+              if (n.detalle) html += '<div style="font-size:12px;color:#e2e8f0;margin-bottom:6px;line-height:1.6;padding:8px;background:rgba(255,255,255,0.04);border-radius:6px">' + n.detalle + '</div>';
+              if (n.texto_informe && n.texto_informe !== n.detalle) html += '<div style="font-size:12px;color:#94a3b8;margin-bottom:6px;line-height:1.6;padding:8px;background:rgba(255,255,255,0.03);border-radius:6px;border-left:2px solid #334155">' + n.texto_informe + '</div>';
+              if (n.observaciones) html += '<div style="font-size:11px;color:#64748b;font-style:italic;margin-bottom:4px;padding:6px 8px;background:rgba(255,255,255,0.02);border-radius:4px">' + n.observaciones + '</div>';
+              html += '<div style="font-size:11px;color:#475569;margin-top:6px">👤 ' + (n.cargado_por || '-') + '</div>';
               html += fotosHtml + '</div>';
             });
           });
