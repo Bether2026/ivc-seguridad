@@ -4245,6 +4245,7 @@ body {
                 <div id="clima-ctrl-sub" style="font-size:11px;color:var(--text3);margin-top:2px">Relevamientos recibidos</div>
               </div>
               <button onclick="clima_abrirModal()" style="padding:8px 14px;border-radius:10px;border:none;background:#3b82f6;color:#fff;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">🌧 Nueva alerta</button>
+              <button id="clima-export-btn" onclick="climaExportarHTML()" style="padding:8px 14px;border-radius:10px;border:1px solid rgba(255,205,2,.5);background:rgba(255,205,2,.12);color:#FFCD02;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">📄 Exportar informe</button>
               <button id="clima-btn-nuevo-relev" onclick="clima_abrirRelevamiento()" style="display:none;padding:8px 14px;border-radius:10px;border:none;background:#0f3158;color:#7cb0ff;border:1px solid rgba(124,176,255,.3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">📋 Nuevo relevamiento</button>
               <button id="clima-btn-finalizar" onclick="clima_finalizarRelevamiento()" style="display:none;padding:8px 14px;border-radius:10px;border:1px solid rgba(34,197,94,.4);background:transparent;color:#22c55e;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">✅ Finalizar</button>
             </div>
@@ -32689,6 +32690,589 @@ window.climaCtrl_guardarEditar = function() {
     climaCtrl_cerrarEditar();
     clima_cargarPanel();
   });
+};
+
+
+// ── Exportar Informe HTML Climático ──────────────────────────────────────
+window.climaExportarHTML = function() {
+  var btn = document.getElementById('clima-export-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Generando...'; }
+
+  db.from('relevamiento_clima')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(500)
+    .then(function(r) {
+      if (btn) { btn.disabled = false; btn.textContent = '📄 Exportar informe'; }
+      if (r && r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+      var datos = (r.data || []).map(function(n) {
+        var fotos = n.fotos_urls;
+        if (!Array.isArray(fotos)) {
+          try { fotos = JSON.parse(fotos || 'null') || []; } catch(e) { fotos = []; }
+        }
+        return Object.assign({}, n, { fotos_urls: fotos });
+      });
+      var template = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Relevamiento Climático · IVC Seguridad</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --azul:#1D3343;
+  --azul-claro:#035C80;
+  --amarillo:#FFCD02;
+  --blanco:#FCFCFC;
+  --gris-claro:#EEF2F5;
+  --gris-medio:#8EA3B4;
+  --font:'Archivo',system-ui,sans-serif;
+  --r:12px;
+}
+body{font-family:var(--font);background:var(--gris-claro);color:var(--azul);-webkit-font-smoothing:antialiased}
+
+/* ── HEADER ── */
+.hdr{background:var(--azul);padding:0}
+.hdr-inner{max-width:1200px;margin:0 auto;padding:24px 32px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.hdr-logo{display:flex;align-items:center;gap:14px}
+.hdr-logo svg{width:52px;height:52px;flex-shrink:0}
+.hdr-brand{color:var(--blanco)}
+.hdr-brand-name{font-size:16px;font-weight:800;line-height:1.2;letter-spacing:-.01em}
+.hdr-brand-dep{font-size:10px;font-weight:500;color:rgba(255,255,255,.55);text-transform:uppercase;letter-spacing:.12em;margin-top:3px}
+.hdr-badge{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:10px 18px;text-align:right}
+.hdr-badge-label{font-size:10px;font-weight:700;color:var(--amarillo);text-transform:uppercase;letter-spacing:.1em}
+.hdr-badge-date{font-size:13px;font-weight:600;color:var(--blanco);margin-top:2px}
+
+/* ── ALERTA BANNER ── */
+.alerta-bar{background:linear-gradient(135deg,#1a4a6b 0%,var(--azul-claro) 100%);border-bottom:3px solid var(--amarillo)}
+.alerta-inner{max-width:1200px;margin:0 auto;padding:18px 32px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.alerta-icon{font-size:32px;flex-shrink:0}
+.alerta-text{flex:1}
+.alerta-title{font-size:17px;font-weight:800;color:var(--blanco);line-height:1.2}
+.alerta-sub{font-size:13px;color:rgba(255,255,255,.7);margin-top:3px}
+.alerta-stats{display:flex;gap:20px;flex-shrink:0}
+.stat-box{text-align:center;background:rgba(255,255,255,.1);border-radius:8px;padding:10px 18px}
+.stat-n{font-size:24px;font-weight:900;color:var(--amarillo);line-height:1}
+.stat-l{font-size:10px;font-weight:700;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.08em;margin-top:2px}
+
+/* ── MAIN ── */
+.main{max-width:1200px;margin:0 auto;padding:32px}
+
+/* ── FILTROS ── */
+.filtros{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:28px;align-items:center}
+.filtros-label{font-size:11px;font-weight:700;color:var(--gris-medio);text-transform:uppercase;letter-spacing:.1em;margin-right:4px}
+.filtro-btn{padding:7px 18px;border-radius:20px;border:2px solid var(--azul);background:transparent;color:var(--azul);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;transition:all .15s}
+.filtro-btn:hover{background:var(--azul);color:var(--blanco)}
+.filtro-btn.active{background:var(--azul);color:var(--blanco)}
+
+/* ── GRID ── */
+.layout{display:grid;grid-template-columns:1fr 420px;gap:28px;align-items:start}
+@media(max-width:900px){.layout{grid-template-columns:1fr}}
+
+/* ── MAPA ── */
+.mapa-wrap{position:sticky;top:24px}
+.mapa-card{background:var(--blanco);border-radius:var(--r);overflow:hidden;box-shadow:0 4px 24px rgba(29,51,67,.12)}
+.mapa-header{background:var(--azul);padding:14px 18px;display:flex;align-items:center;gap:10px}
+.mapa-header-title{font-size:13px;font-weight:800;color:var(--blanco)}
+.mapa-header-sub{font-size:11px;color:rgba(255,255,255,.55);margin-top:1px}
+#mapa{height:420px}
+.mapa-leyenda{padding:14px 18px;border-top:1px solid var(--gris-claro);display:flex;flex-wrap:wrap;gap:10px}
+.leg-item{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--azul)}
+.leg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+/* ── LISTA ── */
+.lista-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.lista-title{font-size:20px;font-weight:900;color:var(--azul);letter-spacing:-.02em}
+.lista-count{font-size:13px;font-weight:700;color:var(--gris-medio)}
+.cards{display:flex;flex-direction:column;gap:14px}
+
+/* ── CARD ── */
+.card{background:var(--blanco);border-radius:var(--r);overflow:hidden;box-shadow:0 2px 12px rgba(29,51,67,.08);border:1px solid rgba(29,51,67,.06);transition:box-shadow .2s}
+.card:hover{box-shadow:0 6px 28px rgba(29,51,67,.15)}
+.card-accent{height:5px}
+.card-body{padding:18px}
+.card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}
+.card-puesto{font-size:15px;font-weight:800;color:var(--azul);line-height:1.2}
+.card-agente{font-size:11px;font-weight:500;color:var(--gris-medio);margin-top:2px}
+.card-fecha{font-size:11px;color:var(--gris-medio);text-align:right;flex-shrink:0}
+.riesgos{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.riesgo-badge{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;border:1.5px solid}
+.obs{font-size:13px;color:#3a5568;line-height:1.6;padding:10px 12px;background:rgba(29,51,67,.04);border-radius:8px;margin-bottom:12px}
+.fotos{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.foto{width:72px;height:72px;object-fit:cover;border-radius:8px;border:2px solid var(--gris-claro);cursor:zoom-in;transition:transform .15s}
+.foto:hover{transform:scale(1.04)}
+
+/* ── NAVEGACIÓN ── */
+.nav-row{display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid var(--gris-claro);padding-top:12px;margin-top:4px}
+.gps-info{font-size:11px;color:var(--gris-medio);display:flex;align-items:center;gap:5px}
+.nav-btns{display:flex;gap:6px}
+.nav-btn{display:inline-flex;align-items:center;gap:5px;padding:7px 12px;border-radius:8px;border:none;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer;text-decoration:none;transition:all .15s}
+.nav-btn-gmaps{background:#4285f4;color:#fff}
+.nav-btn-gmaps:hover{background:#3367d6}
+.nav-btn-waze{background:#33ccff;color:#1a1a2e}
+.nav-btn-waze:hover{background:#00b8e6}
+.nav-btn-apple{background:var(--azul);color:#fff}
+.nav-btn-apple:hover{background:#0f2535}
+.no-gps{font-size:12px;color:var(--gris-medio);font-style:italic}
+
+/* ── SIN DATOS ── */
+.empty{padding:60px 20px;text-align:center;color:var(--gris-medio)}
+.empty-icon{font-size:48px;margin-bottom:12px}
+.empty-title{font-size:16px;font-weight:700;margin-bottom:6px}
+
+/* ── LIGHTBOX ── */
+#lb{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.92);flex-direction:column;align-items:center;justify-content:center;gap:16px}
+#lb.open{display:flex}
+#lb img{max-width:90vw;max-height:78vh;object-fit:contain;border-radius:10px}
+#lb-x{position:absolute;top:16px;right:18px;font-size:22px;color:#fff;cursor:pointer;background:rgba(255,255,255,.12);border:none;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font)}
+#lb-nav{display:flex;gap:12px;align-items:center}
+.lb-arr{padding:8px 20px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#fff;font-size:16px;cursor:pointer;font-family:var(--font)}
+#lb-cnt{font-size:11px;color:rgba(255,255,255,.5);min-width:50px;text-align:center;font-family:var(--font)}
+
+/* ── FOOTER ── */
+.footer{background:var(--azul);margin-top:48px}
+.footer-inner{max-width:1200px;margin:0 auto;padding:28px 32px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.footer-left{display:flex;align-items:center;gap:14px}
+.footer-text{color:rgba(255,255,255,.55);font-size:11px;line-height:1.6}
+.footer-text strong{color:rgba(255,255,255,.85);font-weight:700}
+.footer-right{font-size:11px;color:rgba(255,255,255,.4);text-align:right}
+.footer-confidencial{background:rgba(255,205,2,.15);border:1px solid rgba(255,205,2,.35);color:var(--amarillo);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;padding:5px 12px;border-radius:6px;margin-top:6px;display:inline-block}
+
+@media(max-width:640px){
+  .hdr-inner,.alerta-inner,.main,.footer-inner{padding-left:16px;padding-right:16px}
+  .main{padding-top:20px;padding-bottom:20px}
+  .alerta-stats{width:100%;justify-content:flex-start}
+  .layout{grid-template-columns:1fr}
+  .mapa-wrap{position:static}
+  #mapa{height:300px}
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="hdr">
+  <div class="hdr-inner">
+    <div class="hdr-logo">
+      <!-- Logo Escudo GCBA SVG inline -->
+      <svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <ellipse cx="26" cy="26" rx="24" ry="24" fill="none" stroke="white" stroke-width="1.5"/>
+        <ellipse cx="26" cy="26" rx="24" ry="24" fill="rgba(255,255,255,0.08)"/>
+        <!-- Escudo simplificado GCBA -->
+        <g fill="white" opacity="0.9">
+          <!-- Olas -->
+          <path d="M10 36 Q14 33 18 36 Q22 39 26 36 Q30 33 34 36 Q38 39 42 36" stroke="white" stroke-width="1.2" fill="none"/>
+          <path d="M10 39 Q14 36 18 39 Q22 42 26 39 Q30 36 34 39 Q38 42 42 39" stroke="white" stroke-width="1.2" fill="none"/>
+          <!-- Mástiles barcos -->
+          <rect x="18" y="22" width="1.2" height="10" rx=".6"/>
+          <rect x="26" y="20" width="1.2" height="12" rx=".6"/>
+          <rect x="34" y="22" width="1.2" height="10" rx=".6"/>
+          <!-- Velas -->
+          <polygon points="19,23 23,25 19,28" opacity=".7"/>
+          <polygon points="27,21 32,24 27,28" opacity=".7"/>
+          <polygon points="35,23 39,25 35,28" opacity=".7"/>
+          <!-- Sol/paloma arriba -->
+          <circle cx="26" cy="17" r="3" opacity=".8"/>
+          <path d="M22 15 Q26 11 30 15" stroke="white" stroke-width="1" fill="none"/>
+          <path d="M24 13 Q26 10 28 13" stroke="white" stroke-width="1" fill="none" opacity=".7"/>
+        </g>
+      </svg>
+      <div class="hdr-brand">
+        <div class="hdr-brand-name">Buenos Aires Ciudad</div>
+        <div class="hdr-brand-dep">IVC · Dirección General de Desarrollo Habitacional</div>
+      </div>
+    </div>
+    <div class="hdr-badge">
+      <div class="hdr-badge-label">📋 Relevamiento Climático</div>
+      <div class="hdr-badge-date" id="hdr-fecha">—</div>
+    </div>
+  </div>
+</header>
+
+<!-- BANNER ALERTA -->
+<div class="alerta-bar">
+  <div class="alerta-inner">
+    <div class="alerta-icon">🌧</div>
+    <div class="alerta-text">
+      <div class="alerta-title" id="alerta-title">Informe de Situación Climática</div>
+      <div class="alerta-sub" id="alerta-sub">Barrios Rodrigo Bueno · Fraga · Papa Francisco — IVC Seguridad y Emergencias</div>
+    </div>
+    <div class="alerta-stats" id="alerta-stats">
+      <!-- Stats dinámicas -->
+    </div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+  <!-- Filtros -->
+  <div class="filtros">
+    <span class="filtros-label">Filtrar por barrio</span>
+    <button class="filtro-btn active" onclick="filtrar('todos')" id="f-todos">Todos</button>
+    <button class="filtro-btn" onclick="filtrar('Rodrigo Bueno')" id="f-rb">Rodrigo Bueno</button>
+    <button class="filtro-btn" onclick="filtrar('Fraga')" id="f-fr">Fraga</button>
+    <button class="filtro-btn" onclick="filtrar('Papa Francisco')" id="f-pf">Papa Francisco</button>
+    <button class="filtro-btn" onclick="filtrar('Otro')" id="f-otros">Otros</button>
+  </div>
+
+  <!-- Layout grid -->
+  <div class="layout">
+
+    <!-- LISTA -->
+    <div>
+      <div class="lista-header">
+        <div>
+          <div class="lista-title">Puntos relevados</div>
+        </div>
+        <div class="lista-count" id="lista-count">— registros</div>
+      </div>
+      <div class="cards" id="cards-container">
+        <div class="empty"><div class="empty-icon">🔄</div><div class="empty-title">Cargando relevamientos...</div></div>
+      </div>
+    </div>
+
+    <!-- MAPA -->
+    <div class="mapa-wrap">
+      <div class="mapa-card">
+        <div class="mapa-header">
+          <div>
+            <div class="mapa-header-title">🗺 Mapa de riesgos</div>
+            <div class="mapa-header-sub">Tocá un pin para navegar hasta el punto</div>
+          </div>
+        </div>
+        <div id="mapa"></div>
+        <div class="mapa-leyenda">
+          <div class="leg-item"><div class="leg-dot" style="background:#3b82f6"></div>Inundación</div>
+          <div class="leg-item"><div class="leg-dot" style="background:#22c55e"></div>Árbol</div>
+          <div class="leg-item"><div class="leg-dot" style="background:#f97316"></div>Poste</div>
+          <div class="leg-item"><div class="leg-dot" style="background:#a855f7"></div>Desagüe</div>
+          <div class="leg-item"><div class="leg-dot" style="background:#eab308"></div>Basura</div>
+          <div class="leg-item"><div class="leg-dot" style="background:#ef4444"></div>Otro</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-left">
+      <svg viewBox="0 0 52 52" width="40" height="40" fill="none">
+        <ellipse cx="26" cy="26" rx="24" ry="24" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>
+        <g fill="white" opacity="0.6">
+          <path d="M10 36 Q14 33 18 36 Q22 39 26 36 Q30 33 34 36 Q38 39 42 36" stroke="white" stroke-width="1.2" fill="none"/>
+          <rect x="18" y="22" width="1.2" height="10" rx=".6"/>
+          <rect x="26" y="20" width="1.2" height="12" rx=".6"/>
+          <rect x="34" y="22" width="1.2" height="10" rx=".6"/>
+          <polygon points="19,23 23,25 19,28" opacity=".6"/>
+          <polygon points="27,21 32,24 27,28" opacity=".6"/>
+          <polygon points="35,23 39,25 35,28" opacity=".6"/>
+          <circle cx="26" cy="17" r="3" opacity=".6"/>
+        </g>
+      </svg>
+      <div class="footer-text">
+        <strong>IVC Seguridad y Emergencias</strong><br>
+        Gerencia Operativa de Apoyo Territorial<br>
+        Dirección General de Desarrollo Habitacional · GCBA
+      </div>
+    </div>
+    <div class="footer-right">
+      <div>Generado el <span id="footer-fecha">—</span></div>
+      <div class="footer-confidencial">🔒 Uso interno</div>
+    </div>
+  </div>
+</footer>
+
+<!-- LIGHTBOX -->
+<div id="lb">
+  <button id="lb-x" onclick="lbClose()">×</button>
+  <img id="lb-img" src="" alt="">
+  <div id="lb-nav">
+    <button class="lb-arr" onclick="lbNav(-1)">‹</button>
+    <span id="lb-cnt"></span>
+    <button class="lb-arr" onclick="lbNav(1)">›</button>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ── DATOS ────────────────────────────────────────────────────────────────
+var DATOS = __DATOS_JSON__;
+var FILTRO_ACTIVO = 'todos';
+var MAP = null;
+var MAP_MARKERS = [];
+var LB_ALL = [], LB_IDX = 0;
+
+// ── COLORES POR RIESGO ───────────────────────────────────────────────────
+function colorRiesgo(n) {
+  if (n.inundacion_activa) return '#3b82f6';
+  if (n.riesgo_arbol)      return '#22c55e';
+  if (n.riesgo_poste)      return '#f97316';
+  if (n.desague_tapado)    return '#a855f7';
+  if (n.acumulacion_basura)return '#eab308';
+  return '#ef4444';
+}
+function emojiRiesgo(n) {
+  if (n.inundacion_activa) return '🌊';
+  if (n.riesgo_arbol)      return '🌳';
+  if (n.riesgo_poste)      return '🔌';
+  if (n.desague_tapado)    return '🕳';
+  if (n.acumulacion_basura)return '🗑';
+  return '⚠️';
+}
+function riesgosLista(n) {
+  var r = [];
+  if (n.acumulacion_basura) r.push({e:'🗑',l:'Basura',c:'#eab308',bg:'#fef9c322'});
+  if (n.desague_tapado)     r.push({e:'🕳',l:'Desagüe',c:'#a855f7',bg:'#f5f3ff22'});
+  if (n.riesgo_arbol)       r.push({e:'🌳',l:'Árbol',c:'#22c55e',bg:'#f0fdf422'});
+  if (n.riesgo_poste)       r.push({e:'🔌',l:'Poste',c:'#f97316',bg:'#fff7ed22'});
+  if (n.inundacion_activa)  r.push({e:'🌊',l:'Inundación',c:'#3b82f6',bg:'#eff6ff22'});
+  if (n.otro)               r.push({e:'⚠️',l:n.otro_detalle||'Otro',c:'#ef4444',bg:'#fef2f222'});
+  return r;
+}
+function puestoBarrio(puesto) {
+  if (!puesto) return 'Otro';
+  if (puesto.toLowerCase().indexOf('rodrigo') >= 0) return 'Rodrigo Bueno';
+  if (puesto.toLowerCase().indexOf('fraga') >= 0) return 'Fraga';
+  if (puesto.toLowerCase().indexOf('francisco') >= 0) return 'Papa Francisco';
+  return 'Otro';
+}
+
+// ── FECHA ────────────────────────────────────────────────────────────────
+function formatFecha(iso) {
+  if (!iso) return '—';
+  var d = new Date(iso);
+  return d.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric',timeZone:'America/Argentina/Buenos_Aires'})
+    + ' ' + d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',timeZone:'America/Argentina/Buenos_Aires'});
+}
+function formatFechaCort(iso) {
+  if (!iso) return '—';
+  var d = new Date(iso);
+  return d.toLocaleDateString('es-AR',{day:'2-digit',month:'long',year:'numeric',timeZone:'America/Argentina/Buenos_Aires'});
+}
+
+// ── STATS ────────────────────────────────────────────────────────────────
+function renderStats(datos) {
+  var total = datos.length;
+  var conGPS = datos.filter(function(n){return n.lat && n.lng;}).length;
+  var inund = datos.filter(function(n){return n.inundacion_activa;}).length;
+  var statsEl = document.getElementById('alerta-stats');
+  statsEl.innerHTML =
+    '<div class="stat-box"><div class="stat-n">'+total+'</div><div class="stat-l">Registros</div></div>' +
+    (inund ? '<div class="stat-box"><div class="stat-n" style="color:#ff6b6b">'+inund+'</div><div class="stat-l">Inundaciones</div></div>' : '') +
+    '<div class="stat-box"><div class="stat-n">'+conGPS+'</div><div class="stat-l">Con GPS</div></div>';
+}
+
+// ── NAVEGACIÓN ───────────────────────────────────────────────────────────
+function navBtns(lat, lng) {
+  if (!lat || !lng) return '<span class="no-gps">📍 Sin ubicación GPS</span>';
+  var label = encodeURIComponent('Punto relevado IVC');
+  var gm = 'https://maps.google.com/?q='+lat+','+lng+'&z=18';
+  var wz = 'https://waze.com/ul?ll='+lat+','+lng+'&navigate=yes';
+  var ap = 'maps://maps.apple.com/?ll='+lat+','+lng+'&q='+label;
+  return '<div class="gps-info">📍 '+parseFloat(lat).toFixed(5)+', '+parseFloat(lng).toFixed(5)+'</div>'
+    + '<div class="nav-btns">'
+    + '<a href="'+gm+'" target="_blank" class="nav-btn nav-btn-gmaps">🗺 Google</a>'
+    + '<a href="'+wz+'" target="_blank" class="nav-btn nav-btn-waze">🚗 Waze</a>'
+    + '<a href="'+ap+'" class="nav-btn nav-btn-apple">🍎 Apple</a>'
+    + '</div>';
+}
+
+// ── LIGHTBOX ─────────────────────────────────────────────────────────────
+function lbOpen(fotos, idx) {
+  LB_ALL = fotos; LB_IDX = idx; lbUpd();
+  document.getElementById('lb').classList.add('open');
+}
+function lbClose(){document.getElementById('lb').classList.remove('open');}
+function lbNav(d){LB_IDX=Math.max(0,Math.min(LB_ALL.length-1,LB_IDX+d));lbUpd();}
+function lbUpd(){
+  document.getElementById('lb-img').src=LB_ALL[LB_IDX];
+  document.getElementById('lb-cnt').textContent=(LB_IDX+1)+' / '+LB_ALL.length;
+  document.getElementById('lb-x').previousElementSibling;
+}
+document.addEventListener('keydown',function(e){
+  if(!document.getElementById('lb').classList.contains('open'))return;
+  if(e.key==='Escape')lbClose();
+  if(e.key==='ArrowLeft')lbNav(-1);
+  if(e.key==='ArrowRight')lbNav(1);
+});
+document.getElementById('lb').addEventListener('click',function(e){if(e.target===this)lbClose();});
+
+// ── RENDER CARDS ─────────────────────────────────────────────────────────
+var FOTOS_STORE = [];
+
+function renderCards(datos) {
+  FOTOS_STORE = [];
+  var cont = document.getElementById('cards-container');
+  document.getElementById('lista-count').textContent = datos.length + ' registro' + (datos.length!==1?'s':'');
+
+  if (!datos.length) {
+    cont.innerHTML = '<div class="empty"><div class="empty-icon">✅</div><div class="empty-title">Sin registros para este filtro</div><div style="font-size:13px;color:#8EA3B4;margin-top:6px">No se encontraron relevamientos en esta zona.</div></div>';
+    return;
+  }
+
+  var html = '';
+  datos.forEach(function(n, ni) {
+    var color = colorRiesgo(n);
+    var emoji = emojiRiesgo(n);
+    var riesgos = riesgosLista(n);
+    var fotos = Array.isArray(n.fotos_urls) ? n.fotos_urls : [];
+
+    var fotosHtml = '';
+    if (fotos.length) {
+      var storeIdx = FOTOS_STORE.length;
+      FOTOS_STORE.push(fotos);
+      fotosHtml = '<div class="fotos">' +
+        fotos.map(function(f, fi) {
+          return '<img class="foto" src="'+f+'" onclick="lbOpen(FOTOS_STORE['+storeIdx+'],'+fi+')" loading="lazy">';
+        }).join('') +
+        '</div>';
+    }
+
+    var riesgosHtml = '';
+    if (riesgos.length) {
+      riesgosHtml = '<div class="riesgos">' +
+        riesgos.map(function(r) {
+          return '<span class="riesgo-badge" style="color:'+r.c+';border-color:'+r.c+';background:'+r.c+'18">'+r.e+' '+r.l+'</span>';
+        }).join('') +
+        '</div>';
+    }
+
+    var obsHtml = n.observaciones
+      ? '<div class="obs">'+n.observaciones+'</div>'
+      : '';
+
+    html += '<div class="card" id="card-'+ni+'">'
+      + '<div class="card-accent" style="background:'+color+'"></div>'
+      + '<div class="card-body">'
+      + '<div class="card-top">'
+      + '<div><div class="card-puesto">'+emoji+' '+(n.puesto||'—')+'</div><div class="card-agente">👤 '+(n.agente||'—')+'</div></div>'
+      + '<div class="card-fecha">'+formatFecha(n.created_at)+'</div>'
+      + '</div>'
+      + riesgosHtml
+      + obsHtml
+      + fotosHtml
+      + '<div class="nav-row">'+navBtns(n.lat, n.lng)+'</div>'
+      + '</div>'
+      + '</div>';
+  });
+  cont.innerHTML = html;
+}
+
+// ── MAPA ─────────────────────────────────────────────────────────────────
+function initMapa(datos) {
+  if (MAP) { MAP.remove(); MAP = null; }
+  MAP_MARKERS = [];
+
+  var conGPS = datos.filter(function(n){return n.lat && n.lng;});
+  var center = conGPS.length ? [conGPS[0].lat, conGPS[0].lng] : [-34.614, -58.359];
+
+  MAP = L.map('mapa', {zoomControl:true, scrollWheelZoom:false}).setView(center, 15);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    attribution:'© OpenStreetMap', maxZoom:19
+  }).addTo(MAP);
+
+  conGPS.forEach(function(n, ni) {
+    var color = colorRiesgo(n);
+    var emoji = emojiRiesgo(n);
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="42" viewBox="0 0 32 42">'
+      + '<defs><radialGradient id="pg'+ni+'" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#fff" stop-opacity="0.3"/><stop offset="100%" stop-color="#000" stop-opacity="0.1"/></radialGradient></defs>'
+      + '<path d="M16 1C8.268 1 2 7.268 2 15c0 10.5 14 26 14 26S30 25.5 30 15C30 7.268 23.732 1 16 1z" fill="'+color+'" stroke="#fff" stroke-width="1.5" filter="drop-shadow(0 3px 6px rgba(0,0,0,0.4))"/>'
+      + '<path d="M16 1C8.268 1 2 7.268 2 15c0 10.5 14 26 14 26S30 25.5 30 15C30 7.268 23.732 1 16 1z" fill="url(#pg'+ni+')" opacity="0.6"/>'
+      + '<text x="16" y="18" text-anchor="middle" font-size="11" dominant-baseline="middle">'+emoji+'</text>'
+      + '</svg>';
+    var icon = L.divIcon({html:svg,className:'',iconSize:[32,42],iconAnchor:[16,42],popupAnchor:[0,-44]});
+    var riesgos = riesgosLista(n);
+    var rBadges = riesgos.map(function(r){return '<span style="background:'+r.c+'22;color:'+r.c+';border:1px solid '+r.c+';border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700;margin-right:3px">'+r.e+' '+r.l+'</span>';}).join('');
+    var gm = 'https://maps.google.com/?q='+n.lat+','+n.lng;
+    var wz = 'https://waze.com/ul?ll='+n.lat+','+n.lng+'&navigate=yes';
+    var popup = '<div style="font-family:\\'Archivo\\',system-ui;min-width:200px;max-width:260px">'
+      + '<div style="font-weight:800;font-size:13px;color:'+color+';margin-bottom:4px">'+emoji+' '+(n.puesto||'—')+'</div>'
+      + '<div style="font-size:11px;color:#666;margin-bottom:8px">👤 '+(n.agente||'—')+'<br>🕐 '+formatFecha(n.created_at)+'</div>'
+      + (rBadges ? '<div style="margin-bottom:8px;display:flex;flex-wrap:wrap;gap:3px">'+rBadges+'</div>' : '')
+      + (n.observaciones ? '<div style="font-size:12px;color:#444;line-height:1.5;margin-bottom:8px;padding:6px;background:#f5f5f5;border-radius:6px">'+n.observaciones+'</div>' : '')
+      + '<div style="display:flex;gap:6px;flex-wrap:wrap">'
+      + '<a href="'+gm+'" target="_blank" style="background:#4285f4;color:#fff;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;text-decoration:none">🗺 Google Maps</a>'
+      + '<a href="'+wz+'" target="_blank" style="background:#33ccff;color:#1a1a2e;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;text-decoration:none">🚗 Waze</a>'
+      + '</div></div>';
+    var m = L.marker([n.lat, n.lng], {icon:icon}).addTo(MAP);
+    m.bindPopup(popup, {maxWidth:280});
+    m._climaIdx = ni;
+    MAP_MARKERS.push({marker:m, data:n});
+  });
+
+  if (conGPS.length > 1) {
+    MAP.fitBounds(L.latLngBounds(conGPS.map(function(n){return[n.lat,n.lng];})),{padding:[30,30]});
+  }
+  setTimeout(function(){if(MAP)MAP.invalidateSize();},200);
+}
+
+// ── FILTRO ───────────────────────────────────────────────────────────────
+function filtrar(barrio) {
+  FILTRO_ACTIVO = barrio;
+  ['todos','rb','fr','pf','otros'].forEach(function(k){
+    document.getElementById('f-'+k).classList.remove('active');
+  });
+  var map = {todos:'todos','Rodrigo Bueno':'rb','Fraga':'fr','Papa Francisco':'pf','Otro':'otros'};
+  document.getElementById('f-'+(map[barrio]||'todos')).classList.add('active');
+
+  var filtrados = DATOS;
+  if (barrio !== 'todos') {
+    filtrados = DATOS.filter(function(n){
+      var b = puestoBarrio(n.puesto);
+      if (barrio === 'Otro') return b === 'Otro';
+      return b === barrio;
+    });
+  }
+  renderStats(filtrados);
+  renderCards(filtrados);
+  initMapa(filtrados);
+}
+
+// ── INIT ─────────────────────────────────────────────────────────────────
+(function init() {
+  var ahora = new Date();
+  var fechaStr = ahora.toLocaleDateString('es-AR',{weekday:'long',day:'2-digit',month:'long',year:'numeric',timeZone:'America/Argentina/Buenos_Aires'})
+    + ' · ' + ahora.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',timeZone:'America/Argentina/Buenos_Aires'}) + ' hs';
+  document.getElementById('hdr-fecha').textContent = fechaStr;
+  document.getElementById('footer-fecha').textContent = fechaStr;
+
+  var riesgos = ['inundacion','arbol','poste','desague','basura'];
+  var tipo = 'Sin incidentes críticos';
+  if (DATOS.some(function(n){return n.inundacion_activa;})) tipo = '⚠️ Alerta por inundaciones activas';
+  else if (DATOS.some(function(n){return n.riesgo_arbol||n.riesgo_poste;})) tipo = '⚠️ Riesgo de caídas reportado';
+  document.getElementById('alerta-title').textContent = tipo;
+
+  var barrios = [...new Set(DATOS.map(function(n){return puestoBarrio(n.puesto);}))].join(' · ');
+  if (barrios) document.getElementById('alerta-sub').textContent = barrios + ' — IVC Seguridad y Emergencias';
+
+  renderStats(DATOS);
+  renderCards(DATOS);
+  initMapa(DATOS);
+})();
+</script>
+</body>
+</html>
+`;
+      var html = template.replace('__DATOS_JSON__', JSON.stringify(datos));
+      var blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      var fecha = new Date().toISOString().substring(0,10);
+      a.download = 'relevamiento-climatico-ivc-' + fecha + '.html';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function() { URL.revokeObjectURL(url); }, 5000);
+      toast('✔ Informe exportado', 'ok');
+    });
 };
 
 // ══ FIN MÓDULO ALERTAS CLIMÁTICAS ══════════════════════════════════════════
