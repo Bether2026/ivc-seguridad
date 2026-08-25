@@ -9494,6 +9494,20 @@ function initApp() {
   if ($('nb-barrios')) $('nb-barrios').style.display = canSeeBarrios ? 'flex' : 'none';
   if ($('si-clima-ctrl')) $('si-clima-ctrl').style.display = canSeeBarrios ? 'flex' : 'none';
   if ($('nb-clima-ctrl')) $('nb-clima-ctrl').style.display = canSeeBarrios ? 'flex' : 'none';
+  // Puestos de campo: mostrar Clima solo si tienen alerta climática vigente
+  if (!canSeeBarrios && window.db) {
+    db.from('alertas_turno')
+      .select('id')
+      .eq('tipo', 'clima')
+      .eq('puesto', USER.puesto)
+      .eq('leida', false)
+      .limit(1)
+      .then(function(r) {
+        var tieneAlerta = r && r.data && r.data.length > 0;
+        if ($('si-clima-ctrl')) $('si-clima-ctrl').style.display = tieneAlerta ? 'flex' : 'none';
+        if ($('nb-clima-ctrl')) $('nb-clima-ctrl').style.display = tieneAlerta ? 'flex' : 'none';
+      });
+  }
 
   // Pañol: exclusivo Emergencias y Administración del sistema
   var canSeePanol = USER.puesto === 'Emergencias' || USER.rol === 'ADMIN';
@@ -31512,7 +31526,24 @@ window.clima_cerrarBanner = function() {
   if (b) b.style.display = 'none';
   // Marcar como leída en Supabase
   if (CLIMA_ALERTA_ID && window.db) {
-    db.from('alertas_turno').update({ leida: true }).eq('id', CLIMA_ALERTA_ID).then(function() {});
+    db.from('alertas_turno').update({ leida: true }).eq('id', CLIMA_ALERTA_ID).then(function() {
+      // Verificar si quedan más alertas vigentes para este puesto
+      var canSeeBarrios = window.USER && (['Gerencia','PC','Administrador'].indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN');
+      if (!canSeeBarrios && window.USER && window.db) {
+        db.from('alertas_turno')
+          .select('id')
+          .eq('tipo', 'clima')
+          .eq('puesto', USER.puesto)
+          .eq('leida', false)
+          .limit(1)
+          .then(function(r) {
+            var tieneAlerta = r && r.data && r.data.length > 0;
+            var $ = function(id) { return document.getElementById(id); };
+            if ($('si-clima-ctrl')) $('si-clima-ctrl').style.display = tieneAlerta ? 'flex' : 'none';
+            if ($('nb-clima-ctrl')) $('nb-clima-ctrl').style.display = tieneAlerta ? 'flex' : 'none';
+          });
+      }
+    });
   }
 };
 
@@ -31731,6 +31762,16 @@ window.clima_cargarPanel = function() {
   var lista = document.getElementById('clima-ctrl-lista');
   var sub   = document.getElementById('clima-ctrl-sub');
   if (!lista || !window.db) return;
+
+  // Controlar visibilidad según puesto
+  var puedeEnviar = window.USER && (USER.puesto === 'Gerencia' || USER.puesto === 'Administrador' || USER.rol === 'ADMIN');
+  var tabAlertas  = document.getElementById('cctrl-tab-alertas');
+  var btnNueva    = document.querySelector('#view-clima-ctrl button[onclick="clima_abrirModal()"]');
+  if (tabAlertas) tabAlertas.style.display = puedeEnviar ? '' : 'none';
+  if (btnNueva)   btnNueva.style.display   = puedeEnviar ? '' : 'none';
+  // Si el tab activo es Alertas pero el puesto no puede verlo, volver a Lista
+  if (!puedeEnviar && CLIMA_CTRL_TAB === 'alertas') climaCtrl_verTab('lista');
+
   lista.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:20px;text-align:center">Cargando...</div>';
 
   db.from('relevamiento_clima')
@@ -32278,11 +32319,22 @@ function _climaCtrl_initMapa() {
     if (n.inundacion_activa) riesgos.push('🌊 Inundación');
     if (n.otro)              riesgos.push('⚠️ ' + (n.otro_detalle || 'Otro'));
 
-    var popup = '<div style="font-family:system-ui;min-width:180px">'
+    var popup = '<div style="font-family:system-ui;min-width:180px;max-width:240px">'
       + '<div style="font-weight:800;font-size:13px;color:#1e293b;margin-bottom:4px">' + emoji + ' ' + (n.puesto || '—') + '</div>'
       + '<div style="font-size:11px;color:#64748b;margin-bottom:6px">👤 ' + (n.agente || '—') + ' · ' + fecha + '</div>'
-      + (riesgos.length ? '<div style="font-size:12px;margin-bottom:4px">' + riesgos.join(' · ') + '</div>' : '')
-      + (n.observaciones ? '<div style="font-size:11px;color:#475569;line-height:1.4">' + n.observaciones + '</div>' : '')
+      + (riesgos.length ? '<div style="font-size:12px;margin-bottom:6px">' + riesgos.join(' · ') + '</div>' : '')
+      + (n.observaciones ? '<div style="font-size:11px;color:#475569;line-height:1.4;margin-bottom:6px">' + n.observaciones + '</div>' : '')
+      + (function() {
+          var fotos = n.fotos_urls || [];
+          if (!fotos.length) return '';
+          return '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px">'
+            + fotos.map(function(u) {
+                return '<a href="' + u + '" target="_blank">'
+                  + '<img src="' + u + '" style="width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid #cbd5e1">'
+                  + '</a>';
+              }).join('')
+            + '</div>';
+        })()
       + '</div>';
 
     var marker = L.marker([n.lat, n.lng], { icon: icon }).addTo(CLIMA_CTRL_MAP);
