@@ -32724,581 +32724,178 @@ window.climaExportarHTML = function() {
     .order('created_at', { ascending: false })
     .limit(500)
     .then(function(r) {
-      if (btn) { btn.disabled = false; btn.textContent = '📄 Exportar informe'; }
+      if (btn) { btn.disabled = false; btn.textContent = 'Exportar informe'; }
       if (r && r.error) { toast('Error: ' + r.error.message, 'err'); return; }
-      var datos = (r.data || []).map(function(n) {
+
+      var datos = r.data || [];
+
+      // Formatear fechas y fotos
+      datos = datos.map(function(n) {
         var fotos = n.fotos_urls;
         if (!Array.isArray(fotos)) {
           try { fotos = JSON.parse(fotos || 'null') || []; } catch(e) { fotos = []; }
         }
-        return Object.assign({}, n, { fotos_urls: fotos });
+        var fecha = '';
+        try {
+          var dt = new Date(n.created_at);
+          fecha = dt.toLocaleDateString('es-AR', {day:'2-digit',month:'2-digit',year:'numeric',timeZone:'America/Argentina/Buenos_Aires'})
+            + ' ' + dt.toLocaleTimeString('es-AR', {hour:'2-digit',minute:'2-digit',timeZone:'America/Argentina/Buenos_Aires'});
+        } catch(e) {}
+        return {
+          puesto: n.puesto || '',
+          agente: n.agente || '',
+          fecha: fecha,
+          lat: n.lat,
+          lng: n.lng,
+          acumulacion_basura: !!n.acumulacion_basura,
+          desague_tapado: !!n.desague_tapado,
+          riesgo_arbol: !!n.riesgo_arbol,
+          riesgo_poste: !!n.riesgo_poste,
+          inundacion_activa: !!n.inundacion_activa,
+          otro: !!n.otro,
+          otro_detalle: n.otro_detalle || '',
+          observaciones: n.observaciones || '',
+          fotos: fotos
+        };
       });
-      var template = '<!DOCTYPE html>\n'
-        + '<html lang="es">\n'
-        + '<head>\n'
-        + '<meta charset="UTF-8">\n'
-        + '<meta name="viewport" content="width=device-width, initial-scale=1.0">\n'
-        + '<title>Relevamiento Climático · IVC Seguridad</title>\n'
-        + '<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">\n'
-        + '<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>\n'
-        + '<style>\n'
-        + '*{box-sizing:border-box;margin:0;padding:0}\n'
-        + ':root{\n'
-        + '  --azul:#1D3343;\n'
-        + '  --azul-claro:#035C80;\n'
-        + '  --amarillo:#FFCD02;\n'
-        + '  --blanco:#FCFCFC;\n'
-        + '  --gris-claro:#EEF2F5;\n'
-        + '  --gris-medio:#8EA3B4;\n'
-        + '  --font:\'Archivo\',system-ui,sans-serif;\n'
-        + '  --r:12px;\n'
-        + '}\n'
-        + 'body{font-family:var(--font);background:var(--gris-claro);color:var(--azul);-webkit-font-smoothing:antialiased}\n'
-        + '\n'
-        + '/* ── HEADER ── */\n'
-        + '.hdr{background:var(--azul);padding:0}\n'
-        + '.hdr-inner{max-width:1200px;margin:0 auto;padding:24px 32px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}\n'
-        + '.hdr-logo{display:flex;align-items:center;gap:14px}\n'
-        + '.hdr-logo svg{width:52px;height:52px;flex-shrink:0}\n'
-        + '.hdr-brand{color:var(--blanco)}\n'
-        + '.hdr-brand-name{font-size:16px;font-weight:800;line-height:1.2;letter-spacing:-.01em}\n'
-        + '.hdr-brand-dep{font-size:10px;font-weight:500;color:rgba(255,255,255,.55);text-transform:uppercase;letter-spacing:.12em;margin-top:3px}\n'
-        + '.hdr-badge{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);border-radius:8px;padding:10px 18px;text-align:right}\n'
-        + '.hdr-badge-label{font-size:10px;font-weight:700;color:var(--amarillo);text-transform:uppercase;letter-spacing:.1em}\n'
-        + '.hdr-badge-date{font-size:13px;font-weight:600;color:var(--blanco);margin-top:2px}\n'
-        + '\n'
-        + '/* ── ALERTA BANNER ── */\n'
-        + '.alerta-bar{background:linear-gradient(135deg,#1a4a6b 0%,var(--azul-claro) 100%);border-bottom:3px solid var(--amarillo)}\n'
-        + '.alerta-inner{max-width:1200px;margin:0 auto;padding:18px 32px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}\n'
-        + '.alerta-icon{font-size:32px;flex-shrink:0}\n'
-        + '.alerta-text{flex:1}\n'
-        + '.alerta-title{font-size:17px;font-weight:800;color:var(--blanco);line-height:1.2}\n'
-        + '.alerta-sub{font-size:13px;color:rgba(255,255,255,.7);margin-top:3px}\n'
-        + '.alerta-stats{display:flex;gap:20px;flex-shrink:0}\n'
-        + '.stat-box{text-align:center;background:rgba(255,255,255,.1);border-radius:8px;padding:10px 18px}\n'
-        + '.stat-n{font-size:24px;font-weight:900;color:var(--amarillo);line-height:1}\n'
-        + '.stat-l{font-size:10px;font-weight:700;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.08em;margin-top:2px}\n'
-        + '\n'
-        + '/* ── MAIN ── */\n'
-        + '.main{max-width:1200px;margin:0 auto;padding:32px}\n'
-        + '\n'
-        + '/* ── FILTROS ── */\n'
-        + '.filtros{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:28px;align-items:center}\n'
-        + '.filtros-label{font-size:11px;font-weight:700;color:var(--gris-medio);text-transform:uppercase;letter-spacing:.1em;margin-right:4px}\n'
-        + '.filtro-btn{padding:7px 18px;border-radius:20px;border:2px solid var(--azul);background:transparent;color:var(--azul);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;transition:all .15s}\n'
-        + '.filtro-btn:hover{background:var(--azul);color:var(--blanco)}\n'
-        + '.filtro-btn.active{background:var(--azul);color:var(--blanco)}\n'
-        + '\n'
-        + '/* ── GRID ── */\n'
-        + '.layout{display:grid;grid-template-columns:1fr 420px;gap:28px;align-items:start}\n'
-        + '@media(max-width:900px){.layout{grid-template-columns:1fr}}\n'
-        + '\n'
-        + '/* ── MAPA ── */\n'
-        + '.mapa-wrap{position:sticky;top:24px}\n'
-        + '.mapa-card{background:var(--blanco);border-radius:var(--r);overflow:hidden;box-shadow:0 4px 24px rgba(29,51,67,.12)}\n'
-        + '.mapa-header{background:var(--azul);padding:14px 18px;display:flex;align-items:center;gap:10px}\n'
-        + '.mapa-header-title{font-size:13px;font-weight:800;color:var(--blanco)}\n'
-        + '.mapa-header-sub{font-size:11px;color:rgba(255,255,255,.55);margin-top:1px}\n'
-        + '#mapa{height:420px}\n'
-        + '.mapa-leyenda{padding:14px 18px;border-top:1px solid var(--gris-claro);display:flex;flex-wrap:wrap;gap:10px}\n'
-        + '.leg-item{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--azul)}\n'
-        + '.leg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}\n'
-        + '\n'
-        + '/* ── LISTA ── */\n'
-        + '.lista-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}\n'
-        + '.lista-title{font-size:20px;font-weight:900;color:var(--azul);letter-spacing:-.02em}\n'
-        + '.lista-count{font-size:13px;font-weight:700;color:var(--gris-medio)}\n'
-        + '.cards{display:flex;flex-direction:column;gap:14px}\n'
-        + '\n'
-        + '/* ── CARD ── */\n'
-        + '.card{background:var(--blanco);border-radius:var(--r);overflow:hidden;box-shadow:0 2px 12px rgba(29,51,67,.08);border:1px solid rgba(29,51,67,.06);transition:box-shadow .2s}\n'
-        + '.card:hover{box-shadow:0 6px 28px rgba(29,51,67,.15)}\n'
-        + '.card-accent{height:5px}\n'
-        + '.card-body{padding:18px}\n'
-        + '.card-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px}\n'
-        + '.card-puesto{font-size:15px;font-weight:800;color:var(--azul);line-height:1.2}\n'
-        + '.card-agente{font-size:11px;font-weight:500;color:var(--gris-medio);margin-top:2px}\n'
-        + '.card-fecha{font-size:11px;color:var(--gris-medio);text-align:right;flex-shrink:0}\n'
-        + '.riesgos{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}\n'
-        + '.riesgo-badge{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;border:1.5px solid}\n'
-        + '.obs{font-size:13px;color:#3a5568;line-height:1.6;padding:10px 12px;background:rgba(29,51,67,.04);border-radius:8px;margin-bottom:12px}\n'
-        + '.fotos{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}\n'
-        + '.foto{width:72px;height:72px;object-fit:cover;border-radius:8px;border:2px solid var(--gris-claro);cursor:zoom-in;transition:transform .15s}\n'
-        + '.foto:hover{transform:scale(1.04)}\n'
-        + '\n'
-        + '/* ── NAVEGACIÓN ── */\n'
-        + '.nav-row{display:flex;align-items:center;justify-content:space-between;gap:8px;border-top:1px solid var(--gris-claro);padding-top:12px;margin-top:4px}\n'
-        + '.gps-info{font-size:11px;color:var(--gris-medio);display:flex;align-items:center;gap:5px}\n'
-        + '.nav-btns{display:flex;gap:6px}\n'
-        + '.nav-btn{display:inline-flex;align-items:center;gap:5px;padding:7px 12px;border-radius:8px;border:none;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer;text-decoration:none;transition:all .15s}\n'
-        + '.nav-btn-gmaps{background:#4285f4;color:#fff}\n'
-        + '.nav-btn-gmaps:hover{background:#3367d6}\n'
-        + '.nav-btn-waze{background:#33ccff;color:#1a1a2e}\n'
-        + '.nav-btn-waze:hover{background:#00b8e6}\n'
-        + '.nav-btn-apple{background:var(--azul);color:#fff}\n'
-        + '.nav-btn-apple:hover{background:#0f2535}\n'
-        + '.no-gps{font-size:12px;color:var(--gris-medio);font-style:italic}\n'
-        + '\n'
-        + '/* ── SIN DATOS ── */\n'
-        + '.empty{padding:60px 20px;text-align:center;color:var(--gris-medio)}\n'
-        + '.empty-icon{font-size:48px;margin-bottom:12px}\n'
-        + '.empty-title{font-size:16px;font-weight:700;margin-bottom:6px}\n'
-        + '\n'
-        + '/* ── LIGHTBOX ── */\n'
-        + '#lb{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.92);flex-direction:column;align-items:center;justify-content:center;gap:16px}\n'
-        + '#lb.open{display:flex}\n'
-        + '#lb img{max-width:90vw;max-height:78vh;object-fit:contain;border-radius:10px}\n'
-        + '#lb-x{position:absolute;top:16px;right:18px;font-size:22px;color:#fff;cursor:pointer;background:rgba(255,255,255,.12);border:none;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font)}\n'
-        + '#lb-nav{display:flex;gap:12px;align-items:center}\n'
-        + '.lb-arr{padding:8px 20px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#fff;font-size:16px;cursor:pointer;font-family:var(--font)}\n'
-        + '#lb-cnt{font-size:11px;color:rgba(255,255,255,.5);min-width:50px;text-align:center;font-family:var(--font)}\n'
-        + '\n'
-        + '/* ── FOOTER ── */\n'
-        + '.footer{background:var(--azul);margin-top:48px}\n'
-        + '.footer-inner{max-width:1200px;margin:0 auto;padding:28px 32px;display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}\n'
-        + '.footer-left{display:flex;align-items:center;gap:14px}\n'
-        + '.footer-text{color:rgba(255,255,255,.55);font-size:11px;line-height:1.6}\n'
-        + '.footer-text strong{color:rgba(255,255,255,.85);font-weight:700}\n'
-        + '.footer-right{font-size:11px;color:rgba(255,255,255,.4);text-align:right}\n'
-        + '.footer-confidencial{background:rgba(255,205,2,.15);border:1px solid rgba(255,205,2,.35);color:var(--amarillo);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;padding:5px 12px;border-radius:6px;margin-top:6px;display:inline-block}\n'
-        + '\n'
-        + '@media(max-width:640px){\n'
-        + '  .hdr-inner,.alerta-inner,.main,.footer-inner{padding-left:16px;padding-right:16px}\n'
-        + '  .main{padding-top:20px;padding-bottom:20px}\n'
-        + '  .alerta-stats{width:100%;justify-content:flex-start}\n'
-        + '  .layout{grid-template-columns:1fr}\n'
-        + '  .mapa-wrap{position:static}\n'
-        + '  #mapa{height:300px}\n'
-        + '}\n'
-        + '</style>\n'
-        + '</head>\n'
-        + '<body>\n'
-        + '\n'
-        + '<!-- HEADER -->\n'
-        + '<header class="hdr">\n'
-        + '  <div class="hdr-inner">\n'
-        + '    <div class="hdr-logo">\n'
-        + '      <!-- Logo Escudo GCBA SVG inline -->\n'
-        + '      <svg viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">\n'
-        + '        <ellipse cx="26" cy="26" rx="24" ry="24" fill="none" stroke="white" stroke-width="1.5"/>\n'
-        + '        <ellipse cx="26" cy="26" rx="24" ry="24" fill="rgba(255,255,255,0.08)"/>\n'
-        + '        <!-- Escudo simplificado GCBA -->\n'
-        + '        <g fill="white" opacity="0.9">\n'
-        + '          <!-- Olas -->\n'
-        + '          <path d="M10 36 Q14 33 18 36 Q22 39 26 36 Q30 33 34 36 Q38 39 42 36" stroke="white" stroke-width="1.2" fill="none"/>\n'
-        + '          <path d="M10 39 Q14 36 18 39 Q22 42 26 39 Q30 36 34 39 Q38 42 42 39" stroke="white" stroke-width="1.2" fill="none"/>\n'
-        + '          <!-- Mástiles barcos -->\n'
-        + '          <rect x="18" y="22" width="1.2" height="10" rx=".6"/>\n'
-        + '          <rect x="26" y="20" width="1.2" height="12" rx=".6"/>\n'
-        + '          <rect x="34" y="22" width="1.2" height="10" rx=".6"/>\n'
-        + '          <!-- Velas -->\n'
-        + '          <polygon points="19,23 23,25 19,28" opacity=".7"/>\n'
-        + '          <polygon points="27,21 32,24 27,28" opacity=".7"/>\n'
-        + '          <polygon points="35,23 39,25 35,28" opacity=".7"/>\n'
-        + '          <!-- Sol/paloma arriba -->\n'
-        + '          <circle cx="26" cy="17" r="3" opacity=".8"/>\n'
-        + '          <path d="M22 15 Q26 11 30 15" stroke="white" stroke-width="1" fill="none"/>\n'
-        + '          <path d="M24 13 Q26 10 28 13" stroke="white" stroke-width="1" fill="none" opacity=".7"/>\n'
-        + '        </g>\n'
-        + '      </svg>\n'
-        + '      <div class="hdr-brand">\n'
-        + '        <div class="hdr-brand-name">Buenos Aires Ciudad</div>\n'
-        + '        <div class="hdr-brand-dep">IVC · Dirección General de Desarrollo Habitacional</div>\n'
-        + '      </div>\n'
-        + '    </div>\n'
-        + '    <div class="hdr-badge">\n'
-        + '      <div class="hdr-badge-label">📋 Relevamiento Climático</div>\n'
-        + '      <div class="hdr-badge-date" id="hdr-fecha">—</div>\n'
-        + '    </div>\n'
-        + '  </div>\n'
-        + '</header>\n'
-        + '\n'
-        + '<!-- BANNER ALERTA -->\n'
-        + '<div class="alerta-bar">\n'
-        + '  <div class="alerta-inner">\n'
-        + '    <div class="alerta-icon">🌧</div>\n'
-        + '    <div class="alerta-text">\n'
-        + '      <div class="alerta-title" id="alerta-title">Informe de Situación Climática</div>\n'
-        + '      <div class="alerta-sub" id="alerta-sub">Barrios Rodrigo Bueno · Fraga · Papa Francisco — IVC Seguridad y Emergencias</div>\n'
-        + '    </div>\n'
-        + '    <div class="alerta-stats" id="alerta-stats">\n'
-        + '      <!-- Stats dinámicas -->\n'
-        + '    </div>\n'
-        + '  </div>\n'
-        + '</div>\n'
-        + '\n'
-        + '<!-- MAIN -->\n'
-        + '<div class="main">\n'
-        + '\n'
-        + '  <!-- Filtros -->\n'
-        + '  <div class="filtros">\n'
-        + '    <span class="filtros-label">Filtrar por barrio</span>\n'
-        + '    <button class="filtro-btn active" onclick="filtrar(\'todos\')" id="f-todos">Todos</button>\n'
-        + '    <button class="filtro-btn" onclick="filtrar(\'Rodrigo Bueno\')" id="f-rb">Rodrigo Bueno</button>\n'
-        + '    <button class="filtro-btn" onclick="filtrar(\'Fraga\')" id="f-fr">Fraga</button>\n'
-        + '    <button class="filtro-btn" onclick="filtrar(\'Papa Francisco\')" id="f-pf">Papa Francisco</button>\n'
-        + '    <button class="filtro-btn" onclick="filtrar(\'Otro\')" id="f-otros">Otros</button>\n'
-        + '  </div>\n'
-        + '\n'
-        + '  <!-- Layout grid -->\n'
-        + '  <div class="layout">\n'
-        + '\n'
-        + '    <!-- LISTA -->\n'
-        + '    <div>\n'
-        + '      <div class="lista-header">\n'
-        + '        <div>\n'
-        + '          <div class="lista-title">Puntos relevados</div>\n'
-        + '        </div>\n'
-        + '        <div class="lista-count" id="lista-count">— registros</div>\n'
-        + '      </div>\n'
-        + '      <div class="cards" id="cards-container">\n'
-        + '        <div class="empty"><div class="empty-icon">🔄</div><div class="empty-title">Cargando relevamientos...</div></div>\n'
-        + '      </div>\n'
-        + '    </div>\n'
-        + '\n'
-        + '    <!-- MAPA -->\n'
-        + '    <div class="mapa-wrap">\n'
-        + '      <div class="mapa-card">\n'
-        + '        <div class="mapa-header">\n'
-        + '          <div>\n'
-        + '            <div class="mapa-header-title">🗺 Mapa de riesgos</div>\n'
-        + '            <div class="mapa-header-sub">Tocá un pin para navegar hasta el punto</div>\n'
-        + '          </div>\n'
-        + '        </div>\n'
-        + '        <div id="mapa"></div>\n'
-        + '        <div class="mapa-leyenda">\n'
-        + '          <div class="leg-item"><div class="leg-dot" style="background:#3b82f6"></div>Inundación</div>\n'
-        + '          <div class="leg-item"><div class="leg-dot" style="background:#22c55e"></div>Árbol</div>\n'
-        + '          <div class="leg-item"><div class="leg-dot" style="background:#f97316"></div>Poste</div>\n'
-        + '          <div class="leg-item"><div class="leg-dot" style="background:#a855f7"></div>Desagüe</div>\n'
-        + '          <div class="leg-item"><div class="leg-dot" style="background:#eab308"></div>Basura</div>\n'
-        + '          <div class="leg-item"><div class="leg-dot" style="background:#ef4444"></div>Otro</div>\n'
-        + '        </div>\n'
-        + '      </div>\n'
-        + '    </div>\n'
-        + '\n'
-        + '  </div>\n'
-        + '</div>\n'
-        + '\n'
-        + '<!-- FOOTER -->\n'
-        + '<footer class="footer">\n'
-        + '  <div class="footer-inner">\n'
-        + '    <div class="footer-left">\n'
-        + '      <svg viewBox="0 0 52 52" width="40" height="40" fill="none">\n'
-        + '        <ellipse cx="26" cy="26" rx="24" ry="24" stroke="rgba(255,255,255,0.3)" stroke-width="1.5"/>\n'
-        + '        <g fill="white" opacity="0.6">\n'
-        + '          <path d="M10 36 Q14 33 18 36 Q22 39 26 36 Q30 33 34 36 Q38 39 42 36" stroke="white" stroke-width="1.2" fill="none"/>\n'
-        + '          <rect x="18" y="22" width="1.2" height="10" rx=".6"/>\n'
-        + '          <rect x="26" y="20" width="1.2" height="12" rx=".6"/>\n'
-        + '          <rect x="34" y="22" width="1.2" height="10" rx=".6"/>\n'
-        + '          <polygon points="19,23 23,25 19,28" opacity=".6"/>\n'
-        + '          <polygon points="27,21 32,24 27,28" opacity=".6"/>\n'
-        + '          <polygon points="35,23 39,25 35,28" opacity=".6"/>\n'
-        + '          <circle cx="26" cy="17" r="3" opacity=".6"/>\n'
-        + '        </g>\n'
-        + '      </svg>\n'
-        + '      <div class="footer-text">\n'
-        + '        <strong>IVC Seguridad y Emergencias</strong><br>\n'
-        + '        Gerencia Operativa de Apoyo Territorial<br>\n'
-        + '        Dirección General de Desarrollo Habitacional · GCBA\n'
-        + '      </div>\n'
-        + '    </div>\n'
-        + '    <div class="footer-right">\n'
-        + '      <div>Generado el <span id="footer-fecha">—</span></div>\n'
-        + '      <div class="footer-confidencial">🔒 Uso interno</div>\n'
-        + '    </div>\n'
-        + '  </div>\n'
-        + '</footer>\n'
-        + '\n'
-        + '<!-- LIGHTBOX -->\n'
-        + '<div id="lb">\n'
-        + '  <button id="lb-x" onclick="lbClose()">×</button>\n'
-        + '  <img id="lb-img" src="" alt="">\n'
-        + '  <div id="lb-nav">\n'
-        + '    <button class="lb-arr" onclick="lbNav(-1)">‹</button>\n'
-        + '    <span id="lb-cnt"></span>\n'
-        + '    <button class="lb-arr" onclick="lbNav(1)">›</button>\n'
-        + '  </div>\n'
-        + '</div>\n'
-        + '\n'
-        + '<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><\/script>\n'
-        + '<script>\n'
-        + '// ── DATOS ────────────────────────────────────────────────────────────────\n'
-        + 'var DATOS = __DATOS_JSON__;\n'
-        + 'var FILTRO_ACTIVO = \'todos\';\n'
-        + 'var MAP = null;\n'
-        + 'var MAP_MARKERS = [];\n'
-        + 'var LB_ALL = [], LB_IDX = 0;\n'
-        + '\n'
-        + '// ── COLORES POR RIESGO ───────────────────────────────────────────────────\n'
-        + 'function colorRiesgo(n) {\n'
-        + '  if (n.inundacion_activa) return \'#3b82f6\';\n'
-        + '  if (n.riesgo_arbol)      return \'#22c55e\';\n'
-        + '  if (n.riesgo_poste)      return \'#f97316\';\n'
-        + '  if (n.desague_tapado)    return \'#a855f7\';\n'
-        + '  if (n.acumulacion_basura)return \'#eab308\';\n'
-        + '  return \'#ef4444\';\n'
-        + '}\n'
-        + 'function emojiRiesgo(n) {\n'
-        + '  if (n.inundacion_activa) return \'🌊\';\n'
-        + '  if (n.riesgo_arbol)      return \'🌳\';\n'
-        + '  if (n.riesgo_poste)      return \'🔌\';\n'
-        + '  if (n.desague_tapado)    return \'🕳\';\n'
-        + '  if (n.acumulacion_basura)return \'🗑\';\n'
-        + '  return \'⚠️\';\n'
-        + '}\n'
-        + 'function riesgosLista(n) {\n'
-        + '  var r = [];\n'
-        + '  if (n.acumulacion_basura) r.push({e:\'🗑\',l:\'Basura\',c:\'#eab308\',bg:\'#fef9c322\'});\n'
-        + '  if (n.desague_tapado)     r.push({e:\'🕳\',l:\'Desagüe\',c:\'#a855f7\',bg:\'#f5f3ff22\'});\n'
-        + '  if (n.riesgo_arbol)       r.push({e:\'🌳\',l:\'Árbol\',c:\'#22c55e\',bg:\'#f0fdf422\'});\n'
-        + '  if (n.riesgo_poste)       r.push({e:\'🔌\',l:\'Poste\',c:\'#f97316\',bg:\'#fff7ed22\'});\n'
-        + '  if (n.inundacion_activa)  r.push({e:\'🌊\',l:\'Inundación\',c:\'#3b82f6\',bg:\'#eff6ff22\'});\n'
-        + '  if (n.otro)               r.push({e:\'⚠️\',l:n.otro_detalle||\'Otro\',c:\'#ef4444\',bg:\'#fef2f222\'});\n'
-        + '  return r;\n'
-        + '}\n'
-        + 'function puestoBarrio(puesto) {\n'
-        + '  if (!puesto) return \'Otro\';\n'
-        + '  if (puesto.toLowerCase().indexOf(\'rodrigo\') >= 0) return \'Rodrigo Bueno\';\n'
-        + '  if (puesto.toLowerCase().indexOf(\'fraga\') >= 0) return \'Fraga\';\n'
-        + '  if (puesto.toLowerCase().indexOf(\'francisco\') >= 0) return \'Papa Francisco\';\n'
-        + '  return \'Otro\';\n'
-        + '}\n'
-        + '\n'
-        + '// ── FECHA ────────────────────────────────────────────────────────────────\n'
-        + 'function formatFecha(iso) {\n'
-        + '  if (!iso) return \'—\';\n'
-        + '  var d = new Date(iso);\n'
-        + '  return d.toLocaleDateString(\'es-AR\',{day:\'2-digit\',month:\'2-digit\',year:\'numeric\',timeZone:\'America/Argentina/Buenos_Aires\'})\n'
-        + '    + \' \' + d.toLocaleTimeString(\'es-AR\',{hour:\'2-digit\',minute:\'2-digit\',timeZone:\'America/Argentina/Buenos_Aires\'});\n'
-        + '}\n'
-        + 'function formatFechaCort(iso) {\n'
-        + '  if (!iso) return \'—\';\n'
-        + '  var d = new Date(iso);\n'
-        + '  return d.toLocaleDateString(\'es-AR\',{day:\'2-digit\',month:\'long\',year:\'numeric\',timeZone:\'America/Argentina/Buenos_Aires\'});\n'
-        + '}\n'
-        + '\n'
-        + '// ── STATS ────────────────────────────────────────────────────────────────\n'
-        + 'function renderStats(datos) {\n'
-        + '  var total = datos.length;\n'
-        + '  var conGPS = datos.filter(function(n){return n.lat && n.lng;}).length;\n'
-        + '  var inund = datos.filter(function(n){return n.inundacion_activa;}).length;\n'
-        + '  var statsEl = document.getElementById(\'alerta-stats\');\n'
-        + '  statsEl.innerHTML =\n'
-        + '    \'<div class="stat-box"><div class="stat-n">\'+total+\'</div><div class="stat-l">Registros</div></div>\' +\n'
-        + '    (inund ? \'<div class="stat-box"><div class="stat-n" style="color:#ff6b6b">\'+inund+\'</div><div class="stat-l">Inundaciones</div></div>\' : \'\') +\n'
-        + '    \'<div class="stat-box"><div class="stat-n">\'+conGPS+\'</div><div class="stat-l">Con GPS</div></div>\';\n'
-        + '}\n'
-        + '\n'
-        + '// ── NAVEGACIÓN ───────────────────────────────────────────────────────────\n'
-        + 'function navBtns(lat, lng) {\n'
-        + '  if (!lat || !lng) return \'<span class="no-gps">📍 Sin ubicación GPS</span>\';\n'
-        + '  var label = encodeURIComponent(\'Punto relevado IVC\');\n'
-        + '  var gm = \'https://maps.google.com/?q=\'+lat+\',\'+lng+\'&z=18\';\n'
-        + '  var wz = \'https://waze.com/ul?ll=\'+lat+\',\'+lng+\'&navigate=yes\';\n'
-        + '  var ap = \'maps://maps.apple.com/?ll=\'+lat+\',\'+lng+\'&q=\'+label;\n'
-        + '  return \'<div class="gps-info">📍 \'+parseFloat(lat).toFixed(5)+\', \'+parseFloat(lng).toFixed(5)+\'</div>\'\n'
-        + '    + \'<div class="nav-btns">\'\n'
-        + '    + \'<a href="\'+gm+\'" target="_blank" class="nav-btn nav-btn-gmaps">🗺 Google</a>\'\n'
-        + '    + \'<a href="\'+wz+\'" target="_blank" class="nav-btn nav-btn-waze">🚗 Waze</a>\'\n'
-        + '    + \'<a href="\'+ap+\'" class="nav-btn nav-btn-apple">🍎 Apple</a>\'\n'
-        + '    + \'</div>\';\n'
-        + '}\n'
-        + '\n'
-        + '// ── LIGHTBOX ─────────────────────────────────────────────────────────────\n'
-        + 'function lbOpen(fotos, idx) {\n'
-        + '  LB_ALL = fotos; LB_IDX = idx; lbUpd();\n'
-        + '  document.getElementById(\'lb\').classList.add(\'open\');\n'
-        + '}\n'
-        + 'function lbClose(){document.getElementById(\'lb\').classList.remove(\'open\');}\n'
-        + 'function lbNav(d){LB_IDX=Math.max(0,Math.min(LB_ALL.length-1,LB_IDX+d));lbUpd();}\n'
-        + 'function lbUpd(){\n'
-        + '  document.getElementById(\'lb-img\').src=LB_ALL[LB_IDX];\n'
-        + '  document.getElementById(\'lb-cnt\').textContent=(LB_IDX+1)+\' / \'+LB_ALL.length;\n'
-        + '  document.getElementById(\'lb-x\').previousElementSibling;\n'
-        + '}\n'
-        + 'document.addEventListener(\'keydown\',function(e){\n'
-        + '  if(!document.getElementById(\'lb\').classList.contains(\'open\'))return;\n'
-        + '  if(e.key===\'Escape\')lbClose();\n'
-        + '  if(e.key===\'ArrowLeft\')lbNav(-1);\n'
-        + '  if(e.key===\'ArrowRight\')lbNav(1);\n'
-        + '});\n'
-        + 'document.getElementById(\'lb\').addEventListener(\'click\',function(e){if(e.target===this)lbClose();});\n'
-        + '\n'
-        + '// ── RENDER CARDS ─────────────────────────────────────────────────────────\n'
-        + 'var FOTOS_STORE = [];\n'
-        + '\n'
-        + 'function renderCards(datos) {\n'
-        + '  FOTOS_STORE = [];\n'
-        + '  var cont = document.getElementById(\'cards-container\');\n'
-        + '  document.getElementById(\'lista-count\').textContent = datos.length + \' registro\' + (datos.length!==1?\'s\':\'\');\n'
-        + '\n'
-        + '  if (!datos.length) {\n'
-        + '    cont.innerHTML = \'<div class="empty"><div class="empty-icon">✅</div><div class="empty-title">Sin registros para este filtro</div><div style="font-size:13px;color:#8EA3B4;margin-top:6px">No se encontraron relevamientos en esta zona.</div></div>\';\n'
-        + '    return;\n'
-        + '  }\n'
-        + '\n'
-        + '  var html = \'\';\n'
-        + '  datos.forEach(function(n, ni) {\n'
-        + '    var color = colorRiesgo(n);\n'
-        + '    var emoji = emojiRiesgo(n);\n'
-        + '    var riesgos = riesgosLista(n);\n'
-        + '    var fotos = Array.isArray(n.fotos_urls) ? n.fotos_urls : [];\n'
-        + '\n'
-        + '    var fotosHtml = \'\';\n'
-        + '    if (fotos.length) {\n'
-        + '      var storeIdx = FOTOS_STORE.length;\n'
-        + '      FOTOS_STORE.push(fotos);\n'
-        + '      fotosHtml = \'<div class="fotos">\' +\n'
-        + '        fotos.map(function(f, fi) {\n'
-        + '          return \'<img class="foto" src="\'+f+\'" onclick="lbOpen(FOTOS_STORE[\'+storeIdx+\'],\'+fi+\')" loading="lazy">\';\n'
-        + '        }).join(\'\') +\n'
-        + '        \'</div>\';\n'
-        + '    }\n'
-        + '\n'
-        + '    var riesgosHtml = \'\';\n'
-        + '    if (riesgos.length) {\n'
-        + '      riesgosHtml = \'<div class="riesgos">\' +\n'
-        + '        riesgos.map(function(r) {\n'
-        + '          return \'<span class="riesgo-badge" style="color:\'+r.c+\';border-color:\'+r.c+\';background:\'+r.c+\'18">\'+r.e+\' \'+r.l+\'</span>\';\n'
-        + '        }).join(\'\') +\n'
-        + '        \'</div>\';\n'
-        + '    }\n'
-        + '\n'
-        + '    var obsHtml = n.observaciones\n'
-        + '      ? \'<div class="obs">\'+n.observaciones+\'</div>\'\n'
-        + '      : \'\';\n'
-        + '\n'
-        + '    html += \'<div class="card" id="card-\'+ni+\'">\'\n'
-        + '      + \'<div class="card-accent" style="background:\'+color+\'"></div>\'\n'
-        + '      + \'<div class="card-body">\'\n'
-        + '      + \'<div class="card-top">\'\n'
-        + '      + \'<div><div class="card-puesto">\'+emoji+\' \'+(n.puesto||\'—\')+\'</div><div class="card-agente">👤 \'+(n.agente||\'—\')+\'</div></div>\'\n'
-        + '      + \'<div class="card-fecha">\'+formatFecha(n.created_at)+\'</div>\'\n'
-        + '      + \'</div>\'\n'
-        + '      + riesgosHtml\n'
-        + '      + obsHtml\n'
-        + '      + fotosHtml\n'
-        + '      + \'<div class="nav-row">\'+navBtns(n.lat, n.lng)+\'</div>\'\n'
-        + '      + \'</div>\'\n'
-        + '      + \'</div>\';\n'
-        + '  });\n'
-        + '  cont.innerHTML = html;\n'
-        + '}\n'
-        + '\n'
-        + '// ── MAPA ─────────────────────────────────────────────────────────────────\n'
-        + 'function initMapa(datos) {\n'
-        + '  if (MAP) { MAP.remove(); MAP = null; }\n'
-        + '  MAP_MARKERS = [];\n'
-        + '\n'
-        + '  var conGPS = datos.filter(function(n){\n'
-        + '    return n.lat && n.lng\n'
-        + '      && n.lat >= -90 && n.lat <= 90\n'
-        + '      && n.lng >= -180 && n.lng <= 180;\n'
-        + '  });\n'
-        + '  var center = conGPS.length ? [conGPS[0].lat, conGPS[0].lng] : [-34.614, -58.359];\n'
-        + '\n'
-        + '  MAP = L.map(\'mapa\', {zoomControl:true, scrollWheelZoom:false}).setView(center, 15);\n'
-        + '  L.tileLayer(\'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png\',{\n'
-        + '    attribution:\'© OpenStreetMap\', maxZoom:19\n'
-        + '  }).addTo(MAP);\n'
-        + '\n'
-        + '  conGPS.forEach(function(n, ni) {\n'
-        + '    var color = colorRiesgo(n);\n'
-        + '    var emoji = emojiRiesgo(n);\n'
-        + '    var svg = \'<svg xmlns="http://www.w3.org/2000/svg" width="32" height="42" viewBox="0 0 32 42">\'\n'
-        + '      + \'<defs><radialGradient id="pg\'+ni+\'" cx="40%" cy="35%" r="60%"><stop offset="0%" stop-color="#fff" stop-opacity="0.3"/><stop offset="100%" stop-color="#000" stop-opacity="0.1"/></radialGradient></defs>\'\n'
-        + '      + \'<path d="M16 1C8.268 1 2 7.268 2 15c0 10.5 14 26 14 26S30 25.5 30 15C30 7.268 23.732 1 16 1z" fill="\'+color+\'" stroke="#fff" stroke-width="1.5" filter="drop-shadow(0 3px 6px rgba(0,0,0,0.4))"/>\'\n'
-        + '      + \'<path d="M16 1C8.268 1 2 7.268 2 15c0 10.5 14 26 14 26S30 25.5 30 15C30 7.268 23.732 1 16 1z" fill="url(#pg\'+ni+\')" opacity="0.6"/>\'\n'
-        + '      + \'<text x="16" y="18" text-anchor="middle" font-size="11" dominant-baseline="middle">\'+emoji+\'</text>\'\n'
-        + '      + \'</svg>\';\n'
-        + '    var icon = L.divIcon({html:svg,className:\'\',iconSize:[32,42],iconAnchor:[16,42],popupAnchor:[0,-44]});\n'
-        + '    var riesgos = riesgosLista(n);\n'
-        + '    var rBadges = riesgos.map(function(r){return \'<span style="background:\'+r.c+\'22;color:\'+r.c+\';border:1px solid \'+r.c+\';border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700;margin-right:3px">\'+r.e+\' \'+r.l+\'</span>\';}).join(\'\');\n'
-        + '    var gm = \'https://maps.google.com/?q=\'+n.lat+\',\'+n.lng;\n'
-        + '    var wz = \'https://waze.com/ul?ll=\'+n.lat+\',\'+n.lng+\'&navigate=yes\';\n'
-        + '    var popup = \'<div style="font-family:\\\\\'Archivo\\\\\',system-ui;min-width:200px;max-width:260px">\'\n'
-        + '      + \'<div style="font-weight:800;font-size:13px;color:\'+color+\';margin-bottom:4px">\'+emoji+\' \'+(n.puesto||\'—\')+\'</div>\'\n'
-        + '      + \'<div style="font-size:11px;color:#666;margin-bottom:8px">👤 \'+(n.agente||\'—\')+\'<br>🕐 \'+formatFecha(n.created_at)+\'</div>\'\n'
-        + '      + (rBadges ? \'<div style="margin-bottom:8px;display:flex;flex-wrap:wrap;gap:3px">\'+rBadges+\'</div>\' : \'\')\n'
-        + '      + (n.observaciones ? \'<div style="font-size:12px;color:#444;line-height:1.5;margin-bottom:8px;padding:6px;background:#f5f5f5;border-radius:6px">\'+n.observaciones+\'</div>\' : \'\')\n'
-        + '      + \'<div style="display:flex;gap:6px;flex-wrap:wrap">\'\n'
-        + '      + \'<a href="\'+gm+\'" target="_blank" style="background:#4285f4;color:#fff;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;text-decoration:none">🗺 Google Maps</a>\'\n'
-        + '      + \'<a href="\'+wz+\'" target="_blank" style="background:#33ccff;color:#1a1a2e;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;text-decoration:none">🚗 Waze</a>\'\n'
-        + '      + \'</div></div>\';\n'
-        + '    var m = L.marker([n.lat, n.lng], {icon:icon}).addTo(MAP);\n'
-        + '    m.bindPopup(popup, {maxWidth:280});\n'
-        + '    m._climaIdx = ni;\n'
-        + '    MAP_MARKERS.push({marker:m, data:n});\n'
-        + '  });\n'
-        + '\n'
-        + '  if (conGPS.length > 1) {\n'
-        + '    MAP.fitBounds(L.latLngBounds(conGPS.map(function(n){return[n.lat,n.lng];})),{padding:[30,30]});\n'
-        + '  }\n'
-        + '  setTimeout(function(){if(MAP)MAP.invalidateSize();},200);\n'
-        + '}\n'
-        + '\n'
-        + '// ── FILTRO ───────────────────────────────────────────────────────────────\n'
-        + 'function filtrar(barrio) {\n'
-        + '  FILTRO_ACTIVO = barrio;\n'
-        + '  [\'todos\',\'rb\',\'fr\',\'pf\',\'otros\'].forEach(function(k){\n'
-        + '    document.getElementById(\'f-\'+k).classList.remove(\'active\');\n'
-        + '  });\n'
-        + '  var map = {todos:\'todos\',\'Rodrigo Bueno\':\'rb\',\'Fraga\':\'fr\',\'Papa Francisco\':\'pf\',\'Otro\':\'otros\'};\n'
-        + '  document.getElementById(\'f-\'+(map[barrio]||\'todos\')).classList.add(\'active\');\n'
-        + '\n'
-        + '  var filtrados = DATOS;\n'
-        + '  if (barrio !== \'todos\') {\n'
-        + '    filtrados = DATOS.filter(function(n){\n'
-        + '      var b = puestoBarrio(n.puesto);\n'
-        + '      if (barrio === \'Otro\') return b === \'Otro\';\n'
-        + '      return b === barrio;\n'
-        + '    });\n'
-        + '  }\n'
-        + '  renderStats(filtrados);\n'
-        + '  renderCards(filtrados);\n'
-        + '  initMapa(filtrados);\n'
-        + '}\n'
-        + '\n'
-        + '// ── INIT ─────────────────────────────────────────────────────────────────\n'
-        + 'function doInit() {\n'
-        + '  try {\n'
-        + '    var ahora = new Date();\n'
-        + '    var fechaStr = ahora.toLocaleDateString(\'es-AR\',{weekday:\'long\',day:\'2-digit\',month:\'long\',year:\'numeric\',timeZone:\'America/Argentina/Buenos_Aires\'})\n'
-        + '      + \' · \' + ahora.toLocaleTimeString(\'es-AR\',{hour:\'2-digit\',minute:\'2-digit\',timeZone:\'America/Argentina/Buenos_Aires\'}) + \' hs\';\n'
-        + '    document.getElementById(\'hdr-fecha\').textContent = fechaStr;\n'
-        + '    document.getElementById(\'footer-fecha\').textContent = fechaStr;\n'
-        + '\n'
-        + '    var tipo = \'Sin incidentes críticos\';\n'
-        + '    if (DATOS.some(function(n){return n.inundacion_activa;})) tipo = \'Alerta por inundaciones activas\';\n'
-        + '    else if (DATOS.some(function(n){return n.riesgo_arbol||n.riesgo_poste;})) tipo = \'Riesgo de caidas reportado\';\n'
-        + '    document.getElementById(\'alerta-title\').textContent = tipo;\n'
-        + '\n'
-        + '    var barriosSet = {};\n'
-        + '    DATOS.forEach(function(n){ barriosSet[puestoBarrio(n.puesto)] = 1; });\n'
-        + '    var barrios = Object.keys(barriosSet).join(\' · \');\n'
-        + '    if (barrios) document.getElementById(\'alerta-sub\').textContent = barrios + \' \u2014 IVC Seguridad y Emergencias\';\n'
-        + '\n'
-        + '    renderStats(DATOS);\n'
-        + '    renderCards(DATOS);\n'
-        + '  } catch(e) {\n'
-        + '    document.getElementById(\'cards-container\').innerHTML = \'<p style="color:red;padding:20px">Error al cargar datos: \' + e.message + \'</p>\';\n'
-        + '  }\n'
-        + '  // Mapa por separado para que un fallo no bloquee los datos\n'
-        + '  try { initMapa(DATOS); } catch(e) { console.warn(\'Mapa no disponible:\', e); }\n'
-        + '}\n'
-        + 'if (document.readyState === \'loading\') {\n'
-        + '  document.addEventListener(\'DOMContentLoaded\', doInit);\n'
-        + '} else {\n'
-        + '  doInit();\n'
-        + '}\n'
-        + '<\/script>\n'
-        + '</body>\n'
-        + '</html>\n'
-      ;
-      var jsonDatos = JSON.stringify(datos).replace(/<\/script>/gi, '<\\/script>');
-      var html = template.replace('__DATOS_JSON__', jsonDatos);
-      var blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+
+      // Construir HTML directamente — sin template strings
+      var h = '';
+      h += '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">';
+      h += '<meta name="viewport" content="width=device-width,initial-scale=1">';
+      h += '<title>Relevamiento Climatico IVC</title>';
+      h += '<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>';
+      h += '<style>';
+      h += '*{box-sizing:border-box;margin:0;padding:0}';
+      h += 'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#0a1628;color:#e2e8f0;min-height:100vh}';
+      h += '.hdr{background:#0b2442;padding:20px 24px;border-bottom:1px solid rgba(124,176,255,.15);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}';
+      h += '.hdr h1{font-size:18px;font-weight:800;color:#fff}';
+      h += '.hdr-sub{font-size:11px;color:#64748b;margin-top:2px}';
+      h += '.badge{background:rgba(59,130,246,.2);border:1px solid rgba(59,130,246,.4);color:#93c5fd;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700}';
+      h += '.filtros{padding:12px 24px;background:#0f2744;border-bottom:1px solid rgba(124,176,255,.1);display:flex;gap:8px;flex-wrap:wrap;align-items:center}';
+      h += '.filtros span{font-size:11px;color:#64748b;font-weight:700;text-transform:uppercase}';
+      h += '.fbtn{padding:5px 14px;border-radius:20px;border:1px solid rgba(124,176,255,.3);background:transparent;color:#94a3b8;font-size:11px;font-weight:700;cursor:pointer}';
+      h += '.fbtn.on{background:#2563eb;border-color:#2563eb;color:#fff}';
+      h += '#mapa-wrap{height:300px;background:#162032}';
+      h += '#mapa{width:100%;height:100%}';
+      h += '.main{padding:20px 24px}';
+      h += '.card{background:#0f2744;border-radius:10px;padding:14px;margin-bottom:10px;border-left:4px solid #3b82f6}';
+      h += '.card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}';
+      h += '.puesto{font-size:14px;font-weight:800;color:#93c5fd}';
+      h += '.fecha{font-size:11px;color:#475569}';
+      h += '.agente{font-size:11px;color:#64748b;margin-bottom:8px}';
+      h += '.riesgos{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px}';
+      h += '.riesgo{font-size:11px;padding:3px 8px;border-radius:6px;font-weight:700}';
+      h += '.obs{font-size:12px;color:#cbd5e1;line-height:1.5;margin-bottom:8px;padding:8px;background:rgba(255,255,255,.04);border-radius:6px}';
+      h += '.gps-link{font-size:11px;color:#93c5fd;text-decoration:none;display:inline-block;margin-top:4px}';
+      h += '.fotos{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}';
+      h += '.fotos a img{width:80px;height:80px;object-fit:cover;border-radius:6px;border:1px solid #334155}';
+      h += '.empty{padding:60px;text-align:center;color:#475569;font-size:14px}';
+      h += '</style></head><body>';
+
+      // Header
+      var fechaGen = new Date().toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric',timeZone:'America/Argentina/Buenos_Aires'});
+      h += '<div class="hdr">';
+      h += '<div><div class="hdr h1">IVC Seguridad — Relevamiento Climatico</div>';
+      h += '<div class="hdr-sub">Generado el ' + fechaGen + ' | ' + datos.length + ' registros</div></div>';
+      h += '<div class="badge">' + datos.length + ' relevamientos</div></div>';
+
+      // Filtros
+      var puestosSet = {};
+      datos.forEach(function(n) { if (n.puesto) puestosSet[n.puesto] = 1; });
+      var puestos = Object.keys(puestosSet).sort();
+      h += '<div class="filtros"><span>Barrio:</span>';
+      h += '<button class="fbtn on" onclick="filtrar(\'todos\',this)">Todos</button>';
+      puestos.forEach(function(p) {
+        h += '<button class="fbtn" onclick="filtrar(\'' + p.replace(/'/g, '') + '\',this)">' + p + '</button>';
+      });
+      h += '</div>';
+
+      // Mapa
+      h += '<div id="mapa-wrap"><div id="mapa"></div></div>';
+
+      // Cards
+      h += '<div class="main" id="cards-wrap">';
+      if (!datos.length) {
+        h += '<div class="empty">Sin relevamientos cargados</div>';
+      } else {
+        datos.forEach(function(n, i) {
+          var riesgos = [];
+          if (n.inundacion_activa) riesgos.push(['Inundacion','#3b82f6']);
+          if (n.riesgo_arbol)      riesgos.push(['Arbol','#22c55e']);
+          if (n.riesgo_poste)      riesgos.push(['Poste','#f97316']);
+          if (n.desague_tapado)    riesgos.push(['Desague','#a855f7']);
+          if (n.acumulacion_basura)riesgos.push(['Basura','#eab308']);
+          if (n.otro)              riesgos.push([(n.otro_detalle||'Otro'),'#ef4444']);
+
+          var colorBorde = riesgos.length ? riesgos[0][1] : '#3b82f6';
+          var gpsUrl = (n.lat && n.lng && n.lat >= -90 && n.lat <= 90)
+            ? 'https://maps.google.com/?q=' + n.lat + ',' + n.lng : '';
+
+          h += '<div class="card" data-puesto="' + (n.puesto||'').replace(/"/g,'') + '" style="border-left-color:' + colorBorde + '">';
+          h += '<div class="card-top"><div class="puesto">' + (n.puesto||'—') + '</div>';
+          h += '<div class="fecha">' + n.fecha + '</div></div>';
+          h += '<div class="agente">Agente: ' + (n.agente||'—') + '</div>';
+          if (riesgos.length) {
+            h += '<div class="riesgos">';
+            riesgos.forEach(function(rv) {
+              h += '<span class="riesgo" style="background:' + rv[1] + '22;color:' + rv[1] + ';border:1px solid ' + rv[1] + '">' + rv[0] + '</span>';
+            });
+            h += '</div>';
+          }
+          if (n.observaciones) h += '<div class="obs">' + n.observaciones + '</div>';
+          if (gpsUrl) h += '<a href="' + gpsUrl + '" target="_blank" class="gps-link">Ver en Google Maps</a>';
+          if (n.fotos && n.fotos.length) {
+            h += '<div class="fotos">';
+            n.fotos.forEach(function(f) {
+              h += '<a href="' + f + '" target="_blank"><img src="' + f + '" loading="lazy"></a>';
+            });
+            h += '</div>';
+          }
+          h += '</div>';
+        });
+      }
+      h += '</div>';
+
+      // Script mapa y filtros
+      h += '<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"><' + '/script>';
+      h += '<script>';
+      h += 'var TODOS = ' + JSON.stringify(datos) + ';';
+      h += 'var MAP = null;';
+      h += 'function filtrar(barrio, btn) {';
+      h += '  document.querySelectorAll(".fbtn").forEach(function(b){b.classList.remove("on");});';
+      h += '  if (btn) btn.classList.add("on");';
+      h += '  var cards = document.querySelectorAll(".card");';
+      h += '  cards.forEach(function(c){';
+      h += '    c.style.display = (barrio === "todos" || c.dataset.puesto === barrio) ? "block" : "none";';
+      h += '  });';
+      h += '  var vis = TODOS.filter(function(n){ return barrio === "todos" || n.puesto === barrio; });';
+      h += '  actualizarMapa(vis);';
+      h += '}';
+      h += 'function actualizarMapa(datos) {';
+      h += '  if (!window.L || !MAP) return;';
+      h += '  MAP.eachLayer(function(l){ if (l instanceof L.Marker) MAP.removeLayer(l); });';
+      h += '  var bounds = [];';
+      h += '  datos.forEach(function(n) {';
+      h += '    if (!n.lat || !n.lng || n.lat < -90 || n.lat > 90) return;';
+      h += '    var c = n.inundacion_activa ? "#3b82f6" : n.riesgo_arbol ? "#22c55e" : n.riesgo_poste ? "#f97316" : n.desague_tapado ? "#a855f7" : n.acumulacion_basura ? "#eab308" : "#ef4444";';
+      h += '    var m = L.circleMarker([n.lat, n.lng], {radius:10,fillColor:c,color:"#fff",weight:2,fillOpacity:0.9}).addTo(MAP);';
+      h += '    m.bindPopup("<b>" + (n.puesto||"") + "</b><br>" + (n.observaciones||""));';
+      h += '    bounds.push([n.lat, n.lng]);';
+      h += '  });';
+      h += '  if (bounds.length) MAP.fitBounds(bounds, {padding:[20,20]});';
+      h += '}';
+      h += 'document.addEventListener("DOMContentLoaded", function() {';
+      h += '  try {';
+      h += '    MAP = L.map("mapa").setView([-34.614, -58.359], 13);';
+      h += '    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {attribution:"OpenStreetMap",maxZoom:19}).addTo(MAP);';
+      h += '    actualizarMapa(TODOS);';
+      h += '  } catch(e) { console.warn("Mapa no disponible", e); }';
+      h += '});';
+      h += '<' + '/script>';
+      h += '</body></html>';
+
+      var blob = new Blob([h], { type: 'text/html;charset=utf-8' });
       var url = URL.createObjectURL(blob);
       var a = document.createElement('a');
       a.href = url;
@@ -33308,8 +32905,10 @@ window.climaExportarHTML = function() {
       a.click();
       document.body.removeChild(a);
       setTimeout(function() { URL.revokeObjectURL(url); }, 5000);
-      toast('✔ Informe exportado', 'ok');
+      toast('Informe exportado', 'ok');
     });
+};
+
 };
 
 // ══ FIN MÓDULO ALERTAS CLIMÁTICAS ══════════════════════════════════════════
