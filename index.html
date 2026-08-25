@@ -31636,6 +31636,7 @@ window.clima_abrirRelevamiento = function() {
 
   // GPS robusto
   clima_obtenerGPS(function(lat, lng) {
+    if (_CLIMA_GPS_MANUAL) return; // usuario ya ajustó manualmente, no sobreescribir
     CLIMA_LAT = lat;
     CLIMA_LNG = lng;
     window.CLIMA_LAT = lat;
@@ -31679,8 +31680,8 @@ window.clima_guardarRelevamiento = function() {
     alerta_id:         CLIMA_ALERTA_ID,
     puesto:            window.USER ? (USER.puesto || '') : '',
     agente:            window.USER ? (USER.nombre || USER.puesto || '') : '',
-    lat:               (typeof CLIMA_LAT !== 'undefined' && CLIMA_LAT) ? CLIMA_LAT : window.CLIMA_LAT,
-    lng:               (typeof CLIMA_LNG !== 'undefined' && CLIMA_LNG) ? CLIMA_LNG : window.CLIMA_LNG,
+    lat:               window.CLIMA_LAT || (typeof CLIMA_LAT !== 'undefined' ? CLIMA_LAT : null),
+    lng:               window.CLIMA_LNG || (typeof CLIMA_LNG !== 'undefined' ? CLIMA_LNG : null),
     acumulacion_basura: !!(document.getElementById('cr-basura')     || {}).checked,
     desague_tapado:     !!(document.getElementById('cr-desague')    || {}).checked,
     riesgo_arbol:       !!(document.getElementById('cr-arbol')      || {}).checked,
@@ -31725,7 +31726,6 @@ window.clima_guardarRelevamiento = function() {
 };
 
 function clima_insertar(payload, btn) {
-  // Guardar fotos_urls como JSON string para compatibilidad con text[]
   if (Array.isArray(payload.fotos_urls)) {
     payload.fotos_urls = payload.fotos_urls.length ? payload.fotos_urls : null;
   }
@@ -31734,6 +31734,8 @@ function clima_insertar(payload, btn) {
     if (r && r.error) { toast('Error al guardar: ' + r.error.message, 'err'); return; }
     clima_cerrarRelevamiento();
     toast('\u2714 Relevamiento climático guardado', 'ok');
+    // Recargar panel automáticamente si está visible
+    if (typeof clima_cargarPanel === 'function') clima_cargarPanel();
   });
 }
 
