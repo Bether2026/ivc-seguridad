@@ -31872,7 +31872,35 @@ window.clima_obtenerGPS = function(callback) {
 var CLIMA_RELEV_MAP = null;
 var CLIMA_RELEV_MARKER = null;
 
+function clima_cargarLeaflet(cb) {
+  if (window.L) { cb(); return; }
+  if (!document.getElementById('leaflet-css-clima')) {
+    var css = document.createElement('link');
+    css.id = 'leaflet-css-clima';
+    css.rel = 'stylesheet';
+    css.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    document.head.appendChild(css);
+  }
+  if (!document.getElementById('leaflet-js-clima')) {
+    var js = document.createElement('script');
+    js.id = 'leaflet-js-clima';
+    js.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    js.onload = function() { cb(); };
+    js.onerror = function() { toast('Error cargando mapa', 'err'); };
+    document.head.appendChild(js);
+  } else {
+    // Script ya está en DOM pero L todavía no está listo, esperar
+    var _wait = setInterval(function() {
+      if (window.L) { clearInterval(_wait); cb(); }
+    }, 100);
+  }
+}
+
 function clima_initMapaRelev(lat, lng) {
+  clima_cargarLeaflet(function() { _clima_initMapaRelev(lat, lng); });
+}
+
+function _clima_initMapaRelev(lat, lng) {
   var el = document.getElementById('cr-mapa-relev');
   if (!el) return;
   if (CLIMA_RELEV_MAP) {
@@ -32009,6 +32037,10 @@ function climaCtrl_emojiPorRiesgos(n) {
 }
 
 function climaCtrl_initMapa() {
+  clima_cargarLeaflet(function() { _climaCtrl_initMapa(); });
+}
+
+function _climaCtrl_initMapa() {
   var el = document.getElementById('clima-ctrl-mapa');
   if (!el) return;
 
