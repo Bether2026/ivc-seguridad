@@ -5930,6 +5930,52 @@ body {
   </button>
 </div>
 
+<!-- MODAL EDICIÓN RELEVAMIENTO CLIMÁTICO -->
+<div id="clima-edit-modal" style="display:none;position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,.85);align-items:flex-end;justify-content:center">
+  <div style="background:var(--bg);border-radius:20px 20px 0 0;width:100%;max-width:520px;padding:22px;max-height:94vh;overflow-y:auto">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+      <div style="font-size:15px;font-weight:900;color:var(--text)">✏️ Editar relevamiento</div>
+      <button onclick="climaCtrl_cerrarEditar()" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--border2);background:var(--bg2);color:var(--text2);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">×</button>
+    </div>
+    <!-- Riesgos -->
+    <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:10px">Riesgos detectados</label>
+    <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">
+      <label style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);cursor:pointer">
+        <input type="checkbox" id="ce-basura" style="width:16px;height:16px;accent-color:#ef4444"><span style="font-size:13px;color:var(--text)">🗑 Acumulación de basura</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);cursor:pointer">
+        <input type="checkbox" id="ce-desague" style="width:16px;height:16px;accent-color:#ef4444"><span style="font-size:13px;color:var(--text)">🕳 Desagüe tapado</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);cursor:pointer">
+        <input type="checkbox" id="ce-arbol" style="width:16px;height:16px;accent-color:#ef4444"><span style="font-size:13px;color:var(--text)">🌳 Riesgo de caída de árbol</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);cursor:pointer">
+        <input type="checkbox" id="ce-poste" style="width:16px;height:16px;accent-color:#ef4444"><span style="font-size:13px;color:var(--text)">🔌 Riesgo de caída de poste</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);cursor:pointer">
+        <input type="checkbox" id="ce-inundacion" style="width:16px;height:16px;accent-color:#ef4444"><span style="font-size:13px;color:var(--text)">🌊 Inundación activa</span>
+      </label>
+      <label style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);cursor:pointer">
+        <input type="checkbox" id="ce-otro" style="width:16px;height:16px;accent-color:#ef4444" onchange="climaEdit_toggleOtro()"><span style="font-size:13px;color:var(--text)">⚠️ Otro</span>
+      </label>
+      <div id="ce-otro-wrap" style="display:none">
+        <input id="ce-otro-detalle" type="text" placeholder="Describí el riesgo..." style="width:100%;padding:10px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);color:var(--text);font-family:var(--font);font-size:13px">
+      </div>
+    </div>
+    <!-- Observaciones -->
+    <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:8px">Observaciones</label>
+    <textarea id="ce-obs" rows="3" style="width:100%;padding:11px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);color:var(--text);font-family:var(--font);font-size:13px;resize:none;margin-bottom:14px"></textarea>
+    <!-- Mapa ajuste GPS -->
+    <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:8px">Ubicación <span style="font-weight:400;text-transform:none">(arrastrar para ajustar)</span></label>
+    <div id="ce-gps-info" style="margin-bottom:6px;padding:8px 12px;border-radius:8px;background:var(--bg2);border:1px solid var(--border2);font-size:11px;color:var(--text3)">📍 Cargando...</div>
+    <div id="ce-mapa" style="width:100%;height:220px;border-radius:12px;border:1px solid var(--border2);overflow:hidden;background:#1e293b;margin-bottom:16px"></div>
+    <!-- Guardar -->
+    <button onclick="climaCtrl_guardarEditar()" id="ce-guardar-btn" style="width:100%;padding:14px;border-radius:12px;border:none;background:#3b82f6;color:#fff;font-family:var(--font);font-size:14px;font-weight:800;cursor:pointer">
+      💾 Guardar cambios
+    </button>
+  </div>
+</div>
+
 <!-- MODAL RELEVAMIENTO CLIMÁTICO (agentes de campo) -->
 <div id="clima-relev-modal" style="display:none;position:fixed;inset:0;z-index:9300;background:rgba(0,0,0,.8);align-items:flex-end;justify-content:center">
   <div style="background:var(--bg);border-radius:20px 20px 0 0;width:100%;max-width:520px;padding:22px;max-height:92vh;overflow-y:auto">
@@ -31798,6 +31844,7 @@ window.clima_cargarPanel = function() {
 function climaCtrl_renderLista() {
   var lista = document.getElementById('clima-ctrl-lista');
   if (!lista) return;
+  _CLIMA_EDIT_IDX = [];
 
   var datos = CLIMA_CTRL_DATOS;
   if (CLIMA_CTRL_FILTRO !== 'todos') {
@@ -31836,10 +31883,13 @@ function climaCtrl_renderLista() {
       : '<span style="font-size:11px;color:#475569;display:inline-block;margin-top:6px">📍 Sin GPS</span>';
 
     var fotosHtml = '';
-    if (n.fotos_urls && n.fotos_urls.length) {
+    var _fotos = n.fotos_urls;
+    if (typeof _fotos === 'string') { try { _fotos = JSON.parse(_fotos); } catch(e) { _fotos = _fotos ? [_fotos] : []; } }
+    if (!Array.isArray(_fotos)) _fotos = [];
+    if (_fotos.length) {
       fotosHtml = '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">';
-      n.fotos_urls.forEach(function(f) {
-        fotosHtml += '<a href="' + f + '" target="_blank"><img src="' + f + '" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid #334155"></a>';
+      _fotos.forEach(function(f) {
+        fotosHtml += '<a href="' + f + '" target="_blank"><img src="' + f + '" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid #334155" loading="lazy"></a>';
       });
       fotosHtml += '</div>';
     }
@@ -31866,9 +31916,20 @@ function climaCtrl_renderLista() {
     if (n.observaciones) html += '<div style="font-size:12px;color:#cbd5e1;line-height:1.5;margin-bottom:4px;padding:8px;background:rgba(255,255,255,.04);border-radius:6px">' + n.observaciones + '</div>';
     html += gps;
     html += fotosHtml;
+
+    // Botones acción
+    var idxEdit = _CLIMA_EDIT_IDX.length;
+    _CLIMA_EDIT_IDX.push(n);
+    html += '<div style="margin-top:10px;display:flex;gap:8px;justify-content:flex-end">';
+    html += '<button onclick="climaCtrl_abrirEditar(' + idxEdit + ')" type="button" '
+      + 'style="padding:4px 10px;border-radius:6px;border:1px solid var(--border2);background:transparent;'
+      + 'color:var(--accent3);font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">✏️ Editar</button>';
     if (window.USER && USER.puesto === 'Administrador') {
-      html += '<div style="margin-top:10px;text-align:right"><button onclick="climaCtrl_eliminar(\'' + n.id + '\')" type="button" style="padding:4px 10px;border-radius:6px;border:1px solid rgba(239,68,68,.4);background:transparent;color:#ef4444;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">🗑 Eliminar</button></div>';
+      html += '<button onclick="climaCtrl_eliminar(\'' + n.id + '\')" type="button" '
+        + 'style="padding:4px 10px;border-radius:6px;border:1px solid rgba(239,68,68,.4);background:transparent;'
+        + 'color:#ef4444;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">🗑 Eliminar</button>';
     }
+    html += '</div>';
     html += '</div>';
   });
   lista.innerHTML = html;
@@ -32431,6 +32492,113 @@ function climaCtrl_pinIcon(color) {
     popupAnchor: [0, -44]
   });
 }
+
+// ── Editor de relevamiento climático ─────────────────────────────────────
+var _CLIMA_EDIT_IDX = [];   // índice registros para editar (paralelo a _CLIMA_ALERTAS_IDX)
+var _CLIMA_EDIT_REG = null; // registro en edición
+var _CLIMA_EDIT_MAP = null;
+var _CLIMA_EDIT_MARKER = null;
+var _CLIMA_EDIT_LAT = null;
+var _CLIMA_EDIT_LNG = null;
+
+window.climaEdit_toggleOtro = function() {
+  var cb = document.getElementById('ce-otro');
+  var w  = document.getElementById('ce-otro-wrap');
+  if (w) w.style.display = cb && cb.checked ? 'block' : 'none';
+};
+
+window.climaCtrl_abrirEditar = function(idx) {
+  var n = _CLIMA_EDIT_IDX[idx];
+  if (!n) return;
+  _CLIMA_EDIT_REG = n;
+  _CLIMA_EDIT_LAT = n.lat || null;
+  _CLIMA_EDIT_LNG = n.lng || null;
+
+  // Poblar checkboxes
+  var set = function(id, val) { var el = document.getElementById(id); if (el) el.checked = !!val; };
+  set('ce-basura',    n.acumulacion_basura);
+  set('ce-desague',   n.desague_tapado);
+  set('ce-arbol',     n.riesgo_arbol);
+  set('ce-poste',     n.riesgo_poste);
+  set('ce-inundacion',n.inundacion_activa);
+  set('ce-otro',      n.otro);
+  var detEl = document.getElementById('ce-otro-detalle');
+  if (detEl) detEl.value = n.otro_detalle || '';
+  var wOtro = document.getElementById('ce-otro-wrap');
+  if (wOtro) wOtro.style.display = n.otro ? 'block' : 'none';
+  var obsEl = document.getElementById('ce-obs');
+  if (obsEl) obsEl.value = n.observaciones || '';
+
+  // Abrir modal
+  var modal = document.getElementById('clima-edit-modal');
+  if (modal) modal.style.display = 'flex';
+
+  // Iniciar mapa
+  clima_cargarLeaflet(function() {
+    setTimeout(function() { _climaEdit_initMapa(n.lat, n.lng); }, 200);
+  });
+};
+
+function _climaEdit_initMapa(lat, lng) {
+  if (_CLIMA_EDIT_MAP) { try { _CLIMA_EDIT_MAP.remove(); } catch(e) {} _CLIMA_EDIT_MAP = null; }
+  var el = document.getElementById('ce-mapa');
+  if (!el) return;
+  var clat = lat || -34.614, clng = lng || -58.359;
+  _CLIMA_EDIT_MAP = L.map('ce-mapa').setView([clat, clng], lat ? 17 : 15);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution:'© OpenStreetMap', maxZoom:19 }).addTo(_CLIMA_EDIT_MAP);
+  var icon = L.divIcon({
+    html: '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="38" viewBox="0 0 32 42">'
+      + '<path d="M16 1C8.268 1 2 7.268 2 15c0 10.5 14 26 14 26S30 25.5 30 15C30 7.268 23.732 1 16 1z" fill="#3b82f6" stroke="#fff" stroke-width="1.5" filter="drop-shadow(0 2px 4px rgba(0,0,0,.4))"/>'
+      + '<circle cx="16" cy="14" r="6" fill="#fff" opacity="0.9"/></svg>',
+    className: '', iconSize: [28, 38], iconAnchor: [14, 38]
+  });
+  _CLIMA_EDIT_MARKER = L.marker([clat, clng], { draggable: true, icon: icon }).addTo(_CLIMA_EDIT_MAP);
+  _CLIMA_EDIT_MARKER.on('dragend', function() {
+    var ll = _CLIMA_EDIT_MARKER.getLatLng();
+    _CLIMA_EDIT_LAT = ll.lat; _CLIMA_EDIT_LNG = ll.lng;
+    var gi = document.getElementById('ce-gps-info');
+    if (gi) gi.innerHTML = '📍 <span style="color:#34d399">Ajustado ✓</span> <span style="font-size:10px;color:#64748b">(' + ll.lat.toFixed(5) + ', ' + ll.lng.toFixed(5) + ')</span>';
+  });
+  var gi = document.getElementById('ce-gps-info');
+  if (gi) {
+    if (lat && lng) gi.innerHTML = '📍 <span style="color:#34d399">Ubicación actual ✓</span> <span style="font-size:10px;color:#64748b">(' + lat.toFixed(5) + ', ' + lng.toFixed(5) + ')</span>';
+    else gi.innerHTML = '📍 <span style="color:#f59e0b">Sin GPS — arrastrar para ubicar</span>';
+  }
+  setTimeout(function() { if (_CLIMA_EDIT_MAP) _CLIMA_EDIT_MAP.invalidateSize(); }, 250);
+}
+
+window.climaCtrl_cerrarEditar = function() {
+  var modal = document.getElementById('clima-edit-modal');
+  if (modal) modal.style.display = 'none';
+  if (_CLIMA_EDIT_MAP) { try { _CLIMA_EDIT_MAP.remove(); } catch(e) {} _CLIMA_EDIT_MAP = null; _CLIMA_EDIT_MARKER = null; }
+  _CLIMA_EDIT_REG = null;
+};
+
+window.climaCtrl_guardarEditar = function() {
+  if (!_CLIMA_EDIT_REG) return;
+  var btn = document.getElementById('ce-guardar-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Guardando...'; }
+  var g = function(id) { var el = document.getElementById(id); return el ? el.checked : false; };
+  var payload = {
+    acumulacion_basura: g('ce-basura'),
+    desague_tapado:     g('ce-desague'),
+    riesgo_arbol:       g('ce-arbol'),
+    riesgo_poste:       g('ce-poste'),
+    inundacion_activa:  g('ce-inundacion'),
+    otro:               g('ce-otro'),
+    otro_detalle:       (document.getElementById('ce-otro-detalle') || {}).value || '',
+    observaciones:      (document.getElementById('ce-obs') || {}).value || '',
+    lat:                _CLIMA_EDIT_LAT,
+    lng:                _CLIMA_EDIT_LNG
+  };
+  db.from('relevamiento_clima').update(payload).eq('id', _CLIMA_EDIT_REG.id).then(function(r) {
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Guardar cambios'; }
+    if (r && r.error) { toast('Error: ' + r.error.message, 'err'); return; }
+    toast('✔ Relevamiento actualizado', 'ok');
+    climaCtrl_cerrarEditar();
+    clima_cargarPanel();
+  });
+};
 
 // ══ FIN MÓDULO ALERTAS CLIMÁTICAS ══════════════════════════════════════════
 </script>
