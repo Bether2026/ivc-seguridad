@@ -4245,6 +4245,7 @@ body {
                 <div id="clima-ctrl-sub" style="font-size:11px;color:var(--text3);margin-top:2px">Relevamientos recibidos</div>
               </div>
               <button onclick="clima_abrirModal()" style="padding:8px 14px;border-radius:10px;border:none;background:#3b82f6;color:#fff;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">🌧 Nueva alerta</button>
+              <button id="clima-btn-finalizar" onclick="clima_finalizarRelevamiento()" style="display:none;padding:8px 14px;border-radius:10px;border:1px solid rgba(34,197,94,.4);background:transparent;color:#22c55e;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">✅ Finalizar</button>
             </div>
             <!-- Filtro por barrio -->
             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
@@ -5926,9 +5927,6 @@ body {
   <div id="clima-banner-msg" style="font-size:12px;color:#bfdbfe;line-height:1.4"></div>
   <button onclick="clima_abrirRelevamiento()" style="margin-top:4px;padding:10px;border-radius:10px;border:none;background:#1d4ed8;color:#fff;font-family:var(--font);font-size:13px;font-weight:800;cursor:pointer;width:100%">
     📋 Hacer relevamiento ahora
-  </button>
-  <button onclick="clima_finalizarRelevamiento()" style="padding:9px;border-radius:10px;border:1px solid rgba(148,163,184,.3);background:transparent;color:#94a3b8;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;width:100%">
-    ✅ Finalizar (ya relevé)
   </button>
 </div>
 
@@ -31767,8 +31765,19 @@ window.clima_cargarPanel = function() {
   var puedeEnviar = window.USER && (USER.puesto === 'Gerencia' || USER.puesto === 'Administrador' || USER.rol === 'ADMIN');
   var tabAlertas  = document.getElementById('cctrl-tab-alertas');
   var btnNueva    = document.querySelector('#view-clima-ctrl button[onclick="clima_abrirModal()"]');
+  var btnFinalizar = document.getElementById('clima-btn-finalizar');
   if (tabAlertas) tabAlertas.style.display = puedeEnviar ? '' : 'none';
   if (btnNueva)   btnNueva.style.display   = puedeEnviar ? '' : 'none';
+  if (btnFinalizar) btnFinalizar.style.display = 'none'; // por defecto oculto
+  // Si no puede enviar (puesto de campo), mostrar Finalizar si tiene alerta vigente
+  if (!puedeEnviar && window.db) {
+    db.from('alertas_turno').select('id').eq('tipo','clima').eq('puesto', USER.puesto).eq('leida',false).limit(1)
+      .then(function(r) {
+        if (r && r.data && r.data.length > 0) {
+          if (btnFinalizar) btnFinalizar.style.display = '';
+        }
+      });
+  }
   // Si el tab activo es Alertas pero el puesto no puede verlo, volver a Lista
   if (!puedeEnviar && CLIMA_CTRL_TAB === 'alertas') climaCtrl_verTab('lista');
 
@@ -31822,7 +31831,8 @@ function climaCtrl_renderLista() {
     if (n.otro)              riesgos.push('⚠️ ' + (n.otro_detalle || 'Otro'));
 
     var gps = (n.lat && n.lng)
-      ? '<a href="https://maps.google.com/?q=' + n.lat + ',' + n.lng + '" target="_blank" style="color:#93c5fd;font-size:11px;display:inline-block;margin-top:6px">📍 Ver en mapa</a>'
+      ? '<button type="button" onclick="climaCtrl_verEnMapa(' + n.lat + ',' + n.lng + ')" '
+        + 'style="background:transparent;border:none;color:#93c5fd;font-size:11px;display:inline-block;margin-top:6px;cursor:pointer;padding:0;font-family:var(--font)">📍 Ver en mapa</button>'
       : '<span style="font-size:11px;color:#475569;display:inline-block;margin-top:6px">📍 Sin GPS</span>';
 
     var fotosHtml = '';
@@ -32297,13 +32307,8 @@ function _climaCtrl_initMapa() {
   }).addTo(CLIMA_CTRL_MAP);
 
   conGPS.forEach(function(n) {
-    var emoji = climaCtrl_emojiPorRiesgos(n);
-    var icon = L.divIcon({
-      html: '<div style="font-size:26px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))">' + emoji + '</div>',
-      className: '',
-      iconSize: [32, 32],
-      iconAnchor: [16, 16]
-    });
+    var color = climaCtrl_colorPorRiesgo(n);
+    var icon = climaCtrl_pinIcon(color);
     var fecha = '';
     try {
       var dt = new Date(n.created_at);
@@ -32319,8 +32324,9 @@ function _climaCtrl_initMapa() {
     if (n.inundacion_activa) riesgos.push('🌊 Inundación');
     if (n.otro)              riesgos.push('⚠️ ' + (n.otro_detalle || 'Otro'));
 
+    var emoji = climaCtrl_emojiPorRiesgos(n);
     var popup = '<div style="font-family:system-ui;min-width:180px;max-width:240px">'
-      + '<div style="font-weight:800;font-size:13px;color:#1e293b;margin-bottom:4px">' + emoji + ' ' + (n.puesto || '—') + '</div>'
+      + '<div style="font-weight:800;font-size:13px;margin-bottom:4px;color:' + color + '">' + emoji + ' ' + (n.puesto || '—') + '</div>'
       + '<div style="font-size:11px;color:#64748b;margin-bottom:6px">👤 ' + (n.agente || '—') + ' · ' + fecha + '</div>'
       + (riesgos.length ? '<div style="font-size:12px;margin-bottom:6px">' + riesgos.join(' · ') + '</div>' : '')
       + (n.observaciones ? '<div style="font-size:11px;color:#475569;line-height:1.4;margin-bottom:6px">' + n.observaciones + '</div>' : '')
@@ -32348,6 +32354,25 @@ function _climaCtrl_initMapa() {
     CLIMA_CTRL_MAP.fitBounds(bounds, { padding: [30, 30] });
   }
 
+  // Leyenda de colores
+  var legExist = document.getElementById('clima-mapa-leyenda');
+  if (legExist) legExist.remove();
+  var leyenda = L.control({ position: 'bottomleft' });
+  leyenda.onAdd = function() {
+    var d = L.DomUtil.create('div');
+    d.id = 'clima-mapa-leyenda';
+    d.style.cssText = 'background:rgba(15,30,60,.92);padding:8px 12px;border-radius:10px;font-family:system-ui;font-size:11px;color:#e2e8f0;line-height:1.8;border:1px solid rgba(124,176,255,.2)';
+    d.innerHTML = '<div style="font-weight:700;margin-bottom:4px;color:#93c5fd">Referencias</div>'
+      + '<div><span style="color:#3b82f6">●</span> 🌊 Inundación</div>'
+      + '<div><span style="color:#22c55e">●</span> 🌳 Árbol</div>'
+      + '<div><span style="color:#f97316">●</span> 🔌 Poste</div>'
+      + '<div><span style="color:#a855f7">●</span> 🕳 Desagüe</div>'
+      + '<div><span style="color:#eab308">●</span> 🗑 Basura</div>'
+      + '<div><span style="color:#ef4444">●</span> ⚠️ Otro</div>';
+    return d;
+  };
+  leyenda.addTo(CLIMA_CTRL_MAP);
+
   setTimeout(function() { if (CLIMA_CTRL_MAP) CLIMA_CTRL_MAP.invalidateSize(); }, 200);
 }
 
@@ -32357,6 +32382,55 @@ window.climaCtrl_filtrar = function(barrio) {
   if (typeof _origClimaCtrlFiltrar === 'function') _origClimaCtrlFiltrar(barrio);
   if (CLIMA_CTRL_TAB === 'mapa') { setTimeout(climaCtrl_initMapa, 100); }
 };
+
+// ── Ver en mapa OSM interno ───────────────────────────────────────────────
+window.climaCtrl_verEnMapa = function(lat, lng) {
+  climaCtrl_verTab('mapa');
+  setTimeout(function() {
+    if (CLIMA_CTRL_MAP) {
+      CLIMA_CTRL_MAP.setView([lat, lng], 18);
+      // Abrir popup del marcador más cercano
+      CLIMA_CTRL_MAP_MARKERS.forEach(function(m) {
+        var ll = m.getLatLng();
+        if (Math.abs(ll.lat - lat) < 0.0001 && Math.abs(ll.lng - lng) < 0.0001) {
+          m.openPopup();
+        }
+      });
+    }
+  }, 350);
+};
+
+// ── Pin SVG teardrop con color por riesgo ─────────────────────────────────
+function climaCtrl_colorPorRiesgo(n) {
+  if (n.inundacion_activa) return '#3b82f6'; // azul
+  if (n.riesgo_arbol)      return '#22c55e'; // verde
+  if (n.riesgo_poste)      return '#f97316'; // naranja
+  if (n.desague_tapado)    return '#a855f7'; // violeta
+  if (n.acumulacion_basura)return '#eab308'; // amarillo
+  if (n.otro)              return '#ef4444'; // rojo
+  return '#64748b';                          // gris
+}
+
+function climaCtrl_pinIcon(color) {
+  var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="42" viewBox="0 0 32 42">'
+    + '<defs><radialGradient id="pg" cx="40%" cy="35%" r="60%">'
+    + '<stop offset="0%" stop-color="#fff" stop-opacity="0.35"/>'
+    + '<stop offset="100%" stop-color="#000" stop-opacity="0.15"/>'
+    + '</radialGradient></defs>'
+    + '<path d="M16 1C8.268 1 2 7.268 2 15c0 10.5 14 26 14 26S30 25.5 30 15C30 7.268 23.732 1 16 1z" '
+    + 'fill="' + color + '" stroke="#fff" stroke-width="1.5" filter="drop-shadow(0 3px 6px rgba(0,0,0,0.4))"/>'
+    + '<path d="M16 1C8.268 1 2 7.268 2 15c0 10.5 14 26 14 26S30 25.5 30 15C30 7.268 23.732 1 16 1z" '
+    + 'fill="url(#pg)"/>'
+    + '<circle cx="16" cy="14" r="6" fill="#fff" opacity="0.9"/>'
+    + '</svg>';
+  return L.divIcon({
+    html: svg,
+    className: '',
+    iconSize: [32, 42],
+    iconAnchor: [16, 42],
+    popupAnchor: [0, -44]
+  });
+}
 
 // ══ FIN MÓDULO ALERTAS CLIMÁTICAS ══════════════════════════════════════════
 </script>
