@@ -5930,6 +5930,17 @@ body {
   </button>
 </div>
 
+<!-- LIGHTBOX CLIMA -->
+<div id="clima-lb" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.95);flex-direction:column;align-items:center;justify-content:center;gap:16px">
+  <button onclick="climaLightboxClose()" style="position:absolute;top:16px;right:18px;font-size:24px;color:#fff;cursor:pointer;background:rgba(255,255,255,.1);border:none;width:40px;height:40px;border-radius:50%">×</button>
+  <img id="clima-lb-img" src="" style="max-width:90vw;max-height:78vh;object-fit:contain;border-radius:10px">
+  <div style="display:flex;gap:12px;align-items:center">
+    <button onclick="climaLightboxNav(-1)" style="padding:8px 18px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#fff;font-size:16px;cursor:pointer">‹</button>
+    <span id="clima-lb-cnt" style="font-size:11px;color:#94a3b8;min-width:50px;text-align:center"></span>
+    <button onclick="climaLightboxNav(1)" style="padding:8px 18px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.08);color:#fff;font-size:16px;cursor:pointer">›</button>
+  </div>
+</div>
+
 <!-- MODAL EDICIÓN RELEVAMIENTO CLIMÁTICO -->
 <div id="clima-edit-modal" style="display:none;position:fixed;inset:0;z-index:9500;background:rgba(0,0,0,.85);align-items:flex-end;justify-content:center">
   <div style="background:var(--bg);border-radius:20px 20px 0 0;width:100%;max-width:520px;padding:22px;max-height:94vh;overflow-y:auto">
@@ -31845,6 +31856,7 @@ function climaCtrl_renderLista() {
   var lista = document.getElementById('clima-ctrl-lista');
   if (!lista) return;
   _CLIMA_EDIT_IDX = [];
+  _CLIMA_FOTOS_IDX = [];
 
   var datos = CLIMA_CTRL_DATOS;
   if (CLIMA_CTRL_FILTRO !== 'todos') {
@@ -31887,9 +31899,12 @@ function climaCtrl_renderLista() {
     if (typeof _fotos === 'string') { try { _fotos = JSON.parse(_fotos); } catch(e) { _fotos = _fotos ? [_fotos] : []; } }
     if (!Array.isArray(_fotos)) _fotos = [];
     if (_fotos.length) {
+      var fotIdx = _CLIMA_FOTOS_IDX.length;
+      _CLIMA_FOTOS_IDX.push(_fotos);
       fotosHtml = '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">';
-      _fotos.forEach(function(f) {
-        fotosHtml += '<a href="' + f + '" target="_blank"><img src="' + f + '" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid #334155" loading="lazy"></a>';
+      _fotos.forEach(function(f, fi) {
+        fotosHtml += '<img src="' + f + '" onclick="climaLightbox(' + fotIdx + ',' + fi + ')" '
+          + 'style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid #334155;cursor:zoom-in" loading="lazy">';
       });
       fotosHtml += '</div>';
     }
@@ -32062,27 +32077,27 @@ function _clima_initMapaRelev(lat, lng) {
 var _origClimaAbrirRelev = window.clima_abrirRelevamiento;
 window.clima_abrirRelevamiento = function() {
   if (typeof _origClimaAbrirRelev === 'function') _origClimaAbrirRelev();
-  // Init mapa con posición genérica, luego ajusta cuando llega GPS
+  // Init mapa con posición genérica, GPS actualiza cuando llega
   setTimeout(function() {
-    clima_initMapaRelev(null, null);
-  }, 200);
-  // Cuando llega GPS, actualizar mapa
-  var _origCb = window.clima_obtenerGPS;
-  clima_obtenerGPS(function(lat, lng) {
-    CLIMA_LAT = lat; CLIMA_LNG = lng;
-    var gpsEl = document.getElementById('cr-gps-info');
-    if (lat && lng) {
-      if (gpsEl) gpsEl.innerHTML = '📍 <span style="color:#34d399">Ubicación obtenida ✓</span> <span style="font-size:10px;color:#64748b">(' + lat.toFixed(5) + ', ' + lng.toFixed(5) + ')</span>';
-      if (CLIMA_RELEV_MAP && CLIMA_RELEV_MARKER) {
-        CLIMA_RELEV_MAP.setView([lat, lng], 17);
-        CLIMA_RELEV_MARKER.setLatLng([lat, lng]);
-      } else {
-        clima_initMapaRelev(lat, lng);
+    clima_cargarLeaflet(function() {
+      // Si ya tenemos coords del GPS obtenido en _origClimaAbrirRelev, usarlas
+      _clima_initMapaRelev(CLIMA_LAT, CLIMA_LNG);
+      // Si todavía no llegó el GPS, suscribirse al cambio
+      if (!CLIMA_LAT) {
+        var _poll = setInterval(function() {
+          if (CLIMA_LAT && CLIMA_RELEV_MAP && CLIMA_RELEV_MARKER) {
+            clearInterval(_poll);
+            CLIMA_RELEV_MAP.setView([CLIMA_LAT, CLIMA_LNG], 17);
+            CLIMA_RELEV_MARKER.setLatLng([CLIMA_LAT, CLIMA_LNG]);
+            var gpsEl = document.getElementById('cr-gps-info');
+            if (gpsEl) gpsEl.innerHTML = '📍 <span style="color:#34d399">Ubicación obtenida ✓</span> <span style="font-size:10px;color:#64748b">(' + CLIMA_LAT.toFixed(5) + ', ' + CLIMA_LNG.toFixed(5) + ')</span>';
+          }
+        }, 500);
+        // Cancelar poll después de 20s
+        setTimeout(function() { clearInterval(_poll); }, 20000);
       }
-    } else {
-      if (gpsEl) gpsEl.innerHTML = '📍 <span style="color:#f59e0b">Sin GPS — arrastrar el marcador para ubicar</span>';
-    }
-  });
+    });
+  }, 200);
 };
 
 // Override clima_cerrarRelevamiento para limpiar mapa
@@ -32393,12 +32408,13 @@ function _climaCtrl_initMapa() {
       + (n.observaciones ? '<div style="font-size:11px;color:#475569;line-height:1.4;margin-bottom:6px">' + n.observaciones + '</div>' : '')
       + (function() {
           var fotos = n.fotos_urls || [];
-          if (!fotos.length) return '';
+          if (typeof fotos === 'string') { try { fotos = JSON.parse(fotos); } catch(e) { fotos = []; } }
+          if (!Array.isArray(fotos) || !fotos.length) return '';
+          var midx = _CLIMA_FOTOS_IDX.length;
+          _CLIMA_FOTOS_IDX.push(fotos);
           return '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px">'
-            + fotos.map(function(u) {
-                return '<a href="' + u + '" target="_blank">'
-                  + '<img src="' + u + '" style="width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid #cbd5e1">'
-                  + '</a>';
+            + fotos.map(function(u, i) {
+                return '<img src="' + u + '" onclick="climaLightbox(' + midx + ',' + i + ')" style="width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid #cbd5e1;cursor:zoom-in">';
               }).join('')
             + '</div>';
         })()
@@ -32492,6 +32508,44 @@ function climaCtrl_pinIcon(color) {
     popupAnchor: [0, -44]
   });
 }
+
+// ── Variables índice fotos y lightbox ────────────────────────────────────
+var _CLIMA_FOTOS_IDX = [];
+var _CLIMA_LB_ALL = [], _CLIMA_LB_IDX = 0;
+
+window.climaLightbox = function(fotIdx, imgIdx) {
+  var fotos = _CLIMA_FOTOS_IDX[fotIdx];
+  if (!fotos || !fotos.length) return;
+  _CLIMA_LB_ALL = fotos;
+  _CLIMA_LB_IDX = imgIdx || 0;
+  _climaLbUpd();
+  var lb = document.getElementById('clima-lb');
+  if (lb) lb.style.display = 'flex';
+};
+window.climaLightboxClose = function() {
+  var lb = document.getElementById('clima-lb');
+  if (lb) lb.style.display = 'none';
+};
+window.climaLightboxNav = function(d) {
+  _CLIMA_LB_IDX = Math.max(0, Math.min(_CLIMA_LB_ALL.length - 1, _CLIMA_LB_IDX + d));
+  _climaLbUpd();
+};
+function _climaLbUpd() {
+  var img = document.getElementById('clima-lb-img');
+  var cnt = document.getElementById('clima-lb-cnt');
+  if (img) img.src = _CLIMA_LB_ALL[_CLIMA_LB_IDX];
+  if (cnt) cnt.textContent = (_CLIMA_LB_IDX + 1) + ' / ' + _CLIMA_LB_ALL.length;
+}
+// Cerrar con Escape o click fuera
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') climaLightboxClose();
+  if (e.key === 'ArrowLeft')  climaLightboxNav(-1);
+  if (e.key === 'ArrowRight') climaLightboxNav(1);
+});
+(function() {
+  var lb = document.getElementById('clima-lb');
+  if (lb) lb.addEventListener('click', function(e) { if (e.target === lb) climaLightboxClose(); });
+})();
 
 // ── Editor de relevamiento climático ─────────────────────────────────────
 var _CLIMA_EDIT_IDX = [];   // índice registros para editar (paralelo a _CLIMA_ALERTAS_IDX)
