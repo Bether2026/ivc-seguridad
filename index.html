@@ -4251,17 +4251,17 @@ body {
             </div>
             <!-- Filtro por barrio -->
             <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-              <button onclick="climaCtrl_filtrar('todos')" id="cctrl-f-todos" class="tab active" style="padding:6px 14px;border-radius:8px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:var(--font);background:var(--accent,#2563eb);color:#fff">Todos</button>
-              <button onclick="climaCtrl_filtrar('Rodrigo Bueno')" id="cctrl-f-rb" class="tab" style="padding:6px 14px;border-radius:8px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:var(--font);background:var(--bg3);color:var(--text2)">Rodrigo Bueno</button>
-              <button onclick="climaCtrl_filtrar('Fraga')" id="cctrl-f-fr" class="tab" style="padding:6px 14px;border-radius:8px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:var(--font);background:var(--bg3);color:var(--text2)">Fraga</button>
-              <button onclick="climaCtrl_filtrar('Papa Francisco')" id="cctrl-f-pf" class="tab" style="padding:6px 14px;border-radius:8px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:var(--font);background:var(--bg3);color:var(--text2)">Papa Francisco</button>
-              <button onclick="climaCtrl_filtrar('otro')" id="cctrl-f-otro" class="tab" style="padding:6px 14px;border-radius:8px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:var(--font);background:var(--bg3);color:var(--text2)">Otros</button>
+              <button onclick="if(window.climaCtrl_filtrar)climaCtrl_filtrar('todos')" id="cctrl-f-todos" class="tab active" style="padding:6px 14px;border-radius:8px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:var(--font);background:var(--accent,#2563eb);color:#fff">Todos</button>
+              <button onclick="if(window.climaCtrl_filtrar)climaCtrl_filtrar('Rodrigo Bueno')" id="cctrl-f-rb" class="tab" style="padding:6px 14px;border-radius:8px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:var(--font);background:var(--bg3);color:var(--text2)">Rodrigo Bueno</button>
+              <button onclick="if(window.climaCtrl_filtrar)climaCtrl_filtrar('Fraga')" id="cctrl-f-fr" class="tab" style="padding:6px 14px;border-radius:8px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:var(--font);background:var(--bg3);color:var(--text2)">Fraga</button>
+              <button onclick="if(window.climaCtrl_filtrar)climaCtrl_filtrar('Papa Francisco')" id="cctrl-f-pf" class="tab" style="padding:6px 14px;border-radius:8px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:var(--font);background:var(--bg3);color:var(--text2)">Papa Francisco</button>
+              <button onclick="if(window.climaCtrl_filtrar)climaCtrl_filtrar('otro')" id="cctrl-f-otro" class="tab" style="padding:6px 14px;border-radius:8px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:var(--font);background:var(--bg3);color:var(--text2)">Otros</button>
             </div>
             <!-- Sub-tabs Lista / Mapa / Alertas -->
             <div style="display:flex;gap:6px">
-              <button onclick="climaCtrl_verTab('lista')" id="cctrl-tab-lista" style="padding:5px 16px;border-radius:8px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:var(--font);background:var(--accent,#2563eb);color:#fff">📋 Lista</button>
-              <button onclick="climaCtrl_verTab('mapa')" id="cctrl-tab-mapa" style="padding:5px 16px;border-radius:8px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:var(--font);background:var(--bg3);color:var(--text2)">🗺 Mapa</button>
-              <button onclick="climaCtrl_verTab('alertas')" id="cctrl-tab-alertas" style="padding:5px 16px;border-radius:8px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:var(--font);background:var(--bg3);color:var(--text2)">📣 Alertas</button>
+              <button onclick="if(window.climaCtrl_verTab)climaCtrl_verTab('lista')" id="cctrl-tab-lista" style="padding:5px 16px;border-radius:8px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:var(--font);background:var(--accent,#2563eb);color:#fff">📋 Lista</button>
+              <button onclick="if(window.climaCtrl_verTab)climaCtrl_verTab('mapa')" id="cctrl-tab-mapa" style="padding:5px 16px;border-radius:8px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:var(--font);background:var(--bg3);color:var(--text2)">🗺 Mapa</button>
+              <button onclick="if(window.climaCtrl_verTab)climaCtrl_verTab('alertas')" id="cctrl-tab-alertas" style="padding:5px 16px;border-radius:8px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:var(--font);background:var(--bg3);color:var(--text2)">📣 Alertas</button>
             </div>
           </div>
           <!-- Lista relevamientos -->
@@ -31294,6 +31294,26 @@ window.barrios_mostrarBarrio = function() {
 
 </script>
 
+<script>
+// Stub de climaCtrl_verTab — garantiza disponibilidad antes de que cargue el módulo completo
+window.CLIMA_CTRL_TAB = window.CLIMA_CTRL_TAB || 'lista';
+window.climaCtrl_verTab = window.climaCtrl_verTab || function(tab) {
+  window.CLIMA_CTRL_TAB = tab;
+  var panels = { lista: 'clima-ctrl-lista', mapa: 'clima-ctrl-mapa-wrap', alertas: 'clima-ctrl-alertas' };
+  Object.keys(panels).forEach(function(k) {
+    var el = document.getElementById(panels[k]);
+    if (el) el.style.display = (k === tab) ? (k === 'mapa' ? 'flex' : 'block') : 'none';
+  });
+  var btns = { lista: 'cctrl-tab-lista', mapa: 'cctrl-tab-mapa', alertas: 'cctrl-tab-alertas' };
+  Object.keys(btns).forEach(function(k) {
+    var b = document.getElementById(btns[k]);
+    if (b) { b.style.background = (k === tab) ? 'var(--accent,#2563eb)' : 'var(--bg3)'; b.style.color = (k === tab) ? '#fff' : 'var(--text2)'; }
+  });
+};
+window.climaCtrl_filtrar = window.climaCtrl_filtrar || function(barrio) {
+  window.CLIMA_CTRL_FILTRO = barrio;
+};
+</script>
 <script>
 // ══ EXPORTADOR: Construcciones indebidas por puesto ════════════════════════
 
