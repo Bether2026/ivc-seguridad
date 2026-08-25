@@ -4247,16 +4247,25 @@ body {
               <button onclick="clima_abrirModal()" style="padding:8px 14px;border-radius:10px;border:none;background:#3b82f6;color:#fff;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">🌧 Nueva alerta</button>
             </div>
             <!-- Filtro por barrio -->
-            <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
               <button onclick="climaCtrl_filtrar('todos')" id="cctrl-f-todos" class="tab active" style="padding:6px 14px;border-radius:8px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:var(--font);background:var(--accent,#2563eb);color:#fff">Todos</button>
               <button onclick="climaCtrl_filtrar('Rodrigo Bueno')" id="cctrl-f-rb" class="tab" style="padding:6px 14px;border-radius:8px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:var(--font);background:var(--bg3);color:var(--text2)">Rodrigo Bueno</button>
               <button onclick="climaCtrl_filtrar('Fraga')" id="cctrl-f-fr" class="tab" style="padding:6px 14px;border-radius:8px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:var(--font);background:var(--bg3);color:var(--text2)">Fraga</button>
               <button onclick="climaCtrl_filtrar('Papa Francisco')" id="cctrl-f-pf" class="tab" style="padding:6px 14px;border-radius:8px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:var(--font);background:var(--bg3);color:var(--text2)">Papa Francisco</button>
               <button onclick="climaCtrl_filtrar('otro')" id="cctrl-f-otro" class="tab" style="padding:6px 14px;border-radius:8px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:var(--font);background:var(--bg3);color:var(--text2)">Otros</button>
             </div>
+            <!-- Sub-tabs Lista / Mapa -->
+            <div style="display:flex;gap:6px">
+              <button onclick="climaCtrl_verTab('lista')" id="cctrl-tab-lista" style="padding:5px 16px;border-radius:8px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:var(--font);background:var(--accent,#2563eb);color:#fff">📋 Lista</button>
+              <button onclick="climaCtrl_verTab('mapa')" id="cctrl-tab-mapa" style="padding:5px 16px;border-radius:8px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:var(--font);background:var(--bg3);color:var(--text2)">🗺 Mapa</button>
+            </div>
           </div>
           <!-- Lista relevamientos -->
           <div id="clima-ctrl-lista" style="padding:14px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;flex:1"></div>
+          <!-- Mapa relevamientos -->
+          <div id="clima-ctrl-mapa-wrap" style="display:none;flex:1;min-height:0">
+            <div id="clima-ctrl-mapa" style="width:100%;height:100%;min-height:400px"></div>
+          </div>
         </div><!-- /view-clima-ctrl -->
 
         <div class="view" id="view-relev-rb" style="padding:0">
@@ -5915,6 +5924,9 @@ body {
   <button onclick="clima_abrirRelevamiento()" style="margin-top:4px;padding:10px;border-radius:10px;border:none;background:#1d4ed8;color:#fff;font-family:var(--font);font-size:13px;font-weight:800;cursor:pointer;width:100%">
     📋 Hacer relevamiento ahora
   </button>
+  <button onclick="clima_finalizarRelevamiento()" style="padding:9px;border-radius:10px;border:1px solid rgba(148,163,184,.3);background:transparent;color:#94a3b8;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer;width:100%">
+    ✅ Finalizar (ya relevé)
+  </button>
 </div>
 
 <!-- MODAL RELEVAMIENTO CLIMÁTICO (agentes de campo) -->
@@ -5984,9 +5996,13 @@ body {
       </div>
     </div>
 
-    <!-- GPS -->
-    <div id="cr-gps-info" style="margin-bottom:14px;padding:10px 14px;border-radius:10px;background:var(--bg2);border:1px solid var(--border2);font-size:12px;color:var(--text3)">
-      📍 Obteniendo ubicación...
+    <!-- GPS + Mapa OSM -->
+    <div style="margin-bottom:14px">
+      <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:8px">Ubicación <span style="color:var(--text3);font-weight:400;text-transform:none">(arrastrar el marcador para ajustar)</span></label>
+      <div id="cr-gps-info" style="margin-bottom:6px;padding:8px 12px;border-radius:8px;background:var(--bg2);border:1px solid var(--border2);font-size:11px;color:var(--text3)">
+        📍 Obteniendo ubicación...
+      </div>
+      <div id="cr-mapa-relev" style="width:100%;height:220px;border-radius:12px;border:1px solid var(--border2);overflow:hidden;background:#1e293b"></div>
     </div>
 
     <button onclick="clima_guardarRelevamiento()" id="cr-guardar-btn" style="width:100%;padding:14px;border-radius:12px;border:none;background:#ef4444;color:#fff;font-family:var(--font);font-size:14px;font-weight:800;cursor:pointer">
@@ -31850,6 +31866,231 @@ window.clima_obtenerGPS = function(callback) {
     },
     { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
   );
+};
+
+// ── Mapa OSM en formulario de relevamiento ───────────────────────────────
+var CLIMA_RELEV_MAP = null;
+var CLIMA_RELEV_MARKER = null;
+
+function clima_initMapaRelev(lat, lng) {
+  var el = document.getElementById('cr-mapa-relev');
+  if (!el) return;
+  if (CLIMA_RELEV_MAP) {
+    try { CLIMA_RELEV_MAP.remove(); } catch(e) {}
+    CLIMA_RELEV_MAP = null; CLIMA_RELEV_MARKER = null;
+  }
+  var clat = lat || -34.614;
+  var clng = lng || -58.359;
+  CLIMA_RELEV_MAP = L.map('cr-mapa-relev', { zoomControl: true }).setView([clat, clng], lat ? 17 : 15);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap',
+    maxZoom: 19
+  }).addTo(CLIMA_RELEV_MAP);
+  var icon = L.divIcon({
+    html: '<div style="font-size:28px;line-height:1">📍</div>',
+    className: '',
+    iconSize: [32, 32],
+    iconAnchor: [16, 32]
+  });
+  CLIMA_RELEV_MARKER = L.marker([clat, clng], { draggable: true, icon: icon }).addTo(CLIMA_RELEV_MAP);
+  CLIMA_RELEV_MARKER.on('dragend', function() {
+    var ll = CLIMA_RELEV_MARKER.getLatLng();
+    CLIMA_LAT = ll.lat;
+    CLIMA_LNG = ll.lng;
+    var gpsEl = document.getElementById('cr-gps-info');
+    if (gpsEl) gpsEl.innerHTML = '📍 <span style="color:#34d399">Ajustado manualmente ✓</span> <span style="font-size:10px;color:#64748b">(' + ll.lat.toFixed(5) + ', ' + ll.lng.toFixed(5) + ')</span>';
+  });
+  setTimeout(function() { if (CLIMA_RELEV_MAP) CLIMA_RELEV_MAP.invalidateSize(); }, 300);
+}
+
+// Override clima_abrirRelevamiento para iniciar mapa
+var _origClimaAbrirRelev = window.clima_abrirRelevamiento;
+window.clima_abrirRelevamiento = function() {
+  if (typeof _origClimaAbrirRelev === 'function') _origClimaAbrirRelev();
+  // Init mapa con posición genérica, luego ajusta cuando llega GPS
+  setTimeout(function() {
+    clima_initMapaRelev(null, null);
+  }, 200);
+  // Cuando llega GPS, actualizar mapa
+  var _origCb = window.clima_obtenerGPS;
+  clima_obtenerGPS(function(lat, lng) {
+    CLIMA_LAT = lat; CLIMA_LNG = lng;
+    var gpsEl = document.getElementById('cr-gps-info');
+    if (lat && lng) {
+      if (gpsEl) gpsEl.innerHTML = '📍 <span style="color:#34d399">Ubicación obtenida ✓</span> <span style="font-size:10px;color:#64748b">(' + lat.toFixed(5) + ', ' + lng.toFixed(5) + ')</span>';
+      if (CLIMA_RELEV_MAP && CLIMA_RELEV_MARKER) {
+        CLIMA_RELEV_MAP.setView([lat, lng], 17);
+        CLIMA_RELEV_MARKER.setLatLng([lat, lng]);
+      } else {
+        clima_initMapaRelev(lat, lng);
+      }
+    } else {
+      if (gpsEl) gpsEl.innerHTML = '📍 <span style="color:#f59e0b">Sin GPS — arrastrar el marcador para ubicar</span>';
+    }
+  });
+};
+
+// Override clima_cerrarRelevamiento para limpiar mapa
+var _origClimaCloseRelev = window.clima_cerrarRelevamiento;
+window.clima_cerrarRelevamiento = function() {
+  if (typeof _origClimaCloseRelev === 'function') _origClimaCloseRelev();
+  if (CLIMA_RELEV_MAP) { try { CLIMA_RELEV_MAP.remove(); } catch(e) {} CLIMA_RELEV_MAP = null; CLIMA_RELEV_MARKER = null; }
+};
+
+// ── Botón Finalizar relevamiento ─────────────────────────────────────────
+window.clima_finalizarRelevamiento = function() {
+  var modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.8);display:flex;align-items:center;justify-content:center;padding:24px';
+  modal.innerHTML = '<div style="background:var(--bg2);border-radius:16px;padding:24px;max-width:320px;width:100%;text-align:center">'
+    + '<div style="font-size:32px;margin-bottom:12px">✅</div>'
+    + '<div style="font-size:15px;font-weight:800;color:var(--text);margin-bottom:8px">¿Finalizaste el relevamiento?</div>'
+    + '<div style="font-size:13px;color:var(--text3);margin-bottom:20px;line-height:1.5">¿Recorriste el barrio y ya registraste las situaciones encontradas?</div>'
+    + '<div style="display:flex;flex-direction:column;gap:10px">'
+    + '<button id="_cli-fin-si" style="padding:12px;border-radius:10px;border:none;background:#22c55e;color:#fff;font-family:var(--font);font-size:13px;font-weight:800;cursor:pointer">✅ Sí, finalicé el relevamiento</button>'
+    + '<button id="_cli-fin-relev" style="padding:12px;border-radius:10px;border:none;background:#3b82f6;color:#fff;font-family:var(--font);font-size:13px;font-weight:800;cursor:pointer">📋 Quiero hacer el relevamiento ahora</button>'
+    + '<button id="_cli-fin-no" style="padding:12px;border-radius:10px;border:1px solid var(--border2);background:transparent;color:var(--text2);font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">Cancelar</button>'
+    + '</div></div>';
+  document.body.appendChild(modal);
+
+  document.getElementById('_cli-fin-si').onclick = function() {
+    document.body.removeChild(modal);
+    // Marcar alerta como leída
+    if (CLIMA_ALERTA_ID && window.db) {
+      db.from('alertas_turno').update({ leida: true }).eq('id', CLIMA_ALERTA_ID).then(function() {});
+    }
+    var b = document.getElementById('clima-banner');
+    if (b) b.style.display = 'none';
+    toast('Relevamiento finalizado ✓', 'ok');
+  };
+  document.getElementById('_cli-fin-relev').onclick = function() {
+    document.body.removeChild(modal);
+    clima_abrirRelevamiento();
+  };
+  document.getElementById('_cli-fin-no').onclick = function() {
+    document.body.removeChild(modal);
+  };
+};
+
+// ── Sub-tabs Lista / Mapa en panel control ───────────────────────────────
+var CLIMA_CTRL_TAB = 'lista';
+var CLIMA_CTRL_MAP = null;
+var CLIMA_CTRL_MAP_MARKERS = [];
+
+window.climaCtrl_verTab = function(tab) {
+  CLIMA_CTRL_TAB = tab;
+  var lista = document.getElementById('clima-ctrl-lista');
+  var mapaWrap = document.getElementById('clima-ctrl-mapa-wrap');
+  var btnLista = document.getElementById('cctrl-tab-lista');
+  var btnMapa  = document.getElementById('cctrl-tab-mapa');
+  if (!lista || !mapaWrap) return;
+
+  if (tab === 'lista') {
+    lista.style.display = 'flex';
+    mapaWrap.style.display = 'none';
+    if (btnLista) { btnLista.style.background = 'var(--accent,#2563eb)'; btnLista.style.color = '#fff'; }
+    if (btnMapa)  { btnMapa.style.background  = 'var(--bg3)';           btnMapa.style.color  = 'var(--text2)'; }
+  } else {
+    lista.style.display = 'none';
+    mapaWrap.style.display = 'block';
+    if (btnLista) { btnLista.style.background = 'var(--bg3)';           btnLista.style.color = 'var(--text2)'; }
+    if (btnMapa)  { btnMapa.style.background  = 'var(--accent,#2563eb)'; btnMapa.style.color = '#fff'; }
+    setTimeout(climaCtrl_initMapa, 150);
+  }
+};
+
+function climaCtrl_emojiPorRiesgos(n) {
+  if (n.inundacion_activa) return '🌊';
+  if (n.riesgo_arbol)      return '🌳';
+  if (n.riesgo_poste)      return '🔌';
+  if (n.desague_tapado)    return '🕳';
+  if (n.acumulacion_basura)return '🗑';
+  if (n.otro)              return '⚠️';
+  return '🌧';
+}
+
+function climaCtrl_initMapa() {
+  var el = document.getElementById('clima-ctrl-mapa');
+  if (!el) return;
+
+  // Destruir mapa previo si existe
+  if (CLIMA_CTRL_MAP) {
+    try { CLIMA_CTRL_MAP.remove(); } catch(e) {}
+    CLIMA_CTRL_MAP = null;
+  }
+  CLIMA_CTRL_MAP_MARKERS = [];
+
+  // Filtrar datos según filtro activo y que tengan GPS
+  var datos = CLIMA_CTRL_DATOS || [];
+  if (CLIMA_CTRL_FILTRO !== 'todos') {
+    var otros = ['Rodrigo Bueno','Fraga','Papa Francisco'];
+    datos = datos.filter(function(n) {
+      if (CLIMA_CTRL_FILTRO === 'otro') return otros.indexOf(n.puesto) < 0;
+      return n.puesto === CLIMA_CTRL_FILTRO;
+    });
+  }
+  var conGPS = datos.filter(function(n) { return n.lat && n.lng; });
+
+  // Centro por defecto: Rodrigo Bueno
+  var centerLat = -34.6142, centerLng = -58.3598, zoom = 15;
+  if (conGPS.length > 0) {
+    centerLat = conGPS[0].lat;
+    centerLng = conGPS[0].lng;
+  }
+
+  CLIMA_CTRL_MAP = L.map('clima-ctrl-mapa').setView([centerLat, centerLng], zoom);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap', maxZoom: 19
+  }).addTo(CLIMA_CTRL_MAP);
+
+  conGPS.forEach(function(n) {
+    var emoji = climaCtrl_emojiPorRiesgos(n);
+    var icon = L.divIcon({
+      html: '<div style="font-size:26px;line-height:1;filter:drop-shadow(0 2px 4px rgba(0,0,0,.5))">' + emoji + '</div>',
+      className: '',
+      iconSize: [32, 32],
+      iconAnchor: [16, 16]
+    });
+    var fecha = '';
+    try {
+      var dt = new Date(n.created_at);
+      fecha = dt.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',timeZone:'America/Argentina/Buenos_Aires'})
+        + ' ' + dt.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',timeZone:'America/Argentina/Buenos_Aires'});
+    } catch(e) {}
+
+    var riesgos = [];
+    if (n.acumulacion_basura) riesgos.push('🗑 Basura');
+    if (n.desague_tapado)    riesgos.push('🕳 Desagüe');
+    if (n.riesgo_arbol)      riesgos.push('🌳 Árbol');
+    if (n.riesgo_poste)      riesgos.push('🔌 Poste');
+    if (n.inundacion_activa) riesgos.push('🌊 Inundación');
+    if (n.otro)              riesgos.push('⚠️ ' + (n.otro_detalle || 'Otro'));
+
+    var popup = '<div style="font-family:system-ui;min-width:180px">'
+      + '<div style="font-weight:800;font-size:13px;color:#1e293b;margin-bottom:4px">' + emoji + ' ' + (n.puesto || '—') + '</div>'
+      + '<div style="font-size:11px;color:#64748b;margin-bottom:6px">👤 ' + (n.agente || '—') + ' · ' + fecha + '</div>'
+      + (riesgos.length ? '<div style="font-size:12px;margin-bottom:4px">' + riesgos.join(' · ') + '</div>' : '')
+      + (n.observaciones ? '<div style="font-size:11px;color:#475569;line-height:1.4">' + n.observaciones + '</div>' : '')
+      + '</div>';
+
+    var marker = L.marker([n.lat, n.lng], { icon: icon }).addTo(CLIMA_CTRL_MAP);
+    marker.bindPopup(popup, { maxWidth: 240 });
+    CLIMA_CTRL_MAP_MARKERS.push(marker);
+  });
+
+  // Ajustar vista a todos los marcadores si hay más de uno
+  if (conGPS.length > 1) {
+    var bounds = L.latLngBounds(conGPS.map(function(n) { return [n.lat, n.lng]; }));
+    CLIMA_CTRL_MAP.fitBounds(bounds, { padding: [30, 30] });
+  }
+
+  setTimeout(function() { if (CLIMA_CTRL_MAP) CLIMA_CTRL_MAP.invalidateSize(); }, 200);
+}
+
+// Cuando se filtra, si el tab mapa está activo, refrescar
+var _origClimaCtrlFiltrar = window.climaCtrl_filtrar;
+window.climaCtrl_filtrar = function(barrio) {
+  if (typeof _origClimaCtrlFiltrar === 'function') _origClimaCtrlFiltrar(barrio);
+  if (CLIMA_CTRL_TAB === 'mapa') { setTimeout(climaCtrl_initMapa, 100); }
 };
 
 // ══ FIN MÓDULO ALERTAS CLIMÁTICAS ══════════════════════════════════════════
