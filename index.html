@@ -31827,6 +31827,8 @@ window.climaCtrl_filtrar = function(barrio) {
   climaCtrl_renderLista();
 };
 
+var CLIMA_CTRL_TAB = 'lista'; // declarada aquí para que esté disponible antes de clima_cargarPanel
+
 window.clima_cargarPanel = function() {
   var lista = document.getElementById('clima-ctrl-lista');
   var sub   = document.getElementById('clima-ctrl-sub');
@@ -32169,7 +32171,6 @@ window.clima_finalizarRelevamiento = function() {
 };
 
 // ── Sub-tabs Lista / Mapa en panel control ───────────────────────────────
-var CLIMA_CTRL_TAB = 'lista';
 var CLIMA_CTRL_MAP = null;
 var CLIMA_CTRL_MAP_MARKERS = [];
 
