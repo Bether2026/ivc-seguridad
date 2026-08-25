@@ -31625,6 +31625,8 @@ window.clima_abrirRelevamiento = function() {
   if (grid) { grid.innerHTML = ''; grid.style.display = 'none'; }
   CLIMA_FOTOS_FILES = [];
   CLIMA_LAT = null; CLIMA_LNG = null;
+  window.CLIMA_LAT = null; window.CLIMA_LNG = null;
+  _CLIMA_GPS_MANUAL = false;
 
   var gpsEl = document.getElementById('cr-gps-info');
   CLIMA_LAT = null; CLIMA_LNG = null;
@@ -32088,6 +32090,7 @@ function _clima_initMapaRelev(lat, lng) {
     CLIMA_LNG = ll.lng;
     window.CLIMA_LAT = ll.lat;
     window.CLIMA_LNG = ll.lng;
+    _CLIMA_GPS_MANUAL = true; // bloquear sobreescritura del GPS automático
     var gpsEl = document.getElementById('cr-gps-info');
     if (gpsEl) gpsEl.innerHTML = '📍 <span style="color:#34d399">Ajustado manualmente ✓</span> <span style="font-size:10px;color:#64748b">(' + ll.lat.toFixed(5) + ', ' + ll.lng.toFixed(5) + ')</span>';
   });
@@ -32103,6 +32106,7 @@ window.clima_abrirRelevamiento = function() {
     clima_cargarLeaflet(function() {
       _clima_initMapaRelev(null, null);
       var _poll = setInterval(function() {
+        if (_CLIMA_GPS_MANUAL) { clearInterval(_poll); return; } // usuario ya ajustó manualmente
         var lat = window.CLIMA_LAT;
         var lng = window.CLIMA_LNG;
         if (!lat) { try { lat = CLIMA_LAT; lng = CLIMA_LNG; } catch(e) {} }
@@ -32371,6 +32375,7 @@ function climaCtrl_initMapa() {
 function _climaCtrl_initMapa() {
   var el = document.getElementById('clima-ctrl-mapa');
   if (!el) return;
+  _CLIMA_MAPA_FOTOS_IDX = []; // resetear índice de fotos del mapa
 
   // Destruir mapa previo si existe
   if (CLIMA_CTRL_MAP) {
@@ -32421,27 +32426,22 @@ function _climaCtrl_initMapa() {
     if (n.otro)              riesgos.push('⚠️ ' + (n.otro_detalle || 'Otro'));
 
     var emoji = climaCtrl_emojiPorRiesgos(n);
+    var _mfotos = Array.isArray(n.fotos_urls) ? n.fotos_urls : [];
+    var _midx = _CLIMA_MAPA_FOTOS_IDX.length;
+    _CLIMA_MAPA_FOTOS_IDX.push(_mfotos);
+    var _fotosHtml = _mfotos.length
+      ? '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:6px">'
+        + _mfotos.map(function(u, i) {
+            return '<img src="' + u + '" onclick="climaMapaLightbox(' + _midx + ',' + i + ')" style="width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid #cbd5e1;cursor:zoom-in">';
+          }).join('')
+        + '</div>'
+      : '';
     var popup = '<div style="font-family:system-ui;min-width:180px;max-width:240px">'
       + '<div style="font-weight:800;font-size:13px;margin-bottom:4px;color:' + color + '">' + emoji + ' ' + (n.puesto || '—') + '</div>'
       + '<div style="font-size:11px;color:#64748b;margin-bottom:6px">👤 ' + (n.agente || '—') + ' · ' + fecha + '</div>'
       + (riesgos.length ? '<div style="font-size:12px;margin-bottom:6px">' + riesgos.join(' · ') + '</div>' : '')
       + (n.observaciones ? '<div style="font-size:11px;color:#475569;line-height:1.4;margin-bottom:6px">' + n.observaciones + '</div>' : '')
-      + (function() {
-          var fotos = n.fotos_urls || [];
-          if (typeof fotos === 'string') {
-            if (fotos.charAt(0) === '{') {
-              fotos = fotos.slice(1,-1).split(',').map(function(s){ return s.replace(/^"|"$/g,'').trim(); }).filter(Boolean);
-            } else { try { fotos = JSON.parse(fotos); } catch(e) { fotos = []; } }
-          }
-          if (!Array.isArray(fotos) || !fotos.length) return '';
-          var midx = _CLIMA_FOTOS_IDX.length;
-          _CLIMA_FOTOS_IDX.push(fotos);
-          return '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px">'
-            + fotos.map(function(u, i) {
-                return '<img src="' + u + '" onclick="climaLightbox(' + midx + ',' + i + ')" style="width:60px;height:60px;object-fit:cover;border-radius:6px;border:1px solid #cbd5e1;cursor:zoom-in">';
-              }).join('')
-            + '</div>';
-        })()
+      + _fotosHtml
       + '</div>';
 
     var marker = L.marker([n.lat, n.lng], { icon: icon }).addTo(CLIMA_CTRL_MAP);
@@ -32535,10 +32535,21 @@ function climaCtrl_pinIcon(color) {
 
 // ── Variables índice fotos y lightbox ────────────────────────────────────
 var _CLIMA_FOTOS_IDX = [];
+var _CLIMA_MAPA_FOTOS_IDX = []; // índice separado para el mapa (no se resetea con la lista)
 var _CLIMA_LB_ALL = [], _CLIMA_LB_IDX = 0;
+var _CLIMA_GPS_MANUAL = false; // true cuando el usuario arrastró el marcador
 
 window.climaLightbox = function(fotIdx, imgIdx) {
   var fotos = _CLIMA_FOTOS_IDX[fotIdx];
+  if (!fotos || !fotos.length) return;
+  _CLIMA_LB_ALL = fotos;
+  _CLIMA_LB_IDX = imgIdx || 0;
+  _climaLbUpd();
+  var lb = document.getElementById('clima-lb');
+  if (lb) lb.style.display = 'flex';
+};
+window.climaMapaLightbox = function(fotIdx, imgIdx) {
+  var fotos = _CLIMA_MAPA_FOTOS_IDX[fotIdx];
   if (!fotos || !fotos.length) return;
   _CLIMA_LB_ALL = fotos;
   _CLIMA_LB_IDX = imgIdx || 0;
