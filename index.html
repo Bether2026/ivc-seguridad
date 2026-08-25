@@ -32055,6 +32055,7 @@ window.climaCtrl_verTab = function(tab) {
 
 // ── Alertas enviadas ─────────────────────────────────────────────────────
 var CLIMA_ALERTAS_ENVIADAS = [];
+var _CLIMA_ALERTAS_IDX = []; // índice temporal para evitar JSON inline en onclick
 
 window.climaCtrl_cargarAlertas = function() {
   var wrap = document.getElementById('clima-ctrl-alertas');
@@ -32079,6 +32080,7 @@ window.climaCtrl_cargarAlertas = function() {
 function climaCtrl_renderAlertas() {
   var wrap = document.getElementById('clima-ctrl-alertas');
   if (!wrap) return;
+  _CLIMA_ALERTAS_IDX = []; // resetear índice
 
   // Agrupar por created_at redondeado al segundo (misma alerta enviada a varios puestos)
   var grupos = {};
@@ -32136,10 +32138,25 @@ function climaCtrl_renderAlertas() {
     html += '<div style="font-size:11px;color:#94a3b8;margin-bottom:6px">📣 Puestos: ' + puestosStr + '</div>';
     html += '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">';
     html += '<span style="font-size:11px;font-weight:700;color:' + estadoColor + '">' + estadoIcon + ' ' + estadoLabel + '</span>';
+
+    // IDs de TODAS las alertas del grupo (para eliminar)
+    var idsTodos = CLIMA_ALERTAS_ENVIADAS
+      .filter(function(x) { return (x.mensaje || '') + '|' + (x.created_at || '').substring(0,16) === key; })
+      .map(function(x) { return x.id; });
+
+    // Guardar en índice global para acceder desde onclick sin JSON inline
+    var idx = _CLIMA_ALERTAS_IDX.length;
+    _CLIMA_ALERTAS_IDX.push({ vigentes: idsVigentes, todos: idsTodos });
+
     if (esAdmin && vigentes > 0) {
-      html += '<button onclick="climaCtrl_cancelarAlerta(' + JSON.stringify(idsVigentes) + ')" type="button" '
-        + 'style="margin-left:auto;padding:4px 10px;border-radius:6px;border:1px solid rgba(239,68,68,.4);'
-        + 'background:transparent;color:#ef4444;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">🚫 Cancelar alerta</button>';
+      html += '<button onclick="climaCtrl_cancelarAlerta(' + idx + ')" type="button" '
+        + 'style="margin-left:auto;padding:4px 10px;border-radius:6px;border:1px solid rgba(245,158,11,.4);'
+        + 'background:transparent;color:#f59e0b;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">🚫 Cancelar</button>';
+    }
+    if (window.USER && USER.puesto === 'Administrador') {
+      html += '<button onclick="climaCtrl_eliminarAlerta(' + idx + ')" type="button" '
+        + 'style="padding:4px 10px;border-radius:6px;border:1px solid rgba(239,68,68,.4);'
+        + 'background:transparent;color:#ef4444;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">🗑 Eliminar</button>';
     }
     html += '</div>';
     html += '</div>';
@@ -32148,21 +32165,42 @@ function climaCtrl_renderAlertas() {
   wrap.innerHTML = html;
 }
 
-window.climaCtrl_cancelarAlerta = function(ids) {
+window.climaCtrl_cancelarAlerta = function(idx) {
   if (!window.USER || (USER.puesto !== 'Administrador' && USER.puesto !== 'Gerencia' && USER.rol !== 'ADMIN')) {
     toast('Sin permiso', 'err'); return;
   }
+  var entrada = _CLIMA_ALERTAS_IDX[idx];
+  if (!entrada || !entrada.vigentes.length) { toast('Sin alertas pendientes', 'err'); return; }
   if (!confirm('¿Cancelar esta alerta? Se marcará como leída para todos los puestos pendientes.')) return;
 
-  var pendientes = ids.length;
+  var pendientes = entrada.vigentes.length;
   var errores = 0;
-  ids.forEach(function(id) {
+  entrada.vigentes.forEach(function(id) {
     db.from('alertas_turno').update({ leida: true }).eq('id', id).then(function(r) {
       if (r && r.error) errores++;
       pendientes--;
       if (pendientes === 0) {
-        if (errores) { toast('Error cancelando alguna alerta', 'err'); }
-        else { toast('🚫 Alerta cancelada', 'ok'); }
+        toast(errores ? 'Error cancelando alguna alerta' : '🚫 Alerta cancelada', errores ? 'err' : 'ok');
+        climaCtrl_cargarAlertas();
+      }
+    });
+  });
+};
+
+window.climaCtrl_eliminarAlerta = function(idx) {
+  if (!window.USER || USER.puesto !== 'Administrador') { toast('Sin permiso', 'err'); return; }
+  var entrada = _CLIMA_ALERTAS_IDX[idx];
+  if (!entrada || !entrada.todos.length) return;
+  if (!confirm('¿Eliminar definitivamente esta alerta y todos sus registros? Esta acción no se puede deshacer.')) return;
+
+  var pendientes = entrada.todos.length;
+  var errores = 0;
+  entrada.todos.forEach(function(id) {
+    db.from('alertas_turno').delete().eq('id', id).then(function(r) {
+      if (r && r.error) errores++;
+      pendientes--;
+      if (pendientes === 0) {
+        toast(errores ? 'Error eliminando alerta' : '🗑 Alerta eliminada', errores ? 'err' : 'ok');
         climaCtrl_cargarAlertas();
       }
     });
