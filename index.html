@@ -28505,7 +28505,7 @@ function rbrb_buildItems() {
           (rid?'<button onclick="rbrb_editar(\''+rid+'\')" type="button" '+
             'style="margin-left:auto;padding:3px 9px;border-radius:6px;border:1px solid var(--border2);'+
             'background:transparent;color:var(--accent3);font-family:var(--font);font-size:10px;font-weight:700;cursor:pointer">✏️ Editar</button>':'')+
-          (rid && window.USER && USER.rol === 'ADMIN'
+          (rid && window.USER && USER.puesto === 'Administrador'
             ?'<button onclick="rbrb_eliminar(\''+rid+'\')" type="button" '+
              'style="padding:3px 9px;border-radius:6px;border:1px solid rgba(239,68,68,.4);'+
              'background:transparent;color:#ef4444;font-family:var(--font);font-size:10px;font-weight:700;cursor:pointer">🗑 Eliminar</button>':'')+
@@ -28519,7 +28519,7 @@ function rbrb_buildItems() {
 }
 
 window.rbrb_eliminar = function(id) {
-  if (!window.USER || USER.rol !== 'ADMIN') { toast('Sin permiso', 'err'); return; }
+  if (!window.USER || USER.puesto !== 'Administrador') { toast('Sin permiso', 'err'); return; }
   if (!confirm('¿Eliminar este registro definitivamente?')) return;
   db.from('relevamiento_rb').delete().eq('id', id).select().then(function(res) {
     if (res.error) { toast('Error: ' + res.error.message, 'err'); return; }
@@ -30457,7 +30457,7 @@ function frfr_buildItems() {
           (rid?'<button onclick="frfr_editar(\''+rid+'\')" type="button" '+
             'style="margin-left:auto;padding:3px 9px;border-radius:6px;border:1px solid var(--border2);'+
             'background:transparent;color:var(--accent3);font-family:var(--font);font-size:10px;font-weight:700;cursor:pointer">✏️ Editar</button>':'')+
-          (rid && window.USER && USER.rol === 'ADMIN'
+          (rid && window.USER && USER.puesto === 'Administrador'
             ?'<button onclick="frfr_eliminar(\''+rid+'\')" type="button" '+
              'style="padding:3px 9px;border-radius:6px;border:1px solid rgba(239,68,68,.4);'+
              'background:transparent;color:#ef4444;font-family:var(--font);font-size:10px;font-weight:700;cursor:pointer">🗑 Eliminar</button>':'')+
@@ -30471,7 +30471,7 @@ function frfr_buildItems() {
 }
 
 window.frfr_eliminar = function(id) {
-  if (!window.USER || USER.rol !== 'ADMIN') { toast('Sin permiso', 'err'); return; }
+  if (!window.USER || USER.puesto !== 'Administrador') { toast('Sin permiso', 'err'); return; }
   if (!confirm('¿Eliminar este registro definitivamente?')) return;
   db.from('relevamiento_fr').delete().eq('id', id).select().then(function(res) {
     if (res.error) { toast('Error: ' + res.error.message, 'err'); return; }
@@ -31812,11 +31812,23 @@ function climaCtrl_renderLista() {
     if (n.observaciones) html += '<div style="font-size:12px;color:#cbd5e1;line-height:1.5;margin-bottom:4px;padding:8px;background:rgba(255,255,255,.04);border-radius:6px">' + n.observaciones + '</div>';
     html += gps;
     html += fotosHtml;
+    if (window.USER && USER.puesto === 'Administrador') {
+      html += '<div style="margin-top:10px;text-align:right"><button onclick="climaCtrl_eliminar(\'' + n.id + '\')" type="button" style="padding:4px 10px;border-radius:6px;border:1px solid rgba(239,68,68,.4);background:transparent;color:#ef4444;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">🗑 Eliminar</button></div>';
+    }
     html += '</div>';
   });
   lista.innerHTML = html;
 }
 
+window.climaCtrl_eliminar = function(id) {
+  if (!window.USER || USER.puesto !== 'Administrador') { toast('Sin permiso', 'err'); return; }
+  if (!confirm('¿Eliminar este relevamiento climático definitivamente?')) return;
+  db.from('relevamiento_clima').delete().eq('id', id).select().then(function(res) {
+    if (res.error) { toast('Error: ' + res.error.message, 'err'); return; }
+    toast('🗑 Registro eliminado', 'ok');
+    clima_cargarPanel();
+  });
+};
 // ── Fix banner: que permanezca como comunicación interna ──────────────────
 window.clima_mostrarBanner = function(alerta) {
   CLIMA_ALERTA_ID = alerta.id || null;
