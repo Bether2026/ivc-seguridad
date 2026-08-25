@@ -4245,6 +4245,7 @@ body {
                 <div id="clima-ctrl-sub" style="font-size:11px;color:var(--text3);margin-top:2px">Relevamientos recibidos</div>
               </div>
               <button onclick="clima_abrirModal()" style="padding:8px 14px;border-radius:10px;border:none;background:#3b82f6;color:#fff;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">🌧 Nueva alerta</button>
+              <button id="clima-btn-nuevo-relev" onclick="clima_abrirRelevamiento()" style="display:none;padding:8px 14px;border-radius:10px;border:none;background:#0f3158;color:#7cb0ff;border:1px solid rgba(124,176,255,.3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">📋 Nuevo relevamiento</button>
               <button id="clima-btn-finalizar" onclick="clima_finalizarRelevamiento()" style="display:none;padding:8px 14px;border-radius:10px;border:1px solid rgba(34,197,94,.4);background:transparent;color:#22c55e;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">✅ Finalizar</button>
             </div>
             <!-- Filtro por barrio -->
@@ -31487,6 +31488,10 @@ var CLIMA_ALERTA_ID = null; // id de la alerta activa recibida
 var CLIMA_LAT = null;
 var CLIMA_LNG = null;
 var CLIMA_FOTOS_FILES = [];
+// Exponer al window para acceso desde fuera del IIFE
+window.CLIMA_ALERTA_ID = null;
+window.CLIMA_LAT = null;
+window.CLIMA_LNG = null;
 
 // ── Mostrar/ocultar botón según usuario ───────────────────────────────────
 function clima_initUI() {
@@ -31631,6 +31636,8 @@ window.clima_abrirRelevamiento = function() {
   clima_obtenerGPS(function(lat, lng) {
     CLIMA_LAT = lat;
     CLIMA_LNG = lng;
+    window.CLIMA_LAT = lat;
+    window.CLIMA_LNG = lng;
   });
 };
 
@@ -31823,17 +31830,22 @@ window.clima_cargarPanel = function() {
   var tabAlertas  = document.getElementById('cctrl-tab-alertas');
   var btnNueva    = document.querySelector('#view-clima-ctrl button[onclick="clima_abrirModal()"]');
   var btnFinalizar = document.getElementById('clima-btn-finalizar');
+  var btnNuevoRelev = document.getElementById('clima-btn-nuevo-relev');
   if (tabAlertas) tabAlertas.style.display = puedeEnviar ? '' : 'none';
   if (btnNueva)   btnNueva.style.display   = puedeEnviar ? '' : 'none';
-  if (btnFinalizar) btnFinalizar.style.display = 'none'; // por defecto oculto
-  // Si no puede enviar (puesto de campo), mostrar Finalizar si tiene alerta vigente
+  if (btnFinalizar) btnFinalizar.style.display = 'none';
+  if (btnNuevoRelev) btnNuevoRelev.style.display = 'none';
+  // Si no puede enviar (puesto de campo), mostrar Finalizar y Nuevo relevamiento si tiene alerta vigente
   if (!puedeEnviar && window.db) {
     db.from('alertas_turno').select('id').eq('tipo','clima').eq('puesto', USER.puesto).eq('leida',false).limit(1)
       .then(function(r) {
-        if (r && r.data && r.data.length > 0) {
-          if (btnFinalizar) btnFinalizar.style.display = '';
-        }
+        var tieneAlerta = r && r.data && r.data.length > 0;
+        if (btnFinalizar) btnFinalizar.style.display = tieneAlerta ? '' : 'none';
+        if (btnNuevoRelev) btnNuevoRelev.style.display = tieneAlerta ? '' : 'none';
       });
+  } else if (puedeEnviar) {
+    // Gerencia/Admin: siempre pueden agregar relevamiento manualmente
+    if (btnNuevoRelev) btnNuevoRelev.style.display = '';
   }
   // Si el tab activo es Alertas pero el puesto no puede verlo, volver a Lista
   if (!puedeEnviar && CLIMA_CTRL_TAB === 'alertas') climaCtrl_verTab('lista');
@@ -32077,27 +32089,26 @@ function _clima_initMapaRelev(lat, lng) {
 var _origClimaAbrirRelev = window.clima_abrirRelevamiento;
 window.clima_abrirRelevamiento = function() {
   if (typeof _origClimaAbrirRelev === 'function') _origClimaAbrirRelev();
-  // Init mapa con posición genérica, GPS actualiza cuando llega
+  // Init mapa después de que el modal sea visible
   setTimeout(function() {
     clima_cargarLeaflet(function() {
-      // Si ya tenemos coords del GPS obtenido en _origClimaAbrirRelev, usarlas
-      _clima_initMapaRelev(CLIMA_LAT, CLIMA_LNG);
-      // Si todavía no llegó el GPS, suscribirse al cambio
-      if (!CLIMA_LAT) {
-        var _poll = setInterval(function() {
-          if (CLIMA_LAT && CLIMA_RELEV_MAP && CLIMA_RELEV_MARKER) {
-            clearInterval(_poll);
-            CLIMA_RELEV_MAP.setView([CLIMA_LAT, CLIMA_LNG], 17);
-            CLIMA_RELEV_MARKER.setLatLng([CLIMA_LAT, CLIMA_LNG]);
-            var gpsEl = document.getElementById('cr-gps-info');
-            if (gpsEl) gpsEl.innerHTML = '📍 <span style="color:#34d399">Ubicación obtenida ✓</span> <span style="font-size:10px;color:#64748b">(' + CLIMA_LAT.toFixed(5) + ', ' + CLIMA_LNG.toFixed(5) + ')</span>';
-          }
-        }, 500);
-        // Cancelar poll después de 20s
-        setTimeout(function() { clearInterval(_poll); }, 20000);
-      }
+      _clima_initMapaRelev(null, null);
+      var _poll = setInterval(function() {
+        var lat = window.CLIMA_LAT;
+        var lng = window.CLIMA_LNG;
+        if (!lat) { try { lat = CLIMA_LAT; lng = CLIMA_LNG; } catch(e) {} }
+        if (lat && lng && CLIMA_RELEV_MAP && CLIMA_RELEV_MARKER) {
+          clearInterval(_poll);
+          window.CLIMA_LAT = lat; window.CLIMA_LNG = lng;
+          CLIMA_RELEV_MAP.setView([lat, lng], 17);
+          CLIMA_RELEV_MARKER.setLatLng([lat, lng]);
+          var gpsEl = document.getElementById('cr-gps-info');
+          if (gpsEl) gpsEl.innerHTML = '📍 <span style="color:#34d399">Ubicación obtenida ✓</span> <span style="font-size:10px;color:#64748b">(' + lat.toFixed(5) + ', ' + lng.toFixed(5) + ')</span>';
+        }
+      }, 500);
+      setTimeout(function() { clearInterval(_poll); }, 25000);
     });
-  }, 200);
+  }, 300);
 };
 
 // Override clima_cerrarRelevamiento para limpiar mapa
