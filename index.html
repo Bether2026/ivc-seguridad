@@ -32355,13 +32355,23 @@ function climaCtrl_renderAlertas() {
       .filter(function(x) { return (x.mensaje || '') + '|' + (x.created_at || '').substring(0,16) === key; })
       .map(function(x) { return x.id; });
 
+    // IDs de todas las filas del grupo (para buscar relevamientos)
+    var idsTodosGrupo = CLIMA_ALERTAS_ENVIADAS
+      .filter(function(x) { return (x.mensaje || '') + '|' + (x.created_at || '').substring(0,16) === key; })
+      .map(function(x) { return x.id; });
+
     // Guardar en índice global para acceder desde onclick sin JSON inline
     var idx = _CLIMA_ALERTAS_IDX.length;
-    _CLIMA_ALERTAS_IDX.push({ vigentes: idsVigentes, todos: idsTodos });
+    _CLIMA_ALERTAS_IDX.push({ vigentes: idsVigentes, todos: idsTodos, grupoIds: idsTodosGrupo, fecha: fecha, mensaje: a.mensaje || 'Alerta climática' });
+
+    // Botón Ver relevamiento — siempre visible para admin/gerencia
+    html += '<button onclick="climaCtrl_verRelevamientoAlerta(' + idx + ')" type="button" '
+      + 'style="padding:4px 10px;border-radius:6px;border:1px solid rgba(96,165,250,.4);'
+      + 'background:transparent;color:#60a5fa;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">📋 Ver relevamiento</button>';
 
     if (esAdmin && vigentes > 0) {
       html += '<button onclick="climaCtrl_cancelarAlerta(' + idx + ')" type="button" '
-        + 'style="margin-left:auto;padding:4px 10px;border-radius:6px;border:1px solid rgba(245,158,11,.4);'
+        + 'style="padding:4px 10px;border-radius:6px;border:1px solid rgba(245,158,11,.4);'
         + 'background:transparent;color:#f59e0b;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">🚫 Cancelar</button>';
     }
     if (window.USER && USER.puesto === 'Administrador') {
@@ -32375,6 +32385,132 @@ function climaCtrl_renderAlertas() {
 
   wrap.innerHTML = html;
 }
+
+// ── Ver relevamiento de una alerta histórica ─────────────────────────────
+window.climaCtrl_verRelevamientoAlerta = function(idx) {
+  var entrada = _CLIMA_ALERTAS_IDX[idx];
+  if (!entrada || !entrada.grupoIds || !entrada.grupoIds.length) {
+    toast('Sin IDs de alerta', 'err'); return;
+  }
+
+  // Modal contenedor
+  var modal = document.createElement('div');
+  modal.id = '_clim-hist-modal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.85);display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:16px;overflow-y:auto';
+
+  var inner = document.createElement('div');
+  inner.style.cssText = 'background:var(--bg2);border-radius:16px;padding:20px;max-width:700px;width:100%;position:relative';
+
+  inner.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">'
+    + '<div>'
+    + '<div style="font-size:14px;font-weight:800;color:#e2e8f0">📋 ' + (entrada.mensaje) + '</div>'
+    + '<div style="font-size:11px;color:#64748b;margin-top:2px">' + entrada.fecha + '</div>'
+    + '</div>'
+    + '<div style="display:flex;gap:8px;align-items:center">'
+    + '<button id="_clim-hist-export" type="button" style="padding:6px 12px;border-radius:8px;border:1px solid rgba(255,205,2,.5);background:rgba(255,205,2,.12);color:#FFCD02;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">📄 Exportar</button>'
+    + '<button onclick="document.body.removeChild(document.getElementById(\'_clim-hist-modal\'))" type="button" style="background:transparent;border:none;color:#94a3b8;font-size:20px;cursor:pointer;line-height:1">✕</button>'
+    + '</div>'
+    + '</div>'
+    + '<div id="_clim-hist-body" style="color:var(--text3);font-size:13px;padding:20px;text-align:center">Cargando relevamientos...</div>';
+
+  modal.appendChild(inner);
+  document.body.appendChild(modal);
+
+  // Cerrar al click en fondo
+  modal.addEventListener('click', function(e) { if (e.target === modal) document.body.removeChild(modal); });
+
+  // Cargar relevamientos del grupo
+  db.from('relevamiento_clima')
+    .select('*')
+    .in('alerta_id', entrada.grupoIds)
+    .order('created_at', { ascending: false })
+    .limit(200)
+    .then(function(r) {
+      var body = document.getElementById('_clim-hist-body');
+      if (!body) return;
+      if (r && r.error) { body.innerHTML = '<div style="color:#fca5a5">Error: ' + r.error.message + '</div>'; return; }
+      var datos = (r.data || []).map(function(n) {
+        var fotos = n.fotos_urls;
+        if (!Array.isArray(fotos)) { try { fotos = JSON.parse(fotos||'null')||[]; } catch(e) { fotos=[]; } }
+        return Object.assign({}, n, { fotos_urls: fotos });
+      });
+
+      if (!datos.length) {
+        body.innerHTML = '<div style="color:var(--text3);padding:30px;text-align:center">Sin relevamientos registrados para esta alerta</div>';
+        return;
+      }
+
+      // Render cards
+      var html = '<div style="display:flex;flex-direction:column;gap:10px">';
+      datos.forEach(function(n) {
+        var fecha2 = '';
+        try {
+          var dt2 = new Date(n.created_at);
+          fecha2 = dt2.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric',timeZone:'America/Argentina/Buenos_Aires'})
+            + ' ' + dt2.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',timeZone:'America/Argentina/Buenos_Aires'});
+        } catch(e) {}
+
+        var riesgos = [];
+        if (n.acumulacion_basura) riesgos.push('🗑 Basura');
+        if (n.desague_tapado)     riesgos.push('🚰 Desagüe');
+        if (n.riesgo_arbol)       riesgos.push('🌳 Árbol');
+        if (n.riesgo_poste)       riesgos.push('🔌 Poste');
+        if (n.inundacion_activa)  riesgos.push('🌊 Inundación');
+        if (n.otro)               riesgos.push('⚠️ ' + (n.otro_detalle || 'Otro'));
+
+        var colorBorde = '#3b82f6';
+        if (n.puesto === 'Fraga') colorBorde = '#10b981';
+        else if (n.puesto === 'Papa Francisco') colorBorde = '#f59e0b';
+        else if (n.inundacion_activa) colorBorde = '#ef4444';
+
+        html += '<div style="background:var(--bg3);border-radius:10px;padding:12px;border-left:4px solid ' + colorBorde + '">';
+        html += '<div style="display:flex;justify-content:space-between;margin-bottom:4px">';
+        html += '<span style="font-size:13px;font-weight:800;color:#e2e8f0">' + (n.puesto||'—') + '</span>';
+        html += '<span style="font-size:11px;color:#64748b">' + fecha2 + '</span>';
+        html += '</div>';
+        if (n.agente) html += '<div style="font-size:11px;color:#94a3b8;margin-bottom:6px">👤 ' + n.agente + '</div>';
+        if (riesgos.length) {
+          html += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">';
+          riesgos.forEach(function(rr) {
+            html += '<span style="font-size:10px;padding:2px 7px;border-radius:20px;background:#1e3a5f;color:#93c5fd">' + rr + '</span>';
+          });
+          html += '</div>';
+        }
+        if (n.observaciones) html += '<div style="font-size:11px;color:#94a3b8;margin-bottom:6px">' + n.observaciones + '</div>';
+        if (n.lat && n.lng) html += '<div style="font-size:11px;color:#475569">📍 ' + (n.lat+'').substring(0,9) + ', ' + (n.lng+'').substring(0,9) + '</div>';
+        if (n.fotos_urls && n.fotos_urls.length) {
+          html += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">';
+          n.fotos_urls.forEach(function(f) {
+            html += '<img src="' + f + '" style="width:72px;height:72px;object-fit:cover;border-radius:6px;border:1px solid #334155;cursor:zoom-in" onclick="window.open(this.src,\'_blank\')">';
+          });
+          html += '</div>';
+        }
+        html += '</div>';
+      });
+      html += '</div>';
+      body.innerHTML = html;
+
+      // Botón exportar usa los datos cargados
+      var btnExp = document.getElementById('_clim-hist-export');
+      if (btnExp) {
+        btnExp.onclick = function() {
+          if (!window._CLIMA_EXPORT_B64 && typeof _CLIMA_EXPORT_B64 === 'undefined') { toast('Template no disponible', 'err'); return; }
+          var b64 = window._CLIMA_EXPORT_B64 || _CLIMA_EXPORT_B64;
+          var binStr = atob(b64);
+          var bytes = new Uint8Array(binStr.length);
+          for (var i=0;i<binStr.length;i++){bytes[i]=binStr.charCodeAt(i);}
+          var htmlOut = new TextDecoder('utf-8').decode(bytes).replace('__DATOS_JSON__', JSON.stringify(datos));
+          var blob = new Blob([htmlOut],{type:'text/html;charset=utf-8'});
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement('a');
+          a.href=url; a.download='relevamiento-climatico-ivc-'+new Date().toISOString().substring(0,10)+'.html';
+          document.body.appendChild(a); a.click(); document.body.removeChild(a);
+          setTimeout(function(){URL.revokeObjectURL(url);},5000);
+          toast('Informe exportado','ok');
+        };
+      }
+    });
+};
 
 window.climaCtrl_cancelarAlerta = function(idx) {
   if (!window.USER || (USER.puesto !== 'Administrador' && USER.puesto !== 'Gerencia' && USER.rol !== 'ADMIN')) {
