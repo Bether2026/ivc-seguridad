@@ -31860,61 +31860,65 @@ window.clima_cargarPanel = function() {
 
   lista.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:20px;text-align:center">Cargando...</div>';
 
-  // Buscar primero alerta activa (leida:false); si no hay, la última cerrada (leida:true)
+  // Traer todas las alertas clima recientes para agruparlas por envío (mensaje+minuto)
+  // Cada "envío" genera N filas (una por puesto); todas comparten mensaje y created_at al minuto
   db.from('alertas_turno')
     .select('id,created_at,leida,mensaje')
     .eq('tipo', 'clima')
     .order('created_at', { ascending: false })
-    .limit(20)
+    .limit(100)
     .then(function(ra) {
       if (ra && ra.error) { lista.innerHTML = '<div style="color:#fca5a5;padding:20px">Error alertas: ' + ra.error.message + '</div>'; return; }
       var alertas = ra.data || [];
-      var activa  = null;
-      var esActiva = false;
-      // 1. Buscar la más reciente sin leer
-      for (var i = 0; i < alertas.length; i++) {
-        if (!alertas[i].leida) { activa = alertas[i]; esActiva = true; break; }
+
+      // Agrupar por clave mensaje|minuto — igual que climaCtrl_renderAlertas
+      var grupos = {};
+      var orden  = [];
+      alertas.forEach(function(a) {
+        var key = (a.mensaje || '') + '|' + (a.created_at || '').substring(0, 16);
+        if (!grupos[key]) { grupos[key] = { ids: [], leidas: 0, total: 0, created_at: a.created_at, mensaje: a.mensaje }; orden.push(key); }
+        grupos[key].ids.push(a.id);
+        grupos[key].total++;
+        if (a.leida) grupos[key].leidas++;
+      });
+
+      // Buscar el grupo más reciente con al menos una fila no leída (turno activo)
+      var grupoActivo = null;
+      var esActiva    = false;
+      for (var i = 0; i < orden.length; i++) {
+        var g = grupos[orden[i]];
+        if (g.leidas < g.total) { grupoActivo = g; esActiva = true; break; }
       }
-      // 2. Si no hay ninguna activa, tomar la más reciente cerrada
-      if (!activa && alertas.length) { activa = alertas[0]; esActiva = false; }
+      // Si no hay activo, tomar el grupo más reciente (ya finalizado)
+      if (!grupoActivo && orden.length) { grupoActivo = grupos[orden[0]]; esActiva = false; }
 
-      CLIMA_CTRL_ALERTA_ID = activa ? activa.id : null;
-
-      // Actualizar etiqueta de turno en el subtítulo
-      if (sub) {
-        if (!activa) {
-          sub.textContent = 'Sin turnos registrados';
-        } else if (esActiva) {
-          sub.textContent = '🟡 Turno activo';
-        } else {
-          var dtA = new Date(activa.created_at);
-          var fechaA = dtA.toLocaleDateString('es-AR', { day:'2-digit', month:'2-digit', year:'numeric', timeZone:'America/Argentina/Buenos_Aires' });
-          sub.textContent = '✅ Último turno finalizado — ' + fechaA;
-        }
-      }
-
-      if (!activa) {
+      if (!grupoActivo) {
         CLIMA_CTRL_DATOS = [];
+        CLIMA_CTRL_ALERTA_ID = null;
+        if (sub) sub.textContent = 'Sin turnos registrados';
         lista.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:40px;text-align:center">Sin relevamientos registrados</div>';
         return;
       }
 
-      // Traer relevamientos solo de este turno
+      // Guardar todos los IDs del grupo como referencia
+      CLIMA_CTRL_ALERTA_ID = grupoActivo.ids[0];
+
+      // Traer relevamientos que tengan alerta_id en cualquiera de los IDs del grupo
       db.from('relevamiento_clima')
         .select('*')
-        .eq('alerta_id', activa.id)
+        .in('alerta_id', grupoActivo.ids)
         .order('created_at', { ascending: false })
         .limit(200)
         .then(function(r) {
           if (r && r.error) { lista.innerHTML = '<div style="color:#fca5a5;padding:20px">Error: ' + r.error.message + '</div>'; return; }
           CLIMA_CTRL_DATOS = r.data || [];
+          var cant   = CLIMA_CTRL_DATOS.length;
+          var sufijo = ' relevamiento' + (cant !== 1 ? 's' : '') + ' en este turno';
           if (sub) {
-            var cant = CLIMA_CTRL_DATOS.length;
-            var sufijo = ' relevamiento' + (cant !== 1 ? 's' : '') + ' en este turno';
             if (esActiva) {
               sub.textContent = '🟡 Turno activo — ' + cant + sufijo;
             } else {
-              var dtB = new Date(activa.created_at);
+              var dtB  = new Date(grupoActivo.created_at);
               var fechaB = dtB.toLocaleDateString('es-AR', { day:'2-digit', month:'2-digit', year:'numeric', timeZone:'America/Argentina/Buenos_Aires' });
               sub.textContent = '✅ Último turno finalizado (' + fechaB + ') — ' + cant + sufijo;
             }
