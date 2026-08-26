@@ -4246,7 +4246,7 @@ body {
               </div>
               <button onclick="clima_abrirModal()" style="padding:8px 14px;border-radius:10px;border:none;background:#3b82f6;color:#fff;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">🌧 Nueva alerta</button>
               <button id="clima-export-btn" onclick="climaExportarHTML()" style="padding:8px 14px;border-radius:10px;border:1px solid rgba(255,205,2,.5);background:rgba(255,205,2,.12);color:#FFCD02;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">📄 Exportar informe</button>
-              <button id="clima-btn-nuevo-relev" onclick="if(typeof CLIMA_CTRL_ALERTA_ID!==undefined&&CLIMA_CTRL_ALERTA_ID){window.CLIMA_ALERTA_ID=CLIMA_CTRL_ALERTA_ID;}clima_abrirRelevamiento();" style="display:none;padding:8px 14px;border-radius:10px;border:none;background:#0f3158;color:#7cb0ff;border:1px solid rgba(124,176,255,.3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">📋 Nuevo relevamiento</button>
+              <button id="clima-btn-nuevo-relev" onclick="if(!window.CLIMA_ALERTA_ID){toast('Esperá que cargue el turno activo','err');return;}clima_abrirRelevamiento();" style="display:none;padding:8px 14px;border-radius:10px;border:none;background:#0f3158;color:#7cb0ff;border:1px solid rgba(124,176,255,.3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">📋 Nuevo relevamiento</button>
               <button id="clima-btn-finalizar" onclick="clima_finalizarRelevamiento()" style="display:none;padding:8px 14px;border-radius:10px;border:1px solid rgba(34,197,94,.4);background:transparent;color:#22c55e;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">✅ Finalizar</button>
             </div>
             <!-- Filtro por barrio -->
@@ -31895,6 +31895,8 @@ window.clima_cargarPanel = function() {
       if (!grupoActivo) {
         CLIMA_CTRL_DATOS = [];
         CLIMA_CTRL_ALERTA_ID = null;
+        window.CLIMA_ALERTA_ID = null;
+        window.CLIMA_GRUPO_IDS = [];
         if (sub) sub.textContent = 'Sin turnos registrados';
         lista.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:40px;text-align:center">Sin relevamientos registrados</div>';
         return;
@@ -31902,6 +31904,8 @@ window.clima_cargarPanel = function() {
 
       // Guardar todos los IDs del grupo como referencia
       CLIMA_CTRL_ALERTA_ID = grupoActivo.ids[0];
+      window.CLIMA_ALERTA_ID = grupoActivo.ids[0]; // exponer al window para que el formulario lo use
+      window.CLIMA_GRUPO_IDS = grupoActivo.ids;     // todos los IDs del grupo activo
 
       // Traer relevamientos que tengan alerta_id en cualquiera de los IDs del grupo
       db.from('relevamiento_clima')
