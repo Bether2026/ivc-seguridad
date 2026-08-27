@@ -9536,7 +9536,7 @@ function initApp() {
   if ($('si-relevamiento')) $('si-relevamiento').style.display = canSeeRelev ? 'block' : 'none';
   if ($('nb-relevamiento')) $('nb-relevamiento').style.display = canSeeRelev ? 'flex' : 'none';
   // Relevamiento RB: Rodrigo Bueno, Gerencia, Administrador
-  var _esGerAdmin = ['Gerencia', 'PC', 'Administrador'].indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN';
+  var _esGerAdmin = ['Gerencia', 'PC', 'Administrador', 'Jefe de departamento'].indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN';
   // Rodrigo Bueno: solo ve su módulo
   var canSeeRelevRB = ['Rodrigo Bueno', 'Rodrigo bueno'].indexOf(USER.puesto) >= 0;
   if ($('si-relev-rb')) $('si-relev-rb').style.display = canSeeRelevRB ? 'flex' : 'none';
@@ -27710,6 +27710,7 @@ window.rbrb_mostrarCampoIVC = function rbrb_mostrarCampoIVC() {
   var puedeVer = window.USER && (
     USER.puesto === 'Gerencia' ||
     USER.puesto === 'Administrador' ||
+    USER.puesto === 'Jefe de departamento' ||
     USER.rol === 'ADMIN'
   );
   var w = document.getElementById('rbrb-ivc-wrap');
@@ -29698,6 +29699,7 @@ window.frfr_mostrarCampoIVC = function frfr_mostrarCampoIVC() {
   var puedeVer = window.USER && (
     USER.puesto === 'Gerencia' ||
     USER.puesto === 'Administrador' ||
+    USER.puesto === 'Jefe de departamento' ||
     USER.rol === 'ADMIN'
   );
   var w = document.getElementById('frfr-ivc-wrap');
@@ -31589,7 +31591,7 @@ window.clima_cerrarBanner = function() {
   if (CLIMA_ALERTA_ID && window.db) {
     db.from('alertas_turno').update({ leida: true }).eq('id', CLIMA_ALERTA_ID).then(function() {
       // Verificar si quedan más alertas vigentes para este puesto
-      var canSeeBarrios = window.USER && (['Gerencia','PC','Administrador'].indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN');
+      var canSeeBarrios = window.USER && (['Gerencia','PC','Administrador','Jefe de departamento'].indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN');
       if (!canSeeBarrios && window.USER && window.db) {
         db.from('alertas_turno')
           .select('id')
