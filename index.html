@@ -33087,7 +33087,7 @@ window.pfpf_reagrupar = function() {
 
 window.pfpf_setSector = function(btn) {
   PFPF_SECTOR = btn.dataset.val;
-  document.querySelectorAll('.frfr-sector-btn').forEach(function(b) {
+  document.querySelectorAll('.pfpf-sector-btn').forEach(function(b) {
     var isActive = b === btn;
     b.style.background = isActive ? 'rgba(37,99,235,.18)' : 'transparent';
     b.style.borderColor = isActive ? '#2563eb' : 'var(--border2)';
