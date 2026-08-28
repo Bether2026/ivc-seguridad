@@ -29326,7 +29326,7 @@ function rbrb_crearMapaPrincipal() {
   if (RBRB_MAP) { return; }
   var el = document.getElementById('rbrb-mapa-wrap');
   if (!el) return;
-  RBRB_MAP = L.map(el, { zoomControl: true });
+  RBRB_MAP = L.map(el, { zoomControl: true, scrollWheelZoom: true });
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap', maxZoom: 21, maxNativeZoom: 19
   }).addTo(RBRB_MAP);
@@ -31280,7 +31280,7 @@ function frfr_crearMapaPrincipal() {
   if (FRFR_MAP) { return; }
   var el = document.getElementById('frfr-mapa-wrap');
   if (!el) return;
-  FRFR_MAP = L.map(el, { zoomControl: true });
+  FRFR_MAP = L.map(el, { zoomControl: true, scrollWheelZoom: true });
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap', maxZoom: 21, maxNativeZoom: 19
   }).addTo(FRFR_MAP);
@@ -32830,7 +32830,7 @@ function pfpf_crearMapaPrincipal() {
   if (PFPF_MAP) { return; }
   var el = document.getElementById('pfpf-mapa-wrap');
   if (!el) return;
-  PFPF_MAP = L.map(el, { zoomControl: true });
+  PFPF_MAP = L.map(el, { zoomControl: true, scrollWheelZoom: true });
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap', maxZoom: 21, maxNativeZoom: 19
   }).addTo(PFPF_MAP);
