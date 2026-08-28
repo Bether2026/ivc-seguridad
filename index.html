@@ -9597,7 +9597,7 @@ function openOv(id) {
     if ($('n-puesto-wrap'))   $('n-puesto-wrap').style.display  = esGestionPuesto ? 'block' : 'none';
     if ($('n-informe-wrap'))  $('n-informe-wrap').style.display = 'none'; // PD/PU
     // Opción "Otro" para Administración, Administrador y Responsable de turno
-    var _puedeOtroPuesto = ['Administración', 'Administrador', 'Responsable de turno'].indexOf(USER ? USER.puesto : '') >= 0 || (USER && USER.rol === 'ADMIN');
+    var _puedeOtroPuesto = ['Administración', 'Administrador', 'Responsable de turno', 'Jefe de departamento'].indexOf(USER ? USER.puesto : '') >= 0 || (USER && USER.rol === 'ADMIN');
     var _optOtro = document.getElementById('n-puesto-otro-opt');
     var _txtOtro = document.getElementById('n-puesto-otro-txt');
     if (_optOtro) _optOtro.style.display = _puedeOtroPuesto ? '' : 'none';
@@ -9891,7 +9891,7 @@ function initApp() {
   var esGestion = ROLES_GESTION.includes(USER.puesto) || USER.rol === 'ADMIN';
   if ($('tab-licencias')) $('tab-licencias').style.display = esGestion ? 'block' : 'none';
   // Historial de fichaje — solo Administración y Administrador
-  var _puedeHistFich = ['Administración', 'Administrador', 'Gerencia', 'PC', 'Responsable de turno', 'Emergencias'].indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN';
+  var _puedeHistFich = ['Administración', 'Administrador', 'Gerencia', 'PC', 'Responsable de turno', 'Emergencias', 'Jefe de departamento'].indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN';
   if ($('tab-historial-fich')) $('tab-historial-fich').style.display = _puedeHistFich ? 'block' : 'none';
   if ($('f-puesto-wrap')) $('f-puesto-wrap').style.display = esGestion ? 'block' : 'none';
   if ($('dash-card-licencias')) $('dash-card-licencias').style.display = esGestion ? 'block' : 'none';
