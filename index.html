@@ -4228,6 +4228,13 @@ body {
               <span style="font-size:18px">&#127959;</span>
               Fraga
             </button>
+            <button type="button" id="barrios-btn-pf" onclick="barrios_seleccionar('pf')"
+              style="flex:1;display:flex;align-items:center;justify-content:center;gap:10px;padding:14px 16px;
+                border:none;border-bottom:3px solid transparent;background:transparent;
+                cursor:pointer;font-family:var(--font);font-size:13px;font-weight:800;color:var(--text3);transition:all .2s">
+              <span style="font-size:18px">&#9961;</span>
+              Papa Francisco
+            </button>
           </div>
 
           <!-- CONTENIDO: tabs + panel — se rellena dinámicamente -->
@@ -33091,7 +33098,7 @@ window.pfpf_setSector = function(btn) {
 // ══════════════════════════════════════════
 // BARRIOS — vista unificada Gerencia/Admin
 // ══════════════════════════════════════════
-var BARRIOS_ACTIVO = 'rb'; // 'rb' o 'fr'
+var BARRIOS_ACTIVO = 'rb'; // 'rb', 'fr' o 'pf'
 var BARRIOS_TAB_ACTIVO = 'form'; // tab actual dentro del barrio
 
 // fin MÓDULO RELEVAMIENTO FR
@@ -33124,6 +33131,12 @@ window.barrios_seleccionar = function(barrio) {
     btnFR.style.background = barrio === 'fr' ? 'rgba(244,114,182,.08)' : 'transparent';
     btnFR.style.color = barrio === 'fr' ? '#f472b6' : 'var(--text3)';
   }
+  var btnPF = document.getElementById('barrios-btn-pf');
+  if (btnPF) {
+    btnPF.style.borderBottomColor = barrio === 'pf' ? '#60a5fa' : 'transparent';
+    btnPF.style.background = barrio === 'pf' ? 'rgba(96,165,250,.08)' : 'transparent';
+    btnPF.style.color = barrio === 'pf' ? '#60a5fa' : 'var(--text3)';
+  }
   // Mostrar el barrio seleccionado
   barrios_mostrarBarrio();
 };
@@ -33132,6 +33145,8 @@ window.barrios_tab = function(tab) {
   BARRIOS_TAB_ACTIVO = tab;
   if (BARRIOS_ACTIVO === 'rb') {
     rbrb_tab(tab, null);
+  } else if (BARRIOS_ACTIVO === 'pf') {
+    pfpf_tab(tab, null);
   } else {
     frfr_tab(tab, null);
   }
@@ -33159,6 +33174,14 @@ window.barrios_onOpen = function() {
     frfr_renderTipoSel();
     frfr_mostrarCampoIVC();
   }
+  // Desbloquear PF automáticamente
+  if (!PFPF_UNLOCKED) {
+    PFPF_UNLOCKED = true;
+    var gatePF = document.getElementById('pfpf-gate');
+    if (gatePF) gatePF.style.display = 'none';
+    pfpf_renderTipoSel();
+    pfpf_mostrarCampoIVC();
+  }
 
   // Resetear tab y seleccionar barrio activo
   BARRIOS_TAB_ACTIVO = 'form';
@@ -33167,12 +33190,14 @@ window.barrios_onOpen = function() {
 
 // Mostrar el contenido del barrio activo usando los elementos reales
 window.barrios_mostrarBarrio = function() {
-  var prefijo = BARRIOS_ACTIVO === 'rb' ? 'rbrb' : 'frfr';
-  var otroPrefix = BARRIOS_ACTIVO === 'rb' ? 'frfr' : 'rbrb';
+  var prefijo = BARRIOS_ACTIVO === 'rb' ? 'rbrb' : BARRIOS_ACTIVO === 'pf' ? 'pfpf' : 'frfr';
+  var todos = ['rbrb', 'frfr', 'pfpf'];
 
-  // Ocultar el contenido del otro barrio
-  var otroContent = document.getElementById(otroPrefix + '-content');
-  if (otroContent) otroContent.style.display = 'none';
+  // Ocultar todos los contenidos
+  todos.forEach(function(p) {
+    var el = document.getElementById(p + '-content');
+    if (el) el.style.display = 'none';
+  });
 
   // Mostrar contenido del barrio activo
   var miContent = document.getElementById(prefijo + '-content');
@@ -33189,6 +33214,9 @@ window.barrios_mostrarBarrio = function() {
   if (BARRIOS_ACTIVO === 'rb') {
     rbrb_cargarDatos();
     rbrb_tab(BARRIOS_TAB_ACTIVO, null);
+  } else if (BARRIOS_ACTIVO === 'pf') {
+    pfpf_cargarDatos();
+    pfpf_tab(BARRIOS_TAB_ACTIVO, null);
   } else {
     frfr_cargarDatos();
     frfr_tab(BARRIOS_TAB_ACTIVO, null);
