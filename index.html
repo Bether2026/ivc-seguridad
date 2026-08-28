@@ -28066,16 +28066,11 @@ window.rbrb_exportarV2 = function() {
   for (var i=0;i<binStr.length;i++){bytes[i]=binStr.charCodeAt(i);}
   var html = new TextDecoder('utf-8').decode(bytes).replace('__DATA__', JSON.stringify(datos));
   var blob = new Blob([html],{type:'text/html;charset=utf-8'});
-  var url = URL.createObjectURL(blob);
-  var nombre = 'relevamiento_rb_v2_'+new Date().toISOString().substring(0,10)+'.html';
-  // Abrir en nueva pestaña (permite zoom con rueda)
-  var win = window.open(url,'_blank');
-  // También ofrecer descarga directa
   var a = document.createElement('a');
-  a.href = url;
-  a.download = nombre;
+  a.href = URL.createObjectURL(blob);
+  a.download = 'relevamiento_rb_v2_'+new Date().toISOString().substring(0,10)+'.html';
   a.click();
-  setTimeout(function(){ URL.revokeObjectURL(url); }, 60000);
+  URL.revokeObjectURL(a.href);
   toast('Nuevo informe generado','ok');
 };
 
