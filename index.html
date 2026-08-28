@@ -32927,7 +32927,7 @@ function pfpf_actualizarMapa() {
         '✏️ Ver / Editar registro'+
       '</button>';
     // Adjuntar listener al botón (sin inline onclick, evita problemas de escape)
-    popupContent.querySelector('.frfr-popup-edit').addEventListener('click', function() {
+    popupContent.querySelector('.pfpf-popup-edit').addEventListener('click', function() {
       if (PFPF_MAP) PFPF_MAP.closePopup();
       pfpf_tab('form', document.getElementById('pfpf-tab-form'));
       setTimeout(function() { pfpf_editar(_rReg); }, 80);
