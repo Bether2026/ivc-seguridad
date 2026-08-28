@@ -30706,8 +30706,8 @@ var RBRB_AJUSTE_MARKER = null;
 
 window.frfr_abrirAjusteGPS = function(btn) {
   var rid = btn.dataset.rid;
-  var lat = parseFloat(btn.dataset.lat) || -34.6142;
-  var lng = parseFloat(btn.dataset.lng) || -58.3598;
+  var lat = parseFloat(btn.dataset.lat) || -34.6746;
+  var lng = parseFloat(btn.dataset.lng) || -58.4619;
 
   // Crear modal
   var modal = document.createElement('div');
@@ -31859,7 +31859,7 @@ window.pfpf_getGPS = function() {
 // ── MINI MAPA para ajustar el punto manualmente ──
 var PFPF_MINI_MAP = null;
 var PFPF_MINI_MARKER = null;
-var PFPF_FR_CENTRO = [-34.5886, -58.4614]; // Rodrigo Bueno
+var PFPF_FR_CENTRO = [-34.6746, -58.4619]; // Papa Francisco
 
 // Setea el punto en inputs + texto + marker (fuente única de verdad)
 function pfpf_setPunto(lat, lng) {
@@ -32953,7 +32953,7 @@ function pfpf_actualizarMapa() {
   if (pts.length) {
     try { PFPF_MAP.fitBounds(pts, { padding: [50, 50], minZoom: 16, maxZoom: 21 }); } catch(e) {}
   } else {
-    PFPF_MAP.setView([-34.5886, -58.4614], 17);
+    PFPF_MAP.setView([-34.6746, -58.4619], 16);
   }
 } // cierra pfpf_actualizarMapa
 
