@@ -9859,7 +9859,7 @@ function initApp() {
   // Gerencia / Administrador: ven "Barrios" (selector unificado)
   var canSeeBarrios = _esGerAdmin;
   // Clima: solo Gerencia, PC y Administrador (NO Jefe de departamento)
-  var canSeeClima = ['Gerencia', 'PC', 'Administrador', 'Responsable de turno'].indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN';
+  var canSeeClima = ['Gerencia', 'PC', 'Administrador', 'Responsable de turno', 'Jefe de departamento'].indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN';
   if ($('si-barrios')) $('si-barrios').style.display = canSeeBarrios ? 'flex' : 'none';
   if ($('nb-barrios')) $('nb-barrios').style.display = canSeeBarrios ? 'flex' : 'none';
   if ($('si-clima-ctrl')) $('si-clima-ctrl').style.display = canSeeClima ? 'flex' : 'none';
