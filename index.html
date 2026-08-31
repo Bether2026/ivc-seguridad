@@ -2048,7 +2048,8 @@ body {
     <div class="sidebar-bottom">
       <div class="sidebar-user"><span>Puesto activo</span><strong id="sb-puesto">—</strong></div>
       <div class="sidebar-clock" id="sb-clock">00:00</div>
-      <button class="btn-sm" onclick="doLogout()" style="width:100%">⏏ Cerrar sesión</button>
+      <div id="sidebar-legal" style="display:none"></div>
+      <button class="btn-sm" onclick="doLogout()" style="width:100%">&#x23CF; Cerrar sesi&#xF3;n</button>
     </div>
   </aside>
   <div class="topbar">
@@ -2105,9 +2106,13 @@ body {
         <div class="card-head"><span class="card-lbl">Actividad por puesto</span><span class="badge b-blue">Hoy</span></div>
         <div id="d-puestos"></div>
       </div>
-      <div class="card">
-        <div class="card-head"><span class="card-lbl">Últimas novedades del día</span><span style="font-size:12px;color:var(--text2);cursor:pointer" onclick="goView('novedades')">Ver todas →</span></div>
-        <div id="d-ultimas"></div>
+      <div class="card" style="opacity:.75">
+        <div class="card-head"><span class="card-lbl">&#x1F512; Protecci&#xF3;n de Datos y Confidencialidad</span></div>
+        <div style="font-size:12px;color:var(--text2);line-height:1.7">
+          Toda la informaci&#xF3;n visualizada o gestionada a trav&#xE9;s de esta aplicaci&#xF3;n se encuentra protegida por la <strong>Ley N.&#xBA;&nbsp;1.845</strong> de la Ciudad Aut&#xF3;noma de Buenos Aires y por la <strong>Ley Nacional N.&#xBA;&nbsp;25.326</strong> de Protecci&#xF3;n de Datos Personales.<br><br>
+          Queda estrictamente prohibida la copia, captura, reproducci&#xF3;n, difusi&#xF3;n o divulgaci&#xF3;n de la informaci&#xF3;n a terceros sin la debida autorizaci&#xF3;n.<br><br>
+          El uso indebido, la desvinculaci&#xF3;n o la filtraci&#xF3;n de los datos contenidos en esta aplicaci&#xF3;n ser&#xE1; de exclusiva responsabilidad del usuario autenticado y podr&#xE1; dar lugar a las sanciones administrativas, civiles y penales que correspondan.
+        </div>
       </div>
     </div>
     <div class="view" id="view-fichaje">
@@ -9854,7 +9859,7 @@ function initApp() {
   // Gerencia / Administrador: ven "Barrios" (selector unificado)
   var canSeeBarrios = _esGerAdmin;
   // Clima: solo Gerencia, PC y Administrador (NO Jefe de departamento)
-  var canSeeClima = ['Gerencia', 'PC', 'Administrador'].indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN';
+  var canSeeClima = ['Gerencia', 'PC', 'Administrador', 'Responsable de turno'].indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN';
   if ($('si-barrios')) $('si-barrios').style.display = canSeeBarrios ? 'flex' : 'none';
   if ($('nb-barrios')) $('nb-barrios').style.display = canSeeBarrios ? 'flex' : 'none';
   if ($('si-clima-ctrl')) $('si-clima-ctrl').style.display = canSeeClima ? 'flex' : 'none';
@@ -15677,7 +15682,7 @@ function _loadDash() {
 
           // ── Últimas novedades del día — expandibles inline ──
           dUlt = document.getElementById('d-ultimas');
-          if (!ults.length) {
+          if (!dUlt) { /* elemento eliminado del panel */ } else if (!ults.length) {
             dUlt.innerHTML = '<div style="font-size:12px;color:var(--text3);padding:8px 0">Sin novedades registradas hoy</div>';
           } else {
             uhtml = '';
@@ -28019,7 +28024,6 @@ window.rbrb_mostrarCampoIVC = function rbrb_mostrarCampoIVC() {
   var puedeVer = window.USER && (
     USER.puesto === 'Gerencia' ||
     USER.puesto === 'Administrador' ||
-    USER.puesto === 'Jefe de departamento' ||
     USER.rol === 'ADMIN'
   );
   var esAdmin = window.USER && (USER.puesto === 'Administrador' || USER.rol === 'ADMIN');
@@ -30056,7 +30060,6 @@ window.frfr_mostrarCampoIVC = function frfr_mostrarCampoIVC() {
   var puedeVer = window.USER && (
     USER.puesto === 'Gerencia' ||
     USER.puesto === 'Administrador' ||
-    USER.puesto === 'Jefe de departamento' ||
     USER.rol === 'ADMIN'
   );
   var w = document.getElementById('frfr-ivc-wrap');
@@ -31606,7 +31609,6 @@ window.pfpf_mostrarCampoIVC = function pfpf_mostrarCampoIVC() {
   var puedeVer = window.USER && (
     USER.puesto === 'Gerencia' ||
     USER.puesto === 'Administrador' ||
-    USER.puesto === 'Jefe de departamento' ||
     USER.rol === 'ADMIN'
   );
   var w = document.getElementById('pfpf-ivc-wrap');
@@ -33773,6 +33775,9 @@ window.clima_cargarPanel = function() {
 
   // Controlar visibilidad según puesto
   var puedeEnviar = window.USER && (USER.puesto === 'Gerencia' || USER.puesto === 'Administrador' || USER.rol === 'ADMIN');
+  var puedeExportClima = window.USER && (['Gerencia', 'PC', 'Administrador'].indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN');
+  var btnExportClima = document.getElementById('clima-export-btn');
+  if (btnExportClima) btnExportClima.style.display = puedeExportClima ? '' : 'none';
   var tabAlertas  = document.getElementById('cctrl-tab-alertas');
   var btnNueva    = document.querySelector('#view-clima-ctrl button[onclick="clima_abrirModal()"]');
   var btnFinalizar = document.getElementById('clima-btn-finalizar');
