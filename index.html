@@ -6172,6 +6172,10 @@ body {
     <!-- Puestos destino -->
     <div style="margin-bottom:18px">
       <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:10px">Enviar a</label>
+      <button type="button" id="clima-btn-todos" onclick="clima_toggleTodos()" style="width:100%;margin-bottom:10px;padding:10px 14px;border-radius:10px;border:2px solid rgba(59,130,246,.4);background:rgba(59,130,246,.1);color:#60a5fa;font-family:var(--font);font-size:13px;font-weight:800;cursor:pointer;text-align:left;display:flex;align-items:center;gap:10px">
+        <input type="checkbox" id="clima-p-todos" style="width:16px;height:16px;accent-color:#3b82f6;pointer-events:none">
+        <span>&#x2714;&#xFE0F; Todos los puestos</span>
+      </button>
       <div style="display:flex;flex-direction:column;gap:8px" id="clima-puestos-lista">
         <label style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);cursor:pointer">
           <input type="checkbox" id="clima-p-rb" value="Rodrigo Bueno" style="width:16px;height:16px;accent-color:#3b82f6">
@@ -33540,6 +33544,22 @@ window.clima_abrirModal = function() {
 window.clima_cerrarModal = function() {
   var m = document.getElementById('clima-modal');
   if (m) m.style.display = 'none';
+};
+window.clima_toggleTodos = function() {
+  var chkTodos = document.getElementById('clima-p-todos');
+  if (!chkTodos) return;
+  var nuevoEstado = !chkTodos.checked;
+  chkTodos.checked = nuevoEstado;
+  var btn = document.getElementById('clima-btn-todos');
+  if (btn) {
+    btn.style.background = nuevoEstado ? 'rgba(59,130,246,.25)' : 'rgba(59,130,246,.1)';
+    btn.style.borderColor = nuevoEstado ? '#3b82f6' : 'rgba(59,130,246,.4)';
+  }
+  var ids = ['clima-p-rb','clima-p-fr','clima-p-papa','clima-p-cast','clima-p-savio','clima-p-cav','clima-p-neco','clima-p-mugica','clima-p-adm','clima-p-ger','clima-p-rt','clima-p-pc'];
+  for (var i = 0; i < ids.length; i++) {
+    var chk = document.getElementById(ids[i]);
+    if (chk) chk.checked = nuevoEstado;
+  }
 };
 
 window.clima_enviarAlerta = function() {
