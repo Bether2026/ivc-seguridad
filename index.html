@@ -9881,19 +9881,22 @@ function initApp() {
   if ($('si-clima-ctrl')) $('si-clima-ctrl').style.display = canSeeClima ? 'flex' : 'none';
   if ($('nb-clima-ctrl')) $('nb-clima-ctrl').style.display = canSeeClima ? 'flex' : 'none';
 
-  // PC: SOLO ve Barrios y Clima — ocultar todo lo demás
+  // PC: SOLO ve Barrios y Clima — ocultar todo lo demás y redirigir
   if (USER.puesto === 'PC') {
-    var _pcSoloEstas = ['si-fichaje','nb-fichaje','si-novedades','nb-novedades','si-objetivos','nb-objetivos',
+    var _pcOcultar = ['si-dashboard','nb-dashboard','si-fichaje','nb-fichaje',
+      'si-novedades','nb-novedades','si-objetivos','nb-objetivos',
       'si-choferes','nb-choferes','si-llaves','nb-llaves','si-rrhh','nb-rrhh','si-admin','nb-admin',
       'si-estadisticas','nb-estadisticas','si-precintos','nb-precintos','si-informediario','nb-informediario',
       'si-agenda','nb-agenda','si-inventario','nb-inventario','si-pendientes','nb-pendientes',
       'si-relev-rb','nb-relev-rb','si-relev-fr','nb-relev-fr','si-relev-pf','nb-relev-pf',
       'si-relevamiento','nb-relevamiento','si-panol','nb-panol','si-pdpu','nb-pdpu',
       'si-horas','nb-horas','si-turnos','nb-turnos'];
-    for (var _pci = 0; _pci < _pcSoloEstas.length; _pci++) {
-      var _pcEl = $(_pcSoloEstas[_pci]) || document.getElementById(_pcSoloEstas[_pci]);
+    for (var _pci = 0; _pci < _pcOcultar.length; _pci++) {
+      var _pcEl = document.getElementById(_pcOcultar[_pci]);
       if (_pcEl) _pcEl.style.display = 'none';
     }
+    // Ir directo a Barrios al iniciar sesión
+    if (typeof goView === 'function') goView('barrios');
   }
   // Puestos de campo: mostrar Clima solo si tienen alerta climática vigente
   if (!canSeeClima && window.db) {
