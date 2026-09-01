@@ -9932,7 +9932,7 @@ function initApp() {
   var siHoras = document.getElementById('si-horas');
   if (siHoras) siHoras.style.display = (USER.puesto === 'Gerencia') ? 'flex' : 'none';
   // Admin sees all sections like TODOS
-  if (USER.rol === 'ADMIN' || USER.rol === 'TODOS') {
+  if ((USER.rol === 'ADMIN' || USER.rol === 'TODOS') && USER.puesto !== 'PC') {
     var allNavBtns = ['nb-fichaje', 'nb-novedades', 'nb-objetivos', 'nb-choferes', 'nb-agenda'];
     allNavBtns.forEach(function (id) {
       var el = document.getElementById(id);
@@ -19107,6 +19107,22 @@ function aplicarPermisosAlLogin() {
     // Solo Admin ve el panel de admin
     if (nbAdm) nbAdm.style.display = 'flex';
     if (siAdm) siAdm.style.display = 'flex';
+    return;
+  }
+  // PC: SOLO Barrios y Clima — cortar aqui antes del bloque TODOS
+  if (USER.puesto === 'PC') {
+    var _pcOcultar2 = ['si-dashboard','nb-dashboard','si-fichaje','nb-fichaje',
+      'si-novedades','nb-novedades','si-objetivos','nb-objetivos',
+      'si-choferes','nb-choferes','si-llaves','nb-llaves','si-rrhh','nb-rrhh','si-admin','nb-admin',
+      'si-estadisticas','nb-estadisticas','si-precintos','nb-precintos','si-informediario','nb-informediario',
+      'si-agenda','nb-agenda','si-inventario','nb-inventario','si-pendientes','nb-pendientes',
+      'si-relev-rb','nb-relev-rb','si-relev-fr','nb-relev-fr','si-relev-pf','nb-relev-pf',
+      'si-relevamiento','nb-relevamiento','si-panol','nb-panol','si-pdpu','nb-pdpu',
+      'si-horas','nb-horas','si-turnos','nb-turnos'];
+    for (var _pci2 = 0; _pci2 < _pcOcultar2.length; _pci2++) {
+      var _pcEl2 = document.getElementById(_pcOcultar2[_pci2]);
+      if (_pcEl2) _pcEl2.style.display = 'none';
+    }
     return;
   }
   // TODOS: ven todo excepto admin panel — estadisticas solo Gerencia y Administrador
