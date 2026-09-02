@@ -4285,11 +4285,20 @@ body {
           </div>
           <!-- Widget pronóstico meteorológico -->
           <div id="clima-pronostico-widget" style="margin:14px 14px 0 14px;border-radius:12px;border:1px solid rgba(59,130,246,0.25);background:rgba(59,130,246,0.07);padding:12px 14px;display:none">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
               <div style="font-size:12px;font-weight:800;color:var(--text)">🌡 Pronóstico — CABA</div>
               <button onclick="climaPronostico_actualizar()" style="padding:3px 10px;border-radius:6px;border:1px solid rgba(59,130,246,0.4);background:transparent;color:#60a5fa;font-family:var(--font);font-size:10px;font-weight:700;cursor:pointer">↻ Actualizar</button>
             </div>
-            <div id="clima-pronostico-contenido" style="font-size:11px;color:var(--text2)">Cargando pronóstico...</div>
+            <!-- Tabs -->
+            <div style="display:flex;gap:6px;margin-bottom:10px">
+              <button id="cp-tab-ahora" onclick="climaPronostico_verTab('ahora')" style="padding:4px 12px;border-radius:6px;font-size:10px;font-weight:700;border:none;cursor:pointer;font-family:var(--font);background:#2563eb;color:#fff">⚡ Ahora</button>
+              <button id="cp-tab-hoy" onclick="climaPronostico_verTab('hoy')" style="padding:4px 12px;border-radius:6px;font-size:10px;font-weight:700;border:none;cursor:pointer;font-family:var(--font);background:var(--bg3);color:var(--text2)">📅 Hoy</button>
+              <button id="cp-tab-semana" onclick="climaPronostico_verTab('semana')" style="padding:4px 12px;border-radius:6px;font-size:10px;font-weight:700;border:none;cursor:pointer;font-family:var(--font);background:var(--bg3);color:var(--text2)">🗓 7 días</button>
+            </div>
+            <!-- Contenido tabs -->
+            <div id="cp-panel-ahora"><div id="clima-pronostico-contenido" style="font-size:11px;color:var(--text2)">Cargando pronóstico...</div></div>
+            <div id="cp-panel-hoy" style="display:none"><div id="clima-pronostico-hoy" style="font-size:11px;color:var(--text2)">Cargando...</div></div>
+            <div id="cp-panel-semana" style="display:none"><div id="clima-pronostico-semana" style="font-size:11px;color:var(--text2)">Cargando...</div></div>
           </div>
           <!-- Lista relevamientos -->
           <div id="clima-ctrl-lista" style="padding:14px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;flex:1"></div>
@@ -33963,6 +33972,9 @@ window.clima_cargarPanel = function() {
 };
 
 // ── Pronóstico meteorológico Open-Meteo ──────────────────────────────────────
+var _CP_DATA = null;  // cache de datos Open-Meteo
+var _CP_TAB  = 'ahora';
+
 function climaPronostico_mostrarWidget() {
   var puedeVer = window.USER && (
     ['Gerencia', 'PC', 'Administrador'].indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN'
@@ -33974,101 +33986,221 @@ function climaPronostico_mostrarWidget() {
   climaPronostico_actualizar();
 }
 
+window.climaPronostico_verTab = function(tab) {
+  _CP_TAB = tab;
+  var tabs = ['ahora', 'hoy', 'semana'];
+  for (var i = 0; i < tabs.length; i++) {
+    var btn = document.getElementById('cp-tab-' + tabs[i]);
+    var panel = document.getElementById('cp-panel-' + tabs[i]);
+    if (btn) {
+      btn.style.background = tabs[i] === tab ? '#2563eb' : 'var(--bg3)';
+      btn.style.color = tabs[i] === tab ? '#fff' : 'var(--text2)';
+    }
+    if (panel) panel.style.display = tabs[i] === tab ? '' : 'none';
+  }
+  if (_CP_DATA) climaPronostico_renderTodo(_CP_DATA);
+};
+
 window.climaPronostico_actualizar = function() {
   var contenido = document.getElementById('clima-pronostico-contenido');
-  if (!contenido) return;
-  contenido.innerHTML = '<span style="color:var(--text3)">Consultando...</span>';
+  var elHoy     = document.getElementById('clima-pronostico-hoy');
+  var elSemana  = document.getElementById('clima-pronostico-semana');
+  if (contenido) contenido.innerHTML = '<span style="color:var(--text3)">Consultando...</span>';
+  if (elHoy)     elHoy.innerHTML     = '<span style="color:var(--text3)">Cargando...</span>';
+  if (elSemana)  elSemana.innerHTML  = '<span style="color:var(--text3)">Cargando...</span>';
 
-  // Coordenadas centro CABA (cubre todos los barrios IVC)
   var lat = -34.6118;
   var lng = -58.4173;
   var url = 'https://api.open-meteo.com/v1/forecast'
     + '?latitude=' + lat
     + '&longitude=' + lng
     + '&hourly=precipitation_probability,precipitation,windspeed_10m,weathercode'
-    + '&forecast_days=1'
+    + '&daily=weathercode,precipitation_sum,windspeed_10m_max,precipitation_probability_max,temperature_2m_max,temperature_2m_min'
+    + '&forecast_days=7'
     + '&timezone=America%2FArgentina%2FBuenos_Aires'
     + '&timeformat=unixtime';
 
   fetch(url)
     .then(function(r) { return r.json(); })
     .then(function(data) {
-      var ahora = Math.floor(Date.now() / 1000);
-      var tiempos = data.hourly.time;
-      var probPrec = data.hourly.precipitation_probability;
-      var prec     = data.hourly.precipitation;
-      var viento   = data.hourly.windspeed_10m;
-      var wcode    = data.hourly.weathercode;
-
-      // Encontrar hora actual y las 2 siguientes
-      var idx = 0;
-      for (var i = 0; i < tiempos.length; i++) {
-        if (tiempos[i] <= ahora) idx = i;
-      }
-
-      // Datos para las próximas 3 horas
-      var maxProb = 0, maxPrec = 0, maxViento = 0, maxWcode = 0;
-      for (var h = idx; h < Math.min(idx + 3, tiempos.length); h++) {
-        if (probPrec[h] > maxProb) maxProb = probPrec[h];
-        if (prec[h]     > maxPrec) maxPrec = prec[h];
-        if (viento[h]   > maxViento) maxViento = viento[h];
-        if (wcode[h]    > maxWcode) maxWcode = wcode[h];
-      }
-
-      // Clasificar riesgo
-      var riesgo, riesgoColor, riesgoIcon;
-      // WMO codes: 95-99 = tormenta, 80-82 = lluvia fuerte
-      var esTormenta = maxWcode >= 95;
-      var esLluvia   = maxWcode >= 61 || maxProb >= 60;
-      if (esTormenta || (maxProb >= 70 && maxPrec >= 3)) {
-        riesgo = 'ALTO'; riesgoColor = '#ef4444'; riesgoIcon = '⚡';
-      } else if (esLluvia || (maxProb >= 40 && maxPrec >= 1)) {
-        riesgo = 'MODERADO'; riesgoColor = '#f59e0b'; riesgoIcon = '🌧';
-      } else {
-        riesgo = 'BAJO'; riesgoColor = '#22c55e'; riesgoIcon = '✅';
-      }
-
-      // Descripción condición
-      var condDesc = climaPronostico_wmoDesc(maxWcode);
-
-      // Hora de actualización
-      var ahora2 = new Date();
-      var horaStr = ahora2.getHours() + ':' + (ahora2.getMinutes() < 10 ? '0' : '') + ahora2.getMinutes();
-
-      contenido.innerHTML =
-        '<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center">'
-        + '<div style="display:flex;align-items:center;gap:6px">'
-        +   '<span style="font-size:18px">' + riesgoIcon + '</span>'
-        +   '<div>'
-        +     '<div style="font-size:10px;color:var(--text3);font-weight:700">RIESGO TORMENTA</div>'
-        +     '<div style="font-size:13px;font-weight:900;color:' + riesgoColor + '">' + riesgo + '</div>'
-        +   '</div>'
-        + '</div>'
-        + '<div style="display:flex;gap:12px;flex-wrap:wrap">'
-        +   '<div style="text-align:center">'
-        +     '<div style="font-size:10px;color:var(--text3)">PROB. LLUVIA</div>'
-        +     '<div style="font-size:12px;font-weight:800;color:var(--text)">' + maxProb + '%</div>'
-        +   '</div>'
-        +   '<div style="text-align:center">'
-        +     '<div style="font-size:10px;color:var(--text3)">PRECIPIT.</div>'
-        +     '<div style="font-size:12px;font-weight:800;color:var(--text)">' + maxPrec.toFixed(1) + ' mm</div>'
-        +   '</div>'
-        +   '<div style="text-align:center">'
-        +     '<div style="font-size:10px;color:var(--text3)">VIENTO</div>'
-        +     '<div style="font-size:12px;font-weight:800;color:var(--text)">' + Math.round(maxViento) + ' km/h</div>'
-        +   '</div>'
-        +   '<div style="text-align:center">'
-        +     '<div style="font-size:10px;color:var(--text3)">CONDICIÓN</div>'
-        +     '<div style="font-size:11px;font-weight:700;color:var(--text2)">' + condDesc + '</div>'
-        +   '</div>'
-        + '</div>'
-        + '</div>'
-        + '<div style="margin-top:6px;font-size:9px;color:var(--text3)">Próximas 3 hs · Open-Meteo · actualizado ' + horaStr + '</div>';
+      _CP_DATA = data;
+      climaPronostico_renderTodo(data);
     })
     .catch(function() {
-      contenido.innerHTML = '<span style="color:#ef4444">⚠ No se pudo obtener el pronóstico</span>';
+      if (contenido) contenido.innerHTML = '<span style="color:#ef4444">⚠ No se pudo obtener el pronóstico</span>';
+      if (elHoy)    elHoy.innerHTML = '<span style="color:#ef4444">⚠ Error</span>';
+      if (elSemana) elSemana.innerHTML = '<span style="color:#ef4444">⚠ Error</span>';
     });
 };
+
+function climaPronostico_renderTodo(data) {
+  climaPronostico_renderAhora(data);
+  climaPronostico_renderHoy(data);
+  climaPronostico_renderSemana(data);
+}
+
+function climaPronostico_renderAhora(data) {
+  var contenido = document.getElementById('clima-pronostico-contenido');
+  if (!contenido) return;
+  var ahora = Math.floor(Date.now() / 1000);
+  var tiempos  = data.hourly.time;
+  var probPrec = data.hourly.precipitation_probability;
+  var prec     = data.hourly.precipitation;
+  var viento   = data.hourly.windspeed_10m;
+  var wcode    = data.hourly.weathercode;
+
+  var idx = 0;
+  for (var i = 0; i < tiempos.length; i++) {
+    if (tiempos[i] <= ahora) idx = i;
+  }
+
+  var maxProb = 0, maxPrec = 0, maxViento = 0, maxWcode = 0;
+  for (var h = idx; h < Math.min(idx + 3, tiempos.length); h++) {
+    if (probPrec[h] > maxProb)   maxProb   = probPrec[h];
+    if (prec[h]     > maxPrec)   maxPrec   = prec[h];
+    if (viento[h]   > maxViento) maxViento = viento[h];
+    if (wcode[h]    > maxWcode)  maxWcode  = wcode[h];
+  }
+
+  var r = climaPronostico_clasificar(maxWcode, maxProb, maxPrec);
+  var ahora2   = new Date();
+  var horaStr  = ahora2.getHours() + ':' + (ahora2.getMinutes() < 10 ? '0' : '') + ahora2.getMinutes();
+  var condDesc = climaPronostico_wmoDesc(maxWcode);
+
+  contenido.innerHTML =
+    '<div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center">'
+    + '<div style="display:flex;align-items:center;gap:6px">'
+    +   '<span style="font-size:20px">' + r.icon + '</span>'
+    +   '<div>'
+    +     '<div style="font-size:10px;color:var(--text3);font-weight:700">RIESGO TORMENTA</div>'
+    +     '<div style="font-size:13px;font-weight:900;color:' + r.color + '">' + r.nivel + '</div>'
+    +   '</div>'
+    + '</div>'
+    + '<div style="display:flex;gap:12px;flex-wrap:wrap">'
+    +   climaPronostico_stat('PROB. LLUVIA', maxProb + '%')
+    +   climaPronostico_stat('PRECIPIT.', maxPrec.toFixed(1) + ' mm')
+    +   climaPronostico_stat('VIENTO', Math.round(maxViento) + ' km/h')
+    +   climaPronostico_stat('CONDICIÓN', condDesc)
+    + '</div>'
+    + '</div>'
+    + '<div style="margin-top:6px;font-size:9px;color:var(--text3)">Próximas 3 hs · Open-Meteo · actualizado ' + horaStr + '</div>';
+}
+
+function climaPronostico_renderHoy(data) {
+  var el = document.getElementById('clima-pronostico-hoy');
+  if (!el) return;
+  var ahora    = Math.floor(Date.now() / 1000);
+  var tiempos  = data.hourly.time;
+  var probPrec = data.hourly.precipitation_probability;
+  var prec     = data.hourly.precipitation;
+  var viento   = data.hourly.windspeed_10m;
+  var wcode    = data.hourly.weathercode;
+
+  // Obtener horas del día de hoy (siguientes 24 desde hora actual)
+  var idx = 0;
+  for (var i = 0; i < tiempos.length; i++) {
+    if (tiempos[i] <= ahora) idx = i;
+  }
+
+  var html = '<div style="overflow-x:auto">'
+    + '<table style="width:100%;border-collapse:collapse;font-size:10px">'
+    + '<thead><tr style="color:var(--text3)">'
+    + '<th style="text-align:left;padding:3px 6px">Hora</th>'
+    + '<th style="text-align:center;padding:3px 6px">Cond.</th>'
+    + '<th style="text-align:center;padding:3px 6px">Prob.</th>'
+    + '<th style="text-align:center;padding:3px 6px">Prec.</th>'
+    + '<th style="text-align:center;padding:3px 6px">Viento</th>'
+    + '<th style="text-align:center;padding:3px 6px">Riesgo</th>'
+    + '</tr></thead><tbody>';
+
+  var fin = Math.min(idx + 24, tiempos.length);
+  for (var j = idx; j < fin; j++) {
+    var d    = new Date(tiempos[j] * 1000);
+    var hora = d.getHours() + ':00';
+    var r    = climaPronostico_clasificar(wcode[j], probPrec[j], prec[j]);
+    var bg   = j % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent';
+    var bold = j === idx ? 'font-weight:800;' : '';
+    html += '<tr style="background:' + bg + ';' + bold + '">'
+      + '<td style="padding:3px 6px;color:var(--text)">' + hora + '</td>'
+      + '<td style="padding:3px 6px;text-align:center">' + climaPronostico_wmoEmoji(wcode[j]) + '</td>'
+      + '<td style="padding:3px 6px;text-align:center;color:var(--text2)">' + probPrec[j] + '%</td>'
+      + '<td style="padding:3px 6px;text-align:center;color:var(--text2)">' + (prec[j] ? prec[j].toFixed(1) : '0') + 'mm</td>'
+      + '<td style="padding:3px 6px;text-align:center;color:var(--text2)">' + Math.round(viento[j]) + 'km/h</td>'
+      + '<td style="padding:3px 6px;text-align:center;color:' + r.color + ';font-weight:700">' + r.icon + ' ' + r.nivel + '</td>'
+      + '</tr>';
+  }
+  html += '</tbody></table></div>'
+    + '<div style="margin-top:6px;font-size:9px;color:var(--text3)">Pronóstico por hora · Open-Meteo</div>';
+  el.innerHTML = html;
+}
+
+function climaPronostico_renderSemana(data) {
+  var el = document.getElementById('clima-pronostico-semana');
+  if (!el) return;
+  var dias      = data.daily.time;
+  var wcode     = data.daily.weathercode;
+  var precSum   = data.daily.precipitation_sum;
+  var probMax   = data.daily.precipitation_probability_max;
+  var vMax      = data.daily.windspeed_10m_max;
+  var tMax      = data.daily.temperature_2m_max;
+  var tMin      = data.daily.temperature_2m_min;
+
+  var DIAS_ES = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  var MESES_ES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+
+  var html = '<div style="display:flex;flex-direction:column;gap:6px">';
+  for (var i = 0; i < dias.length; i++) {
+    var d    = new Date(dias[i] * 1000 + 12 * 3600 * 1000); // mediodía para evitar TZ issues
+    var nom  = i === 0 ? 'Hoy' : (i === 1 ? 'Mañana' : DIAS_ES[d.getDay()] + ' ' + d.getDate() + ' ' + MESES_ES[d.getMonth()]);
+    var r    = climaPronostico_clasificar(wcode[i], probMax[i], precSum[i]);
+    html += '<div style="display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06)">'
+      + '<div style="min-width:70px;font-size:11px;font-weight:' + (i === 0 ? '800' : '600') + ';color:var(--text)">' + nom + '</div>'
+      + '<div style="font-size:16px">' + climaPronostico_wmoEmoji(wcode[i]) + '</div>'
+      + '<div style="flex:1">'
+      +   '<div style="font-size:11px;font-weight:700;color:' + r.color + '">' + r.icon + ' ' + r.nivel + '</div>'
+      +   '<div style="font-size:9px;color:var(--text3)">' + climaPronostico_wmoDesc(wcode[i]) + '</div>'
+      + '</div>'
+      + '<div style="text-align:right;font-size:10px;color:var(--text2)">'
+      +   '<div>💧 ' + (precSum[i] ? precSum[i].toFixed(1) : '0') + 'mm · ' + (probMax[i] || 0) + '%</div>'
+      +   '<div>💨 ' + Math.round(vMax[i] || 0) + 'km/h</div>'
+      +   '<div>🌡 ' + Math.round(tMax[i] || 0) + '° / ' + Math.round(tMin[i] || 0) + '°</div>'
+      + '</div>'
+      + '</div>';
+  }
+  html += '</div>'
+    + '<div style="margin-top:6px;font-size:9px;color:var(--text3)">Pronóstico 7 días · Open-Meteo</div>';
+  el.innerHTML = html;
+}
+
+function climaPronostico_clasificar(wcode, prob, prec) {
+  var esTormenta = wcode >= 95;
+  var esLluvia   = wcode >= 61 || prob >= 60;
+  if (esTormenta || (prob >= 70 && prec >= 3)) {
+    return { nivel: 'ALTO',     color: '#ef4444', icon: '⚡' };
+  } else if (esLluvia || (prob >= 40 && prec >= 1)) {
+    return { nivel: 'MODERADO', color: '#f59e0b', icon: '🌧' };
+  }
+  return { nivel: 'BAJO',       color: '#22c55e', icon: '✅' };
+}
+
+function climaPronostico_stat(label, val) {
+  return '<div style="text-align:center">'
+    + '<div style="font-size:10px;color:var(--text3)">' + label + '</div>'
+    + '<div style="font-size:12px;font-weight:800;color:var(--text)">' + val + '</div>'
+    + '</div>';
+}
+
+function climaPronostico_wmoEmoji(code) {
+  if (code === 0)  return '☀️';
+  if (code <= 3)   return '⛅';
+  if (code <= 49)  return '🌫';
+  if (code <= 59)  return '🌦';
+  if (code <= 69)  return '🌧';
+  if (code <= 79)  return '❄️';
+  if (code <= 82)  return '🌧';
+  if (code <= 94)  return '🌨';
+  return '⛈';
+}
 
 function climaPronostico_wmoDesc(code) {
   if (code === 0)  return 'Despejado';
