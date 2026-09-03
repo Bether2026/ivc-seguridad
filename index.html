@@ -33927,11 +33927,13 @@ window.clima_cargarPanel = function() {
       if (ra && ra.error) { lista.innerHTML = '<div style="color:#fca5a5;padding:20px">Error alertas: ' + ra.error.message + '</div>'; return; }
       var alertas = ra.data || [];
 
-      // Agrupar por clave mensaje|minuto — igual que climaCtrl_renderAlertas
+      // Agrupar por grupo_id si existe; fallback a mensaje|minuto para registros legacy
       var grupos = {};
       var orden  = [];
       alertas.forEach(function(a) {
-        var key = (a.mensaje || '') + '|' + (a.created_at || '').substring(0, 16);
+        var key = a.grupo_id
+          ? 'gid:' + a.grupo_id
+          : (a.mensaje || '') + '|' + (a.created_at || '').substring(0, 16);
         if (!grupos[key]) { grupos[key] = { ids: [], leidas: 0, total: 0, created_at: a.created_at, mensaje: a.mensaje }; orden.push(key); }
         grupos[key].ids.push(a.id);
         grupos[key].total++;
@@ -33983,6 +33985,33 @@ window.clima_cargarPanel = function() {
               sub.textContent = '✅ Último turno finalizado (' + fechaB + ') — ' + cant + sufijo;
             }
           }
+
+          // ── Indicador de puestos pendientes de respuesta ────────────────
+          var pendEl = document.getElementById('clima-pendientes-banner');
+          if (!pendEl) {
+            pendEl = document.createElement('div');
+            pendEl.id = 'clima-pendientes-banner';
+            var listaEl = document.getElementById('clima-ctrl-lista');
+            if (listaEl && listaEl.parentNode) listaEl.parentNode.insertBefore(pendEl, listaEl);
+          }
+          // Puestos a los que se envió la alerta del turno activo
+          var puestosEnviados = CLIMA_ALERTAS_ENVIADAS
+            ? CLIMA_ALERTAS_ENVIADAS.filter(function(a) {
+                return grupoActivo.ids.indexOf(a.id) >= 0;
+              }).map(function(a) { return a.puesto; })
+            : [];
+          // Puestos que ya respondieron
+          var puestosRespondieron = {};
+          CLIMA_CTRL_DATOS.forEach(function(n) { puestosRespondieron[n.puesto] = true; });
+          var pendientes = puestosEnviados.filter(function(p) { return !puestosRespondieron[p]; });
+          if (pendientes.length && esActiva) {
+            pendEl.style.cssText = 'margin:0 14px 10px 14px;padding:10px 14px;border-radius:10px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.35);font-size:11px;color:#fcd34d;line-height:1.5';
+            pendEl.innerHTML = '<span style="font-weight:800">⏳ Sin responder:</span> ' + pendientes.join(', ');
+          } else {
+            pendEl.style.display = esActiva ? '' : 'none';
+            pendEl.innerHTML = '';
+          }
+
           climaCtrl_renderLista();
         });
     });
@@ -33990,6 +34019,7 @@ window.clima_cargarPanel = function() {
 
 // ── Pronóstico meteorológico Open-Meteo ──────────────────────────────────────
 var _CP_DATA = null;  // cache de datos Open-Meteo
+var _CP_TS   = null;  // timestamp del último fetch (ms)
 var _CP_TAB  = 'ahora';
 
 function climaPronostico_mostrarWidget() {
@@ -34000,7 +34030,13 @@ function climaPronostico_mostrarWidget() {
   if (!widget) return;
   if (!puedeVer) { widget.style.display = 'none'; return; }
   widget.style.display = '';
-  climaPronostico_actualizar();
+  // Refrescar si no hay datos o si el cache tiene más de 30 minutos
+  var ahora = Date.now();
+  if (!_CP_DATA || !_CP_TS || (ahora - _CP_TS) > 1800000) {
+    climaPronostico_actualizar();
+  } else {
+    climaPronostico_renderTodo(_CP_DATA);
+  }
 }
 
 window.climaPronostico_verTab = function(tab) {
@@ -34041,6 +34077,7 @@ window.climaPronostico_actualizar = function() {
     .then(function(r) { return r.json(); })
     .then(function(data) {
       _CP_DATA = data;
+      _CP_TS   = Date.now();
       climaPronostico_renderTodo(data);
     })
     .catch(function() {
@@ -34137,16 +34174,21 @@ function climaPronostico_renderHoy(data) {
     var r    = climaPronostico_clasificar(wcode[j], probPrec[j], prec[j]);
     var bg   = j % 2 === 0 ? 'rgba(255,255,255,0.03)' : 'transparent';
     var bold = j === idx ? 'font-weight:800;' : '';
+    // En móvil angosto: mostrar solo emoji del riesgo, ocultar texto
     html += '<tr style="background:' + bg + ';' + bold + '">'
       + '<td style="padding:3px 6px;color:var(--text)">' + hora + '</td>'
       + '<td style="padding:3px 6px;text-align:center">' + climaPronostico_wmoEmoji(wcode[j]) + '</td>'
       + '<td style="padding:3px 6px;text-align:center;color:var(--text2)">' + probPrec[j] + '%</td>'
       + '<td style="padding:3px 6px;text-align:center;color:var(--text2)">' + (prec[j] ? prec[j].toFixed(1) : '0') + 'mm</td>'
       + '<td style="padding:3px 6px;text-align:center;color:var(--text2)">' + Math.round(viento[j]) + 'km/h</td>'
-      + '<td style="padding:3px 6px;text-align:center;color:' + r.color + ';font-weight:700">' + r.icon + ' ' + r.nivel + '</td>'
+      + '<td style="padding:3px 6px;text-align:center;color:' + r.color + ';font-weight:700" title="' + r.nivel + '">'
+      +   r.icon
+      +   '<span style="display:none" class="cp-riesgo-texto"> ' + r.nivel + '</span>'
+      + '</td>'
       + '</tr>';
   }
   html += '</tbody></table></div>'
+    + '<style>.cp-riesgo-texto{display:none}@media(min-width:420px){.cp-riesgo-texto{display:inline}}</style>'
     + '<div style="margin-top:6px;font-size:9px;color:var(--text3)">Pronóstico por hora · Open-Meteo</div>';
   el.innerHTML = html;
 }
@@ -34260,7 +34302,40 @@ function climaCtrl_renderLista() {
     return;
   }
 
-  var html = '';
+  // ── Resumen estadístico ──────────────────────────────────────────────────
+  var totalRelev    = datos.length;
+  var totalInund    = datos.filter(function(n) { return n.inundacion_activa; }).length;
+  var totalArbol    = datos.filter(function(n) { return n.riesgo_arbol; }).length;
+  var totalPoste    = datos.filter(function(n) { return n.riesgo_poste; }).length;
+  var totalDesague  = datos.filter(function(n) { return n.desague_tapado; }).length;
+  var totalBasura   = datos.filter(function(n) { return n.acumulacion_basura; }).length;
+  var totalOtro     = datos.filter(function(n) { return n.otro; }).length;
+  var totalSinRiesgo = datos.filter(function(n) {
+    return !n.inundacion_activa && !n.riesgo_arbol && !n.riesgo_poste && !n.desague_tapado && !n.acumulacion_basura && !n.otro;
+  }).length;
+
+  function _stat(emoji, label, val, color) {
+    if (!val) return '';
+    return '<div style="display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 10px;border-radius:10px;background:var(--bg3);min-width:54px">'
+      + '<span style="font-size:16px">' + emoji + '</span>'
+      + '<span style="font-size:14px;font-weight:900;color:' + color + '">' + val + '</span>'
+      + '<span style="font-size:9px;color:var(--text3);text-align:center;white-space:nowrap">' + label + '</span>'
+      + '</div>';
+  }
+
+  var statsHtml = '<div style="display:flex;gap:6px;flex-wrap:wrap;padding:12px 14px;background:var(--bg2);border-radius:12px;border:1px solid var(--border);margin-bottom:10px;align-items:center">'
+    + '<div style="font-size:11px;font-weight:800;color:var(--text3);width:100%;margin-bottom:4px">RESUMEN DEL TURNO</div>'
+    + _stat('\uD83D\uDCCB', 'Total', totalRelev, '#93c5fd')
+    + _stat('\uD83C\uDF0A', 'Inundación', totalInund, '#ef4444')
+    + _stat('\uD83C\uDF33', 'Árbol', totalArbol, '#f97316')
+    + _stat('\uD83D\uDD0C', 'Poste', totalPoste, '#f97316')
+    + _stat('\uD83D\uDD73', 'Desagüe', totalDesague, '#a855f7')
+    + _stat('\uD83D\uDDD1', 'Basura', totalBasura, '#eab308')
+    + _stat('\u26A0\uFE0F', 'Otro', totalOtro, '#fca5a5')
+    + _stat('\u2705', 'Sin riesgo', totalSinRiesgo, '#34d399')
+    + '</div>';
+
+  var html = statsHtml;
   datos.forEach(function(n) {
     var fecha = '';
     try {
@@ -34302,11 +34377,12 @@ function climaCtrl_renderLista() {
       fotosHtml += '</div>';
     }
 
-    // Color borde por puesto
+    // Color borde: riesgo crítico tiene prioridad sobre puesto
     var colorBorde = '#3b82f6';
-    if (n.puesto === 'Fraga') colorBorde = '#10b981';
+    if (n.inundacion_activa)  colorBorde = '#ef4444';
+    else if (n.riesgo_arbol || n.riesgo_poste) colorBorde = '#f97316';
+    else if (n.puesto === 'Fraga') colorBorde = '#10b981';
     else if (n.puesto === 'Papa Francisco') colorBorde = '#f59e0b';
-    else if (n.inundacion_activa) colorBorde = '#ef4444';
 
     html += '<div style="background:var(--bg2);border-radius:12px;padding:14px;border:1px solid var(--border);border-left:4px solid ' + colorBorde + '">';
     html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">';
@@ -34355,13 +34431,21 @@ window.climaCtrl_eliminar = function(id) {
 // ── Fix banner: que permanezca como comunicación interna ──────────────────
 window.clima_mostrarBanner = function(alerta) {
   CLIMA_ALERTA_ID = alerta.id || null;
-  // Mostrar como notificación interna persistente (no desaparece sola)
   var banner = document.getElementById('clima-banner');
   var tit    = document.getElementById('clima-banner-titulo');
   var msgEl  = document.getElementById('clima-banner-msg');
   if (!banner) return;
-  if (tit) tit.textContent = '\uD83C\uDF27 ' + (alerta.tipo || 'Alerta climática');
-  if (msgEl) msgEl.textContent = alerta.mensaje || 'Relevamiento de riesgo requerido en tu barrio.';
+  // Extraer tipo del mensaje (formato: "🌧 Tipo — Cuerpo del mensaje")
+  var msg = alerta.mensaje || '';
+  var titTexto = '\uD83C\uDF27 Alerta clim\u00E1tica';
+  var cuerpo   = msg;
+  var sepIdx   = msg.indexOf(' \u2014 ');
+  if (sepIdx > 0) {
+    titTexto = msg.substring(0, sepIdx);
+    cuerpo   = msg.substring(sepIdx + 3);
+  }
+  if (tit)   tit.textContent   = titTexto;
+  if (msgEl) msgEl.textContent = cuerpo || 'Relevamiento de riesgo requerido en tu barrio.';
   banner.style.display = 'flex';
 };
 
@@ -34608,10 +34692,12 @@ function climaCtrl_renderAlertas() {
   if (!wrap) return;
   _CLIMA_ALERTAS_IDX = []; // resetear índice
 
-  // Agrupar por created_at redondeado al segundo (misma alerta enviada a varios puestos)
+  // Agrupar por grupo_id si existe; fallback a mensaje|minuto para registros legacy
   var grupos = {};
   CLIMA_ALERTAS_ENVIADAS.forEach(function(a) {
-    var key = (a.mensaje || '') + '|' + (a.created_at || '').substring(0, 16);
+    var key = a.grupo_id
+      ? 'gid:' + a.grupo_id
+      : (a.mensaje || '') + '|' + (a.created_at || '').substring(0, 16);
     if (!grupos[key]) grupos[key] = { ref: a, puestos: [], vigentes: 0, total: 0 };
     grupos[key].puestos.push(a.puesto || '?');
     grupos[key].total++;
@@ -34653,7 +34739,10 @@ function climaCtrl_renderAlertas() {
 
     // IDs de alertas vigentes del grupo para cancelar
     var idsVigentes = CLIMA_ALERTAS_ENVIADAS
-      .filter(function(x) { return (x.mensaje || '') + '|' + (x.created_at || '').substring(0,16) === key && !x.leida; })
+      .filter(function(x) {
+        var xkey = x.grupo_id ? 'gid:' + x.grupo_id : (x.mensaje || '') + '|' + (x.created_at || '').substring(0,16);
+        return xkey === key && !x.leida;
+      })
       .map(function(x) { return x.id; });
 
     html += '<div style="background:var(--bg2);border-radius:12px;padding:14px;border:1px solid var(--border);border-left:4px solid ' + estadoColor + '">';
@@ -34667,13 +34756,14 @@ function climaCtrl_renderAlertas() {
 
     // IDs de TODAS las alertas del grupo (para eliminar)
     var idsTodos = CLIMA_ALERTAS_ENVIADAS
-      .filter(function(x) { return (x.mensaje || '') + '|' + (x.created_at || '').substring(0,16) === key; })
+      .filter(function(x) {
+        var xkey = x.grupo_id ? 'gid:' + x.grupo_id : (x.mensaje || '') + '|' + (x.created_at || '').substring(0,16);
+        return xkey === key;
+      })
       .map(function(x) { return x.id; });
 
     // IDs de todas las filas del grupo (para buscar relevamientos)
-    var idsTodosGrupo = CLIMA_ALERTAS_ENVIADAS
-      .filter(function(x) { return (x.mensaje || '') + '|' + (x.created_at || '').substring(0,16) === key; })
-      .map(function(x) { return x.id; });
+    var idsTodosGrupo = idsTodos.slice();
 
     // Guardar en índice global para acceder desde onclick sin JSON inline
     var idx = _CLIMA_ALERTAS_IDX.length;
@@ -35300,10 +35390,46 @@ window.climaExportarHTML = function() {
     if (!Array.isArray(fotos)) { try { fotos = JSON.parse(fotos||'null')||[]; } catch(e) { fotos=[]; } }
     return Object.assign({}, n, { fotos_urls: fotos });
   });
+
+  // Capturar snapshot del pronóstico actual si existe
+  var pronosticoSnap = null;
+  if (_CP_DATA) {
+    try {
+      var ahora = Math.floor(Date.now() / 1000);
+      var tiempos  = _CP_DATA.hourly.time;
+      var probPrec = _CP_DATA.hourly.precipitation_probability;
+      var prec     = _CP_DATA.hourly.precipitation;
+      var viento   = _CP_DATA.hourly.windspeed_10m;
+      var wcode    = _CP_DATA.hourly.weathercode;
+      var idx = 0;
+      for (var i = 0; i < tiempos.length; i++) { if (tiempos[i] <= ahora) idx = i; }
+      var maxProb = 0, maxPrec = 0, maxViento = 0, maxWcode = 0;
+      for (var h = idx; h < Math.min(idx + 3, tiempos.length); h++) {
+        if (probPrec[h] > maxProb)   maxProb   = probPrec[h];
+        if (prec[h]     > maxPrec)   maxPrec   = prec[h];
+        if (viento[h]   > maxViento) maxViento = viento[h];
+        if (wcode[h]    > maxWcode)  maxWcode  = wcode[h];
+      }
+      var rClasif = climaPronostico_clasificar(maxWcode, maxProb, maxPrec);
+      pronosticoSnap = {
+        nivel: rClasif.nivel,
+        icon:  rClasif.icon,
+        color: rClasif.color,
+        prob:  maxProb,
+        prec:  maxPrec.toFixed(1),
+        viento: Math.round(maxViento),
+        desc:  climaPronostico_wmoDesc(maxWcode),
+        hora:  new Date().toLocaleTimeString('es-AR', { hour:'2-digit', minute:'2-digit', timeZone:'America/Argentina/Buenos_Aires' })
+      };
+    } catch(e) { pronosticoSnap = null; }
+  }
+
   var binStr = atob(_CLIMA_EXPORT_B64);
   var bytes = new Uint8Array(binStr.length);
   for (var i=0;i<binStr.length;i++){bytes[i]=binStr.charCodeAt(i);}
-  var html = new TextDecoder('utf-8').decode(bytes).replace('__DATOS_JSON__', JSON.stringify(datos));
+  var html = new TextDecoder('utf-8').decode(bytes)
+    .replace('__DATOS_JSON__', JSON.stringify(datos))
+    .replace('__PRONOSTICO_JSON__', JSON.stringify(pronosticoSnap));
   var blob = new Blob([html],{type:'text/html;charset=utf-8'});
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
