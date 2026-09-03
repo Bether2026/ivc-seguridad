@@ -33778,12 +33778,18 @@ window.clima_previewFotos = function(input) {
 };
 
 window.clima_guardarRelevamiento = function() {
+  var _alertaIdActual = CLIMA_ALERTA_ID || window.CLIMA_ALERTA_ID || null;
+  if (!_alertaIdActual) {
+    toast('\u26A0\uFE0F No hay alerta activa. Esper\xE1 que llegue la notificaci\xF3n de Gerencia.', 'err');
+    return;
+  }
+
   var btn = document.getElementById('cr-guardar-btn');
   if (btn) { btn.disabled = true; btn.textContent = 'Guardando...'; }
 
   var sinInc = !!(document.getElementById('cr-sin-incidentes') || {}).checked;
   var payload = {
-    alerta_id:         CLIMA_ALERTA_ID || window.CLIMA_ALERTA_ID || null,
+    alerta_id:         _alertaIdActual,
     puesto:            window.USER ? (USER.puesto || '') : '',
     agente:            window.USER ? (USER.nombre || USER.puesto || '') : '',
     lat:               window.CLIMA_LAT || (typeof CLIMA_LAT !== 'undefined' ? CLIMA_LAT : null),
@@ -33876,6 +33882,9 @@ window.clima_silenciarBanner = function() {
 window.clima_silenciarBannerDurante = function() {
   var banner = document.getElementById('clima-banner-durante');
   if (banner) banner.style.display = 'none';
+  if (CLIMA_ALERTA_ID && window.db) {
+    db.from('alertas_turno').update({ silenciada: true }).eq('id', CLIMA_ALERTA_ID).then(function() {});
+  }
 };
 
 // ── Silenciar grupo desde panel Gerencia/Admin ────────────────────────────
@@ -34008,8 +34017,20 @@ window.climaCtrl_finalizarGrupo = function(idx) {
   document.getElementById('_fin-con-post').onclick = function() {
     _cerrar();
     var todosIds   = entrada.todos;
-    var puestosSrc = entrada.puestosGrupo || [];
     if (!todosIds || !todosIds.length) return;
+    // Reconstruir puestos desde CLIMA_ALERTAS_ENVIADAS si el índice los perdió
+    var puestosSrc = entrada.puestosGrupo || [];
+    if (!puestosSrc.length && Array.isArray(CLIMA_ALERTAS_ENVIADAS)) {
+      var grupoIdRef = entrada.grupoId;
+      puestosSrc = CLIMA_ALERTAS_ENVIADAS
+        .filter(function(x) {
+          return grupoIdRef
+            ? x.grupo_id === grupoIdRef
+            : todosIds.indexOf(x.id) >= 0;
+        })
+        .map(function(x) { return x.puesto; })
+        .filter(function(p, i, arr) { return p && arr.indexOf(p) === i; });
+    }
     _finalizarIds(todosIds, function() { _enviarPost(puestosSrc); });
   };
 
@@ -34197,14 +34218,20 @@ window.clima_cargarPanel = function() {
 
   // Traer todas las alertas clima recientes para agruparlas por envío (mensaje+minuto)
   // Cada "envío" genera N filas (una por puesto); todas comparten mensaje y created_at al minuto
+  var hace12hs = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
   db.from('alertas_turno')
-    .select('id,created_at,leida,mensaje')
+    .select('id,created_at,leida,mensaje,fase,grupo_id,puesto,silenciada')
     .eq('tipo', 'clima')
+    .gte('created_at', hace12hs)
     .order('created_at', { ascending: false })
-    .limit(100)
+    .limit(200)
     .then(function(ra) {
       if (ra && ra.error) { lista.innerHTML = '<div style="color:#fca5a5;padding:20px">Error alertas: ' + ra.error.message + '</div>'; return; }
       var alertas = ra.data || [];
+
+      // Poblar CLIMA_ALERTAS_ENVIADAS desde este query para que _alertaFaseMap funcione
+      // aunque el operador no haya abierto el tab Alertas
+      CLIMA_ALERTAS_ENVIADAS = alertas;
 
       // Agrupar por grupo_id si existe; fallback a mensaje|minuto para registros legacy
       var grupos = {};
@@ -34213,7 +34240,7 @@ window.clima_cargarPanel = function() {
         var key = a.grupo_id
           ? 'gid:' + a.grupo_id
           : (a.mensaje || '') + '|' + (a.created_at || '').substring(0, 16);
-        if (!grupos[key]) { grupos[key] = { ids: [], leidas: 0, total: 0, created_at: a.created_at, mensaje: a.mensaje }; orden.push(key); }
+        if (!grupos[key]) { grupos[key] = { ids: [], leidas: 0, total: 0, created_at: a.created_at, mensaje: a.mensaje, fase: a.fase || 'pre' }; orden.push(key); }
         grupos[key].ids.push(a.id);
         grupos[key].total++;
         if (a.leida) grupos[key].leidas++;
@@ -34244,12 +34271,13 @@ window.clima_cargarPanel = function() {
       window.CLIMA_ALERTA_ID = grupoActivo.ids[0]; // exponer al window para que el formulario lo use
       window.CLIMA_GRUPO_IDS = grupoActivo.ids;     // todos los IDs del grupo activo
 
-      // Traer relevamientos que tengan alerta_id en cualquiera de los IDs del grupo
+      // Traer relevamientos de las últimas 12hs para cubrir todos los grupos
+      // (pre, durante, post) del mismo evento sin depender de un único grupo_id
       db.from('relevamiento_clima')
         .select('*')
-        .in('alerta_id', grupoActivo.ids)
+        .gte('created_at', hace12hs)
         .order('created_at', { ascending: false })
-        .limit(200)
+        .limit(300)
         .then(function(r) {
           if (r && r.error) { lista.innerHTML = '<div style="color:#fca5a5;padding:20px">Error: ' + r.error.message + '</div>'; return; }
           CLIMA_CTRL_DATOS = r.data || [];
@@ -35024,9 +35052,11 @@ window.climaCtrl_cargarAlertas = function() {
   if (!wrap || !window.db) return;
   wrap.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:20px;text-align:center">Cargando...</div>';
 
+  var _hace12hs = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
   db.from('alertas_turno')
     .select('id,created_at,leida,mensaje,puesto,grupo_id,fase,silenciada')
     .eq('tipo', 'clima')
+    .gte('created_at', _hace12hs)
     .order('created_at', { ascending: false })
     .limit(200)
     .then(function(r) {
