@@ -6272,9 +6272,31 @@ body {
     <button onclick="clima_cerrarBanner()" style="background:transparent;border:none;color:#64748b;font-size:20px;cursor:pointer">×</button>
   </div>
   <div id="clima-banner-msg" style="font-size:12px;color:#bfdbfe;line-height:1.4"></div>
-  <button onclick="clima_abrirRelevamiento()" style="margin-top:4px;padding:10px;border-radius:10px;border:none;background:#1d4ed8;color:#fff;font-family:var(--font);font-size:13px;font-weight:800;cursor:pointer;width:100%">
-    📋 Hacer relevamiento ahora
-  </button>
+  <div style="display:flex;gap:8px;margin-top:4px">
+    <button onclick="clima_abrirRelevamiento()" style="flex:1;padding:10px;border-radius:10px;border:none;background:#1d4ed8;color:#fff;font-family:var(--font);font-size:13px;font-weight:800;cursor:pointer">
+      📋 Hacer relevamiento
+    </button>
+    <button onclick="clima_silenciarBanner()" style="padding:10px 14px;border-radius:10px;border:1px solid rgba(100,116,139,.4);background:rgba(100,116,139,.15);color:#94a3b8;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer" title="Ya lo vi, silenciar">
+      🔇
+    </button>
+  </div>
+</div>
+
+<!-- BANNER FASE DURANTE (lluvia activa) -->
+<div id="clima-banner-durante" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9200;padding:14px 16px;border-bottom:3px solid #ef4444;background:rgba(127,29,29,.97);backdrop-filter:blur(10px);flex-direction:column;gap:8px">
+  <div style="display:flex;align-items:center;justify-content:space-between">
+    <div style="font-size:14px;font-weight:900;color:#fca5a5;letter-spacing:.02em">⛈ Lluvia activa — Relevá ahora</div>
+    <button onclick="clima_silenciarBannerDurante()" style="background:transparent;border:none;color:#9ca3af;font-size:20px;cursor:pointer">×</button>
+  </div>
+  <div id="clima-banner-durante-msg" style="font-size:12px;color:#fecaca;line-height:1.4"></div>
+  <div style="display:flex;gap:8px;margin-top:4px">
+    <button onclick="clima_abrirRelevamiento()" style="flex:1;padding:10px;border-radius:10px;border:none;background:#dc2626;color:#fff;font-family:var(--font);font-size:13px;font-weight:800;cursor:pointer">
+      📋 Hacer relevamiento ahora
+    </button>
+    <button onclick="clima_silenciarBannerDurante()" style="padding:10px 14px;border-radius:10px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.1);color:#fca5a5;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer" title="Silenciar">
+      🔇
+    </button>
+  </div>
 </div>
 
 <!-- LIGHTBOX CLIMA -->
@@ -6348,7 +6370,17 @@ body {
     <!-- Checkboxes de riesgo -->
     <div style="margin-bottom:16px">
       <label style="font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;display:block;margin-bottom:10px">Riesgos detectados</label>
-      <div style="display:flex;flex-direction:column;gap:8px">
+
+      <!-- Sin incidentes — mutuamente excluyente con los riesgos -->
+      <label id="cr-sin-inc-label" style="display:flex;align-items:center;gap:10px;padding:13px 14px;border-radius:10px;border:2px solid rgba(52,211,153,.3);background:rgba(52,211,153,.06);cursor:pointer;margin-bottom:10px" onclick="clima_toggleSinIncidentes()">
+        <input type="checkbox" id="cr-sin-incidentes" style="width:20px;height:20px;accent-color:#10b981;flex-shrink:0" onclick="event.stopPropagation();clima_toggleSinIncidentes()">
+        <div>
+          <div style="font-size:13px;font-weight:800;color:#34d399">✅ Sin incidentes</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">Relevamiento completo — barrio sin novedades</div>
+        </div>
+      </label>
+
+      <div id="cr-riesgos-wrap" style="display:flex;flex-direction:column;gap:8px">
         <label style="display:flex;align-items:center;gap:10px;padding:11px 14px;border-radius:10px;border:1px solid var(--border2);background:var(--bg2);cursor:pointer">
           <input type="checkbox" id="cr-basura" style="width:18px;height:18px;accent-color:#ef4444;flex-shrink:0">
           <span style="font-size:13px;color:var(--text)">🗑 Acumulación de basura</span>
@@ -33662,6 +33694,15 @@ window.clima_abrirRelevamiento = function() {
     var el = document.getElementById(id);
     if (el) el.checked = false;
   });
+  // Reset sin_incidentes
+  var cbSinInc = document.getElementById('cr-sin-incidentes');
+  if (cbSinInc) cbSinInc.checked = false;
+  var wrapRiesgos = document.getElementById('cr-riesgos-wrap');
+  if (wrapRiesgos) { wrapRiesgos.style.opacity = '1'; wrapRiesgos.style.pointerEvents = ''; }
+  var btnGuardar = document.getElementById('cr-guardar-btn');
+  if (btnGuardar) { btnGuardar.style.background = '#ef4444'; btnGuardar.textContent = '\uD83D\uDCBE Guardar relevamiento'; }
+  var lblSinInc = document.getElementById('cr-sin-inc-label');
+  if (lblSinInc) { lblSinInc.style.borderColor = 'rgba(52,211,153,.3)'; lblSinInc.style.background = 'rgba(52,211,153,.06)'; }
   var obsEl = document.getElementById('cr-obs');
   if (obsEl) obsEl.value = '';
   var detEl = document.getElementById('cr-otro-detalle');
@@ -33723,19 +33764,21 @@ window.clima_guardarRelevamiento = function() {
   var btn = document.getElementById('cr-guardar-btn');
   if (btn) { btn.disabled = true; btn.textContent = 'Guardando...'; }
 
+  var sinInc = !!(document.getElementById('cr-sin-incidentes') || {}).checked;
   var payload = {
     alerta_id:         CLIMA_ALERTA_ID || window.CLIMA_ALERTA_ID || null,
     puesto:            window.USER ? (USER.puesto || '') : '',
     agente:            window.USER ? (USER.nombre || USER.puesto || '') : '',
     lat:               window.CLIMA_LAT || (typeof CLIMA_LAT !== 'undefined' ? CLIMA_LAT : null),
     lng:               window.CLIMA_LNG || (typeof CLIMA_LNG !== 'undefined' ? CLIMA_LNG : null),
-    acumulacion_basura: !!(document.getElementById('cr-basura')     || {}).checked,
-    desague_tapado:     !!(document.getElementById('cr-desague')    || {}).checked,
-    riesgo_arbol:       !!(document.getElementById('cr-arbol')      || {}).checked,
-    riesgo_poste:       !!(document.getElementById('cr-poste')      || {}).checked,
-    inundacion_activa:  !!(document.getElementById('cr-inundacion') || {}).checked,
-    otro:               !!(document.getElementById('cr-otro')       || {}).checked,
-    otro_detalle:       ((document.getElementById('cr-otro-detalle') || {}).value || '').trim(),
+    sin_incidentes:    sinInc,
+    acumulacion_basura: sinInc ? false : !!(document.getElementById('cr-basura')     || {}).checked,
+    desague_tapado:     sinInc ? false : !!(document.getElementById('cr-desague')    || {}).checked,
+    riesgo_arbol:       sinInc ? false : !!(document.getElementById('cr-arbol')      || {}).checked,
+    riesgo_poste:       sinInc ? false : !!(document.getElementById('cr-poste')      || {}).checked,
+    inundacion_activa:  sinInc ? false : !!(document.getElementById('cr-inundacion') || {}).checked,
+    otro:               sinInc ? false : !!(document.getElementById('cr-otro')       || {}).checked,
+    otro_detalle:       sinInc ? '' :   ((document.getElementById('cr-otro-detalle') || {}).value || '').trim(),
     observaciones:      ((document.getElementById('cr-obs')          || {}).value || '').trim(),
     fotos_urls:         null,
     certeza:            'A verificar',
@@ -33769,6 +33812,118 @@ window.clima_guardarRelevamiento = function() {
           clima_insertar(payload, btn);
         }
       });
+  });
+};
+
+// ── Sin incidentes — toggle mutuamente excluyente con riesgos ────────────
+window.clima_toggleSinIncidentes = function() {
+  var cb   = document.getElementById('cr-sin-incidentes');
+  var wrap = document.getElementById('cr-riesgos-wrap');
+  var btn  = document.getElementById('cr-guardar-btn');
+  var label = document.getElementById('cr-sin-inc-label');
+  if (!cb) return;
+  var activo = cb.checked;
+  if (wrap) wrap.style.opacity = activo ? '0.35' : '1';
+  if (wrap) wrap.style.pointerEvents = activo ? 'none' : '';
+  // Desmarcar todos los riesgos si se activa sin_incidentes
+  if (activo) {
+    ['cr-basura','cr-desague','cr-arbol','cr-poste','cr-inundacion','cr-otro'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.checked = false;
+    });
+    var otroDet = document.getElementById('cr-otro-wrap');
+    if (otroDet) otroDet.style.display = 'none';
+  }
+  // Cambiar color del botón guardar
+  if (btn) {
+    btn.style.background = activo ? '#10b981' : '#ef4444';
+    btn.textContent = activo ? '\u2705 Guardar — Sin incidentes' : '\uD83D\uDCBE Guardar relevamiento';
+  }
+  // Resaltar el label
+  if (label) {
+    label.style.borderColor = activo ? 'rgba(52,211,153,.7)' : 'rgba(52,211,153,.3)';
+    label.style.background  = activo ? 'rgba(52,211,153,.12)' : 'rgba(52,211,153,.06)';
+  }
+};
+
+// ── Silenciar banner (agente ya vio la alerta) ────────────────────────────
+window.clima_silenciarBanner = function() {
+  var banner = document.getElementById('clima-banner');
+  if (banner) banner.style.display = 'none';
+  // Marcar silenciada en Supabase — no cierra la alerta, solo oculta el banner
+  if (CLIMA_ALERTA_ID && window.db) {
+    db.from('alertas_turno').update({ silenciada: true }).eq('id', CLIMA_ALERTA_ID).then(function() {});
+  }
+};
+
+window.clima_silenciarBannerDurante = function() {
+  var banner = document.getElementById('clima-banner-durante');
+  if (banner) banner.style.display = 'none';
+};
+
+// ── Silenciar grupo desde panel Gerencia/Admin ────────────────────────────
+window.climaCtrl_silenciarGrupo = function(idx) {
+  var entrada = _CLIMA_ALERTAS_IDX[idx];
+  if (!entrada || !entrada.vigentes.length) { toast('Sin alertas pendientes', 'err'); return; }
+  var pendientes = entrada.vigentes.length;
+  entrada.vigentes.forEach(function(id) {
+    db.from('alertas_turno').update({ silenciada: true }).eq('id', id).then(function(r) {
+      pendientes--;
+      if (pendientes === 0) {
+        toast('🔇 Banner silenciado para todos los agentes', 'ok');
+        climaCtrl_cargarAlertas();
+      }
+    });
+  });
+};
+
+// ── Cambiar fase (pre → durante → post) ──────────────────────────────────
+window.climaCtrl_cambiarFase = function(idx, nuevaFase) {
+  var entrada = _CLIMA_ALERTAS_IDX[idx];
+  if (!entrada) return;
+  var etiquetas = { durante: 'lluvia activa', post: 'post-lluvia' };
+  if (!confirm('¿Cambiar la alerta a fase ' + (etiquetas[nuevaFase] || nuevaFase) + '? Se notificará a todos los agentes.')) return;
+
+  // Actualizar todas las filas del grupo
+  var todosIds = entrada.todos;
+  if (!todosIds || !todosIds.length) { toast('Sin IDs de grupo', 'err'); return; }
+
+  // Mensaje de fase para el nuevo banner
+  var mensajeFase = nuevaFase === 'durante'
+    ? '\u26C8 Lluvia activa \u2014 Relevamiento de emergencia requerido'
+    : '\uD83C\uDF24 Post-lluvia \u2014 Relevá daños en el barrio';
+
+  var pendientes = todosIds.length;
+  todosIds.forEach(function(id) {
+    db.from('alertas_turno').update({ fase: nuevaFase, leida: false, silenciada: false, mensaje: mensajeFase }).eq('id', id).then(function(r) {
+      pendientes--;
+      if (pendientes === 0) {
+        var label = nuevaFase === 'durante' ? '⛈ Fase: lluvia activa' : '🌤 Fase: post-lluvia';
+        toast(label + ' — agentes notificados', 'ok');
+        climaCtrl_cargarAlertas();
+        if (typeof clima_cargarPanel === 'function') clima_cargarPanel();
+      }
+    });
+  });
+};
+
+// ── Finalizar grupo — cierra la alerta definitivamente ───────────────────
+window.climaCtrl_finalizarGrupo = function(idx) {
+  var entrada = _CLIMA_ALERTAS_IDX[idx];
+  if (!entrada) return;
+  if (!confirm('¿Finalizar esta alerta? Los agentes no podrán hacer más relevamientos para este turno. Los datos quedan en el historial.')) return;
+  var todosIds = entrada.todos;
+  if (!todosIds || !todosIds.length) return;
+  var pendientes = todosIds.length;
+  todosIds.forEach(function(id) {
+    db.from('alertas_turno').update({ leida: true, fase: (entrada.faseActual || 'pre') }).eq('id', id).then(function(r) {
+      pendientes--;
+      if (pendientes === 0) {
+        toast('🏁 Alerta finalizada — datos guardados en historial', 'ok');
+        climaCtrl_cargarAlertas();
+        if (typeof clima_cargarPanel === 'function') clima_cargarPanel();
+      }
+    });
   });
 };
 
@@ -33824,7 +33979,35 @@ window.clima_suscribir = function() {
       if (n.puesto !== puesto && n.puesto !== 'Todos') return;
       if (CLIMA_ULTIMA_VISTA === n.id) return;
       CLIMA_ULTIMA_VISTA = n.id;
-      clima_mostrarBanner({ id: n.id, tipo: n.tipo, mensaje: n.mensaje });
+      clima_mostrarBanner({ id: n.id, tipo: n.tipo, mensaje: n.mensaje, fase: n.fase });
+    })
+    .on('postgres_changes', {
+      event: 'UPDATE',
+      schema: 'public',
+      table: 'alertas_turno'
+    }, function(payload) {
+      var n = payload.new;
+      if (!n || n.tipo !== 'clima') return;
+      if (n.puesto !== puesto && n.puesto !== 'Todos') return;
+      // Silenciada: ocultar banner
+      if (n.silenciada) {
+        var b1 = document.getElementById('clima-banner');
+        var b2 = document.getElementById('clima-banner-durante');
+        if (b1) b1.style.display = 'none';
+        if (b2) b2.style.display = 'none';
+        return;
+      }
+      // Cambio de fase: mostrar banner correspondiente
+      if (n.fase === 'durante' || n.fase === 'post') {
+        CLIMA_ALERTA_ID = n.id;
+        window.CLIMA_ALERTA_ID = n.id;
+        var bannerDur = document.getElementById('clima-banner-durante');
+        var msgDur    = document.getElementById('clima-banner-durante-msg');
+        var b1normal  = document.getElementById('clima-banner');
+        if (b1normal) b1normal.style.display = 'none';
+        if (msgDur) msgDur.textContent = n.mensaje || '';
+        if (bannerDur) bannerDur.style.display = 'flex';
+      }
     })
     .subscribe();
 
@@ -33987,6 +34170,8 @@ window.clima_cargarPanel = function() {
           }
 
           // ── Indicador de puestos pendientes de respuesta ────────────────
+          // Solo visible para Gerencia y Administrador de sistema
+          var puedeVerPendientes = window.USER && (USER.puesto === 'Gerencia' || USER.puesto === 'Administrador' || USER.rol === 'ADMIN');
           var pendEl = document.getElementById('clima-pendientes-banner');
           if (!pendEl) {
             pendEl = document.createElement('div');
@@ -33994,6 +34179,10 @@ window.clima_cargarPanel = function() {
             var listaEl = document.getElementById('clima-ctrl-lista');
             if (listaEl && listaEl.parentNode) listaEl.parentNode.insertBefore(pendEl, listaEl);
           }
+          if (!puedeVerPendientes) {
+            pendEl.style.display = 'none';
+            pendEl.innerHTML = '';
+          } else {
           // Puestos a los que se envió la alerta del turno activo
           var puestosEnviados = CLIMA_ALERTAS_ENVIADAS
             ? CLIMA_ALERTAS_ENVIADAS.filter(function(a) {
@@ -34011,6 +34200,7 @@ window.clima_cargarPanel = function() {
             pendEl.style.display = esActiva ? '' : 'none';
             pendEl.innerHTML = '';
           }
+          } // fin else puedeVerPendientes
 
           climaCtrl_renderLista();
         });
@@ -34311,7 +34501,7 @@ function climaCtrl_renderLista() {
   var totalBasura   = datos.filter(function(n) { return n.acumulacion_basura; }).length;
   var totalOtro     = datos.filter(function(n) { return n.otro; }).length;
   var totalSinRiesgo = datos.filter(function(n) {
-    return !n.inundacion_activa && !n.riesgo_arbol && !n.riesgo_poste && !n.desague_tapado && !n.acumulacion_basura && !n.otro;
+    return n.sin_incidentes || (!n.inundacion_activa && !n.riesgo_arbol && !n.riesgo_poste && !n.desague_tapado && !n.acumulacion_basura && !n.otro);
   }).length;
 
   function _stat(emoji, label, val, color) {
@@ -34332,7 +34522,7 @@ function climaCtrl_renderLista() {
     + _stat('\uD83D\uDD73', 'Desagüe', totalDesague, '#a855f7')
     + _stat('\uD83D\uDDD1', 'Basura', totalBasura, '#eab308')
     + _stat('\u26A0\uFE0F', 'Otro', totalOtro, '#fca5a5')
-    + _stat('\u2705', 'Sin riesgo', totalSinRiesgo, '#34d399')
+    + _stat('\u2705', 'Sin incidentes', totalSinRiesgo, '#34d399')
     + '</div>';
 
   var html = statsHtml;
@@ -34345,12 +34535,16 @@ function climaCtrl_renderLista() {
     } catch(e) {}
 
     var riesgos = [];
-    if (n.acumulacion_basura) riesgos.push('🗑 Basura');
-    if (n.desague_tapado)    riesgos.push('🕳 Desagüe');
-    if (n.riesgo_arbol)      riesgos.push('🌳 Árbol');
-    if (n.riesgo_poste)      riesgos.push('🔌 Poste');
-    if (n.inundacion_activa) riesgos.push('🌊 Inundación');
-    if (n.otro)              riesgos.push('⚠️ ' + (n.otro_detalle || 'Otro'));
+    if (n.sin_incidentes) {
+      // Sin incidentes — no mostrar badges de riesgo
+    } else {
+      if (n.acumulacion_basura) riesgos.push('🗑 Basura');
+      if (n.desague_tapado)    riesgos.push('🕳 Desagüe');
+      if (n.riesgo_arbol)      riesgos.push('🌳 Árbol');
+      if (n.riesgo_poste)      riesgos.push('🔌 Poste');
+      if (n.inundacion_activa) riesgos.push('🌊 Inundación');
+      if (n.otro)              riesgos.push('⚠️ ' + (n.otro_detalle || 'Otro'));
+    }
 
     var gps = (n.lat && n.lng)
       ? '<button type="button" onclick="climaCtrl_verEnMapa(' + n.lat + ',' + n.lng + ')" '
@@ -34379,7 +34573,8 @@ function climaCtrl_renderLista() {
 
     // Color borde: riesgo crítico tiene prioridad sobre puesto
     var colorBorde = '#3b82f6';
-    if (n.inundacion_activa)  colorBorde = '#ef4444';
+    if (n.sin_incidentes)  colorBorde = '#10b981';
+    else if (n.inundacion_activa)  colorBorde = '#ef4444';
     else if (n.riesgo_arbol || n.riesgo_poste) colorBorde = '#f97316';
     else if (n.puesto === 'Fraga') colorBorde = '#10b981';
     else if (n.puesto === 'Papa Francisco') colorBorde = '#f59e0b';
@@ -34390,7 +34585,11 @@ function climaCtrl_renderLista() {
     html += '<div style="font-size:11px;color:#64748b">' + fecha + '</div>';
     html += '</div>';
     if (n.agente) html += '<div style="font-size:11px;color:#94a3b8;margin-bottom:8px">👤 ' + n.agente + '</div>';
-    if (riesgos.length) {
+    if (n.sin_incidentes) {
+      html += '<div style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.3);margin-bottom:8px">'
+        + '<span style="font-size:12px;font-weight:800;color:#34d399">✅ Sin incidentes</span>'
+        + '</div>';
+    } else if (riesgos.length) {
       html += '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px">';
       riesgos.forEach(function(rr) {
         html += '<span style="font-size:11px;padding:3px 8px;border-radius:8px;background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.2)">' + rr + '</span>';
@@ -34673,7 +34872,7 @@ window.climaCtrl_cargarAlertas = function() {
   wrap.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:20px;text-align:center">Cargando...</div>';
 
   db.from('alertas_turno')
-    .select('*')
+    .select('id,created_at,leida,mensaje,puesto,grupo_id,fase,silenciada')
     .eq('tipo', 'clima')
     .order('created_at', { ascending: false })
     .limit(200)
@@ -34747,7 +34946,14 @@ function climaCtrl_renderAlertas() {
 
     html += '<div style="background:var(--bg2);border-radius:12px;padding:14px;border:1px solid var(--border);border-left:4px solid ' + estadoColor + '">';
     html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">';
-    html += '<div style="font-size:13px;font-weight:800;color:#e2e8f0">' + (a.mensaje || 'Alerta climática') + '</div>';
+    // Badge de fase
+    var faseRef = a.fase || 'pre';
+    var faseBadge = faseRef === 'durante'
+      ? '<span style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px;background:rgba(239,68,68,.15);color:#ef4444;border:1px solid rgba(239,68,68,.3)">⛈ Durante lluvia</span>'
+      : faseRef === 'post'
+      ? '<span style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px;background:rgba(168,85,247,.15);color:#a855f7;border:1px solid rgba(168,85,247,.3)">🌤 Post-lluvia</span>'
+      : '<span style="font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px;background:rgba(59,130,246,.12);color:#60a5fa;border:1px solid rgba(59,130,246,.25)">🌧 Pre-lluvia</span>';
+    html += '<div style="display:flex;flex-direction:column;gap:4px"><div style="font-size:13px;font-weight:800;color:#e2e8f0">' + (a.mensaje || 'Alerta climática') + '</div>' + faseBadge + '</div>';
     html += '<div style="font-size:10px;color:#64748b;white-space:nowrap;margin-left:8px">' + fecha + '</div>';
     html += '</div>';
     html += '<div style="font-size:11px;color:#94a3b8;margin-bottom:6px">📣 Puestos: ' + puestosStr + '</div>';
@@ -34767,7 +34973,7 @@ function climaCtrl_renderAlertas() {
 
     // Guardar en índice global para acceder desde onclick sin JSON inline
     var idx = _CLIMA_ALERTAS_IDX.length;
-    _CLIMA_ALERTAS_IDX.push({ vigentes: idsVigentes, todos: idsTodos, grupoIds: idsTodosGrupo, fecha: fecha, mensaje: a.mensaje || 'Alerta climática' });
+    _CLIMA_ALERTAS_IDX.push({ vigentes: idsVigentes, todos: idsTodos, grupoIds: idsTodosGrupo, fecha: fecha, mensaje: a.mensaje || 'Alerta climática', grupoId: a.grupo_id || null });
 
     // Botón Ver relevamiento — siempre visible para admin/gerencia
     html += '<button onclick="climaCtrl_verRelevamientoAlerta(' + idx + ')" type="button" '
@@ -34775,9 +34981,29 @@ function climaCtrl_renderAlertas() {
       + 'background:transparent;color:#60a5fa;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">📋 Ver relevamiento</button>';
 
     if (esAdmin && vigentes > 0) {
-      html += '<button onclick="climaCtrl_cancelarAlerta(' + idx + ')" type="button" '
-        + 'style="padding:4px 10px;border-radius:6px;border:1px solid rgba(245,158,11,.4);'
-        + 'background:transparent;color:#f59e0b;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">🚫 Cancelar</button>';
+      // Fase actual del grupo (tomamos la del ref)
+      var faseActual = a.fase || 'pre';
+
+      // Silenciar banner
+      html += '<button onclick="climaCtrl_silenciarGrupo(' + idx + ')" type="button" '
+        + 'style="padding:4px 10px;border-radius:6px;border:1px solid rgba(100,116,139,.4);'
+        + 'background:transparent;color:#94a3b8;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">🔇 Silenciar</button>';
+
+      // Cambiar fase
+      if (faseActual === 'pre') {
+        html += '<button onclick="climaCtrl_cambiarFase(' + idx + ',\'durante\')" type="button" '
+          + 'style="padding:4px 10px;border-radius:6px;border:1px solid rgba(239,68,68,.4);'
+          + 'background:rgba(239,68,68,.08);color:#ef4444;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">⛈ Lluvia activa</button>';
+      } else if (faseActual === 'durante') {
+        html += '<button onclick="climaCtrl_cambiarFase(' + idx + ',\'post\')" type="button" '
+          + 'style="padding:4px 10px;border-radius:6px;border:1px solid rgba(168,85,247,.4);'
+          + 'background:rgba(168,85,247,.08);color:#a855f7;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">🌤 Post-lluvia</button>';
+      }
+
+      // Finalizar
+      html += '<button onclick="climaCtrl_finalizarGrupo(' + idx + ')" type="button" '
+        + 'style="padding:4px 10px;border-radius:6px;border:1px solid rgba(16,185,129,.4);'
+        + 'background:rgba(16,185,129,.08);color:#10b981;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">🏁 Finalizar</button>';
     }
     if (window.USER && USER.puesto === 'Administrador') {
       html += '<button onclick="climaCtrl_eliminarAlerta(' + idx + ')" type="button" '
