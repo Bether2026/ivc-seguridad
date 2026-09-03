@@ -34183,8 +34183,7 @@ window.clima_cargarPanel = function() {
   climaPronostico_mostrarWidget();
 
   // Controlar visibilidad según puesto
-  var puedeEnviar     = window.USER && (USER.puesto === 'Gerencia' || USER.puesto === 'Administrador' || USER.rol === 'ADMIN');
-  var puedeVerAlertas = window.USER && (USER.puesto === 'Gerencia' || USER.puesto === 'Administrador' || USER.rol === 'ADMIN');
+  var puedeEnviar = window.USER && (USER.puesto === 'Gerencia' || USER.puesto === 'Administrador' || USER.rol === 'ADMIN');
   var puedeExportClima = window.USER && (['Gerencia', 'PC', 'Administrador'].indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN');
   var btnExportClima = document.getElementById('clima-export-btn');
   if (btnExportClima) btnExportClima.style.display = puedeExportClima ? '' : 'none';
@@ -34194,6 +34193,7 @@ window.clima_cargarPanel = function() {
   var btnNuevoRelev = document.getElementById('clima-btn-nuevo-relev');
   var divFiltros = document.getElementById('clima-ctrl-filtros');
   var puedeVerAudit = window.USER && (USER.rol === 'ADMIN' || USER.puesto === 'Administrador' || USER.puesto === 'Gerencia');
+  var puedeVerAlertas = window.USER && (USER.puesto === 'Gerencia' || USER.puesto === 'Administrador' || USER.rol === 'ADMIN');
   if (tabAlertas) tabAlertas.style.display = puedeVerAlertas ? '' : 'none';
   if (tabAudit)   tabAudit.style.display   = puedeVerAudit ? '' : 'none';
   if (btnNueva)   btnNueva.style.display   = puedeEnviar ? '' : 'none';
@@ -34219,7 +34219,7 @@ window.clima_cargarPanel = function() {
 
   // Traer todas las alertas clima recientes para agruparlas por envío (mensaje+minuto)
   // Cada "envío" genera N filas (una por puesto); todas comparten mensaje y created_at al minuto
-  var hace12hs = new Date(Date.now() - 72 * 60 * 60 * 1000).toISOString();
+  var hace12hs = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   db.from('alertas_turno')
     .select('id,created_at,leida,mensaje,fase,grupo_id,puesto,silenciada')
     .eq('tipo', 'clima')
@@ -35053,7 +35053,7 @@ window.climaCtrl_cargarAlertas = function() {
   if (!wrap || !window.db) return;
   wrap.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:20px;text-align:center">Cargando...</div>';
 
-  var _hace12hs = new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString();
+  var _hace12hs = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   db.from('alertas_turno')
     .select('id,created_at,leida,mensaje,puesto,grupo_id,fase,silenciada')
     .eq('tipo', 'clima')
@@ -35097,7 +35097,6 @@ function climaCtrl_renderAlertas() {
   }
 
   var esAdmin = window.USER && (USER.puesto === 'Administrador' || USER.puesto === 'Gerencia' || USER.rol === 'ADMIN');
-  var soloVerAlertas = window.USER && !esAdmin && (USER.puesto === 'PC' || USER.puesto === 'Responsable de turno');
   var html = '';
 
   claves.forEach(function(key) {
