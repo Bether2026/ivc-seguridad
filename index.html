@@ -4266,10 +4266,9 @@ body {
               <button onclick="clima_abrirModal()" style="padding:8px 14px;border-radius:10px;border:none;background:#3b82f6;color:#fff;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">🌧 Nueva alerta</button>
               <button id="clima-export-btn" onclick="climaExportarHTML()" style="padding:8px 14px;border-radius:10px;border:1px solid rgba(255,205,2,.5);background:rgba(255,205,2,.12);color:#FFCD02;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">📄 Exportar informe</button>
               <button id="clima-btn-nuevo-relev" onclick="if(!window.CLIMA_ALERTA_ID){toast('Esperá que cargue el turno activo','err');return;}clima_abrirRelevamiento();" style="display:none;padding:8px 14px;border-radius:10px;border:none;background:#0f3158;color:#7cb0ff;border:1px solid rgba(124,176,255,.3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">📋 Nuevo relevamiento</button>
-              <button id="clima-btn-finalizar" onclick="clima_finalizarRelevamiento()" style="display:none;padding:8px 14px;border-radius:10px;border:1px solid rgba(34,197,94,.4);background:transparent;color:#22c55e;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">✅ Finalizar</button>
             </div>
             <!-- Filtro por barrio -->
-            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+            <div id="clima-ctrl-filtros" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
               <button onclick="climaCtrl_filtrar('todos')" id="cctrl-f-todos" class="tab active" style="padding:6px 14px;border-radius:8px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:var(--font);background:var(--accent,#2563eb);color:#fff">Todos</button>
               <button onclick="climaCtrl_filtrar('Rodrigo Bueno')" id="cctrl-f-rb" class="tab" style="padding:6px 14px;border-radius:8px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:var(--font);background:var(--bg3);color:var(--text2)">Rodrigo Bueno</button>
               <button onclick="climaCtrl_filtrar('Fraga')" id="cctrl-f-fr" class="tab" style="padding:6px 14px;border-radius:8px;font-size:11px;font-weight:700;border:none;cursor:pointer;font-family:var(--font);background:var(--bg3);color:var(--text2)">Fraga</button>
@@ -33574,6 +33573,12 @@ window.clima_enviarAlerta = function() {
   var cuerpo  = msg || 'Relevamiento de riesgo climático requerido en tu barrio.';
   var ahora   = new Date().toISOString();
 
+  // Generar un grupo_id único para este envío — une todas las filas del mismo dispatch
+  var grupoId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    var r = Math.random() * 16 | 0;
+    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+  });
+
   // Insertar una alerta por cada puesto seleccionado
   var pendientes = puestos.length;
   var alertaIdRef = null;
@@ -33584,7 +33589,8 @@ window.clima_enviarAlerta = function() {
       puesto: puesto,
       mensaje: titulo + ' — ' + cuerpo,
       leida: false,
-      created_at: ahora
+      created_at: ahora,
+      grupo_id: grupoId
     }).select('id').single().then(function(r) {
       if (r && r.data && !alertaIdRef) alertaIdRef = r.data.id;
       pendientes--;
@@ -33643,7 +33649,9 @@ window.clima_cerrarBanner = function() {
 
 // ── RELEVAMIENTO (agentes) ────────────────────────────────────────────────
 window.clima_abrirRelevamiento = function() {
-  clima_cerrarBanner();
+  // Solo ocultar el banner visualmente — NO marcar leida en Supabase
+  var _b = document.getElementById('clima-banner');
+  if (_b) _b.style.display = 'none';
   // Limpiar form
   ['cr-basura','cr-desague','cr-arbol','cr-poste','cr-inundacion','cr-otro'].forEach(function(id) {
     var el = document.getElementById(id);
@@ -33876,18 +33884,17 @@ window.clima_cargarPanel = function() {
   if (btnExportClima) btnExportClima.style.display = puedeExportClima ? '' : 'none';
   var tabAlertas  = document.getElementById('cctrl-tab-alertas');
   var btnNueva    = document.querySelector('#view-clima-ctrl button[onclick="clima_abrirModal()"]');
-  var btnFinalizar = document.getElementById('clima-btn-finalizar');
   var btnNuevoRelev = document.getElementById('clima-btn-nuevo-relev');
+  var divFiltros = document.getElementById('clima-ctrl-filtros');
   if (tabAlertas) tabAlertas.style.display = puedeEnviar ? '' : 'none';
   if (btnNueva)   btnNueva.style.display   = puedeEnviar ? '' : 'none';
-  if (btnFinalizar) btnFinalizar.style.display = 'none';
+  if (divFiltros) divFiltros.style.display = puedeEnviar ? '' : 'none';
   if (btnNuevoRelev) btnNuevoRelev.style.display = 'none';
-  // Si no puede enviar (puesto de campo), mostrar Finalizar y Nuevo relevamiento si tiene alerta vigente
+  // Si no puede enviar (puesto de campo), mostrar Nuevo relevamiento si tiene alerta vigente
   if (!puedeEnviar && window.db) {
     db.from('alertas_turno').select('id').eq('tipo','clima').eq('puesto', USER.puesto).eq('leida',false).limit(1)
       .then(function(r) {
         var tieneAlerta = r && r.data && r.data.length > 0;
-        if (btnFinalizar) btnFinalizar.style.display = tieneAlerta ? '' : 'none';
         if (btnNuevoRelev) btnNuevoRelev.style.display = tieneAlerta ? '' : 'none';
       });
   } else if (puedeEnviar) {
@@ -34222,7 +34229,15 @@ function climaCtrl_renderLista() {
   _CLIMA_FOTOS_IDX = [];
 
   var datos = CLIMA_CTRL_DATOS;
-  if (CLIMA_CTRL_FILTRO !== 'todos') {
+  // Puestos de campo solo ven sus propios relevamientos
+  var _puedeVerTodos = window.USER && (
+    ['Gerencia','Administración','Administrador','PC','Responsable de turno','Jefe de departamento'].indexOf(USER.puesto) >= 0
+    || USER.rol === 'ADMIN'
+  );
+  if (!_puedeVerTodos && window.USER) {
+    datos = datos.filter(function(n) { return n.puesto === USER.puesto; });
+  }
+  if (_puedeVerTodos && CLIMA_CTRL_FILTRO !== 'todos') {
     var otros = ['Rodrigo Bueno','Fraga','Papa Francisco'];
     datos = datos.filter(function(n) {
       if (CLIMA_CTRL_FILTRO === 'otro') return otros.indexOf(n.puesto) < 0;
@@ -34495,13 +34510,8 @@ window.clima_finalizarRelevamiento = function() {
 
   document.getElementById('_cli-fin-si').onclick = function() {
     document.body.removeChild(modal);
-    // Marcar alerta como leída
-    if (CLIMA_ALERTA_ID && window.db) {
-      db.from('alertas_turno').update({ leida: true }).eq('id', CLIMA_ALERTA_ID).then(function() {});
-    }
-    var b = document.getElementById('clima-banner');
-    if (b) b.style.display = 'none';
-    toast('Relevamiento finalizado ✓', 'ok');
+    // El relevamiento del agente queda registrado — la alerta la cierra Gerencia/Administración
+    toast('Relevamiento registrado ✓ — La alerta seguirá activa hasta que Gerencia la cancele', 'ok');
   };
   document.getElementById('_cli-fin-relev').onclick = function() {
     document.body.removeChild(modal);
@@ -35163,10 +35173,35 @@ window.climaCtrl_guardarEditar = function() {
     lat:                _CLIMA_EDIT_LAT,
     lng:                _CLIMA_EDIT_LNG
   };
+
+  // Capturar estado original ANTES del update para auditoría
+  var camposAuditables = ['acumulacion_basura','desague_tapado','riesgo_arbol','riesgo_poste','inundacion_activa','otro','otro_detalle','observaciones','lat','lng'];
+  var originalJson = {};
+  var cambiosJson  = {};
+  camposAuditables.forEach(function(campo) {
+    originalJson[campo] = _CLIMA_EDIT_REG[campo] !== undefined ? _CLIMA_EDIT_REG[campo] : null;
+    if (String(payload[campo]) !== String(originalJson[campo])) {
+      cambiosJson[campo] = { antes: originalJson[campo], despues: payload[campo] };
+    }
+  });
+
   db.from('relevamiento_clima').update(payload).eq('id', _CLIMA_EDIT_REG.id).then(function(r) {
     if (btn) { btn.disabled = false; btn.textContent = '💾 Guardar cambios'; }
     if (r && r.error) { toast('Error: ' + r.error.message, 'err'); return; }
-    toast('✔ Relevamiento actualizado', 'ok');
+
+    // Insertar registro de auditoría (falla silenciosa — no bloquea el flujo)
+    var auditPayload = {
+      relevamiento_id: _CLIMA_EDIT_REG.id,
+      editor_usuario:  (window.USER && window.USER.nombre) ? window.USER.nombre : (window.USER ? window.USER.email : 'desconocido'),
+      editor_puesto:   (window.USER && window.USER.puesto) ? window.USER.puesto : '',
+      original_json:   originalJson,
+      cambios_json:    cambiosJson
+    };
+    db.from('relevamiento_clima_audit').insert(auditPayload).then(function(ra) {
+      if (ra && ra.error) { console.warn('Audit clima error:', ra.error.message); }
+    });
+
+    toast('Relevamiento actualizado', 'ok');
     climaCtrl_cerrarEditar();
     clima_cargarPanel();
   });
