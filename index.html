@@ -6299,6 +6299,23 @@ body {
   </div>
 </div>
 
+<!-- BANNER FASE POST (post-tormenta) -->
+<div id="clima-banner-post" style="display:none;position:fixed;top:0;left:0;right:0;z-index:9200;padding:14px 16px;border-bottom:3px solid #a855f7;background:rgba(88,28,135,.97);backdrop-filter:blur(10px);flex-direction:column;gap:8px">
+  <div style="display:flex;align-items:center;justify-content:space-between">
+    <div style="font-size:14px;font-weight:900;color:#e9d5ff;letter-spacing:.02em">&#x1F324; Post-tormenta &#x2014; Relev&#xE1; da&#xF1;os</div>
+    <button onclick="clima_silenciarBannerPost()" style="background:transparent;border:none;color:#9ca3af;font-size:20px;cursor:pointer">&#xD7;</button>
+  </div>
+  <div id="clima-banner-post-msg" style="font-size:12px;color:#e9d5ff;line-height:1.4"></div>
+  <div style="display:flex;gap:8px;margin-top:4px">
+    <button onclick="clima_abrirRelevamiento()" style="flex:1;padding:10px;border-radius:10px;border:none;background:#7c3aed;color:#fff;font-family:var(--font);font-size:13px;font-weight:800;cursor:pointer">
+      &#x1F4CB; Relevar da&#xF1;os post-tormenta
+    </button>
+    <button onclick="clima_silenciarBannerPost()" style="padding:10px 14px;border-radius:10px;border:1px solid rgba(168,85,247,.3);background:rgba(168,85,247,.1);color:#e9d5ff;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer" title="Silenciar">
+      &#x1F507;
+    </button>
+  </div>
+</div>
+
 <!-- LIGHTBOX CLIMA -->
 <div id="clima-lb" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.95);flex-direction:column;align-items:center;justify-content:center;gap:16px">
   <button onclick="climaLightboxClose()" style="position:absolute;top:16px;right:18px;font-size:24px;color:#fff;cursor:pointer;background:rgba(255,255,255,.1);border:none;width:40px;height:40px;border-radius:50%">×</button>
@@ -6361,8 +6378,8 @@ body {
   <div style="background:var(--bg);border-radius:20px 20px 0 0;width:100%;max-width:520px;padding:22px;max-height:92vh;overflow-y:auto">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
       <div>
-        <div style="font-size:15px;font-weight:900;color:var(--text)">🌧 Relevamiento climático</div>
-        <div style="font-size:11px;color:var(--text3);margin-top:2px">Marcá todo lo que observás en el barrio</div>
+        <div style="font-size:15px;font-weight:900;color:var(--text)" id="cr-titulo-fase">&#x1F327; Relevamiento clim&#xE1;tico</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:2px" id="cr-subtitulo-fase">Marc&#xE1; todo lo que observ&#xE1;s en el barrio</div>
       </div>
       <button onclick="clima_cerrarRelevamiento()" style="width:32px;height:32px;border-radius:50%;border:1px solid var(--border2);background:var(--bg2);color:var(--text2);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">×</button>
     </div>
@@ -6375,8 +6392,8 @@ body {
       <label id="cr-sin-inc-label" style="display:flex;align-items:center;gap:10px;padding:13px 14px;border-radius:10px;border:2px solid rgba(52,211,153,.3);background:rgba(52,211,153,.06);cursor:pointer;margin-bottom:10px" onclick="clima_toggleSinIncidentes()">
         <input type="checkbox" id="cr-sin-incidentes" style="width:20px;height:20px;accent-color:#10b981;flex-shrink:0" onclick="event.stopPropagation();clima_toggleSinIncidentes()">
         <div>
-          <div style="font-size:13px;font-weight:800;color:#34d399">✅ Sin incidentes</div>
-          <div style="font-size:11px;color:var(--text3);margin-top:2px">Relevamiento completo — barrio sin novedades</div>
+          <div style="font-size:13px;font-weight:800;color:#34d399" id="cr-sin-inc-texto">&#x2705; Sin incidentes</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px" id="cr-sin-inc-sub">Relevamiento completo &#x2014; barrio sin novedades</div>
         </div>
       </label>
 
@@ -33907,24 +33924,108 @@ window.climaCtrl_cambiarFase = function(idx, nuevaFase) {
   });
 };
 
-// ── Finalizar grupo — cierra la alerta definitivamente ───────────────────
+// ── Finalizar grupo — modal con tres opciones ────────────────────────────
 window.climaCtrl_finalizarGrupo = function(idx) {
   var entrada = _CLIMA_ALERTAS_IDX[idx];
   if (!entrada) return;
-  if (!confirm('¿Finalizar esta alerta? Los agentes no podrán hacer más relevamientos para este turno. Los datos quedan en el historial.')) return;
-  var todosIds = entrada.todos;
-  if (!todosIds || !todosIds.length) return;
-  var pendientes = todosIds.length;
-  todosIds.forEach(function(id) {
-    db.from('alertas_turno').update({ leida: true, fase: (entrada.faseActual || 'pre') }).eq('id', id).then(function(r) {
-      pendientes--;
-      if (pendientes === 0) {
-        toast('🏁 Alerta finalizada — datos guardados en historial', 'ok');
-        climaCtrl_cargarAlertas();
-        if (typeof clima_cargarPanel === 'function') clima_cargarPanel();
-      }
+
+  var overlay = document.createElement('div');
+  overlay.id = '_fin-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:99990;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;padding:24px';
+
+  overlay.innerHTML = '<div style="background:var(--bg2);border-radius:16px;padding:24px;max-width:340px;width:100%;border:1px solid var(--border)">'
+    + '<div style="font-size:22px;text-align:center;margin-bottom:10px">\uD83C\uDFC1</div>'
+    + '<div style="font-size:15px;font-weight:900;color:var(--text);text-align:center;margin-bottom:6px">Finalizar alerta</div>'
+    + '<div style="font-size:12px;color:var(--text3);text-align:center;line-height:1.5;margin-bottom:20px">'
+    + '\xBFDesear\xE1s enviar un relevamiento post-tormenta a los agentes?'
+    + '</div>'
+    + '<div style="display:flex;flex-direction:column;gap:10px">'
+    + '<button id="_fin-con-post" style="padding:13px;border-radius:10px;border:none;background:#7c3aed;color:#fff;font-family:var(--font);font-size:13px;font-weight:800;cursor:pointer">'
+    + '\uD83C\uDF24 Finalizar y enviar relevamiento post-tormenta'
+    + '</button>'
+    + '<button id="_fin-sin-post" style="padding:13px;border-radius:10px;border:1px solid rgba(16,185,129,.4);background:rgba(16,185,129,.08);color:#34d399;font-family:var(--font);font-size:13px;font-weight:800;cursor:pointer">'
+    + '\uD83C\uDFC1 Finalizar sin relevamiento post-tormenta'
+    + '</button>'
+    + '<button id="_fin-cancel" style="padding:11px;border-radius:10px;border:1px solid var(--border2);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">'
+    + 'Cancelar'
+    + '</button>'
+    + '</div>'
+    + '</div>';
+
+  document.body.appendChild(overlay);
+
+  function _cerrar() { var el = document.getElementById('_fin-overlay'); if (el) document.body.removeChild(el); }
+
+  function _finalizarIds(todosIds, callback) {
+    var pend = todosIds.length;
+    todosIds.forEach(function(id) {
+      db.from('alertas_turno').update({ leida: true }).eq('id', id).then(function() {
+        pend--;
+        if (pend === 0) callback();
+      });
     });
-  });
+  }
+
+  function _enviarPost(puestosSrc) {
+    if (!puestosSrc || !puestosSrc.length) {
+      toast('\uD83C\uDFC1 Alerta finalizada', 'ok');
+      climaCtrl_cargarAlertas();
+      if (typeof clima_cargarPanel === 'function') clima_cargarPanel();
+      return;
+    }
+    var grupoIdPost = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      var r = Math.random() * 16 | 0;
+      return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+    });
+    var ahora   = new Date().toISOString();
+    var titulo  = '\uD83C\uDF24 Post-tormenta';
+    var cuerpo  = 'Relev\xE1 da\xF1os en el barrio';
+    var mensaje = titulo + ' \u2014 ' + cuerpo;
+    var pPost   = puestosSrc.length;
+    puestosSrc.forEach(function(puesto) {
+      db.from('alertas_turno').insert({
+        tipo: 'clima', puesto: puesto, mensaje: mensaje,
+        leida: false, silenciada: false, fase: 'post',
+        created_at: ahora, grupo_id: grupoIdPost
+      }).then(function() {
+        pPost--;
+        if (pPost === 0) {
+          if (typeof PUSH_SERVER_URL !== 'undefined') {
+            fetch(PUSH_SERVER_URL + '/api/send', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ titulo: titulo, cuerpo: cuerpo, url: '/', puestos: puestosSrc })
+            }).catch(function() {});
+          }
+          toast('\uD83C\uDFC1 Finalizada \u2014 \uD83C\uDF24 Post-tormenta enviada a ' + puestosSrc.join(', '), 'ok');
+          climaCtrl_cargarAlertas();
+          if (typeof clima_cargarPanel === 'function') clima_cargarPanel();
+        }
+      });
+    });
+  }
+
+  document.getElementById('_fin-con-post').onclick = function() {
+    _cerrar();
+    var todosIds   = entrada.todos;
+    var puestosSrc = entrada.puestosGrupo || [];
+    if (!todosIds || !todosIds.length) return;
+    _finalizarIds(todosIds, function() { _enviarPost(puestosSrc); });
+  };
+
+  document.getElementById('_fin-sin-post').onclick = function() {
+    _cerrar();
+    var todosIds = entrada.todos;
+    if (!todosIds || !todosIds.length) return;
+    _finalizarIds(todosIds, function() {
+      toast('\uD83C\uDFC1 Alerta finalizada \u2014 sin relevamiento post-tormenta', 'ok');
+      climaCtrl_cargarAlertas();
+      if (typeof clima_cargarPanel === 'function') clima_cargarPanel();
+    });
+  };
+
+  document.getElementById('_fin-cancel').onclick = _cerrar;
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) _cerrar(); });
 };
 
 function clima_insertar(payload, btn) {
@@ -33979,7 +34080,7 @@ window.clima_suscribir = function() {
       if (n.puesto !== puesto && n.puesto !== 'Todos') return;
       if (CLIMA_ULTIMA_VISTA === n.id) return;
       CLIMA_ULTIMA_VISTA = n.id;
-      clima_mostrarBanner({ id: n.id, tipo: n.tipo, mensaje: n.mensaje, fase: n.fase });
+      clima_mostrarBanner({ id: n.id, tipo: n.tipo, mensaje: n.mensaje, fase: n.fase || 'pre' });
     })
     .on('postgres_changes', {
       event: 'UPDATE',
@@ -33998,15 +34099,10 @@ window.clima_suscribir = function() {
         return;
       }
       // Cambio de fase: mostrar banner correspondiente
-      if (n.fase === 'durante' || n.fase === 'post') {
+      if (n.fase === 'durante' || n.fase === 'post' || n.fase === 'pre') {
         CLIMA_ALERTA_ID = n.id;
         window.CLIMA_ALERTA_ID = n.id;
-        var bannerDur = document.getElementById('clima-banner-durante');
-        var msgDur    = document.getElementById('clima-banner-durante-msg');
-        var b1normal  = document.getElementById('clima-banner');
-        if (b1normal) b1normal.style.display = 'none';
-        if (msgDur) msgDur.textContent = n.mensaje || '';
-        if (bannerDur) bannerDur.style.display = 'flex';
+        clima_mostrarBanner({ id: n.id, tipo: n.tipo, mensaje: n.mensaje || '', fase: n.fase });
       }
     })
     .subscribe();
@@ -34467,13 +34563,12 @@ function climaPronostico_wmoDesc(code) {
 function climaCtrl_renderLista() {
   var lista = document.getElementById('clima-ctrl-lista');
   if (!lista) return;
-  _CLIMA_EDIT_IDX = [];
+  _CLIMA_EDIT_IDX  = [];
   _CLIMA_FOTOS_IDX = [];
 
   var datos = CLIMA_CTRL_DATOS;
-  // Puestos de campo solo ven sus propios relevamientos
   var _puedeVerTodos = window.USER && (
-    ['Gerencia','Administración','Administrador','PC','Responsable de turno','Jefe de departamento'].indexOf(USER.puesto) >= 0
+    ['Gerencia','Administraci\xF3n','Administrador','PC','Responsable de turno','Jefe de departamento'].indexOf(USER.puesto) >= 0
     || USER.rol === 'ADMIN'
   );
   if (!_puedeVerTodos && window.USER) {
@@ -34486,23 +34581,18 @@ function climaCtrl_renderLista() {
       return n.puesto === CLIMA_CTRL_FILTRO;
     });
   }
-
   if (!datos.length) {
     lista.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:40px;text-align:center">Sin relevamientos para este filtro</div>';
     return;
   }
 
-  // ── Resumen estadístico ──────────────────────────────────────────────────
-  var totalRelev    = datos.length;
-  var totalInund    = datos.filter(function(n) { return n.inundacion_activa; }).length;
-  var totalArbol    = datos.filter(function(n) { return n.riesgo_arbol; }).length;
-  var totalPoste    = datos.filter(function(n) { return n.riesgo_poste; }).length;
-  var totalDesague  = datos.filter(function(n) { return n.desague_tapado; }).length;
-  var totalBasura   = datos.filter(function(n) { return n.acumulacion_basura; }).length;
-  var totalOtro     = datos.filter(function(n) { return n.otro; }).length;
-  var totalSinRiesgo = datos.filter(function(n) {
-    return n.sin_incidentes || (!n.inundacion_activa && !n.riesgo_arbol && !n.riesgo_poste && !n.desague_tapado && !n.acumulacion_basura && !n.otro);
-  }).length;
+  var _alertaFaseMap = {};
+  if (Array.isArray(CLIMA_ALERTAS_ENVIADAS)) {
+    CLIMA_ALERTAS_ENVIADAS.forEach(function(a) { _alertaFaseMap[a.id] = a.fase || 'pre'; });
+  }
+  var secPre     = datos.filter(function(n) { return (_alertaFaseMap[n.alerta_id] || 'pre') === 'pre'; });
+  var secDurante = datos.filter(function(n) { return (_alertaFaseMap[n.alerta_id] || '') === 'durante'; });
+  var secPost    = datos.filter(function(n) { return (_alertaFaseMap[n.alerta_id] || '') === 'post'; });
 
   function _stat(emoji, label, val, color) {
     if (!val) return '';
@@ -34513,108 +34603,129 @@ function climaCtrl_renderLista() {
       + '</div>';
   }
 
-  var statsHtml = '<div style="display:flex;gap:6px;flex-wrap:wrap;padding:12px 14px;background:var(--bg2);border-radius:12px;border:1px solid var(--border);margin-bottom:10px;align-items:center">'
-    + '<div style="font-size:11px;font-weight:800;color:var(--text3);width:100%;margin-bottom:4px">RESUMEN DEL TURNO</div>'
-    + _stat('\uD83D\uDCCB', 'Total', totalRelev, '#93c5fd')
-    + _stat('\uD83C\uDF0A', 'Inundación', totalInund, '#ef4444')
-    + _stat('\uD83C\uDF33', 'Árbol', totalArbol, '#f97316')
-    + _stat('\uD83D\uDD0C', 'Poste', totalPoste, '#f97316')
-    + _stat('\uD83D\uDD73', 'Desagüe', totalDesague, '#a855f7')
-    + _stat('\uD83D\uDDD1', 'Basura', totalBasura, '#eab308')
-    + _stat('\u26A0\uFE0F', 'Otro', totalOtro, '#fca5a5')
-    + _stat('\u2705', 'Sin incidentes', totalSinRiesgo, '#34d399')
-    + '</div>';
+  function _buildStats(arr, label, borderColor) {
+    if (!arr.length) return '';
+    var total     = arr.length;
+    var inund     = arr.filter(function(n) { return n.inundacion_activa; }).length;
+    var arbol     = arr.filter(function(n) { return n.riesgo_arbol; }).length;
+    var poste     = arr.filter(function(n) { return n.riesgo_poste; }).length;
+    var desague   = arr.filter(function(n) { return n.desague_tapado; }).length;
+    var basura    = arr.filter(function(n) { return n.acumulacion_basura; }).length;
+    var otro      = arr.filter(function(n) { return n.otro; }).length;
+    var sinRiesgo = arr.filter(function(n) {
+      return n.sin_incidentes || (!n.inundacion_activa && !n.riesgo_arbol && !n.riesgo_poste && !n.desague_tapado && !n.acumulacion_basura && !n.otro);
+    }).length;
+    return '<div style="display:flex;gap:6px;flex-wrap:wrap;padding:10px 14px;background:var(--bg2);border-radius:12px;border:1px solid var(--border);border-left:4px solid ' + borderColor + ';margin-bottom:8px;align-items:center">'
+      + '<div style="font-size:11px;font-weight:800;color:var(--text3);width:100%;margin-bottom:4px">' + label + '</div>'
+      + _stat('\uD83D\uDCCB', 'Total', total, '#93c5fd')
+      + _stat('\uD83C\uDF0A', 'Inundaci\xF3n', inund, '#ef4444')
+      + _stat('\uD83C\uDF33', '\xC1rbol', arbol, '#f97316')
+      + _stat('\uD83D\uDD0C', 'Poste', poste, '#f97316')
+      + _stat('\uD83D\uDD73', 'Desag\xFCe', desague, '#a855f7')
+      + _stat('\uD83D\uDDD1', 'Basura', basura, '#eab308')
+      + _stat('\u26A0\uFE0F', 'Otro', otro, '#fca5a5')
+      + _stat('\u2705', 'Sin incidentes', sinRiesgo, '#34d399')
+      + '</div>';
+  }
 
-  var html = statsHtml;
-  datos.forEach(function(n) {
-    var fecha = '';
-    try {
-      var dt = new Date(n.created_at);
-      fecha = dt.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric',timeZone:'America/Argentina/Buenos_Aires'})
-        + ' ' + dt.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',timeZone:'America/Argentina/Buenos_Aires'});
-    } catch(e) {}
+  function _buildCards(arr) {
+    var out = '';
+    arr.forEach(function(n) {
+      var fecha = '';
+      try {
+        var dt = new Date(n.created_at);
+        fecha = dt.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric',timeZone:'America/Argentina/Buenos_Aires'})
+          + ' ' + dt.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',timeZone:'America/Argentina/Buenos_Aires'});
+      } catch(e) {}
+      var riesgos = [];
+      if (!n.sin_incidentes) {
+        if (n.acumulacion_basura) riesgos.push('\uD83D\uDDD1 Basura');
+        if (n.desague_tapado)    riesgos.push('\uD83D\uDD73 Desag\xFCe');
+        if (n.riesgo_arbol)      riesgos.push('\uD83C\uDF33 \xC1rbol');
+        if (n.riesgo_poste)      riesgos.push('\uD83D\uDD0C Poste');
+        if (n.inundacion_activa) riesgos.push('\uD83C\uDF0A Inundaci\xF3n');
+        if (n.otro)              riesgos.push('\u26A0\uFE0F ' + (n.otro_detalle || 'Otro'));
+      }
+      var gps = (n.lat && n.lng)
+        ? '<button type="button" onclick="climaCtrl_verEnMapa(' + n.lat + ',' + n.lng + ')" style="background:transparent;border:none;color:#93c5fd;font-size:11px;display:inline-block;margin-top:6px;cursor:pointer;padding:0;font-family:var(--font)">\uD83D\uDCCD Ver en mapa</button>'
+        : '<span style="font-size:11px;color:#475569;display:inline-block;margin-top:6px">\uD83D\uDCCD Sin GPS</span>';
+      var fotosHtml = '';
+      var _fotos = n.fotos_urls;
+      if (typeof _fotos === 'string') {
+        if (_fotos.charAt(0) === '{') {
+          _fotos = _fotos.slice(1,-1).split(',').map(function(s){ return s.replace(/^"|"$/g,'').trim(); }).filter(Boolean);
+        } else { try { _fotos = JSON.parse(_fotos); } catch(e) { _fotos = _fotos ? [_fotos] : []; } }
+      }
+      if (!Array.isArray(_fotos)) _fotos = [];
+      if (_fotos.length) {
+        var fotIdx = _CLIMA_FOTOS_IDX.length;
+        _CLIMA_FOTOS_IDX.push(_fotos);
+        fotosHtml = '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">';
+        _fotos.forEach(function(f, fi) {
+          fotosHtml += '<img src="' + f + '" onclick="climaLightbox(' + fotIdx + ',' + fi + ')" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid #334155;cursor:zoom-in" loading="lazy">';
+        });
+        fotosHtml += '</div>';
+      }
+      var colorBorde = '#3b82f6';
+      if (n.sin_incidentes)                      colorBorde = '#10b981';
+      else if (n.inundacion_activa)              colorBorde = '#ef4444';
+      else if (n.riesgo_arbol || n.riesgo_poste) colorBorde = '#f97316';
+      else if (n.puesto === 'Fraga')             colorBorde = '#10b981';
+      else if (n.puesto === 'Papa Francisco')    colorBorde = '#f59e0b';
+      out += '<div style="background:var(--bg2);border-radius:12px;padding:14px;border:1px solid var(--border);border-left:4px solid ' + colorBorde + '">';
+      out += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">';
+      out += '<div style="font-size:13px;font-weight:800;color:#e2e8f0">' + (n.puesto || '\u2014') + '</div>';
+      out += '<div style="font-size:11px;color:#64748b">' + fecha + '</div>';
+      out += '</div>';
+      if (n.agente) out += '<div style="font-size:11px;color:#94a3b8;margin-bottom:8px">\uD83D\uDC64 ' + n.agente + '</div>';
+      if (n.sin_incidentes) {
+        out += '<div style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.3);margin-bottom:8px"><span style="font-size:12px;font-weight:800;color:#34d399">\u2705 Sin incidentes</span></div>';
+      } else if (riesgos.length) {
+        out += '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px">';
+        riesgos.forEach(function(rr) { out += '<span style="font-size:11px;padding:3px 8px;border-radius:8px;background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.2)">' + rr + '</span>'; });
+        out += '</div>';
+      }
+      if (n.observaciones) out += '<div style="font-size:12px;color:#cbd5e1;line-height:1.5;margin-bottom:4px;padding:8px;background:rgba(255,255,255,.04);border-radius:6px">' + n.observaciones + '</div>';
+      out += gps + fotosHtml;
+      var idxEdit = _CLIMA_EDIT_IDX.length;
+      _CLIMA_EDIT_IDX.push(n);
+      out += '<div style="margin-top:10px;display:flex;gap:8px;justify-content:flex-end">';
+      out += '<button onclick="climaCtrl_abrirEditar(' + idxEdit + ')" type="button" style="padding:4px 10px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--accent3);font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">\u270F\uFE0F Editar</button>';
+      if (window.USER && USER.puesto === 'Administrador') {
+        out += '<button onclick="climaCtrl_eliminar(\'' + n.id + '\')" type="button" style="padding:4px 10px;border-radius:6px;border:1px solid rgba(239,68,68,.4);background:transparent;color:#ef4444;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">\uD83D\uDDD1 Eliminar</button>';
+      }
+      out += '</div></div>';
+    });
+    return out;
+  }
 
-    var riesgos = [];
-    if (n.sin_incidentes) {
-      // Sin incidentes — no mostrar badges de riesgo
-    } else {
-      if (n.acumulacion_basura) riesgos.push('🗑 Basura');
-      if (n.desague_tapado)    riesgos.push('🕳 Desagüe');
-      if (n.riesgo_arbol)      riesgos.push('🌳 Árbol');
-      if (n.riesgo_poste)      riesgos.push('🔌 Poste');
-      if (n.inundacion_activa) riesgos.push('🌊 Inundación');
-      if (n.otro)              riesgos.push('⚠️ ' + (n.otro_detalle || 'Otro'));
+  function _seccionHeader(emoji, label, color) {
+    return '<div style="font-size:11px;font-weight:800;color:' + color + ';text-transform:uppercase;letter-spacing:.08em;padding:6px 0 4px 2px;border-bottom:1px solid var(--border);margin-bottom:8px;margin-top:14px">' + emoji + ' ' + label + '</div>';
+  }
+
+  var html = '';
+  var multiFase = (secDurante.length > 0 || secPost.length > 0);
+  if (!multiFase) {
+    html += _buildStats(secPre, 'RESUMEN DEL TURNO', '#3b82f6');
+    html += _buildCards(secPre);
+  } else {
+    html += _buildStats(datos, 'RESUMEN GLOBAL DEL EVENTO', '#64748b');
+    if (secPre.length) {
+      html += _seccionHeader('\uD83C\uDF27', 'Antes de la lluvia (' + secPre.length + ')', '#60a5fa');
+      html += _buildStats(secPre, 'RESUMEN PRE-LLUVIA', '#3b82f6');
+      html += _buildCards(secPre);
     }
-
-    var gps = (n.lat && n.lng)
-      ? '<button type="button" onclick="climaCtrl_verEnMapa(' + n.lat + ',' + n.lng + ')" '
-        + 'style="background:transparent;border:none;color:#93c5fd;font-size:11px;display:inline-block;margin-top:6px;cursor:pointer;padding:0;font-family:var(--font)">📍 Ver en mapa</button>'
-      : '<span style="font-size:11px;color:#475569;display:inline-block;margin-top:6px">📍 Sin GPS</span>';
-
-    var fotosHtml = '';
-    var _fotos = n.fotos_urls;
-    if (typeof _fotos === 'string') {
-      // Formato PostgreSQL: {url1,url2} o JSON: ["url1","url2"]
-      if (_fotos.charAt(0) === '{') {
-        _fotos = _fotos.slice(1,-1).split(',').map(function(s){ return s.replace(/^"|"$/g,'').trim(); }).filter(Boolean);
-      } else { try { _fotos = JSON.parse(_fotos); } catch(e) { _fotos = _fotos ? [_fotos] : []; } }
+    if (secDurante.length) {
+      html += _seccionHeader('\u26C8', 'Durante la lluvia (' + secDurante.length + ')', '#f87171');
+      html += _buildStats(secDurante, 'RESUMEN DURANTE LLUVIA', '#ef4444');
+      html += _buildCards(secDurante);
     }
-    if (!Array.isArray(_fotos)) _fotos = [];
-    if (_fotos.length) {
-      var fotIdx = _CLIMA_FOTOS_IDX.length;
-      _CLIMA_FOTOS_IDX.push(_fotos);
-      fotosHtml = '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">';
-      _fotos.forEach(function(f, fi) {
-        fotosHtml += '<img src="' + f + '" onclick="climaLightbox(' + fotIdx + ',' + fi + ')" '
-          + 'style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid #334155;cursor:zoom-in" loading="lazy">';
-      });
-      fotosHtml += '</div>';
+    if (secPost.length) {
+      html += _seccionHeader('\uD83C\uDF24', 'Post-tormenta (' + secPost.length + ')', '#c084fc');
+      html += _buildStats(secPost, 'RESUMEN POST-TORMENTA', '#a855f7');
+      html += _buildCards(secPost);
     }
-
-    // Color borde: riesgo crítico tiene prioridad sobre puesto
-    var colorBorde = '#3b82f6';
-    if (n.sin_incidentes)  colorBorde = '#10b981';
-    else if (n.inundacion_activa)  colorBorde = '#ef4444';
-    else if (n.riesgo_arbol || n.riesgo_poste) colorBorde = '#f97316';
-    else if (n.puesto === 'Fraga') colorBorde = '#10b981';
-    else if (n.puesto === 'Papa Francisco') colorBorde = '#f59e0b';
-
-    html += '<div style="background:var(--bg2);border-radius:12px;padding:14px;border:1px solid var(--border);border-left:4px solid ' + colorBorde + '">';
-    html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">';
-    html += '<div style="font-size:13px;font-weight:800;color:#e2e8f0">' + (n.puesto || '—') + '</div>';
-    html += '<div style="font-size:11px;color:#64748b">' + fecha + '</div>';
-    html += '</div>';
-    if (n.agente) html += '<div style="font-size:11px;color:#94a3b8;margin-bottom:8px">👤 ' + n.agente + '</div>';
-    if (n.sin_incidentes) {
-      html += '<div style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.3);margin-bottom:8px">'
-        + '<span style="font-size:12px;font-weight:800;color:#34d399">✅ Sin incidentes</span>'
-        + '</div>';
-    } else if (riesgos.length) {
-      html += '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px">';
-      riesgos.forEach(function(rr) {
-        html += '<span style="font-size:11px;padding:3px 8px;border-radius:8px;background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.2)">' + rr + '</span>';
-      });
-      html += '</div>';
-    }
-    if (n.observaciones) html += '<div style="font-size:12px;color:#cbd5e1;line-height:1.5;margin-bottom:4px;padding:8px;background:rgba(255,255,255,.04);border-radius:6px">' + n.observaciones + '</div>';
-    html += gps;
-    html += fotosHtml;
-
-    // Botones acción
-    var idxEdit = _CLIMA_EDIT_IDX.length;
-    _CLIMA_EDIT_IDX.push(n);
-    html += '<div style="margin-top:10px;display:flex;gap:8px;justify-content:flex-end">';
-    html += '<button onclick="climaCtrl_abrirEditar(' + idxEdit + ')" type="button" '
-      + 'style="padding:4px 10px;border-radius:6px;border:1px solid var(--border2);background:transparent;'
-      + 'color:var(--accent3);font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">✏️ Editar</button>';
-    if (window.USER && USER.puesto === 'Administrador') {
-      html += '<button onclick="climaCtrl_eliminar(\'' + n.id + '\')" type="button" '
-        + 'style="padding:4px 10px;border-radius:6px;border:1px solid rgba(239,68,68,.4);background:transparent;'
-        + 'color:#ef4444;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">🗑 Eliminar</button>';
-    }
-    html += '</div>';
-    html += '</div>';
-  });
+  }
   lista.innerHTML = html;
 }
 
@@ -34627,25 +34738,46 @@ window.climaCtrl_eliminar = function(id) {
     clima_cargarPanel();
   });
 };
-// ── Fix banner: que permanezca como comunicación interna ──────────────────
+// ── Banner multi-fase: pre (azul) / durante (rojo) / post (violeta) ──────
 window.clima_mostrarBanner = function(alerta) {
   CLIMA_ALERTA_ID = alerta.id || null;
-  var banner = document.getElementById('clima-banner');
-  var tit    = document.getElementById('clima-banner-titulo');
-  var msgEl  = document.getElementById('clima-banner-msg');
-  if (!banner) return;
-  // Extraer tipo del mensaje (formato: "🌧 Tipo — Cuerpo del mensaje")
-  var msg = alerta.mensaje || '';
-  var titTexto = '\uD83C\uDF27 Alerta clim\u00E1tica';
-  var cuerpo   = msg;
-  var sepIdx   = msg.indexOf(' \u2014 ');
-  if (sepIdx > 0) {
-    titTexto = msg.substring(0, sepIdx);
-    cuerpo   = msg.substring(sepIdx + 3);
+  window.CLIMA_FASE_ACTIVA = alerta.fase || 'pre';
+  var bPre  = document.getElementById('clima-banner');
+  var bDur  = document.getElementById('clima-banner-durante');
+  var bPost = document.getElementById('clima-banner-post');
+  if (bPre)  bPre.style.display  = 'none';
+  if (bDur)  bDur.style.display  = 'none';
+  if (bPost) bPost.style.display = 'none';
+  var msg    = alerta.mensaje || '';
+  var cuerpo = msg;
+  var sepIdx = msg.indexOf(' \u2014 ');
+  if (sepIdx > 0) cuerpo = msg.substring(sepIdx + 3);
+  var fase = alerta.fase || 'pre';
+  if (fase === 'durante') {
+    var msgDur = document.getElementById('clima-banner-durante-msg');
+    if (msgDur) msgDur.textContent = cuerpo || msg;
+    if (bDur) bDur.style.display = 'flex';
+  } else if (fase === 'post') {
+    var msgPost = document.getElementById('clima-banner-post-msg');
+    if (msgPost) msgPost.textContent = cuerpo || msg;
+    if (bPost) bPost.style.display = 'flex';
+  } else {
+    var titTexto = '\uD83C\uDF27 Alerta clim\u00E1tica';
+    if (sepIdx > 0) titTexto = msg.substring(0, sepIdx);
+    var tit   = document.getElementById('clima-banner-titulo');
+    var msgEl = document.getElementById('clima-banner-msg');
+    if (tit)   tit.textContent   = titTexto;
+    if (msgEl) msgEl.textContent = cuerpo || 'Relevamiento de riesgo requerido en tu barrio.';
+    if (bPre) bPre.style.display = 'flex';
   }
-  if (tit)   tit.textContent   = titTexto;
-  if (msgEl) msgEl.textContent = cuerpo || 'Relevamiento de riesgo requerido en tu barrio.';
-  banner.style.display = 'flex';
+};
+
+window.clima_silenciarBannerPost = function() {
+  var b = document.getElementById('clima-banner-post');
+  if (b) b.style.display = 'none';
+  if (CLIMA_ALERTA_ID && window.db) {
+    db.from('alertas_turno').update({ silenciada: true }).eq('id', CLIMA_ALERTA_ID).then(function() {});
+  }
 };
 
 // ── Fix GPS: solicitar con timeout y fallback ─────────────────────────────
@@ -34752,10 +34884,31 @@ function _clima_initMapaRelev(lat, lng) {
   setTimeout(function() { if (CLIMA_RELEV_MAP) CLIMA_RELEV_MAP.invalidateSize(); }, 300);
 }
 
-// Override clima_abrirRelevamiento para iniciar mapa
+// Override clima_abrirRelevamiento para iniciar mapa y adaptar form por fase
 var _origClimaAbrirRelev = window.clima_abrirRelevamiento;
 window.clima_abrirRelevamiento = function() {
   if (typeof _origClimaAbrirRelev === 'function') _origClimaAbrirRelev();
+  var _fase    = window.CLIMA_FASE_ACTIVA || 'pre';
+  var _elTit   = document.getElementById('cr-titulo-fase');
+  var _elSub   = document.getElementById('cr-subtitulo-fase');
+  var _elSinTx = document.getElementById('cr-sin-inc-texto');
+  var _elSinSb = document.getElementById('cr-sin-inc-sub');
+  if (_fase === 'post') {
+    if (_elTit)   _elTit.textContent   = '\uD83C\uDF24 Relevamiento post-tormenta';
+    if (_elSub)   _elSub.textContent   = 'Relev\xE1 da\xF1os ocurridos por la tormenta';
+    if (_elSinTx) _elSinTx.textContent = '\u2705 Sin da\xF1os post-tormenta \u2014 barrio en condiciones normales';
+    if (_elSinSb) _elSinSb.textContent = 'No se detectaron da\xF1os ni secuelas de la tormenta';
+  } else if (_fase === 'durante') {
+    if (_elTit)   _elTit.textContent   = '\u26C8 Relevamiento \u2014 Lluvia activa';
+    if (_elSub)   _elSub.textContent   = 'Relev\xE1 la situaci\xF3n en este momento';
+    if (_elSinTx) _elSinTx.textContent = '\u2705 Sin incidentes activos';
+    if (_elSinSb) _elSinSb.textContent = 'Lluvia sin impacto visible en el barrio por ahora';
+  } else {
+    if (_elTit)   _elTit.textContent   = '\uD83C\uDF27 Relevamiento clim\xE1tico';
+    if (_elSub)   _elSub.textContent   = 'Marc\xE1 todo lo que observ\xE1s en el barrio';
+    if (_elSinTx) _elSinTx.textContent = '\u2705 Sin incidentes';
+    if (_elSinSb) _elSinSb.textContent = 'Relevamiento completo \u2014 barrio sin novedades';
+  }
   // Init mapa después de que el modal sea visible
   setTimeout(function() {
     clima_cargarLeaflet(function() {
@@ -34971,9 +35124,17 @@ function climaCtrl_renderAlertas() {
     // IDs de todas las filas del grupo (para buscar relevamientos)
     var idsTodosGrupo = idsTodos.slice();
 
+    var puestosDeGrupo = CLIMA_ALERTAS_ENVIADAS
+      .filter(function(x) {
+        var xkey = x.grupo_id ? 'gid:' + x.grupo_id : (x.mensaje || '') + '|' + (x.created_at || '').substring(0,16);
+        return xkey === key;
+      })
+      .map(function(x) { return x.puesto; })
+      .filter(function(p, i, arr) { return p && arr.indexOf(p) === i; });
+
     // Guardar en índice global para acceder desde onclick sin JSON inline
     var idx = _CLIMA_ALERTAS_IDX.length;
-    _CLIMA_ALERTAS_IDX.push({ vigentes: idsVigentes, todos: idsTodos, grupoIds: idsTodosGrupo, fecha: fecha, mensaje: a.mensaje || 'Alerta climática', grupoId: a.grupo_id || null });
+    _CLIMA_ALERTAS_IDX.push({ vigentes: idsVigentes, todos: idsTodos, grupoIds: idsTodosGrupo, fecha: fecha, mensaje: a.mensaje || 'Alerta clim\xE1tica', grupoId: a.grupo_id || null, puestosGrupo: puestosDeGrupo, faseActual: a.fase || 'pre' });
 
     // Botón Ver relevamiento — siempre visible para admin/gerencia
     html += '<button onclick="climaCtrl_verRelevamientoAlerta(' + idx + ')" type="button" '
