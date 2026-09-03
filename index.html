@@ -34193,8 +34193,7 @@ window.clima_cargarPanel = function() {
   var btnNuevoRelev = document.getElementById('clima-btn-nuevo-relev');
   var divFiltros = document.getElementById('clima-ctrl-filtros');
   var puedeVerAudit = window.USER && (USER.rol === 'ADMIN' || USER.puesto === 'Administrador' || USER.puesto === 'Gerencia');
-  var puedeVerAlertas = window.USER && (USER.puesto === 'Gerencia' || USER.puesto === 'Administrador' || USER.rol === 'ADMIN');
-  if (tabAlertas) tabAlertas.style.display = puedeVerAlertas ? '' : 'none';
+  if (tabAlertas) tabAlertas.style.display = puedeEnviar ? '' : 'none';
   if (tabAudit)   tabAudit.style.display   = puedeVerAudit ? '' : 'none';
   if (btnNueva)   btnNueva.style.display   = puedeEnviar ? '' : 'none';
   if (divFiltros) divFiltros.style.display = puedeEnviar ? '' : 'none';
@@ -34213,19 +34212,19 @@ window.clima_cargarPanel = function() {
     if (btnNuevoRelev) btnNuevoRelev.style.display = '';
   }
   // Si el tab activo es Alertas pero el puesto no puede verlo, volver a Lista
-  if (!puedeVerAlertas && CLIMA_CTRL_TAB === 'alertas') climaCtrl_verTab('lista');
+  if (!puedeEnviar && CLIMA_CTRL_TAB === 'alertas') climaCtrl_verTab('lista');
 
   lista.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:20px;text-align:center">Cargando...</div>';
 
   // Traer todas las alertas clima recientes para agruparlas por envío (mensaje+minuto)
   // Cada "envío" genera N filas (una por puesto); todas comparten mensaje y created_at al minuto
-  var hace12hs = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  var hace30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   db.from('alertas_turno')
     .select('id,created_at,leida,mensaje,fase,grupo_id,puesto,silenciada')
     .eq('tipo', 'clima')
-    .gte('created_at', hace12hs)
+    .gte('created_at', hace30d)
     .order('created_at', { ascending: false })
-    .limit(200)
+    .limit(500)
     .then(function(ra) {
       if (ra && ra.error) { lista.innerHTML = '<div style="color:#fca5a5;padding:20px">Error alertas: ' + ra.error.message + '</div>'; return; }
       var alertas = ra.data || [];
@@ -34272,13 +34271,12 @@ window.clima_cargarPanel = function() {
       window.CLIMA_ALERTA_ID = grupoActivo.ids[0]; // exponer al window para que el formulario lo use
       window.CLIMA_GRUPO_IDS = grupoActivo.ids;     // todos los IDs del grupo activo
 
-      // Traer relevamientos de las últimas 12hs para cubrir todos los grupos
-      // (pre, durante, post) del mismo evento sin depender de un único grupo_id
+      // Traer relevamientos del grupo activo únicamente
       db.from('relevamiento_clima')
         .select('*')
-        .gte('created_at', hace12hs)
+        .in('alerta_id', grupoActivo.ids)
         .order('created_at', { ascending: false })
-        .limit(300)
+        .limit(200)
         .then(function(r) {
           if (r && r.error) { lista.innerHTML = '<div style="color:#fca5a5;padding:20px">Error: ' + r.error.message + '</div>'; return; }
           CLIMA_CTRL_DATOS = r.data || [];
@@ -35053,13 +35051,13 @@ window.climaCtrl_cargarAlertas = function() {
   if (!wrap || !window.db) return;
   wrap.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:20px;text-align:center">Cargando...</div>';
 
-  var _hace12hs = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+  var _hace30d = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
   db.from('alertas_turno')
     .select('id,created_at,leida,mensaje,puesto,grupo_id,fase,silenciada')
     .eq('tipo', 'clima')
-    .gte('created_at', _hace12hs)
+    .gte('created_at', _hace30d)
     .order('created_at', { ascending: false })
-    .limit(200)
+    .limit(500)
     .then(function(r) {
       if (r && r.error) {
         wrap.innerHTML = '<div style="color:#fca5a5;padding:20px">Error: ' + r.error.message + '</div>';
