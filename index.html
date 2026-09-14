@@ -5084,7 +5084,7 @@ body {
               <!-- MANZANA + ORDEN -->
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
                 <div class="form-group">
-                  <label class="form-label">Manzana</label>
+                  <label class="form-label" id="pfpf-mza-label">Manzana</label>
                   <input id="pfpf-mza" class="form-input" type="text" placeholder="Ej: 3">
                 </div>
                 <div class="form-group">
@@ -7767,6 +7767,8 @@ async function abrirActualizarNovedad(id) {
   document.getElementById('upd-nov-texto').value = '';
   var fotoPreview = document.getElementById('upd-nov-foto-preview');
   if (fotoPreview) fotoPreview.innerHTML = '';
+  var fotoInpReset = document.getElementById('upd-nov-foto-input');
+  if (fotoInpReset) fotoInpReset.value = '';
 
   // Store original novedad data for auto-new-novedad generation
   window._UPD_NOV_ORIGINAL = novData;
@@ -7875,7 +7877,7 @@ function _guardarActualizacionNovedad() {
           if (orig) {
             var resumen = (orig.detalle || '').substring(0, 120);
             if (resumen.length === 120) resumen += '…';
-            db.from('novedades').insert({
+            var _insertPayload = {
               puesto: orig.puesto || USER.puesto,
               tipo: orig.tipo || 'Actualización',
               asunto: 'Actualización — ' + (orig.asunto || orig.tipo || 'Novedad anterior'),
@@ -7884,7 +7886,9 @@ function _guardarActualizacionNovedad() {
               relevancia: 'Normal',
               cargado_por: autorVal || USER.puesto,
               ref_novedad_id: id
-            }).then(function() {});
+            };
+            if (urlSubida) _insertPayload.fotos = [urlSubida];
+            db.from('novedades').insert(_insertPayload).then(function() {});
           }
           window._UPD_NOV_ORIGINAL = null;
           loadNovedades();
@@ -8231,6 +8235,12 @@ function renderNovCard(n) {
     h += '<button onclick="event.stopPropagation();abrirEdicionCompletaNovedad(\'' + n.id + '\')" '
       + 'style="padding:9px 14px;background:rgba(251,146,60,.1);border:1px solid rgba(251,146,60,.35);border-radius:8px;color:#fdba74;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);white-space:nowrap">'
       + '✏️ Editar completa</button>';
+  }
+  // Botón eliminar novedad — SOLO Administrador del sistema (rol ADMIN)
+  if (USER && USER.rol === 'ADMIN') {
+    h += '<button onclick="event.stopPropagation();novEliminar(\'' + n.id + '\')" '
+      + 'style="padding:9px 14px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.35);border-radius:8px;color:#f87171;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);white-space:nowrap">'
+      + '\uD83D\uDDD1 Eliminar</button>';
   }
   h += '<button onclick="abrirActualizarNovedad(\'' + n.id + '\')" ';
   h += 'style="flex:1;padding:9px;background:rgba(37,99,235,0.12);border:1px solid rgba(37,99,235,0.3);border-radius:8px;color:var(--accent3);font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font)">';
@@ -8581,13 +8591,21 @@ function dispositivoAutorizado(puesto) {
 // Verificar revocacion en Supabase (se llama al inicio de sesion)
 function verificarRevocacionRemota(callbackOk, callbackFail) {
   var fp = getDeviceFingerprint();
-  db.from('dispositivos_auth').select('revocado,puesto').eq('fingerprint', fp).eq('pin_usado', true).maybeSingle().then(function(r) {
+  db.from('dispositivos_auth').select('revocado,puesto,autorizado_hasta').eq('fingerprint', fp).eq('pin_usado', true).maybeSingle().then(function(r) {
     if (!r.data) { callbackFail(); return; }
     if (r.data.revocado) {
       localStorage.removeItem(DEVICE_KEY);
       callbackFail();
       return;
     }
+    // Restaurar localStorage si se perdió (modo incógnito anterior, limpieza del browser, etc.)
+    try {
+      var raw = localStorage.getItem(DEVICE_KEY);
+      if (!raw) {
+        var expiry = r.data.autorizado_hasta ? new Date(r.data.autorizado_hasta).getTime() : (Date.now() + 100 * 365 * 24 * 60 * 60 * 1000);
+        localStorage.setItem(DEVICE_KEY, JSON.stringify({ fp: fp, puesto: r.data.puesto, expiry: expiry, ts: Date.now() }));
+      }
+    } catch (e) {}
     callbackOk();
   }).catch(function() { callbackOk(); }); // Si hay error de red, dejar pasar
 }
@@ -8723,7 +8741,10 @@ function verificarAccesoDispositivo(puesto, callbackOk) {
       mostrar2FA(callbackOk);
     });
   } else {
-    mostrar2FA(callbackOk);
+    // localStorage vacío — puede ser que el browser lo limpió pero el dispositivo YA está autorizado en Supabase
+    verificarRevocacionRemota(callbackOk, function() {
+      mostrar2FA(callbackOk);
+    });
   }
 }
 function dbgLog(msg) {
@@ -11583,6 +11604,7 @@ function descargarInformeRecorridos() {
   var tmpDiv = document.createElement('div');
   tmpDiv.innerHTML = frame.innerHTML;
   tmpDiv.querySelectorAll('.btn-del-row').forEach(function(b) { b.remove(); });
+  tmpDiv.querySelectorAll('.btn-edit-inf').forEach(function(b) { b.remove(); });
   tmpDiv.querySelectorAll('[contenteditable]').forEach(function(el) { el.removeAttribute('contenteditable'); });
   var htmlFinal = '<!DOCTYPE html>\n<html lang="es">\n<head>\n<meta charset="UTF-8">\n<title>Informe de Recorridos IVC</title>\n</head>\n<body style="margin:0;padding:0;background:#fff">\n' + tmpDiv.innerHTML + '\n</body>\n</html>';
   var blob = new Blob([htmlFinal], { type: 'text/html;charset=utf-8' });
@@ -12528,6 +12550,7 @@ function descargarInformeFinal() {
 
   // Eliminar botones de edición — solo quedan en el preview, no en el archivo final
   tmpDiv.querySelectorAll('.btn-del-row').forEach(function(b) { b.remove(); });
+  tmpDiv.querySelectorAll('.btn-edit-inf').forEach(function(b) { b.remove(); });
   tmpDiv.querySelectorAll('[contenteditable]').forEach(function(el) { el.removeAttribute('contenteditable'); });
   // Limpiar observaciones vacías (que solo tenían el placeholder) y su atributo guía
   tmpDiv.querySelectorAll('.obs-txt').forEach(function(el) {
@@ -12630,6 +12653,18 @@ function guardarPD() {
     cargarPD();
   });
 }
+
+window.novEliminar = function(id) {
+  if (!window.USER || USER.rol !== 'ADMIN') { toast('Sin permiso', 'err'); return; }
+  showConfirm('\uD83D\uDDD1\uFE0F', 'Eliminar novedad', '\xBFEliminar esta novedad definitivamente? Esta acci\xF3n no se puede deshacer.', function() {
+    db.from('novedades').delete().eq('id', id).then(function(r) {
+      if (!dbOk(r)) return;
+      toast('\u2713 Novedad eliminada');
+      loadNovedades();
+      loadDash();
+    });
+  }, 'Eliminar', 'var(--red)');
+};
 
 function eliminarPD() {
   var id = document.getElementById('pd-edit-id').value;
@@ -13053,7 +13088,7 @@ function construirHTMLEditablePreview(porPuesto, novedades, fotosMap, fechaDispl
   var mesNombres = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
   var mesN = mesIdx >= 0 ? (mesNombres[mesIdx] || '') + (partes[2] ? ' ' + partes[2] : '') : '';
 
-  var style = '<style>\n* { box-sizing:border-box; margin:0; padding:0; }\nbody { font-family:Lato,Arial,sans-serif; font-size:10.5pt; color:#1a1a2e; background:#fff; }\n.page { max-width:100%; }\n.header { background:' + AZUL_OSC + '; padding:14px 28px; display:flex; align-items:center; gap:20px; }\n.logo-wrap { flex-shrink:0; width:58px; height:58px; background:rgba(255,255,255,.1); border-radius:13px; padding:4px; display:flex; align-items:center; justify-content:center; }\n.logo-wrap img { width:50px; height:50px; object-fit:contain; border-radius:10px; }\n.hc { flex:1; }\n.h-parte { font-size:13pt; font-weight:900; color:rgba(255,255,255,.5); letter-spacing:.35em; text-transform:uppercase; }\n.h-main { font-size:15pt; font-weight:900; color:#fff; letter-spacing:.04em; text-transform:uppercase; margin-top:2px; }\n.h-org { font-size:7pt; color:rgba(255,255,255,.45); text-transform:uppercase; letter-spacing:.12em; margin-top:3px; }\n.h-fecha { text-align:right; flex-shrink:0; color:#fff; }\n.h-dia { font-size:30pt; font-weight:900; line-height:1; }\n.h-mes { font-size:8.5pt; color:rgba(255,255,255,.8); margin-top:3px; font-weight:700; text-transform:capitalize; }\n.h-dnom { font-size:7.5pt; color:rgba(255,255,255,.45); font-style:italic; text-transform:capitalize; }\n.col-bar { display:grid; grid-template-columns:170px 1fr 210px; background:' + AZUL_MID + '; }\n.col-bar-h { padding:8px 14px; font-size:8pt; font-weight:900; color:#fff; text-transform:uppercase; letter-spacing:.1em; text-align:center; }\n.col-bar-h:not(:last-child) { border-right:1px solid rgba(255,255,255,.15); }\n.novedad { display:grid; grid-template-columns:170px 1fr 210px; border-bottom:1px solid #dde3ef; position:relative; }\n.novedad:nth-child(even) { background:#f8f9fc; }\n.col1 { padding:13px 12px; border-right:1px solid #dde3ef; }\n.c1-tipo { font-size:11pt; font-weight:900; color:' + AZUL + '; line-height:1.2; }\n.c1-meta { font-size:7.5pt; color:#555; margin-top:3px; line-height:1.7; }\n.badge-fp { display:inline-block; font-size:7pt; font-weight:900; padding:2px 7px; border-radius:3px; background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; margin-top:4px; }\n.col2 { padding:13px 14px; border-right:1px solid #dde3ef; }\n.nov-txt { font-size:9.5pt; line-height:1.65; color:#2a2a2a; white-space:pre-wrap; }\n.nov-ag { margin-top:8px; font-size:8pt; color:#555; padding-top:7px; border-top:1px solid #e8ecf5; }\n.fotos-wrap { margin-top:10px; padding-top:10px; border-top:1px solid #e8ecf5; }\n.fotos-lbl { font-size:7.5pt; font-weight:700; color:' + AZUL + '; text-transform:uppercase; letter-spacing:.1em; margin-bottom:7px; }\n.fotos-grid { display:flex; flex-wrap:wrap; gap:6px; }\n.foto-t { width:100px; height:75px; object-fit:cover; border:1.5px solid #dde3ef; border-radius:4px; }\n.col3 { padding:13px 12px; }\n.obs-txt { font-size:9.5pt; line-height:1.65; color:#555; }\n.barrio-sep { background:' + AZUL_CL + '; border-top:2px solid ' + AZUL + '; border-bottom:1px solid ' + AZUL_BR + '; padding:7px 40px 7px 16px; font-size:8pt; font-weight:900; color:#1e40af; text-transform:uppercase; letter-spacing:.12em; display:flex; align-items:center; gap:8px; position:relative; }\n.footer { background:' + AZUL_OSC + '; padding:13px 24px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px; }\n.fi { font-size:8pt; color:rgba(255,255,255,.8); }\n.footer-brand { text-align:center; font-size:7pt; color:#9ca3af; padding:6px 24px; letter-spacing:.08em; text-transform:uppercase; }\n.btn-del-row { position:absolute; top:6px; right:6px; width:22px; height:22px; border-radius:50%; background:rgba(239,68,68,.85); border:none; color:#fff; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; z-index:10; font-weight:bold; }\n[contenteditable]:hover { background:rgba(59,130,246,.05); border-radius:3px; }\n[contenteditable]:focus { background:rgba(59,130,246,.08); outline:1px dashed rgba(59,130,246,.4); border-radius:3px; }\n.obs-txt:empty:before { content:attr(data-placeholder); color:#bbb; font-style:italic; }\n@media print { .btn-del-row { display:none!important; } [contenteditable] { outline:none!important; background:transparent!important; } .obs-txt:empty:before { content:\"\"!important; } }\n</style>\n';
+  var style = '<style>\n* { box-sizing:border-box; margin:0; padding:0; }\nbody { font-family:Lato,Arial,sans-serif; font-size:10.5pt; color:#1a1a2e; background:#fff; }\n.page { max-width:100%; }\n.header { background:' + AZUL_OSC + '; padding:14px 28px; display:flex; align-items:center; gap:20px; }\n.logo-wrap { flex-shrink:0; width:58px; height:58px; background:rgba(255,255,255,.1); border-radius:13px; padding:4px; display:flex; align-items:center; justify-content:center; }\n.logo-wrap img { width:50px; height:50px; object-fit:contain; border-radius:10px; }\n.hc { flex:1; }\n.h-parte { font-size:13pt; font-weight:900; color:rgba(255,255,255,.5); letter-spacing:.35em; text-transform:uppercase; }\n.h-main { font-size:15pt; font-weight:900; color:#fff; letter-spacing:.04em; text-transform:uppercase; margin-top:2px; }\n.h-org { font-size:7pt; color:rgba(255,255,255,.45); text-transform:uppercase; letter-spacing:.12em; margin-top:3px; }\n.h-fecha { text-align:right; flex-shrink:0; color:#fff; }\n.h-dia { font-size:30pt; font-weight:900; line-height:1; }\n.h-mes { font-size:8.5pt; color:rgba(255,255,255,.8); margin-top:3px; font-weight:700; text-transform:capitalize; }\n.h-dnom { font-size:7.5pt; color:rgba(255,255,255,.45); font-style:italic; text-transform:capitalize; }\n.col-bar { display:grid; grid-template-columns:170px 1fr 210px; background:' + AZUL_MID + '; }\n.col-bar-h { padding:8px 14px; font-size:8pt; font-weight:900; color:#fff; text-transform:uppercase; letter-spacing:.1em; text-align:center; }\n.col-bar-h:not(:last-child) { border-right:1px solid rgba(255,255,255,.15); }\n.novedad { display:grid; grid-template-columns:170px 1fr 210px; border-bottom:1px solid #dde3ef; position:relative; }\n.novedad:nth-child(even) { background:#f8f9fc; }\n.col1 { padding:13px 12px; border-right:1px solid #dde3ef; }\n.c1-tipo { font-size:11pt; font-weight:900; color:' + AZUL + '; line-height:1.2; }\n.c1-meta { font-size:7.5pt; color:#555; margin-top:3px; line-height:1.7; }\n.badge-fp { display:inline-block; font-size:7pt; font-weight:900; padding:2px 7px; border-radius:3px; background:#fee2e2; color:#991b1b; border:1px solid #fca5a5; margin-top:4px; }\n.col2 { padding:13px 14px; border-right:1px solid #dde3ef; }\n.nov-txt { font-size:9.5pt; line-height:1.65; color:#2a2a2a; white-space:pre-wrap; }\n.nov-ag { margin-top:8px; font-size:8pt; color:#555; padding-top:7px; border-top:1px solid #e8ecf5; }\n.fotos-wrap { margin-top:10px; padding-top:10px; border-top:1px solid #e8ecf5; }\n.fotos-lbl { font-size:7.5pt; font-weight:700; color:' + AZUL + '; text-transform:uppercase; letter-spacing:.1em; margin-bottom:7px; }\n.fotos-grid { display:flex; flex-wrap:wrap; gap:6px; }\n.foto-t { width:100px; height:75px; object-fit:cover; border:1.5px solid #dde3ef; border-radius:4px; }\n.col3 { padding:13px 12px; }\n.obs-txt { font-size:9.5pt; line-height:1.65; color:#555; }\n.barrio-sep { background:' + AZUL_CL + '; border-top:2px solid ' + AZUL + '; border-bottom:1px solid ' + AZUL_BR + '; padding:7px 40px 7px 16px; font-size:8pt; font-weight:900; color:#1e40af; text-transform:uppercase; letter-spacing:.12em; display:flex; align-items:center; gap:8px; position:relative; }\n.footer { background:' + AZUL_OSC + '; padding:13px 24px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px; }\n.fi { font-size:8pt; color:rgba(255,255,255,.8); }\n.footer-brand { text-align:center; font-size:7pt; color:#9ca3af; padding:6px 24px; letter-spacing:.08em; text-transform:uppercase; }\n.btn-del-row { position:absolute; top:6px; right:6px; width:22px; height:22px; border-radius:50%; background:rgba(239,68,68,.85); border:none; color:#fff; font-size:14px; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; z-index:10; font-weight:bold; }\n[contenteditable]:hover { background:rgba(59,130,246,.05); border-radius:3px; }\n[contenteditable]:focus { background:rgba(59,130,246,.08); outline:1px dashed rgba(59,130,246,.4); border-radius:3px; }\n.obs-txt:empty:before { content:attr(data-placeholder); color:#bbb; font-style:italic; }\n@media print { .btn-del-row { display:none!important; } .btn-edit-inf { display:none!important; } [contenteditable] { outline:none!important; background:transparent!important; } .obs-txt:empty:before { content:\"\"!important; } }\n</style>\n';
 
   var html = style + '<div class="page">\n';
   html += '<div class="header">\n';
@@ -13068,7 +13103,9 @@ function construirHTMLEditablePreview(porPuesto, novedades, fotosMap, fechaDispl
 
   puestos.forEach(function(puesto) {
     var novs = porPuesto[puesto];
-    html += '<div class="barrio-sep"><button class="btn-del-row" onclick="eliminarGrupoBarrio(this)" title="Eliminar puesto completo">&times;</button>&#x1F4CD; <span class="barrio-nombre" contenteditable="true">' + escapeHTML(puesto) + '</span> <span class="barrio-count" style="font-weight:400;color:' + AZUL + '">&mdash; ' + novs.length + ' novedad' + (novs.length !== 1 ? 'es' : '') + '</span></div>\n';
+    html += '<div class="barrio-sep"><button class="btn-del-row" onclick="eliminarGrupoBarrio(this)" title="Eliminar puesto completo">&times;</button>&#x1F4CD; <span class="barrio-nombre" contenteditable="true">' + escapeHTML(puesto) + '</span> <span class="barrio-count" style="font-weight:400;color:' + AZUL + '">&mdash; ' + novs.length + ' novedad' + (novs.length !== 1 ? 'es' : '') + '</span>'
+      + '<button onclick="infAgregarNovedadEnPuesto(this)" title="Agregar novedad a este puesto" class="btn-edit-inf" style="margin-left:10px;background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.4);border-radius:6px;color:#059669;font-size:11px;font-weight:700;cursor:pointer;padding:2px 8px;line-height:1.4">➕</button>'
+      + '</div>\n';
     novs.forEach(function(n) {
       nInforme++;
       var horaStr = '';
@@ -13101,7 +13138,7 @@ function construirHTMLEditablePreview(porPuesto, novedades, fotosMap, fechaDispl
       if (agentesDisplay) html += '<div class="nov-ag"><strong>Agente/s:</strong> ' + escapeHTML(agentesDisplay) + '</div>';
       if (n.responsable && n.agentes) html += '<div class="nov-ag" style="margin-top:4px"><strong>Resp. turno:</strong> ' + escapeHTML(n.responsable) + '</div>';
       if (fotosB64.length > 0) {
-        html += '<div class="fotos-wrap"><div class="fotos-lbl">Adjuntos <span class="fotos-hint" style="font-weight:400;text-transform:none;letter-spacing:0">(tild\xE1 los que quer\xE9s incluir en el informe final, clic para abrir)</span></div><div class="fotos-grid">';
+        html += '<div class="fotos-wrap"><div class="fotos-lbl">Adjuntos <span class="fotos-hint" style="font-weight:400;text-transform:none;letter-spacing:0">(tild\xE1 los que quer\xE9s incluir en el informe final, clic para abrir)</span> <button onclick="infFotoEnNovedad(this)" title="Agregar foto a esta novedad" class="btn-edit-inf" style="margin-left:8px;background:rgba(251,146,60,.15);border:1px solid rgba(251,146,60,.4);border-radius:6px;color:#d97706;font-size:11px;font-weight:700;cursor:pointer;padding:2px 8px;line-height:1.4">\uD83D\uDCF7</button></div><div class="fotos-grid">';
         fotosB64.forEach(function(f, fi){
           var fid = 'fchk_' + n.id + '_' + fi;
           var esPDF = f.u && f.u.toLowerCase().indexOf('.pdf') !== -1;
@@ -13121,6 +13158,10 @@ function construirHTMLEditablePreview(porPuesto, novedades, fotosMap, fechaDispl
           html += '</div>';
         });
         html += '</div></div>';
+      }
+      // Botón 📷 para novedades sin fotos (con fotos ya está en el fotos-lbl)
+      if (!fotosB64.length) {
+        html += '<div class="btn-edit-inf" style="margin-top:8px"><button onclick="infFotoEnNovedad(this)" title="Agregar foto a esta novedad" style="background:rgba(251,146,60,.12);border:1px solid rgba(251,146,60,.35);border-radius:6px;color:#d97706;font-size:11px;font-weight:700;cursor:pointer;padding:3px 10px">\uD83D\uDCF7 Agregar foto</button></div>';
       }
       html += '</div>\n';
       html += '<div class="col3">';
@@ -26276,6 +26317,9 @@ function iniciarAutoSaveInforme() {
   INF_AUTOSAVE_OBSERVER = new MutationObserver(function() {
     clearTimeout(INF_AUTOSAVE_TIMER);
     var lbl = document.getElementById('inf-autosave-label');
+    // No autosave si el frame tiene menos de 200 chars (vacío o casi vacío)
+    var frame2 = document.getElementById('inf-preview-frame');
+    if (!frame2 || frame2.innerHTML.length < 200) return;
     if (lbl) lbl.textContent = '...guardando';
     INF_AUTOSAVE_TIMER = setTimeout(function() {
       guardarBorradorInforme(true); // true = silencioso
@@ -26313,33 +26357,133 @@ function agregarFilaVaciaInforme() {
   toast('Fila agregada — editá el contenido directamente');
 }
 
+var INF_FOTO_TARGET_IDX = -1; // -1 = última novedad
+
 function agregarFotoExtraInforme() {
+  var frame = document.getElementById('inf-preview-frame');
+  if (!frame) return;
+  var novedades = frame.querySelectorAll('.novedad');
+  if (!novedades.length) {
+    // No hay novedades todavía, subir y agregar al final
+    INF_FOTO_TARGET_IDX = -1;
+    document.getElementById('inf-foto-extra-input').click();
+    return;
+  }
+  // Construir selector de novedades
+  var items = '';
+  for (var i = 0; i < novedades.length; i++) {
+    var asunto = '';
+    var tipoEl = novedades[i].querySelector('.c1-tipo');
+    var metaEl = novedades[i].querySelector('.c1-meta');
+    if (tipoEl) asunto = tipoEl.textContent.trim().substring(0, 40);
+    else if (metaEl) asunto = metaEl.textContent.trim().substring(0, 40);
+    if (!asunto) asunto = 'Novedad ' + (i + 1);
+    items += '<div onclick="infFotoElegir(' + i + ')" style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border2);font-size:12px;color:var(--text1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" onmouseover="this.style.background=\'var(--bg3)\'" onmouseout="this.style.background=\'\'">'
+      + '<span style="color:var(--text3);font-size:11px;margin-right:6px">#' + (i + 1) + '</span>' + asunto
+      + '</div>';
+  }
+  // Opción: agregar al final como bloque separado
+  items += '<div onclick="infFotoElegir(-1)" style="padding:10px 14px;cursor:pointer;font-size:12px;color:#fdba74;border-top:1px solid var(--border2)" onmouseover="this.style.background=\'var(--bg3)\'" onmouseout="this.style.background=\'\'">'
+    + '+ Al final del informe (bloque separado)</div>';
+
+  var ov = document.createElement('div');
+  ov.id = 'inf-foto-picker';
+  ov.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.55)';
+  ov.innerHTML = '<div style="background:var(--bg2);border:1px solid var(--border2);border-radius:14px;min-width:280px;max-width:360px;max-height:70vh;display:flex;flex-direction:column;overflow:hidden">'
+    + '<div style="padding:12px 16px;border-bottom:1px solid var(--border2);display:flex;align-items:center;justify-content:space-between">'
+    + '<span style="font-size:13px;font-weight:700;color:var(--text1)">\uD83D\uDCF7 \xBFA qu\xe9 novedad agreg\xe1s la foto?</span>'
+    + '<button onclick="document.body.removeChild(document.getElementById(\'inf-foto-picker\'))" style="background:transparent;border:none;color:var(--text3);font-size:18px;cursor:pointer;line-height:1">&times;</button>'
+    + '</div>'
+    + '<div style="overflow-y:auto">' + items + '</div></div>';
+  ov.addEventListener('click', function(e) { if (e.target === ov) document.body.removeChild(ov); });
+  document.body.appendChild(ov);
+}
+
+window.infAgregarNovedadEnPuesto = function(btn) {
+  var sep = btn.closest('.barrio-sep');
+  if (!sep) return;
+  var AZUL = '#1e3a5f';
+  var filaHTML = '<div class="novedad" style="position:relative">'
+    + '<button class="btn-del-row" onclick="eliminarFilaInforme(this)" title="Eliminar fila">&times;</button>'
+    + '<div class="col1"><div class="c1-tipo" contenteditable="true" style="color:' + AZUL + ';font-weight:900">Nueva novedad</div>'
+    + '<div class="c1-meta" contenteditable="true"><strong>\u2014</strong></div></div>'
+    + '<div class="col2"><div class="nov-txt" contenteditable="true" style="white-space:pre-wrap">Escribi el detalle ac\xe1...</div>'
+    + '<div class="btn-edit-inf" style="margin-top:8px"><button onclick="infFotoEnNovedad(this)" style="background:rgba(251,146,60,.12);border:1px solid rgba(251,146,60,.35);border-radius:6px;color:#d97706;font-size:11px;font-weight:700;cursor:pointer;padding:3px 10px">\uD83D\uDCF7 Agregar foto</button></div>'
+    + '</div>'
+    + '<div class="col3"><p class="obs-txt" contenteditable="true" data-placeholder="Agregar observaci\xf3n..."></p></div>'
+    + '</div>';
+  var tmp = document.createElement('div');
+  tmp.innerHTML = filaHTML;
+  var fila = tmp.firstChild;
+  // Insertar después del último .novedad de este grupo (antes del siguiente barrio-sep o footer)
+  var sib = sep.nextSibling;
+  var lastNov = null;
+  while (sib) {
+    // Saltar TextNodes — solo operar en Elements
+    if (sib.nodeType === 1) {
+      if (sib.classList.contains('barrio-sep') || sib.classList.contains('footer')) break;
+      if (sib.classList.contains('novedad')) lastNov = sib;
+    }
+    sib = sib.nextSibling;
+  }
+  var insertBefore = sib; // el siguiente barrio-sep, footer, o null (fin)
+  var parent = sep.parentNode;
+  parent.insertBefore(fila, insertBefore);
+  var campo = fila.querySelector('.nov-txt');
+  if (campo) campo.focus();
+  toast('Novedad agregada al puesto');
+};
+
+window.infFotoEnNovedad = function(btn) {
+  var novedad = btn.closest('.novedad');
+  window._infFotoTargetNovedad = novedad || null;
   var input = document.getElementById('inf-foto-extra-input');
   if (input) input.click();
-}
+};
+
+
+window.infFotoElegir = function(idx) {
+  var ov = document.getElementById('inf-foto-picker');
+  if (ov) document.body.removeChild(ov);
+  INF_FOTO_TARGET_IDX = idx;
+  document.getElementById('inf-foto-extra-input').click();
+};
 
 function onFotoExtraInformeSelected(input) {
   var files = Array.prototype.slice.call(input.files);
   if (!files.length) return;
   var frame = document.getElementById('inf-preview-frame');
   if (!frame) return;
-  // Buscar la última novedad para insertar la foto ahí
+
   var novedades = frame.querySelectorAll('.novedad');
-  var targetNov = novedades.length ? novedades[novedades.length - 1] : null;
-  // Buscar o crear el contenedor de fotos extra
-  var fotosWrap = targetNov ? targetNov.querySelector('.fotos-wrap') : null;
-  if (!fotosWrap) {
-    // Crear en la última novedad
-    var col2 = targetNov ? targetNov.querySelector('.col2') : null;
-    if (col2) {
-      fotosWrap = document.createElement('div');
-      fotosWrap.className = 'fotos-wrap';
-      fotosWrap.innerHTML = '<div class="fotos-lbl">Fotos</div><div class="fotos-grid"></div>';
-      col2.appendChild(fotosWrap);
-    }
+  var targetNov = null;
+  // Si viene del botón 📷 dentro de una novedad específica
+  if (window._infFotoTargetNovedad) {
+    targetNov = window._infFotoTargetNovedad;
+    window._infFotoTargetNovedad = null;
+  } else if (INF_FOTO_TARGET_IDX >= 0 && novedades[INF_FOTO_TARGET_IDX]) {
+    targetNov = novedades[INF_FOTO_TARGET_IDX];
+  } else if (INF_FOTO_TARGET_IDX === -1 && novedades.length) {
+    targetNov = null; // al final como bloque separado
+  } else if (novedades.length) {
+    targetNov = novedades[novedades.length - 1]; // fallback: última
   }
-  var fotosGrid = fotosWrap ? fotosWrap.querySelector('.fotos-grid') : null;
-  if (!fotosGrid && fotosWrap) { fotosGrid = fotosWrap; }
+
+  // Obtener o crear contenedor de fotos en la novedad destino
+  var fotosGrid = null;
+  if (targetNov) {
+    var fotosWrap = targetNov.querySelector('.fotos-wrap');
+    if (!fotosWrap) {
+      var col2 = targetNov.querySelector('.col2');
+      if (col2) {
+        fotosWrap = document.createElement('div');
+        fotosWrap.className = 'fotos-wrap';
+        fotosWrap.innerHTML = '<div class="fotos-lbl">Fotos</div><div class="fotos-grid"></div>';
+        col2.appendChild(fotosWrap);
+      }
+    }
+    fotosGrid = fotosWrap ? (fotosWrap.querySelector('.fotos-grid') || fotosWrap) : null;
+  }
 
   toast('Subiendo foto(s)...');
   var promesas = files.map(function(f) { return uploadToR2Comprimido(f, 'informes'); });
@@ -26347,14 +26491,33 @@ function onFotoExtraInformeSelected(input) {
     urls.forEach(function(url) {
       if (!url) return;
       if (fotosGrid) {
-        var img = document.createElement('img');
-        img.src = url;
-        img.className = 'foto-t';
-        img.style.cursor = 'pointer';
-        img.onclick = function() { window.open(url, '_blank'); };
-        fotosGrid.appendChild(img);
+        // Wrapper con checkbox (igual que las fotos originales del informe)
+        var wrap = document.createElement('div');
+        wrap.style.cssText = 'position:relative;display:inline-block';
+        var fid = 'fchk_extra_' + Date.now() + '_' + Math.floor(Math.random()*1000);
+        var esPDF = url.toLowerCase().indexOf('.pdf') !== -1;
+        if (esPDF) {
+          var nombrePDF = url.split('/').pop().replace(/\?.*$/, '') || 'documento.pdf';
+          wrap.innerHTML = '<a href="' + url + '" target="_blank" class="foto-t pdf-adjunto" data-foto-url="' + url + '" style="width:100px;height:75px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#fff5f5;border:1.5px solid #fca5a5;border-radius:4px;text-decoration:none;gap:3px;padding:4px">'
+            + '<span style="font-size:22px">\uD83D\uDCC4</span>'
+            + '<span style="font-size:7pt;color:#991b1b;font-weight:700;text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:90px">' + nombrePDF + '</span>'
+            + '</a>';
+        } else {
+          var img = document.createElement('img');
+          img.src = url;
+          img.className = 'foto-t';
+          img.style.cursor = 'zoom-in';
+          img.setAttribute('data-foto-url', url);
+          img.onclick = function() { abrirFotoLightbox(url); };
+          wrap.appendChild(img);
+        }
+        var lbl = document.createElement('label');
+        lbl.style.cssText = 'position:absolute;top:3px;left:3px;background:rgba(255,255,255,.95);border-radius:4px;padding:2px 4px;display:flex;align-items:center;gap:3px;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.3)';
+        lbl.innerHTML = '<input type="checkbox" id="' + fid + '" class="foto-incluir-chk" data-foto-url="' + url + '" checked style="width:13px;height:13px;cursor:pointer;margin:0">';
+        wrap.appendChild(lbl);
+        fotosGrid.appendChild(wrap);
       } else {
-        // Si no hay novedad, agregar al final del frame como bloque de fotos
+        // Bloque separado al final
         var div = document.createElement('div');
         div.style.cssText = 'padding:10px 14px;border-top:1px solid #dde3ef';
         div.innerHTML = '<div class="fotos-lbl" style="font-size:7.5pt;font-weight:700;color:#1e3a5f;text-transform:uppercase;letter-spacing:.1em;margin-bottom:7px">Fotos adicionales</div>';
@@ -26364,22 +26527,27 @@ function onFotoExtraInformeSelected(input) {
         frame.appendChild(div);
       }
     });
-    toast('✅ Foto(s) agregada(s) al informe');
+    toast('\u2705 Foto(s) agregada(s) al informe');
     input.value = '';
-  }).catch(function() { toast('Error al subir foto', 'err'); input.value = ''; });
+    INF_FOTO_TARGET_IDX = -1;
+  }).catch(function() { toast('Error al subir foto', 'err'); input.value = ''; INF_FOTO_TARGET_IDX = -1; });
 }
 
 function guardarBorradorInforme(silencioso) {
   var frame = document.getElementById('inf-preview-frame');
   if (!frame || !frame.innerHTML.trim()) { if (!silencioso) toast('No hay preview para guardar', 'err'); return; }
-  var autor = (document.getElementById('inf-autor') || {}).value || USER.puesto || 'admin';
+  var autor = (document.getElementById('inf-autor') || {}).value || (window.USER ? USER.puesto : '') || 'admin';
   var desde = (document.getElementById('inf-fecha-desde') || {}).value || '';
   var hasta  = (document.getElementById('inf-fecha-hasta') || {}).value || '';
   var horaDesde = (document.getElementById('inf-hora-desde') || {}).value || '06:00';
   var horaHasta  = (document.getElementById('inf-hora-hasta') || {}).value || '06:00';
   var html = frame.innerHTML;
   if (!silencioso) toast('Guardando borrador...', 'info');
-  db.from('informes_borrador').select('id').eq('autor', autor).maybeSingle().then(function(r) {
+
+  // Buscar si ya existe para hacer update, si no existe hacer insert con UUID propio
+  db.from('informes_borrador').select('id').eq('autor', autor).order('updated_at', {ascending: false}).limit(1).then(function(r) {
+    if (r.error) { if (!silencioso) toast('Error al acceder a borrador: ' + r.error.message, 'err'); return; }
+    var existing = r.data && r.data.length ? r.data[0] : null;
     var payload = {
       autor: autor, desde: desde, hasta: hasta,
       hora_desde: horaDesde, hora_hasta: horaHasta,
@@ -26387,38 +26555,32 @@ function guardarBorradorInforme(silencioso) {
       updated_at: new Date().toISOString()
     };
     var op;
-    if (r.data && r.data.id) {
-      op = db.from('informes_borrador').update(payload).eq('id', r.data.id);
+    if (existing && existing.id) {
+      // UPDATE — no necesita id en payload
+      op = db.from('informes_borrador').update(payload).eq('id', existing.id);
     } else {
-      payload.id = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-        var r2 = Math.random() * 16 | 0;
-        return (c === 'x' ? r2 : (r2 & 0x3 | 0x8)).toString(16);
-      });
+      // INSERT — generar ID numérico (bigint) basado en timestamp
+      payload.id = Date.now();
       op = db.from('informes_borrador').insert(payload);
     }
     op.then(function(res) {
-      if (res.error) { if (!silencioso) toast('Error al guardar: ' + res.error.message, 'err'); return; }
+      if (res && res.error) { if (!silencioso) toast('Error al guardar: ' + res.error.message, 'err'); return; }
       var lbl = document.getElementById('inf-autosave-label');
       var ahora = new Date().toLocaleTimeString('es-AR', {hour:'2-digit',minute:'2-digit',hour12:false,timeZone:'America/Argentina/Buenos_Aires'});
       if (lbl) lbl.textContent = 'Guardado ' + ahora;
       if (!silencioso) toast('\uD83D\uDCBE Borrador guardado correctamente');
-      // Limpiar borradores propios con más de 24hs para no acumular espacio
-      var hace24h = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      db.from('informes_borrador')
-        .delete()
-        .eq('autor', USER.nombre || USER.puesto)
-        .lt('updated_at', hace24h)
-        .then(function() {}); // silencioso, no bloquea
     });
+  }).catch(function(err) {
+    if (!silencioso) toast('Error al guardar borrador', 'err');
   });
 }
 
 function cargarBorradorInforme() {
   var autor = (document.getElementById('inf-autor') || {}).value || USER.puesto || 'admin';
   toast('Buscando borrador...', 'info');
-  db.from('informes_borrador').select('*').eq('autor', autor).maybeSingle().then(function(r) {
-    if (!r.data) { toast('No hay borrador guardado para este usuario', 'err'); return; }
-    var b = r.data;
+  db.from('informes_borrador').select('*').eq('autor', autor).order('updated_at', {ascending: false}).limit(1).then(function(r) {
+    if (!r.data || !r.data.length) { toast('No hay borrador guardado para este usuario', 'err'); return; }
+    var b = r.data[0];
     // Restaurar filtros
     if (b.desde) { var el = document.getElementById('inf-fecha-desde'); if (el) el.value = b.desde; }
     if (b.hasta)  { var el2 = document.getElementById('inf-fecha-hasta'); if (el2) el2.value = b.hasta; }
@@ -33245,6 +33407,12 @@ window.pfpf_setSector = function(btn) {
   });
   var inp = document.getElementById('pfpf-sector');
   if (inp) inp.value = PFPF_SECTOR;
+  // Cambiar label y placeholder de Manzana según el tipo de relevamiento
+  var esComplejo = PFPF_SECTOR === 'Complejo Papa Francisco';
+  var lbl = document.getElementById('pfpf-mza-label');
+  var mzaInp = document.getElementById('pfpf-mza');
+  if (lbl) lbl.textContent = esComplejo ? 'M\xF3dulo' : 'Manzana';
+  if (mzaInp) mzaInp.placeholder = esComplejo ? 'Ej: 5' : 'Ej: 3';
 };
 // fin MÓDULO RELEVAMIENTO FR
 
