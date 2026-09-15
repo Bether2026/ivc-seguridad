@@ -3805,10 +3805,34 @@ body {
           </div>
           <input oninput="buscarHR(this.value)" placeholder="&#x1F50D; Buscar agente..." style="width:100%;padding:9px 14px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--font);font-size:13px;outline:none;margin-bottom:10px"/>
         </div>
+        <div id="hr-inconsistencias" style="display:none;margin-bottom:12px"></div>
         <div id="hr-tabla" style="overflow-x:auto;-webkit-overflow-scrolling:touch">
           <div class="empty"><div class="icon">&#x1F4CA;</div><p>Selecci&#xF3;n el mes y hacé clic en Actualizar</p></div>
         </div>
         </div>
+<!-- OVERLAY ASISTENTE CIERRE DE MES -->
+<div id="hr-wizard-overlay" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(6,27,52,.85);backdrop-filter:blur(6px);overflow-y:auto;padding:20px">
+  <div id="hr-wizard-inner" style="max-width:560px;margin:0 auto;background:var(--bg2);border:1px solid var(--border2);border-radius:18px;overflow:hidden">
+    <div style="padding:18px 20px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+      <div>
+        <div style="font-size:16px;font-weight:900;color:var(--text)">&#x1F4CB; Cierre de mes</div>
+        <div id="hr-wizard-subtitle" style="font-size:11px;color:var(--text3);margin-top:2px"></div>
+      </div>
+      <button onclick="cerrarWizardCierre()" style="background:rgba(255,255,255,.06);border:none;color:var(--text3);font-size:18px;cursor:pointer;border-radius:8px;width:32px;height:32px">&#x2715;</button>
+    </div>
+    <!-- Pasos -->
+    <div style="display:flex;gap:0;border-bottom:1px solid var(--border)">
+      <div id="hw-step-1" style="flex:1;text-align:center;padding:10px 4px;font-size:11px;font-weight:700;color:#93c5fd;border-bottom:2px solid #2563eb">1. Inconsistencias</div>
+      <div id="hw-step-2" style="flex:1;text-align:center;padding:10px 4px;font-size:11px;font-weight:700;color:var(--text3);border-bottom:2px solid transparent">2. Saldos</div>
+      <div id="hw-step-3" style="flex:1;text-align:center;padding:10px 4px;font-size:11px;font-weight:700;color:var(--text3);border-bottom:2px solid transparent">3. Exportar</div>
+    </div>
+    <div id="hr-wizard-body" style="padding:18px 20px;min-height:200px"></div>
+    <div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end">
+      <button id="hw-btn-prev" onclick="hwPrev()" style="display:none;padding:9px 20px;border-radius:8px;border:1px solid var(--border2);background:transparent;color:var(--text3);font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">&#x2190; Anterior</button>
+      <button id="hw-btn-next" onclick="hwNext()" style="padding:9px 20px;border-radius:8px;border:none;background:#2563eb;color:#fff;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">Siguiente &#x2192;</button>
+    </div>
+  </div>
+</div>
 
         <!-- SUBTAB: COMPARATIVAS -->
         <div id="hr-panel-comp" style="display:none">
@@ -13776,7 +13800,7 @@ function reconstruirJornadasHR(fichs, tipo, horaEntradaAgente) {
     } else {
       sinSal = true;
     }
-    if (!jorn[fecha]) jorn[fecha] = { horas: 0, entrada: null, salida: null, sinSalida: false, obs: [] };
+    if (!jorn[fecha]) jorn[fecha] = { horas: 0, entrada: null, salida: null, sinSalida: false, obs: [], fichajeId: null };
     var J = jorn[fecha];
     // Si ya existe una jornada en este día y la nueva entrada es claramente de otro turno
     // (más de 6hs de diferencia), no acumular — mantener la de mayor duración
@@ -13790,6 +13814,7 @@ function reconstruirJornadasHR(fichs, tipo, horaEntradaAgente) {
           J.horas = horas;
           J.entrada = f.entrada;
           J.salida = f.salida;
+          J.fichajeId = f.id || null;
         }
         if (f.observaciones) J.obs.push(f.observaciones);
         return;
@@ -13797,7 +13822,7 @@ function reconstruirJornadasHR(fichs, tipo, horaEntradaAgente) {
     }
     J.horas += horas;
     if (sinSal) J.sinSalida = true;
-    if (!J.entrada || new Date(f.entrada) < new Date(J.entrada)) J.entrada = f.entrada;
+    if (!J.entrada || new Date(f.entrada) < new Date(J.entrada)) { J.entrada = f.entrada; J.fichajeId = f.id || null; }
     if (f.salida && (!J.salida || new Date(f.salida) > new Date(J.salida))) J.salida = f.salida;
     if (f.observaciones) J.obs.push(f.observaciones);
   });
@@ -14318,7 +14343,7 @@ function loadHorasReales() {
 
   // Cargar fichajes del mes Y tipos de personal en paralelo
   Promise.all([
-    db.from('fichajes').select('agente,puesto,entrada,salida,observaciones').gte('entrada', desde).lte('entrada', hasta).order('entrada', { ascending: true }),
+    db.from('fichajes').select('id,agente,puesto,entrada,salida,observaciones').gte('entrada', desde).lte('entrada', hasta).order('entrada', { ascending: true }),
     db.from('personal_tipos').select('nombre,tipo'),
     db.from('licencias').select('agente,fecha_desde,fecha_hasta,tipo').lte('fecha_desde', anio + '-' + String(mes).padStart(2,'0') + '-31').gte('fecha_hasta', anio + '-' + String(mes).padStart(2,'0') + '-01'),
     db.from('agentes').select('nombre,tipo,hora_entrada,hora_salida,puesto')
@@ -14416,9 +14441,10 @@ function loadHorasReales() {
         var horasTrab = (j && j.horas > 0) ? j.horas : null;
         var sinSalida = j ? j.sinSalida : false;
         if (sinSalida) diasSinSalida++;
-        var _entrada = j ? j.entrada : null;
-        var _salida  = j ? j.salida  : null;
-        var _obsTxt  = j ? j.obs.join(' | ') : '';
+        var _entrada   = j ? j.entrada    : null;
+        var _salida    = j ? j.salida     : null;
+        var _obsTxt    = j ? j.obs.join(' | ') : '';
+        var _fichajeId = j ? j.fichajeId  : null;
 
         // Licencias
         var licDia = licencias.filter(function(l) {
@@ -14446,7 +14472,7 @@ function loadHorasReales() {
           totalACumplir += hACumplir;
         }
 
-        diasInfo.push({ d: d, fecha: fechaStr, feriado: feriado, diaSemana: diaSemana, hs: horasTrab, aCumplir: hACumplir, lic: codLic, sinSalida: sinSalida, corresponde: corresponde, extras: extras, _entrada: _entrada, _salida: _salida, _obs: _obsTxt });
+        diasInfo.push({ d: d, fecha: fechaStr, feriado: feriado, diaSemana: diaSemana, hs: horasTrab, aCumplir: hACumplir, lic: codLic, sinSalida: sinSalida, corresponde: corresponde, extras: extras, _entrada: _entrada, _salida: _salida, _obs: _obsTxt, _fichajeId: _fichajeId });
       }
 
       var diff = totalTrabajadas - totalACumplir;
@@ -14470,6 +14496,8 @@ function loadHorasReales() {
     HR_DATA = rows;
     renderHorasResumen(rows, diasMes, anio, mes);
     renderHorasTabla(rows, diasMes);
+    renderHRInconsistencias(rows);
+    verificarAsistenteCierre(anio, mes);
   }).catch(function(e) {
     tabla.innerHTML = '<div class="empty"><p>Error: ' + (e.message || 'consulta fallida') + '</p></div>';
   });
@@ -14584,7 +14612,7 @@ function renderHorasTabla(rows, diasMes) {
     html += '<span>Día</span><span></span><span>Entrada</span><span>Salida</span><span>Trabajó</span><span>Balance</span>';
     html += '</div>';
 
-    r.diasInfo.forEach(function(dia) {
+    r.diasInfo.forEach(function(dia, di) {
       if (dia.diaSemana === 0) return; // ocultar domingos
 
       var esFeriado = dia.feriado;
@@ -14597,6 +14625,7 @@ function renderHorasTabla(rows, diasMes) {
       var balanceColor = 'var(--text3)';
       var entrada = '—';
       var salida = '—';
+      var editBtn = '';
 
       if (esFeriado) {
         bg = 'rgba(139,92,246,.06)';
@@ -14626,6 +14655,7 @@ function renderHorasTabla(rows, diasMes) {
           salida = String(eSal.getUTCHours()).padStart(2,'0') + ':' + String(eSal.getUTCMinutes()).padStart(2,'0');
         } else {
           salida = '\u26A0 sin';
+          editBtn = '<button onclick="hrToggleEdicion(' + ri + ',' + di + ')" style="padding:3px 8px;border-radius:5px;border:1px solid rgba(251,146,60,.4);background:rgba(251,146,60,.1);color:#fdba74;font-family:var(--font);font-size:10px;font-weight:700;cursor:pointer;margin-left:4px">&#x270F; Corregir</button>';
         }
         trabajoTxt = formatHoras(dia.hs);
         var diff = dia.hs - dia.aCumplir;
@@ -14656,6 +14686,7 @@ function renderHorasTabla(rows, diasMes) {
         trabajoTxt = '0 hs';
         estadoTxt = '&#x26A0; Sin fichar salida';
         estadoColor = '#fdba74';
+        editBtn = '<button onclick="hrToggleEdicion(' + ri + ',' + di + ')" style="padding:3px 8px;border-radius:5px;border:1px solid rgba(251,146,60,.4);background:rgba(251,146,60,.1);color:#fdba74;font-family:var(--font);font-size:10px;font-weight:700;cursor:pointer;margin-left:4px">&#x270F; Corregir</button>';
         if (!esFeriado && dia.diaSemana !== 0) {
           balanceTxt = '-' + formatHoras(dia.aCumplir);
           balanceColor = 'var(--red)';
@@ -14668,24 +14699,25 @@ function renderHorasTabla(rows, diasMes) {
           estadoColor = 'var(--red)';
           balanceTxt = '-' + formatHoras(dia.aCumplir);
           balanceColor = 'var(--red)';
+          editBtn = '<button onclick="hrToggleEdicion(' + ri + ',' + di + ')" style="padding:3px 8px;border-radius:5px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.08);color:#fca5a5;font-family:var(--font);font-size:10px;font-weight:700;cursor:pointer;margin-left:4px">&#x270F; Agregar</button>';
         }
       }
 
       // Sábados con fondo suave
       if (dia.diaSemana === 6 && !esFeriado) bg = 'rgba(255,255,255,.02)';
 
-      html += '<div style="display:grid;grid-template-columns:40px 36px 70px 70px 80px;gap:0;padding:7px 12px;border-top:1px solid var(--border);background:' + bg + ';align-items:center">';
+      html += '<div id="hr-fila-' + ri + '-' + di + '" style="display:grid;grid-template-columns:40px 36px 70px 70px 80px;gap:0;padding:7px 12px;border-top:1px solid var(--border);background:' + bg + ';align-items:center">';
       html += '<span style="font-size:13px;font-weight:800;color:var(--text2);font-family:var(--mono)">' + dia.d + '</span>';
       html += '<span style="font-size:10px;color:var(--text3)">' + diaNom + '</span>';
       html += '<span style="font-size:12px;font-family:var(--mono);color:var(--text2)">' + entrada + '</span>';
       html += '<span style="font-size:12px;font-family:var(--mono);color:var(--text2)">' + salida + '</span>';
       html += '<span style="font-size:12px;font-weight:700;color:var(--text)">' + trabajoTxt + '</span>';
       html += '</div>';
-      // Segunda fila: estado + balance
-      if (estadoTxt || balanceTxt) {
-        html += '<div style="display:grid;grid-template-columns:76px 1fr auto;gap:6px;padding:2px 12px 6px;border-bottom:1px solid rgba(255,255,255,.03);background:' + bg + '">';
+      // Segunda fila: estado + balance + botón editar
+      if (estadoTxt || balanceTxt || editBtn) {
+        html += '<div style="display:grid;grid-template-columns:76px 1fr auto;gap:6px;padding:2px 12px 6px;border-bottom:1px solid rgba(255,255,255,.03);background:' + bg + ';align-items:center">';
         html += '<span></span>';
-        html += '<span style="font-size:11px;color:' + estadoColor + '">' + estadoTxt + '</span>';
+        html += '<span style="font-size:11px;color:' + estadoColor + '">' + estadoTxt + editBtn + '</span>';
         html += '<span style="font-size:12px;font-weight:800;color:' + balanceColor + ';font-family:var(--mono)">' + balanceTxt + '</span>';
         html += '</div>';
       }
@@ -14705,6 +14737,312 @@ function toggleHRDetalle(idx) {
   var open = det.style.display === 'block';
   det.style.display = open ? 'none' : 'block';
   if (arrow) arrow.style.transform = open ? '' : 'rotate(180deg)';
+}
+
+// ── PANEL DE INCONSISTENCIAS ─────────────────────────────────
+function renderHRInconsistencias(rows) {
+  var el = document.getElementById('hr-inconsistencias');
+  if (!el) return;
+
+  var conProblemas = rows.filter(function(r) { return r.diasSinSalida > 0; });
+  if (!conProblemas.length) {
+    el.style.display = 'none';
+    return;
+  }
+
+  var html = '<div style="background:rgba(251,146,60,.08);border:1px solid rgba(251,146,60,.3);border-radius:12px;padding:14px 16px">';
+  html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">';
+  html += '<span style="font-size:16px">&#x26A0;</span>';
+  html += '<span style="font-size:13px;font-weight:900;color:#fdba74">Inconsistencias detectadas &#x2014; ' + conProblemas.length + ' agente' + (conProblemas.length > 1 ? 's' : '') + ' sin salida registrada</span>';
+  html += '</div>';
+
+  conProblemas.forEach(function(r) {
+    var diasList = r.diasInfo.filter(function(d) { return d.sinSalida; });
+    var fechas = diasList.map(function(d) {
+      var f = new Date(d.fecha + 'T12:00:00');
+      return String(f.getDate()).padStart(2,'0') + '/' + String(f.getMonth() + 1).padStart(2,'0');
+    }).join(', ');
+    html += '<div style="display:flex;align-items:baseline;gap:8px;padding:5px 0;border-top:1px solid rgba(251,146,60,.15)">';
+    html += '<span style="font-size:12px;font-weight:800;color:var(--text);min-width:160px">' + r.nombre + '</span>';
+    html += '<span style="font-size:11px;color:#fdba74">' + r.diasSinSalida + ' d\xEDa' + (r.diasSinSalida > 1 ? 's' : '') + '</span>';
+    html += '<span style="font-size:11px;color:var(--text3)">' + fechas + '</span>';
+    html += '</div>';
+  });
+
+  html += '</div>';
+  el.innerHTML = html;
+  el.style.display = 'block';
+}
+
+// ── EDICIÓN INLINE DE FICHAJES ────────────────────────────────
+function hrToggleEdicion(ri, di) {
+  var formId = 'hr-edit-' + ri + '-' + di;
+  var existing = document.getElementById(formId);
+  if (existing) {
+    // ya abierto: cerrar
+    existing.parentNode.removeChild(existing);
+    return;
+  }
+  // Cerrar cualquier otro form abierto
+  var abiertos = document.querySelectorAll('[id^="hr-edit-"]');
+  for (var x = 0; x < abiertos.length; x++) {
+    if (abiertos[x].parentNode) abiertos[x].parentNode.removeChild(abiertos[x]);
+  }
+
+  var row = HR_DATA[ri];
+  if (!row) return;
+  var dia = row.diasInfo[di];
+  if (!dia) return;
+
+  // Calcular hora entrada/salida actuales en AR para prelllenar
+  var entVal = '';
+  var salVal = '';
+  if (dia._entrada) {
+    var eIn = new Date(new Date(dia._entrada).getTime() - 3 * 60 * 60 * 1000);
+    entVal = String(eIn.getUTCHours()).padStart(2,'0') + ':' + String(eIn.getUTCMinutes()).padStart(2,'0');
+  }
+  if (dia._salida) {
+    var eSal = new Date(new Date(dia._salida).getTime() - 3 * 60 * 60 * 1000);
+    salVal = String(eSal.getUTCHours()).padStart(2,'0') + ':' + String(eSal.getUTCMinutes()).padStart(2,'0');
+  }
+
+  var form = document.createElement('div');
+  form.id = formId;
+  form.style.cssText = 'background:rgba(37,99,235,.1);border:1px solid rgba(37,99,235,.35);border-radius:8px;padding:10px 12px;margin:2px 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap';
+  form.innerHTML =
+    '<span style="font-size:11px;color:#93c5fd;font-weight:700">Editar ' + String(dia.d).padStart(2,'0') + '/' + String(new Date(dia.fecha + 'T12:00:00').getMonth() + 1).padStart(2,'0') + '</span>' +
+    '<label style="font-size:11px;color:var(--text3)">Entrada</label>' +
+    '<input id="hre-ent-' + ri + '-' + di + '" type="time" value="' + entVal + '" style="padding:5px 8px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:13px;width:90px">' +
+    '<label style="font-size:11px;color:var(--text3)">Salida</label>' +
+    '<input id="hre-sal-' + ri + '-' + di + '" type="time" value="' + salVal + '" style="padding:5px 8px;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-family:var(--mono);font-size:13px;width:90px">' +
+    '<button data-ri="' + ri + '" data-di="' + di + '" onclick="hrGuardarEdicion(this)" style="padding:6px 14px;border-radius:6px;border:none;background:#2563eb;color:#fff;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">Guardar</button>' +
+    '<button onclick="hrToggleEdicion(' + ri + ',' + di + ')" style="padding:6px 10px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--text3);font-family:var(--font);font-size:12px;cursor:pointer">&#x2715;</button>';
+
+  // Insertar debajo de la fila del día — buscar el nodo padre
+  var rowNode = document.getElementById('hr-fila-' + ri + '-' + di);
+  if (rowNode && rowNode.parentNode) {
+    rowNode.parentNode.insertBefore(form, rowNode.nextSibling);
+  }
+}
+
+function hrGuardarEdicion(btn) {
+  var ri = parseInt(btn.getAttribute('data-ri'));
+  var di = parseInt(btn.getAttribute('data-di'));
+  var row = HR_DATA[ri];
+  if (!row) return;
+  var dia = row.diasInfo[di];
+  if (!dia) return;
+
+  var entStr = (document.getElementById('hre-ent-' + ri + '-' + di) || {}).value || '';
+  var salStr = (document.getElementById('hre-sal-' + ri + '-' + di) || {}).value || '';
+  if (!entStr) { toast('Ingres\xE1 la hora de entrada', 'err'); return; }
+
+  btn.disabled = true;
+  btn.textContent = '...';
+
+  // Convertir HH:MM hora Argentina → UTC ISO timestamp
+  // Usamos la fecha del día del fichaje
+  function arHhmmToISO(fechaBase, hhmmStr) {
+    var partes = hhmmStr.split(':');
+    var hh = parseInt(partes[0]);
+    var mm = parseInt(partes[1]) || 0;
+    // AR = UTC-3, entonces UTC = AR + 3
+    var utcMs = new Date(fechaBase + 'T00:00:00Z').getTime() + (hh + 3) * 3600000 + mm * 60000;
+    return new Date(utcMs).toISOString();
+  }
+
+  var newEntrada = arHhmmToISO(dia.fecha, entStr);
+  var newSalida  = salStr ? arHhmmToISO(dia.fecha, salStr) : null;
+
+  // Si salida < entrada en el mismo día, asumir que es del día siguiente
+  if (newSalida && newSalida <= newEntrada) {
+    var ms = new Date(newSalida).getTime() + 24 * 3600000;
+    newSalida = new Date(ms).toISOString();
+  }
+
+  var updates = { entrada: newEntrada };
+  if (newSalida) updates.salida = newSalida;
+
+  // Si tenemos el id del fichaje, update directo; si no, update por agente+fecha aproximada
+  var promise;
+  if (dia._fichajeId) {
+    promise = db.from('fichajes').update(updates).eq('id', dia._fichajeId);
+  } else {
+    // Fallback: buscar por agente + ventana de tiempo del día
+    var desdeVentana = new Date(dia.fecha + 'T03:00:00Z').toISOString();
+    var hastaVentana = new Date(new Date(dia.fecha + 'T03:00:00Z').getTime() + 27 * 3600000).toISOString();
+    promise = db.from('fichajes').update(updates).eq('agente', row.nombre).gte('entrada', desdeVentana).lte('entrada', hastaVentana);
+  }
+
+  promise.then(function(r) {
+    if (r.error) {
+      toast('Error al guardar: ' + r.error.message, 'err');
+      btn.disabled = false;
+      btn.textContent = 'Guardar';
+      return;
+    }
+    toast('Fichaje corregido', 'ok');
+    // Cerrar form y recargar
+    var formId = 'hr-edit-' + ri + '-' + di;
+    var f = document.getElementById(formId);
+    if (f && f.parentNode) f.parentNode.removeChild(f);
+    loadHorasReales();
+  });
+}
+
+// ── WIZARD CIERRE DE MES ───────────────────────────────────────
+var HW_PASO = 1;
+
+function verificarAsistenteCierre(anio, mes) {
+  var hoy = new Date();
+  var hoyAnio = hoy.getFullYear();
+  var hoyMes  = hoy.getMonth() + 1;
+  var hoyDia  = hoy.getDate();
+  var diasDelMes = new Date(hoyAnio, hoyMes, 0).getDate();
+
+  // Últimos 3 días del mes actual o primeros 5 del mes siguiente
+  var esUltimos = (hoyAnio === anio && hoyMes === mes && hoyDia >= diasDelMes - 2);
+  var esPrimeros = false;
+  if (mes === 12) {
+    esPrimeros = (hoyAnio === anio + 1 && hoyMes === 1 && hoyDia <= 5);
+  } else {
+    esPrimeros = (hoyAnio === anio && hoyMes === mes + 1 && hoyDia <= 5);
+  }
+
+  if (!esUltimos && !esPrimeros) return;
+  // Solo mostrar si hay datos cargados del mes seleccionado
+  if (!HR_DATA.length) return;
+  // No molestar si ya fue cerrado en esta sesión
+  if (window._hwMostrado) return;
+  window._hwMostrado = true;
+  abrirWizardCierre(anio, mes);
+}
+
+function abrirWizardCierre(anio, mes) {
+  var meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  var sub = document.getElementById('hr-wizard-subtitle');
+  if (sub) sub.textContent = meses[mes - 1] + ' ' + anio;
+  HW_PASO = 1;
+  hwIrPaso(1);
+  var ov = document.getElementById('hr-wizard-overlay');
+  if (ov) ov.style.display = 'block';
+}
+
+function cerrarWizardCierre() {
+  var ov = document.getElementById('hr-wizard-overlay');
+  if (ov) ov.style.display = 'none';
+}
+
+function hwIrPaso(paso) {
+  HW_PASO = paso;
+  // Actualizar tabs visuales
+  for (var i = 1; i <= 3; i++) {
+    var t = document.getElementById('hw-step-' + i);
+    if (!t) continue;
+    if (i === paso) {
+      t.style.color = '#93c5fd';
+      t.style.borderBottom = '2px solid #2563eb';
+    } else {
+      t.style.color = 'var(--text3)';
+      t.style.borderBottom = '2px solid transparent';
+    }
+  }
+  var prev = document.getElementById('hw-btn-prev');
+  var next = document.getElementById('hw-btn-next');
+  if (prev) prev.style.display = paso > 1 ? 'inline-block' : 'none';
+  if (next) {
+    next.textContent = paso < 3 ? 'Siguiente \u2192' : '\uD83D\uDCC4 Exportar informe';
+  }
+  var body = document.getElementById('hr-wizard-body');
+  if (!body) return;
+  if (paso === 1) body.innerHTML = hwRenderPaso1();
+  if (paso === 2) body.innerHTML = hwRenderPaso2();
+  if (paso === 3) body.innerHTML = hwRenderPaso3();
+}
+
+function hwNext() {
+  if (HW_PASO < 3) { hwIrPaso(HW_PASO + 1); }
+  else { cerrarWizardCierre(); exportarHorasReales(); }
+}
+
+function hwPrev() {
+  if (HW_PASO > 1) hwIrPaso(HW_PASO - 1);
+}
+
+function hwRenderPaso1() {
+  var conProblemas = HR_DATA.filter(function(r) { return r.diasSinSalida > 0; });
+  if (!conProblemas.length) {
+    return '<div style="text-align:center;padding:30px 0"><div style="font-size:32px">&#x2705;</div><div style="font-size:15px;font-weight:800;color:var(--green);margin-top:8px">Sin inconsistencias</div><div style="font-size:12px;color:var(--text3);margin-top:4px">Todos los fichajes tienen entrada y salida registradas.</div></div>';
+  }
+  var h = '<div style="font-size:12px;color:var(--text3);margin-bottom:12px">Los siguientes agentes tienen d\xEDas sin salida registrada. Corregirlos antes de exportar mejora la precisi\xF3n del c\xE1lculo.</div>';
+  conProblemas.forEach(function(r) {
+    var diasList = r.diasInfo.filter(function(d) { return d.sinSalida; });
+    var fechas = diasList.map(function(d) {
+      var f = new Date(d.fecha + 'T12:00:00');
+      return String(f.getDate()).padStart(2,'0') + '/' + String(f.getMonth() + 1).padStart(2,'0');
+    }).join(', ');
+    h += '<div style="background:rgba(251,146,60,.08);border:1px solid rgba(251,146,60,.2);border-radius:8px;padding:10px 12px;margin-bottom:8px">';
+    h += '<div style="font-size:13px;font-weight:800;color:var(--text)">' + r.nombre + '</div>';
+    h += '<div style="font-size:11px;color:#fdba74;margin-top:4px">&#x26A0; ' + r.diasSinSalida + ' d\xEDa' + (r.diasSinSalida > 1 ? 's' : '') + ' sin salida &mdash; ' + fechas + '</div>';
+    h += '</div>';
+  });
+  h += '<div style="font-size:11px;color:var(--text3);margin-top:4px">Pod\xE9s corregirlos desde la tabla, tocando el d\xEDa correspondiente.</div>';
+  return h;
+}
+
+function hwRenderPaso2() {
+  var meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  var mes  = parseInt((document.getElementById('hr-mes') || {}).value  || new Date().getMonth() + 1);
+  var anio = parseInt((document.getElementById('hr-anio') || {}).value || new Date().getFullYear());
+
+  var conExtras   = HR_DATA.filter(function(r) { return r.diff > 0.1; });
+  var conFalta    = HR_DATA.filter(function(r) { return r.diff < -0.5; });
+  var equilibrado = HR_DATA.filter(function(r) { return r.diff >= -0.5 && r.diff <= 0.1; });
+
+  var h = '<div style="margin-bottom:14px">';
+  h += '<div style="font-size:12px;font-weight:700;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em">Resumen ' + meses[mes-1] + ' ' + anio + '</div>';
+  h += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px">';
+  h += '<div style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:8px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:900;color:var(--green)">' + conExtras.length + '</div><div style="font-size:10px;color:var(--text3)">Con extras</div></div>';
+  h += '<div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:900;color:var(--red)">' + conFalta.length + '</div><div style="font-size:10px;color:var(--text3)">Con faltantes</div></div>';
+  h += '<div style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center"><div style="font-size:20px;font-weight:900;color:var(--text2)">' + equilibrado.length + '</div><div style="font-size:10px;color:var(--text3)">Equilibrado</div></div>';
+  h += '</div></div>';
+
+  if (conExtras.length) {
+    h += '<div style="font-size:11px;font-weight:700;color:var(--green);margin-bottom:6px">Con horas extra</div>';
+    conExtras.forEach(function(r) {
+      h += '<div style="display:flex;justify-content:space-between;padding:5px 0;border-top:1px solid var(--border);font-size:12px">';
+      h += '<span style="color:var(--text)">' + r.nombre + '</span>';
+      h += '<span style="color:var(--green);font-family:var(--mono);font-weight:700">+' + formatHoras(r.diff) + '</span>';
+      h += '</div>';
+    });
+  }
+  if (conFalta.length) {
+    h += '<div style="font-size:11px;font-weight:700;color:var(--red);margin-bottom:6px;margin-top:12px">Con horas faltantes</div>';
+    conFalta.forEach(function(r) {
+      h += '<div style="display:flex;justify-content:space-between;padding:5px 0;border-top:1px solid var(--border);font-size:12px">';
+      h += '<span style="color:var(--text)">' + r.nombre + '</span>';
+      h += '<span style="color:var(--red);font-family:var(--mono);font-weight:700">-' + formatHoras(Math.abs(r.diff)) + '</span>';
+      h += '</div>';
+    });
+  }
+  return h;
+}
+
+function hwRenderPaso3() {
+  var pendientes = HR_DATA.filter(function(r) { return r.diasSinSalida > 0; }).length;
+  var h = '<div style="text-align:center;padding:20px 0">';
+  h += '<div style="font-size:36px;margin-bottom:10px">&#x1F4C4;</div>';
+  h += '<div style="font-size:15px;font-weight:900;color:var(--text);margin-bottom:8px">Generar informe de cierre</div>';
+  if (pendientes > 0) {
+    h += '<div style="background:rgba(251,146,60,.1);border:1px solid rgba(251,146,60,.3);border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#fdba74">';
+    h += '&#x26A0; Quedan ' + pendientes + ' agente' + (pendientes > 1 ? 's' : '') + ' con inconsistencias sin corregir. El informe se generar\xE1 igual con los datos disponibles.';
+    h += '</div>';
+  } else {
+    h += '<div style="font-size:12px;color:var(--text3);margin-bottom:14px">Todas las inconsistencias est\xE1n resueltas. El informe incluir\xE1 datos completos.</div>';
+  }
+  h += '<div style="font-size:12px;color:var(--text3)">Al confirmar se genera el informe HTML descargable con el detalle de horas por agente.</div>';
+  h += '</div>';
+  return h;
 }
 
 function exportarHorasReales() {
