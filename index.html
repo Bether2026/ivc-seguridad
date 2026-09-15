@@ -3793,7 +3793,7 @@ body {
             </div>
             <div style="margin-top:18px;display:flex;gap:8px">
               <button onclick="loadHorasReales()" style="padding:8px 16px;border-radius:8px;border:1px solid rgba(59,130,246,.35);background:rgba(59,130,246,.1);color:#93c5fd;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">&#x1F504; Actualizar</button>
-              <button onclick="exportarHorasReales()" style="padding:8px 16px;border-radius:8px;border:1px solid rgba(16,185,129,.35);background:rgba(16,185,129,.1);color:#6ee7b7;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">&#x1F4C4; Exportar HTML</button><button onclick="exportarExcelHR()" style="padding:8px 16px;border-radius:8px;border:1px solid rgba(34,197,94,.35);background:rgba(34,197,94,.1);color:#86efac;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">&#x1F4CA; Exportar Excel</button>
+              <button onclick="exportarHorasReales()" style="padding:8px 16px;border-radius:8px;border:1px solid rgba(16,185,129,.35);background:rgba(16,185,129,.1);color:#6ee7b7;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">&#x1F4C4; Exportar</button>
             </div>
           </div>
           <div id="hr-resumen" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px"></div>
@@ -14707,325 +14707,6 @@ function toggleHRDetalle(idx) {
   if (arrow) arrow.style.transform = open ? '' : 'rotate(180deg)';
 }
 
-
-// ── EXPORT EXCEL HR ──────────────────────────────────────────
-function exportarExcelHR() {
-  if (!HR_DATA.length) { toast('Sin datos para exportar', 'err'); return; }
-
-  var mes  = parseInt((document.getElementById('hr-mes')  || {}).value || new Date().getMonth() + 1);
-  var anio = parseInt((document.getElementById('hr-anio') || {}).value || new Date().getFullYear());
-  var mesesNom = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-
-  toast('Generando Excel...');
-
-  // Cargar SheetJS si no está disponible
-  function _conSheetJS(cb) {
-    if (typeof XLSX !== 'undefined') { cb(); return; }
-    var s = document.createElement('script');
-    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
-    s.onload = cb;
-    s.onerror = function() { toast('Error cargando SheetJS', 'err'); };
-    document.head.appendChild(s);
-  }
-
-  db.from('agentes').select('nombre,legajo,puesto,hora_entrada,hora_salida').then(function(res) {
-    var agInfo = {};
-    (res.data || []).forEach(function(a) {
-      if (!a.nombre) return;
-      agInfo[a.nombre.trim().toUpperCase()] = {
-        legajo: a.legajo || '',
-        puesto: a.puesto || ''
-      };
-    });
-    _conSheetJS(function() {
-      _generarExcelHR(mes, anio, mesesNom, agInfo);
-    });
-  });
-}
-
-function _hrCeldaDia(dia, tipo) {
-  // Devuelve el valor que va en la celda del Excel para ese día
-  // según la lógica del cuadro del gerente
-  var inhabil = (dia.diaSemana === 0 || dia.diaSemana === 6 || dia.feriado);
-
-  // Día libre según condición: OR (franco / no corresponde)
-  if (!dia.corresponde && !dia.hs && !dia.sinSalida && !dia.lic) return 'OR';
-
-  // Licencia — devolver el código tal cual
-  if (dia.lic) return dia.lic;
-
-  // No fichó salida
-  if (dia.sinSalida) return 'NF';
-
-  // Sin ningún registro en día que corresponde
-  if (dia.hs === null && dia.corresponde) return 0;
-
-  // Trabajó — devolver extras decimales (puede ser negativo)
-  if (dia.hs !== null) {
-    var extras = dia.hs - dia.aCumplir;
-    // Redondear a 2 decimales para que quede limpio
-    return Math.round(extras * 100) / 100;
-  }
-
-  // Domingos y días libres sin nada: vacío
-  return '';
-}
-
-function _hrEsHabil(diaSemana, feriado) {
-  return diaSemana !== 0 && diaSemana !== 6 && !feriado;
-}
-
-function _generarExcelHR(mes, anio, mesesNom, agInfo) {
-  var wb = XLSX.utils.book_new();
-  var diasMes = new Date(anio, mes, 0).getDate();
-  var nombreMes = mesesNom[mes - 1];
-
-  // ── Estilos reutilizables ──────────────────────────────────
-  var STY = {
-    header: { font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 11 }, fill: { fgColor: { rgb: '1A2233' } }, alignment: { horizontal: 'center', vertical: 'center', wrapText: true }, border: { bottom: { style: 'thin', color: { rgb: '7CB0FF' } } } },
-    subheader: { font: { bold: true, sz: 10 }, fill: { fgColor: { rgb: 'E8ECF2' } }, alignment: { horizontal: 'center' }, border: { bottom: { style: 'thin', color: { rgb: 'B0BBCC' } } } },
-    nombre: { font: { bold: true, sz: 10 }, alignment: { horizontal: 'left', vertical: 'center' } },
-    legajo: { font: { sz: 9, color: { rgb: '5A6478' } }, alignment: { horizontal: 'center' } },
-    numPos: { font: { bold: true, sz: 10, color: { rgb: '0D7A3F' } }, alignment: { horizontal: 'center' }, numFmt: '0.00' },
-    numNeg: { font: { bold: true, sz: 10, color: { rgb: 'B3261E' } }, alignment: { horizontal: 'center' }, numFmt: '0.00' },
-    numCero: { font: { sz: 10, color: { rgb: '9AA0AD' } }, alignment: { horizontal: 'center' }, numFmt: '0.00' },
-    codigoNF: { font: { bold: true, sz: 10, color: { rgb: 'C2410C' } }, fill: { fgColor: { rgb: 'FFF4DE' } }, alignment: { horizontal: 'center' } },
-    codigoOR: { font: { sz: 10, color: { rgb: '6B7280' } }, fill: { fgColor: { rgb: 'F3F4F6' } }, alignment: { horizontal: 'center' } },
-    codigoLic: { font: { bold: true, sz: 10, color: { rgb: '1D4ED8' } }, fill: { fgColor: { rgb: 'EFF6FF' } }, alignment: { horizontal: 'center' } },
-    totalPos: { font: { bold: true, sz: 11, color: { rgb: '0D7A3F' } }, fill: { fgColor: { rgb: 'F0FDF4' } }, alignment: { horizontal: 'center' }, numFmt: '0.00' },
-    totalNeg: { font: { bold: true, sz: 11, color: { rgb: 'B3261E' } }, fill: { fgColor: { rgb: 'FEF2F2' } }, alignment: { horizontal: 'center' }, numFmt: '0.00' },
-    totalCero: { font: { bold: true, sz: 11, color: { rgb: '9AA0AD' } }, alignment: { horizontal: 'center' }, numFmt: '0.00' },
-    sabHeader: { font: { bold: true, sz: 10, color: { rgb: '7C3AED' } }, fill: { fgColor: { rgb: 'F5F3FF' } }, alignment: { horizontal: 'center' } },
-    ferHeader: { font: { bold: true, sz: 10, color: { rgb: '9D174D' } }, fill: { fgColor: { rgb: 'FDF2F8' } }, alignment: { horizontal: 'center' } },
-    totalHeader: { font: { bold: true, sz: 11, color: { rgb: 'FFFFFF' } }, fill: { fgColor: { rgb: '2563EB' } }, alignment: { horizontal: 'center' } }
-  };
-
-  function _celda(v, sty) {
-    var t = typeof v === 'number' ? 'n' : 's';
-    return { v: v, t: t, s: sty };
-  }
-
-  function _styNumero(val) {
-    if (typeof val !== 'number') return STY.codigoLic;
-    if (val > 0) return STY.numPos;
-    if (val < 0) return STY.numNeg;
-    return STY.numCero;
-  }
-
-  function _styTotal(val) {
-    if (val > 0.05) return STY.totalPos;
-    if (val < -0.05) return STY.totalNeg;
-    return STY.totalCero;
-  }
-
-  function _styDia(val) {
-    if (val === 'NF') return STY.codigoNF;
-    if (val === 'OR') return STY.codigoOR;
-    if (typeof val === 'string' && val !== '') return STY.codigoLic;
-    return _styNumero(val);
-  }
-
-  // ── Construir días del mes con metadata ────────────────────
-  var diasInfo = [];
-  for (var d = 1; d <= diasMes; d++) {
-    var fStr = anio + '-' + String(mes).padStart(2,'0') + '-' + String(d).padStart(2,'0');
-    var fObj = new Date(fStr + 'T12:00:00');
-    var ds = fObj.getDay();
-    var esF = typeof esFeriado === 'function' ? esFeriado(fStr) : false;
-    var nomDia = ['D','L','Ma','Mi','J','V','S'][ds];
-    diasInfo.push({ d: d, fStr: fStr, ds: ds, esF: esF, nomDia: nomDia });
-  }
-
-  // ── Función que construye una hoja (REAL o URSES) ──────────
-  function _construirHoja(titulo, agentes) {
-    var ws = {};
-    var merges = [];
-
-    // Fila 0: título del informe (merge toda la fila)
-    var colTotal = 3 + diasMes; // ord(0) + legajo(1) + nombre(2) + días + total
-    ws['A1'] = _celda(titulo + ' ' + nombreMes + ' ' + anio, {
-      font: { bold: true, sz: 14, color: { rgb: '1A2233' } },
-      alignment: { horizontal: 'center', vertical: 'center' }
-    });
-    merges.push({ s: { r: 0, c: 0 }, e: { r: 0, c: colTotal } });
-
-    // Fila 1: encabezados fijos
-    ws[XLSX.utils.encode_cell({ r: 1, c: 0 })] = _celda('ORD', STY.header);
-    ws[XLSX.utils.encode_cell({ r: 1, c: 1 })] = _celda('LEGAJO', STY.header);
-    ws[XLSX.utils.encode_cell({ r: 1, c: 2 })] = _celda('APELLIDO Y NOMBRE', STY.header);
-
-    // Encabezados de días: número de día
-    for (var ci = 0; ci < diasInfo.length; ci++) {
-      var di = diasInfo[ci];
-      var sty = di.esF ? STY.ferHeader : (di.ds === 6 ? STY.sabHeader : (di.ds === 0 ? STY.codigoOR : STY.subheader));
-      ws[XLSX.utils.encode_cell({ r: 1, c: 3 + ci })] = _celda(di.d, sty);
-    }
-    ws[XLSX.utils.encode_cell({ r: 1, c: 3 + diasMes })] = _celda('TOTAL HS', STY.totalHeader);
-
-    // Fila 2: nombre del día (L, Ma, Mi, J, V, S, D / feriado)
-    ws[XLSX.utils.encode_cell({ r: 2, c: 0 })] = _celda('', STY.subheader);
-    ws[XLSX.utils.encode_cell({ r: 2, c: 1 })] = _celda('', STY.subheader);
-    ws[XLSX.utils.encode_cell({ r: 2, c: 2 })] = _celda('', STY.subheader);
-    for (var ci2 = 0; ci2 < diasInfo.length; ci2++) {
-      var di2 = diasInfo[ci2];
-      var label = di2.esF ? 'F' : di2.nomDia;
-      var sty2 = di2.esF ? STY.ferHeader : (di2.ds === 6 ? STY.sabHeader : (di2.ds === 0 ? STY.codigoOR : STY.subheader));
-      ws[XLSX.utils.encode_cell({ r: 2, c: 3 + ci2 })] = _celda(label, sty2);
-    }
-    ws[XLSX.utils.encode_cell({ r: 2, c: 3 + diasMes })] = _celda('', STY.totalHeader);
-
-    // Filas de agentes
-    var fila = 3;
-    agentes.forEach(function(r, ri) {
-      var info = agInfo[r.nombre.toUpperCase()] || { legajo: '', puesto: '' };
-      var totalExtras = 0;
-      var totalCeldas = 0;
-
-      ws[XLSX.utils.encode_cell({ r: fila, c: 0 })] = _celda(ri + 1, STY.legajo);
-      ws[XLSX.utils.encode_cell({ r: fila, c: 1 })] = _celda(info.legajo || '', STY.legajo);
-      ws[XLSX.utils.encode_cell({ r: fila, c: 2 })] = _celda(r.nombre, STY.nombre);
-
-      for (var ci3 = 0; ci3 < diasMes; ci3++) {
-        var diaData = r.diasInfo[ci3];
-        if (!diaData) { ws[XLSX.utils.encode_cell({ r: fila, c: 3 + ci3 })] = _celda('', STY.codigoOR); continue; }
-        var val = _hrCeldaDia(diaData, r.tipo);
-        ws[XLSX.utils.encode_cell({ r: fila, c: 3 + ci3 })] = _celda(val === '' ? '' : val, _styDia(val));
-        if (typeof val === 'number') { totalExtras += val; totalCeldas++; }
-      }
-
-      // Total HS
-      var totalRedondeado = Math.round(totalExtras * 100) / 100;
-      ws[XLSX.utils.encode_cell({ r: fila, c: 3 + diasMes })] = _celda(totalRedondeado, _styTotal(totalRedondeado));
-      fila++;
-    });
-
-    // Fila de totales globales
-    ws[XLSX.utils.encode_cell({ r: fila, c: 0 })] = _celda('', STY.totalHeader);
-    ws[XLSX.utils.encode_cell({ r: fila, c: 1 })] = _celda('', STY.totalHeader);
-    ws[XLSX.utils.encode_cell({ r: fila, c: 2 })] = _celda('TOTAL GENERAL', STY.totalHeader);
-    var sumaGlobal = 0;
-    for (var ci4 = 0; ci4 < diasMes; ci4++) {
-      var sumaCol = 0;
-      agentes.forEach(function(r) {
-        if (!r.diasInfo[ci4]) return;
-        var val = _hrCeldaDia(r.diasInfo[ci4], r.tipo);
-        if (typeof val === 'number') sumaCol += val;
-      });
-      sumaCol = Math.round(sumaCol * 100) / 100;
-      sumaGlobal += sumaCol;
-      ws[XLSX.utils.encode_cell({ r: fila, c: 3 + ci4 })] = _celda(sumaCol, _styTotal(sumaCol));
-    }
-    sumaGlobal = Math.round(sumaGlobal * 100) / 100;
-    ws[XLSX.utils.encode_cell({ r: fila, c: 3 + diasMes })] = _celda(sumaGlobal, _styTotal(sumaGlobal));
-
-    // Rango de la hoja
-    ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: fila, c: 3 + diasMes } });
-
-    // Anchos de columna
-    var cols = [
-      { wch: 5 },   // ORD
-      { wch: 12 },  // LEGAJO
-      { wch: 32 }   // NOMBRE
-    ];
-    for (var ci5 = 0; ci5 < diasMes; ci5++) cols.push({ wch: 4.5 });
-    cols.push({ wch: 10 }); // TOTAL
-    ws['!cols'] = cols;
-
-    // Alto de filas: fila título y headers
-    ws['!rows'] = [{ hpt: 28 }, { hpt: 22 }, { hpt: 16 }];
-
-    ws['!merges'] = merges;
-    return ws;
-  }
-
-  // ── Hoja DETALLE: una fila por agente×día con horarios ─────
-  function _construirHojaDetalle(agentes) {
-    var ws = {};
-    var colTotal = 9; // ord, legajo, nombre, tipo, fecha, dia, entrada, salida, hs, extras, estado
-    ws['A1'] = _celda('DETALLE DIARIO — ' + nombreMes + ' ' + anio, {
-      font: { bold: true, sz: 13, color: { rgb: '1A2233' } },
-      alignment: { horizontal: 'center' }
-    });
-    var merges = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 9 } }];
-
-    var heads = ['ORD', 'LEGAJO', 'APELLIDO Y NOMBRE', 'TIPO', 'FECHA', 'DIA', 'ENTRADA', 'SALIDA', 'HS TRAB.', 'EXTRAS/FALT.', 'ESTADO'];
-    for (var hi = 0; hi < heads.length; hi++) {
-      ws[XLSX.utils.encode_cell({ r: 1, c: hi })] = _celda(heads[hi], STY.header);
-    }
-
-    var diasSemNom = ['Dom','Lun','Mar','Mie','Jue','Vie','Sab'];
-    var fila = 2;
-    agentes.forEach(function(r, ri) {
-      var info = agInfo[r.nombre.toUpperCase()] || { legajo: '', puesto: '' };
-      r.diasInfo.forEach(function(dia) {
-        if (dia.diaSemana === 0) return; // sin domingos
-        var val = _hrCeldaDia(dia, r.tipo);
-        if (val === '' && !dia.corresponde) return; // skip días totalmente irrelevantes
-
-        var entStr = '';
-        var salStr = '';
-        if (dia._entrada) {
-          var eIn = new Date(new Date(dia._entrada).getTime() - 3 * 3600000);
-          entStr = String(eIn.getUTCHours()).padStart(2,'0') + ':' + String(eIn.getUTCMinutes()).padStart(2,'0');
-        }
-        if (dia._salida) {
-          var eSal = new Date(new Date(dia._salida).getTime() - 3 * 3600000);
-          salStr = String(eSal.getUTCHours()).padStart(2,'0') + ':' + String(eSal.getUTCMinutes()).padStart(2,'0');
-        }
-
-        var hsTrab = dia.hs !== null ? Math.round(dia.hs * 100) / 100 : '';
-        var extras = (typeof val === 'number') ? val : '';
-        var estado = '';
-        if (dia.sinSalida) estado = 'Sin salida';
-        else if (dia.lic) estado = dia.lic;
-        else if (dia.hs === null && dia.corresponde) estado = 'Sin registro';
-        else if (!dia.corresponde) estado = 'Franco/Libre';
-
-        var filaData = [ri + 1, info.legajo || '', r.nombre, r.tipo,
-          dia.fecha, diasSemNom[dia.diaSemana], entStr, salStr, hsTrab, extras, estado];
-
-        filaData.forEach(function(v, ci) {
-          var sty = STY.legajo;
-          if (ci === 2) sty = STY.nombre;
-          if (ci === 8 || ci === 9) sty = typeof v === 'number' ? _styNumero(v) : STY.codigoOR;
-          if (ci === 10 && v) sty = v === 'Sin salida' ? STY.codigoNF : v === 'Sin registro' ? STY.codigoNF : STY.codigoLic;
-          ws[XLSX.utils.encode_cell({ r: fila, c: ci })] = _celda(v === '' ? '' : v, sty);
-        });
-        fila++;
-      });
-    });
-
-    ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: fila, c: 10 } });
-    ws['!cols'] = [{ wch: 5 }, { wch: 12 }, { wch: 32 }, { wch: 5 }, { wch: 12 }, { wch: 5 }, { wch: 8 }, { wch: 8 }, { wch: 9 }, { wch: 11 }, { wch: 14 }];
-    ws['!rows'] = [{ hpt: 26 }, { hpt: 20 }];
-    ws['!merges'] = merges;
-    return ws;
-  }
-
-  // ── Separar agentes por tipo ───────────────────────────────
-  var todosAgentes = HR_DATA.slice().sort(function(a, b) {
-    return a.nombre.localeCompare(b.nombre);
-  });
-  var agentesUrses = todosAgentes.filter(function(r) {
-    return r.tipo === 'PH' || r.tipo === 'PI';
-  });
-
-  // ── Construir workbook con 3 hojas ─────────────────────────
-  var wsReal    = _construirHoja('HORAS EXTRAS', todosAgentes);
-  var wsUrses   = _construirHoja('URSES', agentesUrses);
-  var wsDetalle = _construirHojaDetalle(todosAgentes);
-
-  XLSX.utils.book_append_sheet(wb, wsReal,    'REAL');
-  XLSX.utils.book_append_sheet(wb, wsUrses,   'URSES');
-  XLSX.utils.book_append_sheet(wb, wsDetalle, 'Detalle');
-
-  // ── Descargar ──────────────────────────────────────────────
-  var nombreArchivo = 'Horas_Reales_' + nombreMes + '_' + anio + '.xlsx';
-  XLSX.writeFile(wb, nombreArchivo);
-  toast('\u2714 Excel descargado — 3 hojas', 'ok');
-}
-
-
 function exportarHorasReales() {
   if (!HR_DATA.length) { toast('Sin datos para exportar', 'err'); return; }
   var mes  = parseInt((document.getElementById('hr-mes') || {}).value  || new Date().getMonth() + 1);
@@ -15167,6 +14848,147 @@ function _hrExtrasReales(d, horaEntradaEsperadaStr, tipo) {
   return { extraMin: extraMin, alerta: alerta };
 }
 
+
+function _hrCeldaDiaVal(dia) {
+  // Valor para el cuadro resumen: number (extras), "NF", "OR", codigo lic, 0, o ""
+  if (!dia.corresponde && !dia.hs && !dia.sinSalida && !dia.lic) return 'OR';
+  if (dia.lic) return dia.lic;
+  if (dia.sinSalida) return 'NF';
+  if (dia.hs === null && dia.corresponde) return 0;
+  if (dia.hs !== null) return Math.round((dia.hs - dia.aCumplir) * 100) / 100;
+  return '';
+}
+
+function _cuadroResumenHTML(todosAg, ursesAg, diasMes, mes, anio, mesesNom) {
+  var meses = mesesNom || ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  var diasSemLetra = ['D','L','Ma','Mi','J','V','S'];
+
+  function _fmtVal(v) {
+    if (v === 'NF') return 'NF';
+    if (v === 'OR') return 'OR';
+    if (typeof v === 'string' && v !== '') return v;
+    if (typeof v === 'number') {
+      if (v === 0) return '0';
+      var abs = Math.abs(v);
+      var hh = Math.floor(abs);
+      var mm = Math.round((abs - hh) * 60);
+      if (mm === 60) { hh++; mm = 0; }
+      return (v > 0 ? '+' : '-') + hh + (mm > 0 ? ',' + String(mm).padStart(2,'0') : '');
+    }
+    return '';
+  }
+
+  function _claseVal(v) {
+    if (v === 'NF') return 'nf';
+    if (v === 'OR') return 'or';
+    if (typeof v === 'string' && v !== '') return 'lic';
+    if (typeof v === 'number') {
+      if (v > 0.04) return 'pos';
+      if (v < -0.04) return 'neg';
+      return 'cero';
+    }
+    return '';
+  }
+
+  function _claseTotalAg(tot) {
+    if (tot > 0.04) return 'total-ag pos';
+    if (tot < -0.04) return 'total-ag neg';
+    return 'total-ag cero';
+  }
+
+  function _construirTabla(agentes, titulo) {
+    // Calcular días del mes con metadata
+    var diasInfo = [];
+    for (var d = 1; d <= diasMes; d++) {
+      var fStr = anio + '-' + String(mes).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+      var fObj = new Date(fStr + 'T12:00:00');
+      var ds = fObj.getDay();
+      diasInfo.push({ d: d, ds: ds });
+    }
+
+    var h = '<p class="cuadro-title">' + titulo + '</p>';
+    h += '<p class="cuadro-sub">Extras/faltantes por agente · ' + meses[mes-1] + ' ' + anio + ' · valores en horas</p>';
+    h += '<div class="cuadro-wrap"><div class="cuadro"><table>';
+
+    // Thead fila 1: número de día
+    h += '<thead><tr><th class="th-leg">LEGAJO</th><th class="th-nombre">APELLIDO Y NOMBRE</th>';
+    for (var ci = 0; ci < diasInfo.length; ci++) {
+      var di = diasInfo[ci];
+      var cls = di.ds === 0 ? 'th-dom' : di.ds === 6 ? 'th-sab' : '';
+      h += '<th class="' + cls + '">' + di.d + '</th>';
+    }
+    h += '<th class="th-total">TOTAL</th></tr>';
+
+    // Thead fila 2: letra del día
+    h += '<tr><th class="th-leg"></th><th class="th-nombre"></th>';
+    for (var ci2 = 0; ci2 < diasInfo.length; ci2++) {
+      var di2 = diasInfo[ci2];
+      var cls2 = di2.ds === 0 ? 'th-dom' : di2.ds === 6 ? 'th-sab' : '';
+      h += '<th class="' + cls2 + '" style="font-size:9px;font-weight:400;opacity:.8">' + diasSemLetra[di2.ds] + '</th>';
+    }
+    h += '<th class="th-total"></th></tr></thead>';
+
+    // Tbody
+    h += '<tbody>';
+    var sumaCols = [];
+    for (var x = 0; x < diasMes; x++) sumaCols.push(0);
+    var sumaTotal = 0;
+
+    agentes.forEach(function(r, ri) {
+      h += '<tr>';
+      // Buscar legajo en agInfo — no disponible aquí, se pasa como attr en data
+      h += '<td class="td-leg">' + (r._legajo || '') + '</td>';
+      h += '<td class="td-nombre">' + r.nombre + '</td>';
+      var totalAg = 0;
+      for (var ci3 = 0; ci3 < diasMes; ci3++) {
+        var diaData = r.diasInfo[ci3];
+        if (!diaData) { h += '<td class="or"></td>'; continue; }
+        var val = _hrCeldaDiaVal(diaData);
+        var cls3 = _claseVal(val);
+        var txt = _fmtVal(val);
+        if (typeof val === 'number') {
+          totalAg += val;
+          sumaCols[ci3] += val;
+        }
+        h += '<td class="' + cls3 + '">' + txt + '</td>';
+      }
+      totalAg = Math.round(totalAg * 100) / 100;
+      sumaTotal += totalAg;
+      var clsTot = _claseTotalAg(totalAg);
+      h += '<td class="' + clsTot + '">' + _fmtVal(totalAg) + '</td>';
+      h += '</tr>';
+    });
+
+    // Tfoot totales
+    h += '</tbody><tfoot><tr>';
+    h += '<td class="tfoot-label" colspan="2">TOTAL</td>';
+    for (var ci4 = 0; ci4 < diasMes; ci4++) {
+      var sc = Math.round(sumaCols[ci4] * 100) / 100;
+      var cls4 = sc > 0.04 ? 'pos' : sc < -0.04 ? 'neg' : '';
+      h += '<td class="' + cls4 + '">' + (sc !== 0 ? _fmtVal(sc) : '') + '</td>';
+    }
+    sumaTotal = Math.round(sumaTotal * 100) / 100;
+    var clsST = sumaTotal > 0.04 ? 'pos' : sumaTotal < -0.04 ? 'neg' : '';
+    h += '<td class="' + clsST + '">' + _fmtVal(sumaTotal) + '</td>';
+    h += '</tr></tfoot></table></div></div>';
+
+    // Leyenda
+    h += '<div class="leyenda">';
+    h += '<div class="ley-item"><div class="ley-box" style="background:#f0fdf4;border-color:#bbf7d0"></div><span style="color:#0d7a3f">Extras (+)</span></div>';
+    h += '<div class="ley-item"><div class="ley-box" style="background:#fef2f2;border-color:#fecaca"></div><span style="color:#b3261e">Faltantes (-)</span></div>';
+    h += '<div class="ley-item"><div class="ley-box" style="background:#fff4de;border-color:#fde68a"></div><span style="color:#c2410c">NF = No fichó salida</span></div>';
+    h += '<div class="ley-item"><div class="ley-box" style="background:#f3f4f6;border-color:#d1d5db"></div><span style="color:#6b7280">OR = Franco / No corresponde</span></div>';
+    h += '<div class="ley-item"><div class="ley-box" style="background:#eff6ff;border-color:#bfdbfe"></div><span style="color:#1d4ed8">LIC = Licencia / Novedad</span></div>';
+    h += '</div>';
+    return h;
+  }
+
+  return {
+    real: _construirTabla(todosAg, 'Cuadro de horas — Todos los agentes'),
+    urses: _construirTabla(ursesAg, 'URSES — Planta Habil (PH) · Planta Inhabil (PI)')
+  };
+}
+
 function _generarInformeHTML(mes, anio, mesesNom, diasSemNom, agInfo, turnosMap) {
   var titulo = 'Informe Mensual de Asistencia — ' + mesesNom[mes - 1] + ' ' + anio;
   turnosMap = turnosMap || {};
@@ -15242,6 +15064,7 @@ function _generarInformeHTML(mes, anio, mesesNom, diasSemNom, agInfo, turnosMap)
     G.aus += S.aus; G.otra += S.otra; G.sinreg += S.sinreg;
 
     var dataBuscar = (r.nombre + ' ' + (info.legajo || '')).replace(/"/g, '');
+    r._legajo = info.legajo || '';
 
     var horaSalidaAg = (info.hora_salida || r.hora_salida || '').trim();
     var turnoTxt = horaEntradaAg ? (' <span style="font-weight:400;font-size:13px;color:#5a6478">(' + horaEntradaAg + (horaSalidaAg ? ' a ' + horaSalidaAg : '') + ' hs)</span>') : '';
@@ -15343,23 +15166,88 @@ function _generarInformeHTML(mes, anio, mesesNom, diasSemNom, agInfo, turnosMap)
     + 'section.global{background:#fff;border:2px solid #1a2233;border-radius:10px;padding:20px}'
     + 'section.global h2{margin:0 0 12px;font-size:16px}'
     + '@media print{body{background:#fff;padding:0}'
-    + '.buscador,.no-print{display:none}'
+    + '.buscador,.no-print,.tab-nav{display:none}'
+    + '.tab-panel{display:block!important}'
     + 'section.agente,section.global{border:none;border-radius:0;padding:8px 0}'
     + 'thead{display:table-header-group}'
-    + 'tr{page-break-inside:avoid;break-inside:avoid}}';
+    + 'tr{page-break-inside:avoid;break-inside:avoid}}'
+    + '.tab-nav{display:flex;gap:4px;margin:0 0 20px;border-bottom:2px solid #dfe3ea;padding-bottom:0}'
+    + '.tab-btn{padding:9px 22px;border:none;background:none;font-family:inherit;font-size:13px;font-weight:700;color:#5a6478;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;border-radius:6px 6px 0 0;transition:all .15s}'
+    + '.tab-btn.active{color:#1a2233;border-bottom:3px solid #1a2233;background:#f5f6f8}'
+    + '.tab-btn:hover{color:#1a2233;background:#f0f1f3}'
+    + '.tab-panel{display:none}'
+    + '.tab-panel.active{display:block}'
+    + '.cuadro-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}'
+    + '.cuadro table{border-collapse:collapse;font-size:11px;white-space:nowrap;min-width:100%}'
+    + '.cuadro thead th{background:#1a2233;color:#fff;padding:6px 7px;text-align:center;font-weight:700;position:sticky;top:0;z-index:2}'
+    + '.cuadro thead th.th-nombre{text-align:left;min-width:180px;position:sticky;left:0;z-index:3;background:#1a2233}'
+    + '.cuadro thead th.th-leg{min-width:90px;position:sticky;left:0;z-index:3;background:#1a2233}'
+    + '.cuadro thead th.th-sab{background:#4f46e5}'
+    + '.cuadro thead th.th-fer{background:#9d174d}'
+    + '.cuadro thead th.th-dom{background:#374151}'
+    + '.cuadro thead th.th-total{background:#0d7a3f;min-width:80px}'
+    + '.cuadro tbody td{padding:5px 7px;border:1px solid #e8ebf0;text-align:center;font-variant-numeric:tabular-nums}'
+    + '.cuadro tbody td.td-nombre{text-align:left;font-weight:700;font-size:11px;background:#fff;position:sticky;left:0;border-right:2px solid #dfe3ea}'
+    + '.cuadro tbody td.td-leg{font-size:10px;color:#5a6478;background:#fff;position:sticky;left:0;border-right:2px solid #dfe3ea}'
+    + '.cuadro tbody td.pos{color:#0d7a3f;font-weight:700;background:#f0fdf4}'
+    + '.cuadro tbody td.neg{color:#b3261e;font-weight:700;background:#fef2f2}'
+    + '.cuadro tbody td.cero{color:#9aa0ad}'
+    + '.cuadro tbody td.nf{background:#fff4de;color:#c2410c;font-weight:700}'
+    + '.cuadro tbody td.or{background:#f3f4f6;color:#6b7280}'
+    + '.cuadro tbody td.lic{background:#eff6ff;color:#1d4ed8;font-weight:700}'
+    + '.cuadro tbody td.total-ag{font-weight:800;font-size:12px;border-left:2px solid #0d7a3f}'
+    + '.cuadro tbody td.total-ag.pos{background:#dcfce7;color:#14532d}'
+    + '.cuadro tbody td.total-ag.neg{background:#fee2e2;color:#7f1d1d}'
+    + '.cuadro tbody td.total-ag.cero{background:#f9fafb;color:#6b7280}'
+    + '.cuadro tbody tr:hover td{filter:brightness(.97)}'
+    + '.cuadro tfoot td{background:#f5f6f8;font-weight:800;font-size:11px;border-top:2px solid #1a2233;padding:6px 7px;text-align:center}'
+    + '.cuadro tfoot td.tfoot-label{text-align:left;color:#1a2233;position:sticky;left:0;background:#f5f6f8}'
+    + '.cuadro tfoot td.pos{color:#0d7a3f}'
+    + '.cuadro tfoot td.neg{color:#b3261e}'
+    + '.leyenda{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 0;font-size:11px}'
+    + '.ley-item{display:flex;align-items:center;gap:5px}'
+    + '.ley-box{width:14px;height:14px;border-radius:3px;border:1px solid rgba(0,0,0,.1)}'
+    + '.cuadro-title{font-size:15px;font-weight:800;color:#1a2233;margin:0 0 10px}'
+    + '.cuadro-sub{font-size:12px;color:#5a6478;margin:-6px 0 14px}';
 
   var buscadorJs = 'function filtrarAgentes(q){q=(q||"").toLowerCase();'
     + 'var s=document.querySelectorAll("section.agente");'
     + 'for(var i=0;i<s.length;i++){var t=(s[i].getAttribute("data-buscar")||"").toLowerCase();'
     + 's[i].style.display=t.indexOf(q)>=0?"":"none";}}';
 
+  // Construir cuadros resumen
+  var diasMes = new Date(anio, mes, 0).getDate();
+  var agOrdenados = HR_DATA.slice().sort(function(a,b){ return a.nombre.localeCompare(b.nombre); });
+  var agUrses = agOrdenados.filter(function(r){ return r.tipo === 'PH' || r.tipo === 'PI'; });
+  var cuadros = _cuadroResumenHTML(agOrdenados, agUrses, diasMes, mes, anio, mesesNom);
+
+  var tabNavJs = 'function cambiarTab(id){'
+    + 'var panels=document.querySelectorAll(".tab-panel");'
+    + 'var btns=document.querySelectorAll(".tab-btn");'
+    + 'for(var i=0;i<panels.length;i++){panels[i].classList.remove("active");}'
+    + 'for(var i=0;i<btns.length;i++){btns[i].classList.remove("active");}'
+    + 'var p=document.getElementById(id);if(p)p.classList.add("active");'
+    + 'var b=document.querySelector("[data-tab=\'"+id+"\']");if(b)b.classList.add("active");'
+    + '}';
+
+  var tabNav = '<div class="tab-nav no-print">'
+    + '<button class="tab-btn active" data-tab="tab-detalle" onclick="cambiarTab(\'tab-detalle\')">&#x1F4CB; Detalle por agente</button>'
+    + '<button class="tab-btn" data-tab="tab-real" onclick="cambiarTab(\'tab-real\')">&#x1F4CA; Cuadro REAL</button>'
+    + '<button class="tab-btn" data-tab="tab-urses" onclick="cambiarTab(\'tab-urses\')">&#x1F3DB; Cuadro URSES</button>'
+    + '</div>';
+
   var doc = '<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">'
     + '<meta name="viewport" content="width=device-width,initial-scale=1">'
     + '<title>' + titulo + '</title><style>' + css + '</style></head><body>'
     + '<header class="doc"><h1>IVC Seguridad y Emergencias</h1><p>' + titulo + ' &middot; Generado el ' + fechaHoyAR().split('-').reverse().join('/') + '</p></header>'
+    + tabNav
+    + '<div id="tab-detalle" class="tab-panel active">'
     + '<div class="buscador"><input type="text" placeholder="Buscar por apellido, nombre o legajo..." oninput="filtrarAgentes(this.value)"></div>'
     + cuerpo + resumenGlobal
-    + '<scr' + 'ipt>' + buscadorJs + '\nfunction hdInput(el){\n  var v=el.value.replace(/[^0-9:]/g,"");\n  if(v.length===3&&v.indexOf(":")<0)v=v[0]+":"+v.slice(1);\n  if(v.length===4&&v.indexOf(":")<0)v=v.slice(0,2)+":"+v.slice(2);\n  el.value=v;\n  hdRecalc(el);\n}\nfunction hdBlur(el){\n  var v=el.value.trim();if(!v)return;\n  var p=v.split(":");\n  var h=parseInt(p[0])||0,m=parseInt(p[1])||0;\n  el.value=h+":"+String(m).padStart(2,"0");\n  hdRecalc(el);\n}\nfunction hdRecalc(el){\n  var sec=el.closest("section.agente");if(!sec)return;\n  var inputs=sec.querySelectorAll("input.hd-input");\n  var total=0;\n  inputs.forEach(function(inp){\n    var v=inp.value.trim();if(!v)return;\n    var p=v.split(":");\n    total+=(parseInt(p[0])||0)*60+(parseInt(p[1])||0);\n  });\n  var sp=sec.querySelector(".hd-total");\n  if(sp){var th=Math.floor(total/60),tm=total%60;sp.textContent=th+"h "+String(tm).padStart(2,"0")+"m";}\n}\nfunction editarHora(td){\n  if(td.querySelector("input"))return;\n  var cur=td.textContent.trim();\n  var inp=document.createElement("input");\n  inp.type="text";inp.value=cur;inp.maxLength=5;\n  inp.style.cssText="width:52px;padding:2px 4px;border:1px solid #e67e22;border-radius:4px;font-size:12px;font-family:inherit;text-align:center";\n  inp.onblur=function(){\n    var v=inp.value.trim()||cur;\n    td.textContent=v;\n    recalcFila(td);\n  };\n  inp.onkeydown=function(e){if(e.key==="Enter"||e.key==="Escape")inp.blur();};\n  td.textContent="";td.appendChild(inp);inp.focus();inp.select();\n}\nfunction recalcFila(td){\n  var row=td.closest("tr");if(!row)return;\n  var cells=row.querySelectorAll("td");\n  // col 0=dia, 1=fecha, 2=ingreso, 3=egreso, 4=hsTrab, 5=extras, 6=extrasReales\n  var entTxt=(cells[2]&&cells[2].textContent.trim())||"";\n  var salTxt=(cells[3]&&cells[3].textContent.trim())||"";\n  if(!entTxt||!salTxt)return;\n  var ep=entTxt.split(":");var sp2=salTxt.split(":");\n  var eMin=parseInt(ep[0]||0)*60+(parseInt(ep[1]||0)||0);\n  var sMin=parseInt(sp2[0]||0)*60+(parseInt(sp2[1]||0)||0);\n  if(sMin<eMin)sMin+=24*60; // cruce medianoche\n  var trabajados=sMin-eMin;\n  var hTrab=Math.floor(trabajados/60),mTrab=trabajados%60;\n  if(cells[4])cells[4].textContent=hTrab+"h "+String(mTrab).padStart(2,"0")+"m";\n  // Recalc extras usando horas esperadas del encabezado del agente (si está en el span del título)\n  var sec=td.closest("section.agente");\n  var h2=sec&&sec.querySelector("h2");\n  var turnoTxt=h2&&h2.querySelector("span")?h2.querySelector("span").textContent:"";\n  var esperado=8*60; // default 8hs\n  var tm=turnoTxt.match(/(\\d{1,2}):(\\d{2})\\s*a\\s*(\\d{1,2}):(\\d{2})/);\n  if(tm){var eE=parseInt(tm[1])*60+parseInt(tm[2]);var sE=parseInt(tm[3])*60+parseInt(tm[4]);if(sE<eE)sE+=24*60;esperado=sE-eE;}\n  var extras=trabajados-esperado;\n  var neg=extras<0;var absE=Math.abs(extras);\n  var eH=Math.floor(absE/60),eM=absE%60;\n  var extTxt=(neg?"-":"+")+String(eH).padStart(2,"0")+":"+String(eM).padStart(2,"0");\n  if(cells[5]){cells[5].textContent=extTxt;cells[5].style.color=neg?"#b3261e":"#0d7a3f";}\n  if(cells[6]){cells[6].textContent=extTxt;cells[6].style.color=neg?"#b3261e":"#0d7a3f";}\n  recalcResumenAgente(td.closest("section.agente"));\n  recalcResumenGlobal();\n}\nfunction parseHM(t){\n  if(!t)return 0;t=t.trim();\n  var m=t.match(/(\\d+)h\\s*(\\d+)m/);if(m)return parseInt(m[1])*60+parseInt(m[2]);\n  var ng=t.charAt(0)==="-";t=t.replace(/^[+-]/,"");\n  var p=t.split(":");if(p.length<2)return 0;\n  var v=(parseInt(p[0])||0)*60+(parseInt(p[1])||0);return ng?-v:v;\n}\nfunction mHM(mn){\n  var ng=mn<0;var a=Math.abs(mn);\n  return (ng?"-":"")+Math.floor(a/60)+"h "+String(a%60).padStart(2,"0")+"m";\n}\nfunction recalcResumenAgente(sec){\n  if(!sec)return;\n  var rows=sec.querySelectorAll("tbody tr");var tot=0,ep=0,en=0;\n  rows.forEach(function(r){\n    var c=r.querySelectorAll("td");if(!c[4])return;\n    var hs=parseHM(c[4].textContent);if(hs>0)tot+=hs;\n    if(c[5]){var ex=parseHM(c[5].textContent);if(ex>0)ep+=ex;else if(ex<0)en+=Math.abs(ex);}\n  });\n  var bal=ep-en;\n  sec.querySelectorAll(".res-item").forEach(function(it){\n    var l=it.querySelector("label");if(!l)return;\n    var k=l.textContent.trim().toLowerCase();\n    var s=it.querySelector("span");if(!s)return;\n    if(k==="total horas")s.textContent=mHM(tot);\n    else if(k==="hs extras"){s.textContent="+"+mHM(ep);s.className="pos";}\n    else if(k==="hs faltantes"){s.textContent="-"+mHM(en);s.className="neg";}\n    else if(k==="balance")s.textContent=mHM(bal);\n  });\n}\nfunction recalcResumenGlobal(){\n  var secs=document.querySelectorAll("section.agente");\n  var G={trab:0,ep:0,en:0,dias:0};\n  secs.forEach(function(sec){\n    var rows=sec.querySelectorAll("tbody tr");\n    rows.forEach(function(r){\n      var c=r.querySelectorAll("td");if(!c[4])return;\n      var hs=parseHM(c[4].textContent);if(hs>0){G.trab+=hs;G.dias++;}\n      if(c[5]){var ex=parseHM(c[5].textContent);if(ex>0)G.ep+=ex;else if(ex<0)G.en+=Math.abs(ex);}\n    });\n  });\n  var bal=G.ep-G.en;\n  var g=document.querySelector("section.global");if(!g)return;\n  g.querySelectorAll(".res-item").forEach(function(it){\n    var l=it.querySelector("label");if(!l)return;\n    var k=l.textContent.trim().toLowerCase();\n    var s=it.querySelector("span");if(!s)return;\n    if(k==="total horas trabajadas")s.textContent=mHM(G.trab);\n    else if(k==="total hs extras"){s.textContent="+"+mHM(G.ep);s.className="pos";}\n    else if(k==="total hs faltantes"){s.textContent="-"+mHM(G.en);s.className="neg";}\n    else if(k==="balance general")s.textContent=mHM(bal);\n    else if(k==="dias trabajados")s.textContent=G.dias;\n  });\n}\n' + '</scr' + 'ipt>'
+    + '</div>'
+    + '<div id="tab-real" class="tab-panel">' + cuadros.real + '</div>'
+    + '<div id="tab-urses" class="tab-panel">' + cuadros.urses + '</div>'
+    + '<scr' + 'ipt>' + buscadorJs + '\n' + tabNavJs + '\nfunction hdInput(el){\n  var v=el.value.replace(/[^0-9:]/g,"");\n  if(v.length===3&&v.indexOf(":")<0)v=v[0]+":"+v.slice(1);\n  if(v.length===4&&v.indexOf(":")<0)v=v.slice(0,2)+":"+v.slice(2);\n  el.value=v;\n  hdRecalc(el);\n}\nfunction hdBlur(el){\n  var v=el.value.trim();if(!v)return;\n  var p=v.split(":");\n  var h=parseInt(p[0])||0,m=parseInt(p[1])||0;\n  el.value=h+":"+String(m).padStart(2,"0");\n  hdRecalc(el);\n}\nfunction hdRecalc(el){\n  var sec=el.closest("section.agente");if(!sec)return;\n  var inputs=sec.querySelectorAll("input.hd-input");\n  var total=0;\n  inputs.forEach(function(inp){\n    var v=inp.value.trim();if(!v)return;\n    var p=v.split(":");\n    total+=(parseInt(p[0])||0)*60+(parseInt(p[1])||0);\n  });\n  var sp=sec.querySelector(".hd-total");\n  if(sp){var th=Math.floor(total/60),tm=total%60;sp.textContent=th+"h "+String(tm).padStart(2,"0")+"m";}\n}\nfunction editarHora(td){\n  if(td.querySelector("input"))return;\n  var cur=td.textContent.trim();\n  var inp=document.createElement("input");\n  inp.type="text";inp.value=cur;inp.maxLength=5;\n  inp.style.cssText="width:52px;padding:2px 4px;border:1px solid #e67e22;border-radius:4px;font-size:12px;font-family:inherit;text-align:center";\n  inp.onblur=function(){\n    var v=inp.value.trim()||cur;\n    td.textContent=v;\n    recalcFila(td);\n  };\n  inp.onkeydown=function(e){if(e.key==="Enter"||e.key==="Escape")inp.blur();};\n  td.textContent="";td.appendChild(inp);inp.focus();inp.select();\n}\nfunction recalcFila(td){\n  var row=td.closest("tr");if(!row)return;\n  var cells=row.querySelectorAll("td");\n  // col 0=dia, 1=fecha, 2=ingreso, 3=egreso, 4=hsTrab, 5=extras, 6=extrasReales\n  var entTxt=(cells[2]&&cells[2].textContent.trim())||"";\n  var salTxt=(cells[3]&&cells[3].textContent.trim())||"";\n  if(!entTxt||!salTxt)return;\n  var ep=entTxt.split(":");var sp2=salTxt.split(":");\n  var eMin=parseInt(ep[0]||0)*60+(parseInt(ep[1]||0)||0);\n  var sMin=parseInt(sp2[0]||0)*60+(parseInt(sp2[1]||0)||0);\n  if(sMin<eMin)sMin+=24*60; // cruce medianoche\n  var trabajados=sMin-eMin;\n  var hTrab=Math.floor(trabajados/60),mTrab=trabajados%60;\n  if(cells[4])cells[4].textContent=hTrab+"h "+String(mTrab).padStart(2,"0")+"m";\n  // Recalc extras usando horas esperadas del encabezado del agente (si está en el span del título)\n  var sec=td.closest("section.agente");\n  var h2=sec&&sec.querySelector("h2");\n  var turnoTxt=h2&&h2.querySelector("span")?h2.querySelector("span").textContent:"";\n  var esperado=8*60; // default 8hs\n  var tm=turnoTxt.match(/(\\d{1,2}):(\\d{2})\\s*a\\s*(\\d{1,2}):(\\d{2})/);\n  if(tm){var eE=parseInt(tm[1])*60+parseInt(tm[2]);var sE=parseInt(tm[3])*60+parseInt(tm[4]);if(sE<eE)sE+=24*60;esperado=sE-eE;}\n  var extras=trabajados-esperado;\n  var neg=extras<0;var absE=Math.abs(extras);\n  var eH=Math.floor(absE/60),eM=absE%60;\n  var extTxt=(neg?"-":"+")+String(eH).padStart(2,"0")+":"+String(eM).padStart(2,"0");\n  if(cells[5]){cells[5].textContent=extTxt;cells[5].style.color=neg?"#b3261e":"#0d7a3f";}\n  if(cells[6]){cells[6].textContent=extTxt;cells[6].style.color=neg?"#b3261e":"#0d7a3f";}\n  recalcResumenAgente(td.closest("section.agente"));\n  recalcResumenGlobal();\n}\nfunction parseHM(t){\n  if(!t)return 0;t=t.trim();\n  var m=t.match(/(\\d+)h\\s*(\\d+)m/);if(m)return parseInt(m[1])*60+parseInt(m[2]);\n  var ng=t.charAt(0)==="-";t=t.replace(/^[+-]/,"");\n  var p=t.split(":");if(p.length<2)return 0;\n  var v=(parseInt(p[0])||0)*60+(parseInt(p[1])||0);return ng?-v:v;\n}\nfunction mHM(mn){\n  var ng=mn<0;var a=Math.abs(mn);\n  return (ng?"-":"")+Math.floor(a/60)+"h "+String(a%60).padStart(2,"0")+"m";\n}\nfunction recalcResumenAgente(sec){\n  if(!sec)return;\n  var rows=sec.querySelectorAll("tbody tr");var tot=0,ep=0,en=0;\n  rows.forEach(function(r){\n    var c=r.querySelectorAll("td");if(!c[4])return;\n    var hs=parseHM(c[4].textContent);if(hs>0)tot+=hs;\n    if(c[5]){var ex=parseHM(c[5].textContent);if(ex>0)ep+=ex;else if(ex<0)en+=Math.abs(ex);}\n  });\n  var bal=ep-en;\n  sec.querySelectorAll(".res-item").forEach(function(it){\n    var l=it.querySelector("label");if(!l)return;\n    var k=l.textContent.trim().toLowerCase();\n    var s=it.querySelector("span");if(!s)return;\n    if(k==="total horas")s.textContent=mHM(tot);\n    else if(k==="hs extras"){s.textContent="+"+mHM(ep);s.className="pos";}\n    else if(k==="hs faltantes"){s.textContent="-"+mHM(en);s.className="neg";}\n    else if(k==="balance")s.textContent=mHM(bal);\n  });\n}\nfunction recalcResumenGlobal(){\n  var secs=document.querySelectorAll("section.agente");\n  var G={trab:0,ep:0,en:0,dias:0};\n  secs.forEach(function(sec){\n    var rows=sec.querySelectorAll("tbody tr");\n    rows.forEach(function(r){\n      var c=r.querySelectorAll("td");if(!c[4])return;\n      var hs=parseHM(c[4].textContent);if(hs>0){G.trab+=hs;G.dias++;}\n      if(c[5]){var ex=parseHM(c[5].textContent);if(ex>0)G.ep+=ex;else if(ex<0)G.en+=Math.abs(ex);}\n    });\n  });\n  var bal=G.ep-G.en;\n  var g=document.querySelector("section.global");if(!g)return;\n  g.querySelectorAll(".res-item").forEach(function(it){\n    var l=it.querySelector("label");if(!l)return;\n    var k=l.textContent.trim().toLowerCase();\n    var s=it.querySelector("span");if(!s)return;\n    if(k==="total horas trabajadas")s.textContent=mHM(G.trab);\n    else if(k==="total hs extras"){s.textContent="+"+mHM(G.ep);s.className="pos";}\n    else if(k==="total hs faltantes"){s.textContent="-"+mHM(G.en);s.className="neg";}\n    else if(k==="balance general")s.textContent=mHM(bal);\n    else if(k==="dias trabajados")s.textContent=G.dias;\n  });\n}\n' + '</scr' + 'ipt>'
     + '</body></html>';
 
   var blob = new Blob([doc], { type: 'text/html;charset=utf-8;' });
