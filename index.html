@@ -15085,7 +15085,8 @@ function _generarInformeHTML(mes, anio, mesesNom, diasSemNom, agInfo, turnosMap)
     + '</div></section>';
 
   var css = 'body{font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:0;padding:24px;background:#f5f6f8;color:#1a2233}'
-    + '.fab-hr{position:fixed;bottom:24px;left:24px;background:#1a2233;color:#fff;border:none;border-radius:50px;padding:12px 20px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.25);z-index:999;display:flex;align-items:center;gap:8px;transition:background .15s}'
+    + '.fab-hr{position:fixed;bottom:24px;right:24px;background:#1a2233;color:#fff;border:none;border-radius:50px;padding:12px 20px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.25);z-index:999;display:flex;align-items:center;gap:8px;transition:background .15s}'
+    + '.fab-hr.oculto{display:none}'
     + '.fab-hr:hover{background:#2d3a52}'
     + 'header.doc{text-align:center;margin-bottom:20px}'
     + 'header.doc h1{font-size:22px;margin:0 0 4px}'
@@ -15149,7 +15150,7 @@ function _generarInformeHTML(mes, anio, mesesNom, diasSemNom, agInfo, turnosMap)
     + '.tab-btn:hover{color:#1a2233;background:#f0f1f3}'
     + '.tab-panel{display:none}'
     + '.tab-panel.active{display:block}'
-    + '.cuadro-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;position:relative;scrollbar-width:thin;scrollbar-color:#94a3b8 #f1f5f9}'
+    + '.cuadro-wrap{overflow-x:scroll;-webkit-overflow-scrolling:touch;position:relative;scrollbar-width:thin;scrollbar-color:#94a3b8 #f1f5f9}'
     + '.cuadro-wrap::-webkit-scrollbar{height:8px}'
     + '.cuadro-wrap::-webkit-scrollbar-track{background:#f1f5f9;border-radius:4px}'
     + '.cuadro-wrap::-webkit-scrollbar-thumb{background:#94a3b8;border-radius:4px}'
@@ -15197,11 +15198,18 @@ function _generarInformeHTML(mes, anio, mesesNom, diasSemNom, agInfo, turnosMap)
     + 'for(var i=0;i<bb.length;i++)bb[i].classList.remove("active");'
     + 'var p=document.getElementById(id);if(p)p.classList.add("active");'
     + 'var b=document.querySelector("[data-tab=\'"+ id +"\']"  );if(b)b.classList.add("active");'
+    + 'var fab=document.getElementById("fab-ir");'
+    + 'if(fab){if(id==="tab-detalle")fab.classList.remove("oculto");else fab.classList.add("oculto");}'
+    + '}'
+    + 'function irAlReal(){'
+    + 'cambiarTab("tab-real");'
+    + 'setTimeout(function(){if(typeof recalcC==="function")recalcC();},50);'
     + '}'
     + 'function irADetalle(td){'
     + 'var id=td.getAttribute("data-secid");'
     + 'cambiarTab("tab-detalle");'
     + 'setTimeout(function(){var el=document.getElementById(id);if(el)el.scrollIntoView({behavior:"smooth",block:"start"});},80);'
+    + 'setTimeout(function(){var fab=document.getElementById("fab-ir");if(fab)fab.classList.remove("oculto");},60);'
     + '}';
   var buscadorJs = 'function filtrarAgentes(q){q=(q||"").toLowerCase();'
     + 'var s=document.querySelectorAll("section.agente");'
@@ -15222,7 +15230,7 @@ function _generarInformeHTML(mes, anio, mesesNom, diasSemNom, agInfo, turnosMap)
     + '<title>' + titulo + '</title><style>' + css + '</style></head><body>'
     + '<header class="doc"><h1>IVC Seguridad y Emergencias</h1><p>' + titulo + ' &middot; Generado el ' + fechaHoyAR().split('-').reverse().join('/') + '</p></header>'
     + tabNav
-    + '<button class="fab-hr no-print" onclick="cambiarTab(\'tab-detalle\')" title="Ir al detalle">&#x1F4CB; Ir al Detalle</button>'
+    + '<button id="fab-ir" class="fab-hr no-print" onclick="irAlReal()" title="Ir al Cuadro REAL">&#x1F4CA; Ir al Cuadro REAL</button>'
     + '<div id="tab-detalle" class="tab-panel active">'
     + '<div class="buscador"><input type="text" placeholder="Buscar por apellido, nombre o legajo..." oninput="filtrarAgentes(this.value)"></div>'
     + cuerpo + resumenGlobal
