@@ -14850,37 +14850,38 @@ function _hrExtrasReales(d, horaEntradaEsperadaStr, tipo) {
 
 
 function _hrCeldaDiaVal(dia) {
-  if (!dia.corresponde && !dia.hs && !dia.sinSalida && !dia.lic) return 'OR';
+  if (!dia.corresponde && !dia.hs && !dia.sinSalida && !dia.lic) return 'FRANCO';
   if (dia.lic) return dia.lic;
   if (dia.sinSalida) return 'NF';
   if (dia.hs === null && dia.corresponde) return 0;
   if (dia.hs !== null) return Math.round((dia.hs - dia.aCumplir) * 100) / 100;
-  return '';
+  return 'FRANCO';
 }
 
 function _cuadroResumenHTML(todosAg, ursesAg, diasMes, mes, anio, mesesNom) {
   var mesesN = mesesNom || ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-  var semL = ['D','L','Ma','Mi','J','V','S'];
+  var semNom = ['Dom','Lun','Mar','Mie','Jue','Vie','Sab'];
 
-  function _fmtVal(v) {
+  var LIC_LABEL = { OR:'Lic.Ord.', NF:'Sin salida', FA:'Fam.Enf.', AU:'Ausente', DU:'Duelo', E:'Enferm.' };
+  var LIC_CLS   = { OR:'lic-or', NF:'nf', FA:'lic-fa', AU:'lic-au', DU:'lic-du', E:'lic-e' };
+
+  function _fmtV(v) {
+    if (v === 'FRANCO') return '&#8212;';
     if (v === 'NF') return 'NF';
-    if (v === 'OR') return '&#8212;';
     if (typeof v === 'string' && v !== '') return v;
     if (typeof v === 'number') {
       if (v === 0) return '0';
-      var abs = Math.abs(v);
-      var hh = Math.floor(abs);
-      var mm = Math.round((abs - hh) * 60);
+      var abs = Math.abs(v), hh = Math.floor(abs), mm = Math.round((abs-hh)*60);
       if (mm === 60) { hh++; mm = 0; }
       return (v > 0 ? '+' : '-') + hh + (mm > 0 ? ',' + String(mm).padStart(2,'0') : '');
     }
     return '&#8212;';
   }
 
-  function _claseVal(v) {
+  function _clsV(v) {
+    if (v === 'FRANCO') return 'or';
     if (v === 'NF') return 'nf';
-    if (v === 'OR') return 'or';
-    if (typeof v === 'string' && v !== '') return 'lic';
+    if (typeof v === 'string' && v !== '') return LIC_CLS[v] || 'lic';
     if (typeof v === 'number') {
       if (v > 0.04) return 'pos';
       if (v < -0.04) return 'neg';
@@ -14889,39 +14890,35 @@ function _cuadroResumenHTML(todosAg, ursesAg, diasMes, mes, anio, mesesNom) {
     return 'or';
   }
 
-  function _construirTabla(agentes, titulo) {
+  function _tabla(agentes, titulo, tabId) {
     var diasInfo = [];
     for (var d = 1; d <= diasMes; d++) {
       var fStr = anio + '-' + String(mes).padStart(2,'0') + '-' + String(d).padStart(2,'0');
-      var fObj = new Date(fStr + 'T12:00:00');
-      diasInfo.push({ d: d, ds: fObj.getDay() });
+      diasInfo.push({ d: d, ds: new Date(fStr + 'T12:00:00').getDay() });
     }
 
     var h = '<p class="cuadro-title">' + titulo + '</p>';
-    h += '<p class="cuadro-sub">Extras/faltantes por agente · ' + mesesN[mes-1] + ' ' + anio + ' · valores en horas</p>';
-    h += '<div class="cuadro-wrap"><div class="cuadro"><table><thead>';
-    h += '<tr><th class="th-nombre">APELLIDO Y NOMBRE</th>';
+    h += '<p class="cuadro-sub">' + mesesN[mes-1] + ' ' + anio + ' &middot; extras/faltantes en horas</p>';
+    h += '<div class="cuadro-wrap"><div class="cuadro"><table>';
+
+    // Thead: una sola fila con "Lun 1"
+    h += '<thead><tr><th class="th-nombre">APELLIDO Y NOMBRE</th>';
     for (var ci = 0; ci < diasInfo.length; ci++) {
       var di = diasInfo[ci];
       var cls = di.ds === 0 ? 'th-dom' : di.ds === 6 ? 'th-sab' : '';
-      h += '<th class="' + cls + '">' + di.d + '</th>';
+      h += '<th class="' + cls + '" style="min-width:52px"><span style="display:block;font-size:9px;font-weight:400;opacity:.75">' + semNom[di.ds] + '</span>' + di.d + '</th>';
     }
-    h += '<th class="th-total">TOTAL</th></tr>';
-    h += '<tr><th class="th-nombre"></th>';
-    for (var ci2 = 0; ci2 < diasInfo.length; ci2++) {
-      var di2 = diasInfo[ci2];
-      var cls2 = di2.ds === 0 ? 'th-dom' : di2.ds === 6 ? 'th-sab' : '';
-      h += '<th class="' + cls2 + '" style="font-size:9px;font-weight:400;opacity:.8">' + semL[di2.ds] + '</th>';
-    }
-    h += '<th class="th-total"></th></tr></thead><tbody>';
+    h += '<th class="th-total">TOTAL</th></tr></thead>';
 
-    var sumaCols = [];
-    for (var x = 0; x < diasMes; x++) sumaCols.push(0);
+    // Tbody
+    h += '<tbody>';
+    var sumaCols = []; for (var x = 0; x < diasMes; x++) sumaCols.push(0);
     var sumaTotal = 0;
 
-    agentes.forEach(function(r) {
+    agentes.forEach(function(r, ri) {
+      var secId = 'ag-hr-' + ri;
       h += '<tr>';
-      h += '<td class="td-nombre" title="' + r.nombre + '">' + r.nombre + '</td>';
+      h += '<td class="td-nombre" title="' + r.nombre + '" data-secid="' + secId + '" onclick="irADetalle(this)" style="cursor:pointer">' + r.nombre + '</td>';
       var totalAg = 0;
       for (var ci3 = 0; ci3 < diasMes; ci3++) {
         var diaData = r.diasInfo[ci3];
@@ -14929,37 +14926,35 @@ function _cuadroResumenHTML(todosAg, ursesAg, diasMes, mes, anio, mesesNom) {
         var colBg = ds3 === 6 ? ' col-sab' : ds3 === 0 ? ' col-dom' : '';
         if (!diaData) { h += '<td class="or' + colBg + '">&#8212;</td>'; continue; }
         var val = _hrCeldaDiaVal(diaData);
-        var cls3 = _claseVal(val) + colBg;
-        var txt = _fmtVal(val);
-        if (typeof val === 'number') {
-          totalAg += val;
-          sumaCols[ci3] += val;
-        }
+        var cls3 = _clsV(val) + colBg;
+        var txt = _fmtV(val);
+        if (typeof val === 'number') { totalAg += val; sumaCols[ci3] += val; }
         h += '<td class="' + cls3 + '">' + txt + '</td>';
       }
       totalAg = Math.round(totalAg * 100) / 100;
       sumaTotal += totalAg;
       var clsTot = totalAg > 0.04 ? 'total-ag pos' : totalAg < -0.04 ? 'total-ag neg' : 'total-ag cero';
-      h += '<td class="' + clsTot + '">' + _fmtVal(totalAg) + '</td>';
-      h += '</tr>';
+      h += '<td class="' + clsTot + '">' + _fmtV(totalAg) + '</td></tr>';
+      // Agregar id a la sección del detalle para que irADetalle funcione
+      r._cuadroSecId = secId;
     });
 
     h += '</tbody><tfoot><tr><td class="tfoot-label">TOTAL</td>';
     for (var ci4 = 0; ci4 < diasMes; ci4++) {
       var sc = Math.round(sumaCols[ci4] * 100) / 100;
       var cls4 = sc > 0.04 ? 'pos' : sc < -0.04 ? 'neg' : '';
-      h += '<td class="' + cls4 + '">' + (sc !== 0 ? _fmtVal(sc) : '') + '</td>';
+      h += '<td class="' + cls4 + '">' + (sc !== 0 ? _fmtV(sc) : '') + '</td>';
     }
     sumaTotal = Math.round(sumaTotal * 100) / 100;
     var clsST = sumaTotal > 0.04 ? 'pos' : sumaTotal < -0.04 ? 'neg' : '';
-    h += '<td class="' + clsST + '">' + _fmtVal(sumaTotal) + '</td>';
+    h += '<td class="' + clsST + '">' + _fmtV(sumaTotal) + '</td>';
     h += '</tr></tfoot></table></div></div>';
     return h;
   }
 
   return {
-    real: _construirTabla(todosAg, 'Cuadro REAL — Todos los agentes'),
-    urses: _construirTabla(ursesAg, 'URSES — PH / PI')
+    real: _tabla(todosAg, 'Cuadro REAL — Todos los agentes', 'tab-real'),
+    urses: _tabla(ursesAg, 'URSES — PH / PI', 'tab-urses')
   };
 }
 
@@ -15042,7 +15037,8 @@ function _generarInformeHTML(mes, anio, mesesNom, diasSemNom, agInfo, turnosMap)
 
     var horaSalidaAg = (info.hora_salida || r.hora_salida || '').trim();
     var turnoTxt = horaEntradaAg ? (' <span style="font-weight:400;font-size:13px;color:#5a6478">(' + horaEntradaAg + (horaSalidaAg ? ' a ' + horaSalidaAg : '') + ' hs)</span>') : '';
-    cuerpo += '<section class="agente" data-buscar="' + dataBuscar + '">'
+    var secIdxHR = HR_DATA.indexOf(r);
+    cuerpo += '<section class="agente" id="ag-hr-' + secIdxHR + '" data-buscar="' + dataBuscar + '">'
       + '<div class="ag-head"><h2>' + r.nombre + turnoTxt + '</h2><div class="ag-meta">'
       + (info.legajo ? '<span>Legajo: <b>' + info.legajo + '</b></span>' : '')
       + (info.sector ? '<span>Sector: <b>' + info.sector + '</b></span>' : '')
@@ -15145,28 +15141,34 @@ function _generarInformeHTML(mes, anio, mesesNom, diasSemNom, agInfo, turnosMap)
     + 'section.agente,section.global{border:none;border-radius:0;padding:8px 0}'
     + 'thead{display:table-header-group}'
     + 'tr{page-break-inside:avoid;break-inside:avoid}}'
-    + '.tab-nav{display:flex;gap:4px;margin:0 0 20px;border-bottom:2px solid #dfe3ea;padding-bottom:0}'
+    + '.tab-nav{display:flex;gap:4px;margin:0 0 20px;border-bottom:2px solid #dfe3ea}'
     + '.tab-btn{padding:9px 22px;border:none;background:none;font-family:inherit;font-size:13px;font-weight:700;color:#5a6478;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;border-radius:6px 6px 0 0;transition:all .15s}'
     + '.tab-btn.active{color:#1a2233;border-bottom:3px solid #1a2233;background:#f5f6f8}'
     + '.tab-btn:hover{color:#1a2233;background:#f0f1f3}'
     + '.tab-panel{display:none}'
     + '.tab-panel.active{display:block}'
-    + '.cuadro-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}'
+    + '.cuadro-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;position:relative}'
+    + '.cuadro-outer{position:sticky;bottom:0;overflow-x:auto;background:#f5f6f8;border-top:1px solid #dfe3ea;height:12px;cursor:pointer}'
+    + '.cuadro-outer-inner{height:1px}'
     + '.cuadro table{border-collapse:collapse;font-size:11px;white-space:nowrap;min-width:100%}'
     + '.cuadro thead th{background:#1a2233;color:#fff;padding:6px 7px;text-align:center;font-weight:700;position:sticky;top:0;z-index:2}'
-    + '.cuadro thead th.th-nombre{text-align:left;min-width:180px;position:sticky;left:0;z-index:3;background:#1a2233}'
+    + '.cuadro thead th.th-nombre{text-align:left;min-width:160px;position:sticky;left:0;z-index:3;background:#1a2233}'
     + '.cuadro thead th.th-sab{background:#4f46e5}'
-    + '.cuadro thead th.th-fer{background:#9d174d}'
     + '.cuadro thead th.th-dom{background:#374151}'
     + '.cuadro thead th.th-total{background:#0d7a3f;min-width:80px}'
     + '.cuadro tbody td{padding:5px 7px;border:1px solid #e8ebf0;text-align:center;font-variant-numeric:tabular-nums}'
-    + '.cuadro tbody td.td-nombre{text-align:left;font-weight:700;font-size:11px;background:#fff;position:sticky;left:0;border-right:2px solid #dfe3ea;max-width:180px;overflow:hidden;text-overflow:ellipsis}'
+    + '.cuadro tbody td.td-nombre{text-align:left;font-weight:700;font-size:11px;background:#fff;position:sticky;left:0;border-right:2px solid #dfe3ea;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}'
     + '.cuadro tbody td.pos{color:#0d7a3f;font-weight:700;background:#f0fdf4}'
     + '.cuadro tbody td.neg{color:#b3261e;font-weight:700;background:#fef2f2}'
     + '.cuadro tbody td.cero{color:#9aa0ad}'
     + '.cuadro tbody td.nf{background:#fff4de;color:#c2410c;font-weight:700}'
     + '.cuadro tbody td.or{background:#f3f4f6;color:#9aa0ad}'
     + '.cuadro tbody td.lic{background:#eff6ff;color:#1d4ed8;font-weight:700}'
+    + '.cuadro tbody td.lic-or{background:#dbeafe;color:#1e40af;font-weight:700}'
+    + '.cuadro tbody td.lic-fa{background:#fef3c7;color:#92400e;font-weight:700}'
+    + '.cuadro tbody td.lic-au{background:#fee2e2;color:#991b1b;font-weight:700}'
+    + '.cuadro tbody td.lic-du{background:#f3e8ff;color:#6b21a8;font-weight:700}'
+    + '.cuadro tbody td.lic-e{background:#fff7ed;color:#c2410c;font-weight:700}'
     + '.cuadro tbody td.col-sab{background:#f5f3ff}.cuadro tbody td.col-dom{background:#f1f2f4}'
     + '.cuadro tbody td.pos.col-sab{background:#ede9ff}.cuadro tbody td.neg.col-sab{background:#f5e9ff}'
     + '.cuadro tbody td.pos.col-dom{background:#eaebef}.cuadro tbody td.neg.col-dom{background:#f0e8f0}'
@@ -15175,11 +15177,11 @@ function _generarInformeHTML(mes, anio, mesesNom, diasSemNom, agInfo, turnosMap)
     + '.cuadro tbody td.total-ag.neg{background:#fee2e2;color:#7f1d1d}'
     + '.cuadro tbody td.total-ag.cero{background:#f9fafb;color:#6b7280}'
     + '.cuadro tbody tr:hover td{filter:brightness(.97)}'
-    + '.cuadro tfoot td{background:#f5f6f8;font-weight:800;font-size:11px;border-top:2px solid #1a2233;padding:6px 7px;text-align:center}'
+    + '.cuadro tfoot td{background:#f5f6f8;font-weight:800;font-size:11px;border-top:2px solid #1a2233;padding:6px 7px;text-align:center;position:sticky;bottom:0}'
     + '.cuadro tfoot td.tfoot-label{text-align:left;color:#1a2233;position:sticky;left:0;background:#f5f6f8}'
     + '.cuadro tfoot td.pos{color:#0d7a3f}.cuadro tfoot td.neg{color:#b3261e}'
-    + '.cuadro-title{font-size:15px;font-weight:800;color:#1a2233;margin:0 0 10px}'
-    + '.cuadro-sub{font-size:12px;color:#5a6478;margin:-6px 0 14px}';
+    + '.cuadro-title{font-size:15px;font-weight:800;color:#1a2233;margin:0 0 6px}'
+    + '.cuadro-sub{font-size:12px;color:#5a6478;margin:-4px 0 12px}';
 
 
   var tabNavJs = 'function cambiarTab(id){'
@@ -15188,7 +15190,12 @@ function _generarInformeHTML(mes, anio, mesesNom, diasSemNom, agInfo, turnosMap)
     + 'for(var i=0;i<pp.length;i++)pp[i].classList.remove("active");'
     + 'for(var i=0;i<bb.length;i++)bb[i].classList.remove("active");'
     + 'var p=document.getElementById(id);if(p)p.classList.add("active");'
-    + 'var b=document.querySelector("[data-tab=\'"+id+"\']");if(b)b.classList.add("active");'
+    + 'var b=document.querySelector("[data-tab=\'"+ id +"\']"  );if(b)b.classList.add("active");'
+    + '}'
+    + 'function irADetalle(td){'
+    + 'var id=td.getAttribute("data-secid");'
+    + 'cambiarTab("tab-detalle");'
+    + 'setTimeout(function(){var el=document.getElementById(id);if(el)el.scrollIntoView({behavior:"smooth",block:"start"});},80);'
     + '}';
   var buscadorJs = 'function filtrarAgentes(q){q=(q||"").toLowerCase();'
     + 'var s=document.querySelectorAll("section.agente");'
@@ -15196,16 +15203,14 @@ function _generarInformeHTML(mes, anio, mesesNom, diasSemNom, agInfo, turnosMap)
     + 's[i].style.display=t.indexOf(q)>=0?"":"none";}}';
 
   var diasMesExp = new Date(anio, mes, 0).getDate();
-  var agOrdenados = HR_DATA.slice().sort(function(a,b){ return a.nombre.localeCompare(b.nombre); });
-  var agUrses = agOrdenados.filter(function(r){ return r.tipo === 'PH' || r.tipo === 'PI'; });
+  var agOrdenados = HR_DATA.slice().sort(function(a,b){return a.nombre.localeCompare(b.nombre);});
+  var agUrses = agOrdenados.filter(function(r){return r.tipo==='PH'||r.tipo==='PI';});
   var cuadros = _cuadroResumenHTML(agOrdenados, agUrses, diasMesExp, mes, anio, mesesNom);
-
   var tabNav = '<div class="tab-nav no-print">'
-    + '<button class="tab-btn active" data-tab="tab-detalle" onclick="cambiarTab(\'tab-detalle\')">&#x1F4CB; Detalle por agente</button>'
+    + '<button class="tab-btn active" data-tab="tab-detalle" onclick="cambiarTab(\'tab-detalle\')">&#x1F4CB; Detalle</button>'
     + '<button class="tab-btn" data-tab="tab-real" onclick="cambiarTab(\'tab-real\')">&#x1F4CA; Cuadro REAL</button>'
     + '<button class="tab-btn" data-tab="tab-urses" onclick="cambiarTab(\'tab-urses\')">&#x1F3DB; Cuadro URSES</button>'
     + '</div>';
-
   var doc = '<!DOCTYPE html><html lang="es"><head><meta charset="utf-8">'
     + '<meta name="viewport" content="width=device-width,initial-scale=1">'
     + '<title>' + titulo + '</title><style>' + css + '</style></head><body>'
@@ -15217,7 +15222,7 @@ function _generarInformeHTML(mes, anio, mesesNom, diasSemNom, agInfo, turnosMap)
     + '</div>'
     + '<div id="tab-real" class="tab-panel">' + cuadros.real + '</div>'
     + '<div id="tab-urses" class="tab-panel">' + cuadros.urses + '</div>'
-    + '<scr' + 'ipt>' + buscadorJs + '\n' + tabNavJs + '\nfunction hdInput(el){\n  var v=el.value.replace(/[^0-9:]/g,"");\n  if(v.length===3&&v.indexOf(":")<0)v=v[0]+":"+v.slice(1);\n  if(v.length===4&&v.indexOf(":")<0)v=v.slice(0,2)+":"+v.slice(2);\n  el.value=v;\n  hdRecalc(el);\n}\nfunction hdBlur(el){\n  var v=el.value.trim();if(!v)return;\n  var p=v.split(":");\n  var h=parseInt(p[0])||0,m=parseInt(p[1])||0;\n  el.value=h+":"+String(m).padStart(2,"0");\n  hdRecalc(el);\n}\nfunction hdRecalc(el){\n  var sec=el.closest("section.agente");if(!sec)return;\n  var inputs=sec.querySelectorAll("input.hd-input");\n  var total=0;\n  inputs.forEach(function(inp){\n    var v=inp.value.trim();if(!v)return;\n    var p=v.split(":");\n    total+=(parseInt(p[0])||0)*60+(parseInt(p[1])||0);\n  });\n  var sp=sec.querySelector(".hd-total");\n  if(sp){var th=Math.floor(total/60),tm=total%60;sp.textContent=th+"h "+String(tm).padStart(2,"0")+"m";}\n}\nfunction editarHora(td){\n  if(td.querySelector("input"))return;\n  var cur=td.textContent.trim();\n  var inp=document.createElement("input");\n  inp.type="text";inp.value=cur;inp.maxLength=5;\n  inp.style.cssText="width:52px;padding:2px 4px;border:1px solid #e67e22;border-radius:4px;font-size:12px;font-family:inherit;text-align:center";\n  inp.onblur=function(){\n    var v=inp.value.trim()||cur;\n    td.textContent=v;\n    recalcFila(td);\n  };\n  inp.onkeydown=function(e){if(e.key==="Enter"||e.key==="Escape")inp.blur();};\n  td.textContent="";td.appendChild(inp);inp.focus();inp.select();\n}\nfunction recalcFila(td){\n  var row=td.closest("tr");if(!row)return;\n  var cells=row.querySelectorAll("td");\n  // col 0=dia, 1=fecha, 2=ingreso, 3=egreso, 4=hsTrab, 5=extras, 6=extrasReales\n  var entTxt=(cells[2]&&cells[2].textContent.trim())||"";\n  var salTxt=(cells[3]&&cells[3].textContent.trim())||"";\n  if(!entTxt||!salTxt)return;\n  var ep=entTxt.split(":");var sp2=salTxt.split(":");\n  var eMin=parseInt(ep[0]||0)*60+(parseInt(ep[1]||0)||0);\n  var sMin=parseInt(sp2[0]||0)*60+(parseInt(sp2[1]||0)||0);\n  if(sMin<eMin)sMin+=24*60; // cruce medianoche\n  var trabajados=sMin-eMin;\n  var hTrab=Math.floor(trabajados/60),mTrab=trabajados%60;\n  if(cells[4])cells[4].textContent=hTrab+"h "+String(mTrab).padStart(2,"0")+"m";\n  // Recalc extras usando horas esperadas del encabezado del agente (si está en el span del título)\n  var sec=td.closest("section.agente");\n  var h2=sec&&sec.querySelector("h2");\n  var turnoTxt=h2&&h2.querySelector("span")?h2.querySelector("span").textContent:"";\n  var esperado=8*60; // default 8hs\n  var tm=turnoTxt.match(/(\\d{1,2}):(\\d{2})\\s*a\\s*(\\d{1,2}):(\\d{2})/);\n  if(tm){var eE=parseInt(tm[1])*60+parseInt(tm[2]);var sE=parseInt(tm[3])*60+parseInt(tm[4]);if(sE<eE)sE+=24*60;esperado=sE-eE;}\n  var extras=trabajados-esperado;\n  var neg=extras<0;var absE=Math.abs(extras);\n  var eH=Math.floor(absE/60),eM=absE%60;\n  var extTxt=(neg?"-":"+")+String(eH).padStart(2,"0")+":"+String(eM).padStart(2,"0");\n  if(cells[5]){cells[5].textContent=extTxt;cells[5].style.color=neg?"#b3261e":"#0d7a3f";}\n  if(cells[6]){cells[6].textContent=extTxt;cells[6].style.color=neg?"#b3261e":"#0d7a3f";}\n  recalcResumenAgente(td.closest("section.agente"));\n  recalcResumenGlobal();\n}\nfunction parseHM(t){\n  if(!t)return 0;t=t.trim();\n  var m=t.match(/(\\d+)h\\s*(\\d+)m/);if(m)return parseInt(m[1])*60+parseInt(m[2]);\n  var ng=t.charAt(0)==="-";t=t.replace(/^[+-]/,"");\n  var p=t.split(":");if(p.length<2)return 0;\n  var v=(parseInt(p[0])||0)*60+(parseInt(p[1])||0);return ng?-v:v;\n}\nfunction mHM(mn){\n  var ng=mn<0;var a=Math.abs(mn);\n  return (ng?"-":"")+Math.floor(a/60)+"h "+String(a%60).padStart(2,"0")+"m";\n}\nfunction recalcResumenAgente(sec){\n  if(!sec)return;\n  var rows=sec.querySelectorAll("tbody tr");var tot=0,ep=0,en=0;\n  rows.forEach(function(r){\n    var c=r.querySelectorAll("td");if(!c[4])return;\n    var hs=parseHM(c[4].textContent);if(hs>0)tot+=hs;\n    if(c[5]){var ex=parseHM(c[5].textContent);if(ex>0)ep+=ex;else if(ex<0)en+=Math.abs(ex);}\n  });\n  var bal=ep-en;\n  sec.querySelectorAll(".res-item").forEach(function(it){\n    var l=it.querySelector("label");if(!l)return;\n    var k=l.textContent.trim().toLowerCase();\n    var s=it.querySelector("span");if(!s)return;\n    if(k==="total horas")s.textContent=mHM(tot);\n    else if(k==="hs extras"){s.textContent="+"+mHM(ep);s.className="pos";}\n    else if(k==="hs faltantes"){s.textContent="-"+mHM(en);s.className="neg";}\n    else if(k==="balance")s.textContent=mHM(bal);\n  });\n}\nfunction recalcResumenGlobal(){\n  var secs=document.querySelectorAll("section.agente");\n  var G={trab:0,ep:0,en:0,dias:0};\n  secs.forEach(function(sec){\n    var rows=sec.querySelectorAll("tbody tr");\n    rows.forEach(function(r){\n      var c=r.querySelectorAll("td");if(!c[4])return;\n      var hs=parseHM(c[4].textContent);if(hs>0){G.trab+=hs;G.dias++;}\n      if(c[5]){var ex=parseHM(c[5].textContent);if(ex>0)G.ep+=ex;else if(ex<0)G.en+=Math.abs(ex);}\n    });\n  });\n  var bal=G.ep-G.en;\n  var g=document.querySelector("section.global");if(!g)return;\n  g.querySelectorAll(".res-item").forEach(function(it){\n    var l=it.querySelector("label");if(!l)return;\n    var k=l.textContent.trim().toLowerCase();\n    var s=it.querySelector("span");if(!s)return;\n    if(k==="total horas trabajadas")s.textContent=mHM(G.trab);\n    else if(k==="total hs extras"){s.textContent="+"+mHM(G.ep);s.className="pos";}\n    else if(k==="total hs faltantes"){s.textContent="-"+mHM(G.en);s.className="neg";}\n    else if(k==="balance general")s.textContent=mHM(bal);\n    else if(k==="dias trabajados")s.textContent=G.dias;\n  });\n}\n\nfunction _lsK(){return \'hrx_\'+(document.title||\'x\');}\nfunction guardarE(){\n  try{\n    var d={};\n    var ss=document.querySelectorAll(\'#tab-detalle section.agente\');\n    for(var i=0;i<ss.length;i++){\n      var k=ss[i].getAttribute(\'data-buscar\')||(\'a\'+i);\n      var rs=ss[i].querySelectorAll(\'tbody tr\');\n      for(var j=0;j<rs.length;j++){\n        var c=rs[j].querySelectorAll(\'td\');\n        d[k+\'_\'+j]={e:c[2]?c[2].textContent.trim():\'\',s:c[3]?c[3].textContent.trim():\'\'};\n      }\n    }\n    localStorage.setItem(_lsK(),JSON.stringify(d));\n  }catch(e){}\n}\nfunction restaurarE(){\n  try{\n    var raw=localStorage.getItem(_lsK());\n    if(!raw)return;\n    var d=JSON.parse(raw);\n    var ss=document.querySelectorAll(\'#tab-detalle section.agente\');\n    for(var i=0;i<ss.length;i++){\n      var k=ss[i].getAttribute(\'data-buscar\')||(\'a\'+i);\n      var rs=ss[i].querySelectorAll(\'tbody tr\');\n      for(var j=0;j<rs.length;j++){\n        var e=d[k+\'_\'+j];if(!e)continue;\n        var c=rs[j].querySelectorAll(\'td\');\n        if(c[2]&&e.e)c[2].textContent=e.e;\n        if(c[3]&&e.s)c[3].textContent=e.s;\n        if(c[2])recalcFila(c[2]);\n      }\n    }\n    recalcResumenGlobal();\n  }catch(e){}\n}\nfunction fvHR(v){\n  if(v===0)return \'0\';\n  var a=Math.abs(v),h=Math.floor(a),m=Math.round((a-h)*60);\n  if(m===60){h++;m=0;}\n  return (v>0?\'+\':\'-\')+h+(m>0?\',\'+String(m).padStart(2,\'0\'):\'\');\n}\nfunction dsemHR(f){\n  if(!f)return -1;\n  var p=f.split(\'/\');\n  if(p.length<3)return -1;\n  return new Date(+p[2],+p[1]-1,+p[0]).getDay();\n}\nfunction recalcC(){\n  var pan=document.getElementById(\'tab-real\');\n  if(!pan)return;\n  var ss=document.querySelectorAll(\'#tab-detalle section.agente\');\n  if(!ss.length){pan.innerHTML=\'<p>Sin datos</p>\';return;}\n  var t0=ss[0].querySelector(\'table\');\n  var f0=t0?t0.querySelectorAll(\'tbody tr\'):[];\n  var fechas=[],diasN=[];\n  for(var r=0;r<f0.length;r++){\n    var c0=f0[r].querySelectorAll(\'td\');\n    diasN.push(c0[0]?c0[0].textContent.trim():\'\');\n    fechas.push(c0[1]?c0[1].textContent.trim():\'\');\n  }\n  var nD=fechas.length;if(!nD)return;\n  var sem=[\'D\',\'L\',\'Ma\',\'Mi\',\'J\',\'V\',\'S\'];\n  var h=\'<p class="cuadro-title">Cuadro REAL</p>\';\n  h+=\'<div class="cuadro-wrap"><div class="cuadro"><table><thead>\';\n  h+=\'<tr><th class="th-nombre">APELLIDO Y NOMBRE</th>\';\n  for(var d=0;d<nD;d++){\n    var dv=dsemHR(fechas[d]);\n    h+=\'<th class="\'+(dv===6?\'th-sab\':dv===0?\'th-dom\':\'\')+\'">\'+diasN[d]+\'</th>\';\n  }\n  h+=\'<th class="th-total">TOTAL</th></tr>\';\n  h+=\'<tr><th class="th-nombre"></th>\';\n  for(var d=0;d<nD;d++){\n    var dv=dsemHR(fechas[d]);\n    h+=\'<th class="\'+(dv===6?\'th-sab\':dv===0?\'th-dom\':\'\')+\'" style="font-size:9px;font-weight:400;opacity:.8">\'+(dv>=0?sem[dv]:\'\')+\'</th>\';\n  }\n  h+=\'<th class="th-total"></th></tr></thead><tbody>\';\n  var sc=[];for(var x=0;x<nD;x++)sc.push(0);\n  var st=0;\n  for(var si=0;si<ss.length;si++){\n    var sec=ss[si];\n    var n2=sec.querySelector(\'h2\');\n    var nm=n2?n2.textContent.replace(/\\s+/g,\' \').trim():\'\';\n    var filas=sec.querySelectorAll(\'tbody tr\');\n    h+=\'<tr><td class="td-nombre" title="\'+nm+\'">\'+nm+\'</td>\';\n    var tA=0;\n    for(var d=0;d<nD;d++){\n      var dv=dsemHR(fechas[d]);\n      var bg=dv===6?\' col-sab\':dv===0?\' col-dom\':\'\';\n      var fila=filas[d];\n      if(!fila){h+=\'<td class="or\'+bg+\'">&#8212;</td>\';continue;}\n      var cs=fila.querySelectorAll(\'td\');\n      var eC=cs[6]||cs[5];\n      var eT=eC?eC.textContent.trim():\'\';\n      var cl=\'or\'+bg,dp=\'&#8212;\';\n      if(eT&&eT!==\'-\'){\n        var neg=eT.charAt(0)===\'-\';\n        var el=eT.replace(/^[+-]/,\'\');\n        var pp=el.split(\':\');\n        var hh=parseInt(pp[0])||0,mm=parseInt(pp[1])||0;\n        var val=(hh+mm/60)*(neg?-1:1);\n        val=Math.round(val*100)/100;\n        tA+=val;sc[d]+=val;\n        if(Math.abs(val)<0.04){cl=\'cero\'+bg;dp=\'0\';}\n        else if(val>0){cl=\'pos\'+bg;dp=fvHR(val);}\n        else{cl=\'neg\'+bg;dp=fvHR(val);}\n      }else{\n        var eT2=cs[2]?cs[2].textContent.trim():\'\';\n        var sT2=cs[3]?cs[3].textContent.trim():\'\';\n        if(eT2&&!sT2){cl=\'nf\'+bg;dp=\'NF\';}\n      }\n      h+=\'<td class="\'+cl+\'">\'+dp+\'</td>\';\n    }\n    tA=Math.round(tA*100)/100;st+=tA;\n    var cT=tA>0.04?\'total-ag pos\':tA<-0.04?\'total-ag neg\':\'total-ag cero\';\n    h+=\'<td class="\'+cT+\'">\'+fvHR(tA)+\'</td></tr>\';\n  }\n  h+=\'</tbody><tfoot><tr><td class="tfoot-label">TOTAL</td>\';\n  for(var d=0;d<nD;d++){\n    var sv=Math.round(sc[d]*100)/100;\n    h+=\'<td class="\'+(sv>0.04?\'pos\':sv<-0.04?\'neg\':\'\')+\'">\'+(sv!==0?fvHR(sv):\'\')+\'</td>\';\n  }\n  st=Math.round(st*100)/100;\n  h+=\'<td class="\'+(st>0.04?\'pos\':st<-0.04?\'neg\':\'\')+\'">\'+(st!==0?fvHR(st):\'\')+\'</td>\';\n  h+=\'</tr></tfoot></table></div></div>\';\n  pan.innerHTML=h;\n}\nwindow.addEventListener(\'load\',function(){\n  restaurarE();\n  var bR=document.querySelector(\'[data-tab="tab-real"]\');\n  if(bR)bR.addEventListener(\'click\',function(){setTimeout(recalcC,50);});\n  var oRF=window.recalcFila;\n  if(oRF)window.recalcFila=function(td){oRF(td);guardarE();var p=document.getElementById(\'tab-real\');if(p&&p.classList.contains(\'active\'))recalcC();};\n  var oEH=window.editarHora;\n  if(oEH)window.editarHora=function(td){oEH(td);var inp=td.querySelector(\'input\');if(inp)inp.addEventListener(\'blur\',function(){setTimeout(guardarE,100);});};\n});\n\n' + '</scr' + 'ipt>'
+    + '<scr' + 'ipt>' + buscadorJs + '\n' + tabNavJs + '\nfunction hdInput(el){\n  var v=el.value.replace(/[^0-9:]/g,"");\n  if(v.length===3&&v.indexOf(":")<0)v=v[0]+":"+v.slice(1);\n  if(v.length===4&&v.indexOf(":")<0)v=v.slice(0,2)+":"+v.slice(2);\n  el.value=v;\n  hdRecalc(el);\n}\nfunction hdBlur(el){\n  var v=el.value.trim();if(!v)return;\n  var p=v.split(":");\n  var h=parseInt(p[0])||0,m=parseInt(p[1])||0;\n  el.value=h+":"+String(m).padStart(2,"0");\n  hdRecalc(el);\n}\nfunction hdRecalc(el){\n  var sec=el.closest("section.agente");if(!sec)return;\n  var inputs=sec.querySelectorAll("input.hd-input");\n  var total=0;\n  inputs.forEach(function(inp){\n    var v=inp.value.trim();if(!v)return;\n    var p=v.split(":");\n    total+=(parseInt(p[0])||0)*60+(parseInt(p[1])||0);\n  });\n  var sp=sec.querySelector(".hd-total");\n  if(sp){var th=Math.floor(total/60),tm=total%60;sp.textContent=th+"h "+String(tm).padStart(2,"0")+"m";}\n}\nfunction editarHora(td){\n  if(td.querySelector("input"))return;\n  var cur=td.textContent.trim();\n  var inp=document.createElement("input");\n  inp.type="text";inp.value=cur;inp.maxLength=5;\n  inp.style.cssText="width:52px;padding:2px 4px;border:1px solid #e67e22;border-radius:4px;font-size:12px;font-family:inherit;text-align:center";\n  inp.onblur=function(){\n    var v=inp.value.trim()||cur;\n    td.textContent=v;\n    recalcFila(td);\n  };\n  inp.onkeydown=function(e){if(e.key==="Enter"||e.key==="Escape")inp.blur();};\n  td.textContent="";td.appendChild(inp);inp.focus();inp.select();\n}\nfunction recalcFila(td){\n  var row=td.closest("tr");if(!row)return;\n  var cells=row.querySelectorAll("td");\n  // col 0=dia, 1=fecha, 2=ingreso, 3=egreso, 4=hsTrab, 5=extras, 6=extrasReales\n  var entTxt=(cells[2]&&cells[2].textContent.trim())||"";\n  var salTxt=(cells[3]&&cells[3].textContent.trim())||"";\n  if(!entTxt||!salTxt)return;\n  var ep=entTxt.split(":");var sp2=salTxt.split(":");\n  var eMin=parseInt(ep[0]||0)*60+(parseInt(ep[1]||0)||0);\n  var sMin=parseInt(sp2[0]||0)*60+(parseInt(sp2[1]||0)||0);\n  if(sMin<eMin)sMin+=24*60; // cruce medianoche\n  var trabajados=sMin-eMin;\n  var hTrab=Math.floor(trabajados/60),mTrab=trabajados%60;\n  if(cells[4])cells[4].textContent=hTrab+"h "+String(mTrab).padStart(2,"0")+"m";\n  // Recalc extras usando horas esperadas del encabezado del agente (si está en el span del título)\n  var sec=td.closest("section.agente");\n  var h2=sec&&sec.querySelector("h2");\n  var turnoTxt=h2&&h2.querySelector("span")?h2.querySelector("span").textContent:"";\n  var esperado=8*60; // default 8hs\n  var tm=turnoTxt.match(/(\\d{1,2}):(\\d{2})\\s*a\\s*(\\d{1,2}):(\\d{2})/);\n  if(tm){var eE=parseInt(tm[1])*60+parseInt(tm[2]);var sE=parseInt(tm[3])*60+parseInt(tm[4]);if(sE<eE)sE+=24*60;esperado=sE-eE;}\n  var extras=trabajados-esperado;\n  var neg=extras<0;var absE=Math.abs(extras);\n  var eH=Math.floor(absE/60),eM=absE%60;\n  var extTxt=(neg?"-":"+")+String(eH).padStart(2,"0")+":"+String(eM).padStart(2,"0");\n  if(cells[5]){cells[5].textContent=extTxt;cells[5].style.color=neg?"#b3261e":"#0d7a3f";}\n  if(cells[6]){cells[6].textContent=extTxt;cells[6].style.color=neg?"#b3261e":"#0d7a3f";}\n  recalcResumenAgente(td.closest("section.agente"));\n  recalcResumenGlobal();\n}\nfunction parseHM(t){\n  if(!t)return 0;t=t.trim();\n  var m=t.match(/(\\d+)h\\s*(\\d+)m/);if(m)return parseInt(m[1])*60+parseInt(m[2]);\n  var ng=t.charAt(0)==="-";t=t.replace(/^[+-]/,"");\n  var p=t.split(":");if(p.length<2)return 0;\n  var v=(parseInt(p[0])||0)*60+(parseInt(p[1])||0);return ng?-v:v;\n}\nfunction mHM(mn){\n  var ng=mn<0;var a=Math.abs(mn);\n  return (ng?"-":"")+Math.floor(a/60)+"h "+String(a%60).padStart(2,"0")+"m";\n}\nfunction recalcResumenAgente(sec){\n  if(!sec)return;\n  var rows=sec.querySelectorAll("tbody tr");var tot=0,ep=0,en=0;\n  rows.forEach(function(r){\n    var c=r.querySelectorAll("td");if(!c[4])return;\n    var hs=parseHM(c[4].textContent);if(hs>0)tot+=hs;\n    if(c[5]){var ex=parseHM(c[5].textContent);if(ex>0)ep+=ex;else if(ex<0)en+=Math.abs(ex);}\n  });\n  var bal=ep-en;\n  sec.querySelectorAll(".res-item").forEach(function(it){\n    var l=it.querySelector("label");if(!l)return;\n    var k=l.textContent.trim().toLowerCase();\n    var s=it.querySelector("span");if(!s)return;\n    if(k==="total horas")s.textContent=mHM(tot);\n    else if(k==="hs extras"){s.textContent="+"+mHM(ep);s.className="pos";}\n    else if(k==="hs faltantes"){s.textContent="-"+mHM(en);s.className="neg";}\n    else if(k==="balance")s.textContent=mHM(bal);\n  });\n}\nfunction recalcResumenGlobal(){\n  var secs=document.querySelectorAll("section.agente");\n  var G={trab:0,ep:0,en:0,dias:0};\n  secs.forEach(function(sec){\n    var rows=sec.querySelectorAll("tbody tr");\n    rows.forEach(function(r){\n      var c=r.querySelectorAll("td");if(!c[4])return;\n      var hs=parseHM(c[4].textContent);if(hs>0){G.trab+=hs;G.dias++;}\n      if(c[5]){var ex=parseHM(c[5].textContent);if(ex>0)G.ep+=ex;else if(ex<0)G.en+=Math.abs(ex);}\n    });\n  });\n  var bal=G.ep-G.en;\n  var g=document.querySelector("section.global");if(!g)return;\n  g.querySelectorAll(".res-item").forEach(function(it){\n    var l=it.querySelector("label");if(!l)return;\n    var k=l.textContent.trim().toLowerCase();\n    var s=it.querySelector("span");if(!s)return;\n    if(k==="total horas trabajadas")s.textContent=mHM(G.trab);\n    else if(k==="total hs extras"){s.textContent="+"+mHM(G.ep);s.className="pos";}\n    else if(k==="total hs faltantes"){s.textContent="-"+mHM(G.en);s.className="neg";}\n    else if(k==="balance general")s.textContent=mHM(bal);\n    else if(k==="dias trabajados")s.textContent=G.dias;\n  });\n}\n\nfunction _lsK(){return \'hrx_\'+(document.title||\'x\');}\nfunction guardarE(){\n  try{\n    var d={};\n    var ss=document.querySelectorAll(\'#tab-detalle section.agente\');\n    for(var i=0;i<ss.length;i++){\n      var k=ss[i].getAttribute(\'data-buscar\')||(\'a\'+i);\n      var rs=ss[i].querySelectorAll(\'tbody tr\');\n      for(var j=0;j<rs.length;j++){\n        var c=rs[j].querySelectorAll(\'td\');\n        d[k+\'_\'+j]={e:c[2]?c[2].textContent.trim():\'\',s:c[3]?c[3].textContent.trim():\'\'};\n      }\n    }\n    localStorage.setItem(_lsK(),JSON.stringify(d));\n  }catch(e){}\n}\nfunction restaurarE(){\n  try{\n    var raw=localStorage.getItem(_lsK());\n    if(!raw)return;\n    var d=JSON.parse(raw);\n    var ss=document.querySelectorAll(\'#tab-detalle section.agente\');\n    for(var i=0;i<ss.length;i++){\n      var k=ss[i].getAttribute(\'data-buscar\')||(\'a\'+i);\n      var rs=ss[i].querySelectorAll(\'tbody tr\');\n      for(var j=0;j<rs.length;j++){\n        var e=d[k+\'_\'+j];if(!e)continue;\n        var c=rs[j].querySelectorAll(\'td\');\n        if(c[2]&&e.e)c[2].textContent=e.e;\n        if(c[3]&&e.s)c[3].textContent=e.s;\n        if(c[2])recalcFila(c[2]);\n      }\n    }\n    recalcResumenGlobal();\n  }catch(e){}\n}\nfunction dsemHR(f){if(!f)return -1;var p=f.split(\'/\');if(p.length<3)return -1;return new Date(+p[2],+p[1]-1,+p[0]).getDay();}\nfunction fvHR(v){if(v===0)return \'0\';var a=Math.abs(v),h=Math.floor(a),m=Math.round((a-h)*60);if(m===60){h++;m=0;}return (v>0?\'+\':\'-\')+h+(m>0?\',\'+String(m).padStart(2,\'0\'):\'\');}\nfunction recalcC(){\n  var pan=document.getElementById(\'tab-real\');\n  if(!pan)return;\n  var ss=document.querySelectorAll(\'#tab-detalle section.agente\');\n  if(!ss.length){pan.innerHTML=\'<p>Sin datos</p>\';return;}\n  var t0=ss[0].querySelector(\'table\');\n  var f0=t0?t0.querySelectorAll(\'tbody tr\'):[];\n  var fechas=[],diasN=[];\n  for(var r=0;r<f0.length;r++){\n    var c0=f0[r].querySelectorAll(\'td\');\n    diasN.push(c0[0]?c0[0].textContent.trim():\'\');\n    fechas.push(c0[1]?c0[1].textContent.trim():\'\');\n  }\n  var nD=fechas.length;if(!nD)return;\n  var semNom=[\'Dom\',\'Lun\',\'Mar\',\'Mie\',\'Jue\',\'Vie\',\'Sab\'];\n  var licCls={OR:\'lic-or\',NF:\'nf\',FA:\'lic-fa\',AU:\'lic-au\',DU:\'lic-du\',E:\'lic-e\'};\n  function limpiarNombre(s){var i=s.indexOf(\'(\');return i>0?s.slice(0,i).trim():s.trim();}\n  var h=\'<p class="cuadro-title">Cuadro REAL \\u2014 sincronizado</p>\';\n  h+=\'<div class="cuadro-wrap"><div class="cuadro"><table><thead>\';\n  h+=\'<tr><th class="th-nombre">APELLIDO Y NOMBRE</th>\';\n  for(var d=0;d<nD;d++){\n    var dv=dsemHR(fechas[d]);\n    h+=\'<th class="\'+(dv===6?\'th-sab\':dv===0?\'th-dom\':\'\')+\'" style="min-width:52px"><span style="display:block;font-size:9px;font-weight:400;opacity:.75">\'+semNom[dv]+\'</span>\'+diasN[d]+\'</th>\';\n  }\n  h+=\'<th class="th-total">TOTAL</th></tr></thead><tbody>\';\n  var sc=[];for(var x=0;x<nD;x++)sc.push(0);\n  var st=0;\n  for(var si=0;si<ss.length;si++){\n    var sec=ss[si];\n    var n2=sec.querySelector(\'h2\');\n    var nmRaw=n2?n2.textContent.replace(/\\s+/g,\' \').trim():\'\';\n    var nm=limpiarNombre(nmRaw);\n    var secId=sec.getAttribute(\'id\')||(\'ag-\'+si);\n    var filas=sec.querySelectorAll(\'tbody tr\');\n    h+=\'<tr><td class="td-nombre" title="\'+nm+\'" data-secid="\'+secId+\'" onclick="irADetalle(this)" style="cursor:pointer">\'+nm+\'</td>\';\n    var tA=0;\n    for(var d=0;d<nD;d++){\n      var dv=dsemHR(fechas[d]);\n      var bg=dv===6?\' col-sab\':dv===0?\' col-dom\':\'\';\n      var fila=filas[d];\n      if(!fila){h+=\'<td class="or\'+bg+\'">&#8212;</td>\';continue;}\n      var cs=fila.querySelectorAll(\'td\');\n      var eC=cs[6]||cs[5];\n      var eT=eC?eC.textContent.trim():\'\';\n      var cl=\'or\'+bg,dp=\'&#8212;\';\n      if(/^[A-Z]{1,3}$/.test(eT)){\n        cl=(licCls[eT]||\'lic\')+bg;dp=eT;\n      }else if(eT===\'\'||eT===\'-\'||eT===\'0:00\'){\n        var entT=cs[2]?cs[2].textContent.trim():\'\';\n        var salT=cs[3]?cs[3].textContent.trim():\'\';\n        if(entT&&!salT){cl=\'nf\'+bg;dp=\'NF\';}\n        else if(!entT&&!salT){cl=\'or\'+bg;dp=\'&#8212;\';}\n        else{cl=\'cero\'+bg;dp=\'0\';}\n      }else if(eT){\n        var neg=eT.charAt(0)===\'-\';\n        var el=eT.replace(/^[+-]/,\'\');\n        var pp=el.split(\':\');\n        var hh=parseInt(pp[0])||0,mm=parseInt(pp[1])||0;\n        var val=(hh+mm/60)*(neg?-1:1);\n        val=Math.round(val*100)/100;\n        tA+=val;sc[d]+=val;\n        if(Math.abs(val)<0.04){cl=\'cero\'+bg;dp=\'0\';}\n        else if(val>0){cl=\'pos\'+bg;dp=fvHR(val);}\n        else{cl=\'neg\'+bg;dp=fvHR(val);}\n      }\n      h+=\'<td class="\'+cl+\'">\'+dp+\'</td>\';\n    }\n    tA=Math.round(tA*100)/100;st+=tA;\n    var cT=tA>0.04?\'total-ag pos\':tA<-0.04?\'total-ag neg\':\'total-ag cero\';\n    h+=\'<td class="\'+cT+\'">\'+fvHR(tA)+\'</td></tr>\';\n  }\n  h+=\'</tbody><tfoot><tr><td class="tfoot-label">TOTAL</td>\';\n  for(var d=0;d<nD;d++){var sv=Math.round(sc[d]*100)/100;h+=\'<td class="\'+(sv>0.04?\'pos\':sv<-0.04?\'neg\':\'\')+\'">\'+(sv!==0?fvHR(sv):\'\')+\'</td>\';}\n  st=Math.round(st*100)/100;\n  h+=\'<td class="\'+(st>0.04?\'pos\':st<-0.04?\'neg\':\'\')+\'">\'+(st!==0?fvHR(st):\'\')+\'</td>\';\n  h+=\'</tr></tfoot></table></div></div>\';\n  pan.innerHTML=h;\n}\n\nwindow.addEventListener(\'load\',function(){\n  restaurarE();\n  var bR=document.querySelector(\'[data-tab="tab-real"]\');\n  if(bR)bR.addEventListener(\'click\',function(){setTimeout(recalcC,50);});\n  var oRF=window.recalcFila;\n  if(oRF)window.recalcFila=function(td){oRF(td);guardarE();};\n  var oEH=window.editarHora;\n  if(oEH)window.editarHora=function(td){oEH(td);var inp=td.querySelector(\'input\');if(inp)inp.addEventListener(\'blur\',function(){setTimeout(guardarE,100);});};\n});\n\n' + '</scr' + 'ipt>'
     + '</body></html>';
 
   var blob = new Blob([doc], { type: 'text/html;charset=utf-8;' });
