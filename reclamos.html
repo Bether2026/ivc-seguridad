@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Reporte de Reclamos y Quejas de Vecinos — IVC Seguridad</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;700&display=swap');
+
+  :root {
+    --azul-oscuro: #1D3343;
+    --azul-claro: #035C80;
+    --amarillo: #FFCD02;
+    --blanco: #FCFCFC;
+    --gris-fondo: #f4f6f8;
+    --gris-borde: #dde3e8;
+    --texto: #1D3343;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Archivo', Arial, sans-serif;
+    background: var(--gris-fondo);
+    color: var(--texto);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* ── HEADER GCBA ── */
+  .header {
+    background: var(--azul-oscuro);
+    color: white;
+    padding: 20px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  .header-logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .escudo-svg {
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+  }
+  .logo-text {
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+  .logo-sub {
+    font-size: 11px;
+    font-weight: 400;
+    opacity: 0.75;
+    margin-top: 2px;
+  }
+  .header-right {
+    text-align: right;
+  }
+  .header-right .titulo-doc {
+    font-size: 13px;
+    font-weight: 500;
+    opacity: 0.85;
+  }
+  .header-right .fecha-doc {
+    font-size: 11px;
+    opacity: 0.6;
+    margin-top: 2px;
+  }
+
+  /* ── BARRA AMARILLA ── */
+  .barra-amarilla {
+    height: 4px;
+    background: var(--amarillo);
+  }
+
+  /* ── CONTROLES ── */
+  .controles {
+    background: white;
+    border-bottom: 1px solid var(--gris-borde);
+    padding: 20px 32px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: flex-end;
+  }
+  .campo-grupo {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .campo-grupo label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--azul-oscuro);
+  }
+  .campo-grupo input,
+  .campo-grupo select {
+    border: 1px solid var(--gris-borde);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-family: 'Archivo', Arial, sans-serif;
+    font-size: 13px;
+    color: var(--texto);
+    background: white;
+    outline: none;
+    transition: border-color .2s;
+  }
+  .campo-grupo input:focus,
+  .campo-grupo select:focus {
+    border-color: var(--azul-claro);
+  }
+
+  .btn-buscar {
+    background: var(--azul-oscuro);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 9px 20px;
+    font-family: 'Archivo', Arial, sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background .2s;
+    align-self: flex-end;
+  }
+  .btn-buscar:hover { background: var(--azul-claro); }
+  .btn-buscar:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  .btn-imprimir {
+    background: var(--amarillo);
+    color: var(--azul-oscuro);
+    border: none;
+    border-radius: 6px;
+    padding: 9px 20px;
+    font-family: 'Archivo', Arial, sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity .2s;
+    align-self: flex-end;
+  }
+  .btn-imprimir:hover { opacity: 0.85; }
+
+  /* ── KEYWORDS TAG ── */
+  .keywords-info {
+    background: #e8f0f5;
+    border-left: 3px solid var(--azul-claro);
+    border-radius: 0 6px 6px 0;
+    padding: 10px 14px;
+    font-size: 12px;
+    color: var(--azul-oscuro);
+    width: 100%;
+  }
+  .keywords-info strong { font-weight: 700; }
+
+  /* ── STATS ── */
+  .stats-bar {
+    background: white;
+    border-bottom: 1px solid var(--gris-borde);
+    padding: 12px 32px;
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .stat-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .stat-num {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--azul-oscuro);
+    line-height: 1;
+  }
+  .stat-label {
+    font-size: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #6b7a88;
+  }
+  .stat-divider {
+    width: 1px;
+    height: 32px;
+    background: var(--gris-borde);
+  }
+
+  /* ── CONTENIDO ── */
+  .contenido {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 24px 32px;
+  }
+
+  /* ── ESTADO ── */
+  .estado-msg {
+    text-align: center;
+    padding: 48px 24px;
+    color: #8a99a8;
+  }
+  .estado-msg svg { margin-bottom: 12px; opacity: 0.4; }
+  .estado-msg p { font-size: 14px; }
+
+  /* ── CARD NOVEDAD ── */
+  .novedad-card {
+    background: white;
+    border: 1px solid var(--gris-borde);
+    border-radius: 10px;
+    margin-bottom: 16px;
+    overflow: hidden;
+    page-break-inside: avoid;
+    transition: box-shadow .2s;
+  }
+  .novedad-card:hover {
+    box-shadow: 0 2px 12px rgba(29,51,67,.1);
+  }
+
+  .card-header {
+    background: var(--azul-oscuro);
+    color: white;
+    padding: 12px 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .card-header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .badge-tipo {
+    background: var(--azul-claro);
+    color: white;
+    border-radius: 4px;
+    padding: 3px 9px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .badge-tipo.reclamo { background: #c0392b; }
+  .badge-tipo.queja   { background: #d35400; }
+  .badge-tipo.otro    { background: var(--azul-claro); }
+
+  .card-asunto {
+    font-size: 14px;
+    font-weight: 700;
+    color: white;
+  }
+  .card-meta {
+    font-size: 11px;
+    opacity: 0.7;
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .card-meta strong { opacity: 1; }
+
+  .card-body {
+    padding: 16px 18px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 24px;
+  }
+  @media (max-width: 600px) {
+    .card-body { grid-template-columns: 1fr; }
+  }
+
+  .campo-fila {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .campo-fila.full { grid-column: 1 / -1; }
+  .campo-nombre {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--azul-claro);
+  }
+  .campo-valor {
+    font-size: 13px;
+    color: var(--texto);
+    line-height: 1.5;
+  }
+  .campo-valor.destacado {
+    background: #fff8e1;
+    border-left: 3px solid var(--amarillo);
+    border-radius: 0 4px 4px 0;
+    padding: 8px 10px;
+    font-size: 13px;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .campo-valor em {
+    background: #fff3cd;
+    font-style: normal;
+    border-radius: 2px;
+    padding: 0 2px;
+    font-weight: 700;
+    color: #7a5c00;
+  }
+
+  .tag-match {
+    display: inline-block;
+    background: #fff3cd;
+    color: #7a5c00;
+    border-radius: 4px;
+    padding: 2px 7px;
+    font-size: 10px;
+    font-weight: 700;
+    margin: 2px 3px 2px 0;
+    text-transform: uppercase;
+    border: 1px solid #f0d060;
+  }
+
+  .pill-pendiente {
+    display: inline-block;
+    background: #fdecea;
+    color: #c0392b;
+    border-radius: 20px;
+    padding: 2px 10px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .pill-ok {
+    display: inline-block;
+    background: #eafaf1;
+    color: #1e8449;
+    border-radius: 20px;
+    padding: 2px 10px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+
+  /* ── FOTOS ── */
+  .fotos-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 4px;
+  }
+  .foto-thumb {
+    width: 72px;
+    height: 72px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid var(--gris-borde);
+    cursor: pointer;
+    transition: opacity .2s;
+  }
+  .foto-thumb:hover { opacity: 0.8; }
+
+  /* ── FOOTER ── */
+  .footer {
+    background: var(--azul-oscuro);
+    color: white;
+    text-align: center;
+    padding: 16px 32px;
+    font-size: 11px;
+    opacity: 0.85;
+    margin-top: 32px;
+  }
+  .footer strong { color: var(--amarillo); }
+
+  /* ── PRINT ── */
+  @media print {
+    body { background: white; }
+    .controles, .btn-imprimir { display: none !important; }
+    .novedad-card { break-inside: avoid; box-shadow: none; }
+    .header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .card-header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .barra-amarilla { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .badge-tipo { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .contenido { padding: 16px 0; }
+  }
+
+  /* ── SPINNER ── */
+  .spinner {
+    width: 32px; height: 32px;
+    border: 3px solid var(--gris-borde);
+    border-top-color: var(--azul-claro);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    margin: 0 auto 12px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── NO RESULTS ── */
+  .no-results {
+    text-align: center;
+    padding: 48px 24px;
+    color: #8a99a8;
+  }
+
+  /* ── LIGHTBOX ── */
+  .lightbox-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.85);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+  }
+  .lightbox-overlay.open { display: flex; }
+  .lightbox-overlay img {
+    max-width: 90vw;
+    max-height: 90vh;
+    border-radius: 8px;
+    object-fit: contain;
+  }
+  .lightbox-close {
+    position: absolute;
+    top: 16px; right: 20px;
+    color: white;
+    font-size: 28px;
+    cursor: pointer;
+    line-height: 1;
+    background: none;
+    border: none;
+  }
+</style>
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<header class="header">
+  <div class="header-logo">
+    <!-- Escudo GCBA SVG inline (simplificado, respeta proporciones) -->
+    <svg class="escudo-svg" viewBox="0 0 100 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <ellipse cx="50" cy="52" rx="46" ry="50" fill="none" stroke="white" stroke-width="3"/>
+      <!-- barcos simplificados -->
+      <line x1="28" y1="70" x2="28" y2="42" stroke="white" stroke-width="2"/>
+      <line x1="50" y1="70" x2="50" y2="38" stroke="white" stroke-width="2"/>
+      <line x1="72" y1="70" x2="72" y2="42" stroke="white" stroke-width="2"/>
+      <line x1="18" y1="70" x2="38" y2="70" stroke="white" stroke-width="2.5"/>
+      <line x1="40" y1="70" x2="60" y2="70" stroke="white" stroke-width="2.5"/>
+      <line x1="62" y1="70" x2="82" y2="70" stroke="white" stroke-width="2.5"/>
+      <!-- ondas -->
+      <path d="M12 78 Q20 73 28 78 Q36 83 44 78 Q52 73 60 78 Q68 83 76 78 Q84 73 90 78" stroke="white" stroke-width="2" fill="none"/>
+      <path d="M15 85 Q23 80 31 85 Q39 90 47 85 Q55 80 63 85 Q71 90 79 85" stroke="white" stroke-width="1.5" fill="none"/>
+      <!-- ave -->
+      <path d="M35 32 Q43 22 50 28 Q57 22 65 32" stroke="white" stroke-width="2" fill="none"/>
+      <path d="M50 28 L50 40" stroke="white" stroke-width="1.5"/>
+    </svg>
+    <div>
+      <div class="logo-text">Buenos Aires<br>Ciudad</div>
+      <div class="logo-sub">Instituto de Vivienda de la Ciudad</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="titulo-doc">Reporte de Reclamos y Quejas de Vecinos</div>
+    <div class="fecha-doc" id="fecha-generacion">IVC Seguridad y Emergencias</div>
+  </div>
+</header>
+<div class="barra-amarilla"></div>
+
+<!-- ── CONTROLES ── -->
+<div class="controles">
+  <div class="campo-grupo">
+    <label>Desde</label>
+    <input type="date" id="filtro-desde">
+  </div>
+  <div class="campo-grupo">
+    <label>Hasta</label>
+    <input type="date" id="filtro-hasta">
+  </div>
+  <div class="campo-grupo">
+    <label>Puesto</label>
+    <select id="filtro-puesto">
+      <option value="">Todos los puestos</option>
+    </select>
+  </div>
+  <button class="btn-buscar" id="btn-buscar" onclick="buscarReclamos()">
+    Buscar
+  </button>
+  <button class="btn-imprimir" onclick="window.print()">
+    Imprimir / PDF
+  </button>
+  <div class="keywords-info" style="margin-top:4px;">
+    <strong>Palabras clave detectadas:</strong>
+    reclamo, queja, denuncia, vecino, vecinos, insiste, protesta, agresiv, amenaz, insulto, hostigamiento, molestar, ruidosa, basura tira, problema, molesta, inconforme, exige, exigiendo, no cumple, quejó, quejan, reclamó, reclaman, solicita urgente, pide urgente, se niega, impide, obstaculiza
+  </div>
+</div>
+
+<!-- ── STATS ── -->
+<div class="stats-bar" id="stats-bar" style="display:none;">
+  <div class="stat-item">
+    <span class="stat-num" id="stat-total">0</span>
+    <span class="stat-label">Novedades encontradas</span>
+  </div>
+  <div class="stat-divider"></div>
+  <div class="stat-item">
+    <span class="stat-num" id="stat-pendientes">0</span>
+    <span class="stat-label">Con seguimiento pendiente</span>
+  </div>
+  <div class="stat-divider"></div>
+  <div class="stat-item">
+    <span class="stat-num" id="stat-puestos">0</span>
+    <span class="stat-label">Puestos involucrados</span>
+  </div>
+  <div class="stat-divider"></div>
+  <div class="stat-item">
+    <span class="stat-num" id="stat-periodo">—</span>
+    <span class="stat-label">Período consultado</span>
+  </div>
+</div>
+
+<!-- ── CONTENIDO ── -->
+<div class="contenido">
+  <div class="estado-msg" id="estado-inicial">
+    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+    <p>Seleccioná un rango de fechas y hacé clic en <strong>Buscar</strong>.</p>
+  </div>
+  <div style="display:none;" id="estado-cargando">
+    <div class="estado-msg">
+      <div class="spinner"></div>
+      <p>Buscando novedades con palabras clave de reclamo...</p>
+    </div>
+  </div>
+  <div id="resultados"></div>
+</div>
+
+<!-- ── FOOTER ── -->
+<footer class="footer">
+  <strong>IVC Seguridad y Emergencias</strong> &nbsp;·&nbsp; Instituto de Vivienda de la Ciudad &nbsp;·&nbsp; Gobierno de la Ciudad de Buenos Aires
+</footer>
+
+<!-- ── LIGHTBOX ── -->
+<div class="lightbox-overlay" id="lightbox" onclick="cerrarLightbox()">
+  <button class="lightbox-close" onclick="cerrarLightbox()">&#x2715;</button>
+  <img id="lightbox-img" src="" alt="">
+</div>
+
+<script>
+// ── CONFIG SUPABASE ──
+var SUPABASE_URL = 'https://yqwqtvlcgmqbfkibqqqb.supabase.co';
+var SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlxd3F0dmxjZ21xYmZraWJxcXFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MTUyNzkwNDUsImV4cCI6MjAzMDg1NTA0NX0.r9-KBFd7WZ5m4vlMr7iGaFlD2Hl0WjnEzrDQpfz_vqs';
+
+// ── PALABRAS CLAVE ──
+var KEYWORDS = [
+  'reclamo','reclamos','reclamó','reclaman','reclamando',
+  'queja','quejas','quejó','quejan','quejando',
+  'denuncia','denuncias','denunció','denuncian',
+  'vecino','vecinos','vecina','vecinas',
+  'insiste','insistió','insistiendo','insisten',
+  'protesta','protesto','protestando','protestan',
+  'agresiv','amenaz',
+  'insulto','insultos','insultó','insultando',
+  'hostigamiento','hostigó','hostigando',
+  'molestar','molesta','molestando','molestó',
+  'ruidosa','ruidoso','ruidos excesivos',
+  'no cumple','no quiere','se niega','se negó',
+  'exige','exigiendo','exigió','exigen',
+  'quejó','quejan',
+  'impide','obstaculiza','obstaculizó',
+  'solicita urgente','pide urgente',
+  'problema con vecino','conflicto vecinal',
+  'inconforme','disconforme'
+];
+
+// Inicializar fechas por defecto (últimos 30 días)
+(function() {
+  var hoy = new Date();
+  var hace30 = new Date();
+  hace30.setDate(hace30.getDate() - 30);
+  document.getElementById('filtro-hasta').value = hoy.toISOString().split('T')[0];
+  document.getElementById('filtro-desde').value = hace30.toISOString().split('T')[0];
+  document.getElementById('fecha-generacion').textContent = 'Generado el ' + hoy.toLocaleDateString('es-AR', { day:'2-digit', month:'long', year:'numeric' }) + ' · IVC Seguridad';
+})();
+
+// ── FETCH SUPABASE ──
+function sbFetch(path) {
+  return fetch(SUPABASE_URL + '/rest/v1/' + path, {
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json'
+    }
+  }).then(function(r) { return r.json(); });
+}
+
+// ── CARGAR PUESTOS ──
+function cargarPuestos() {
+  sbFetch('novedades?select=puesto&order=puesto').then(function(data) {
+    if (!data || !Array.isArray(data)) return;
+    var vistos = {};
+    var puestos = [];
+    data.forEach(function(n) {
+      if (n.puesto && !vistos[n.puesto]) { vistos[n.puesto] = 1; puestos.push(n.puesto); }
+    });
+    puestos.sort();
+    var sel = document.getElementById('filtro-puesto');
+    puestos.forEach(function(p) {
+      var opt = document.createElement('option');
+      opt.value = p;
+      opt.textContent = p;
+      sel.appendChild(opt);
+    });
+  }).catch(function() {});
+}
+cargarPuestos();
+
+// ── BUSCAR ──
+function buscarReclamos() {
+  var desde = document.getElementById('filtro-desde').value;
+  var hasta = document.getElementById('filtro-hasta').value;
+  var puesto = document.getElementById('filtro-puesto').value;
+
+  if (!desde || !hasta) { alert('Por favor ingresá las fechas.'); return; }
+
+  document.getElementById('estado-inicial').style.display = 'none';
+  document.getElementById('estado-cargando').style.display = 'block';
+  document.getElementById('resultados').innerHTML = '';
+  document.getElementById('stats-bar').style.display = 'none';
+  document.getElementById('btn-buscar').disabled = true;
+
+  var desdeISO = desde + 'T00:00:00.000Z';
+  var hastaISO = hasta + 'T23:59:59.999Z';
+
+  var path = 'novedades?select=id,created_at,tipo,asunto,detalle,puesto,cargado_por,fotos,pendiente,relevancia,nro_pd,nro_pu,fuerza_publica,ubicacion,caso,area,hora_evento,actualizaciones,texto_informe,observaciones'
+    + '&gte=created_at.' + encodeURIComponent(desdeISO)
+    + '&lte=created_at.' + encodeURIComponent(hastaISO)
+    + '&order=created_at.asc'
+    + '&limit=2000';
+
+  if (puesto) {
+    path += '&eq=puesto.' + encodeURIComponent(puesto);
+  }
+
+  sbFetch(path).then(function(data) {
+    document.getElementById('estado-cargando').style.display = 'none';
+    document.getElementById('btn-buscar').disabled = false;
+
+    if (!data || !Array.isArray(data)) {
+      document.getElementById('resultados').innerHTML = '<div class="no-results"><p>Error al conectar con la base de datos. Verificá la conexión.</p></div>';
+      return;
+    }
+
+    // Filtrar por keywords
+    var encontrados = [];
+    data.forEach(function(nov) {
+      var textos = [
+        (nov.asunto || ''),
+        (nov.detalle || ''),
+        (nov.texto_informe || ''),
+        (nov.observaciones || ''),
+        (nov.tipo || ''),
+        (nov.caso || ''),
+        (nov.area || '')
+      ].join(' ').toLowerCase();
+
+      // Buscar actualizaciones
+      if (nov.actualizaciones && Array.isArray(nov.actualizaciones)) {
+        nov.actualizaciones.forEach(function(act) {
+          textos += ' ' + (act.texto || act.mensaje || act.contenido || JSON.stringify(act)).toLowerCase();
+        });
+      }
+
+      var matches = [];
+      KEYWORDS.forEach(function(kw) {
+        if (textos.indexOf(kw.toLowerCase()) !== -1) {
+          matches.push(kw);
+        }
+      });
+
+      if (matches.length > 0) {
+        nov._matches = matches;
+        encontrados.push(nov);
+      }
+    });
+
+    // Stats
+    var puestosSet = {};
+    var pendientes = 0;
+    encontrados.forEach(function(n) {
+      if (n.puesto) puestosSet[n.puesto] = 1;
+      if (n.pendiente) pendientes++;
+    });
+
+    document.getElementById('stat-total').textContent = encontrados.length;
+    document.getElementById('stat-pendientes').textContent = pendientes;
+    document.getElementById('stat-puestos').textContent = Object.keys(puestosSet).length;
+    document.getElementById('stat-periodo').textContent = formatFecha(desde) + ' – ' + formatFecha(hasta);
+    document.getElementById('stats-bar').style.display = 'flex';
+
+    if (encontrados.length === 0) {
+      document.getElementById('resultados').innerHTML = '<div class="no-results"><p>No se encontraron novedades que coincidan con las palabras clave en el período seleccionado.</p></div>';
+      return;
+    }
+
+    var html = '';
+    encontrados.forEach(function(nov) {
+      html += renderCard(nov);
+    });
+    document.getElementById('resultados').innerHTML = html;
+
+  }).catch(function(err) {
+    document.getElementById('estado-cargando').style.display = 'none';
+    document.getElementById('btn-buscar').disabled = false;
+    document.getElementById('resultados').innerHTML = '<div class="no-results"><p>Error al conectar: ' + err.message + '</p></div>';
+  });
+}
+
+function formatFecha(iso) {
+  if (!iso) return '—';
+  var partes = iso.split('-');
+  if (partes.length < 3) return iso;
+  return partes[2] + '/' + partes[1] + '/' + partes[0];
+}
+
+function formatFechaHora(iso) {
+  if (!iso) return '—';
+  try {
+    var d = new Date(iso);
+    return d.toLocaleDateString('es-AR', { day:'2-digit', month:'2-digit', year:'numeric' }) + ' ' +
+           d.toLocaleTimeString('es-AR', { hour:'2-digit', minute:'2-digit' });
+  } catch(e) { return iso; }
+}
+
+function resaltarTexto(texto, matches) {
+  if (!texto || !matches || !matches.length) return escHtml(texto || '—');
+  var result = escHtml(texto);
+  matches.forEach(function(kw) {
+    var re = new RegExp('(' + escRex(escHtml(kw)) + ')', 'gi');
+    result = result.replace(re, '<em>$1</em>');
+  });
+  return result;
+}
+
+function escHtml(t) {
+  return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function escRex(t) {
+  return t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+}
+
+function renderCard(nov) {
+  var tipo = (nov.tipo || 'novedad').toLowerCase();
+  var badgeClass = 'otro';
+  if (tipo.indexOf('reclamo') !== -1) badgeClass = 'reclamo';
+  else if (tipo.indexOf('queja') !== -1) badgeClass = 'queja';
+
+  var pendienteHtml = nov.pendiente
+    ? '<span class="pill-pendiente">Pendiente</span>'
+    : '<span class="pill-ok">Sin pendiente</span>';
+
+  // Fotos
+  var fotosHtml = '';
+  if (nov.fotos && Array.isArray(nov.fotos) && nov.fotos.length) {
+    fotosHtml = '<div class="fotos-grid">';
+    nov.fotos.forEach(function(url) {
+      if (url) {
+        fotosHtml += '<img class="foto-thumb" src="' + escHtml(url) + '" alt="foto" onclick="abrirLightbox(\'' + escHtml(url) + '\')" loading="lazy">';
+      }
+    });
+    fotosHtml += '</div>';
+  } else {
+    fotosHtml = '<span style="color:#aaa;font-size:12px;">Sin fotos</span>';
+  }
+
+  // Tags de coincidencias
+  var tagsHtml = '';
+  (nov._matches || []).forEach(function(m) {
+    tagsHtml += '<span class="tag-match">' + escHtml(m) + '</span>';
+  });
+
+  // Actualizaciones
+  var actHtml = '';
+  if (nov.actualizaciones && Array.isArray(nov.actualizaciones) && nov.actualizaciones.length) {
+    actHtml = nov.actualizaciones.map(function(act, i) {
+      var texto = act.texto || act.mensaje || act.contenido || JSON.stringify(act);
+      var fecha = act.fecha || act.created_at || '';
+      return '<div style="border-left:2px solid var(--azul-claro);padding:6px 10px;margin:4px 0;font-size:12px;">'
+        + (fecha ? '<span style="color:#888;font-size:11px;">' + formatFechaHora(fecha) + '</span><br>' : '')
+        + resaltarTexto(texto, nov._matches)
+        + '</div>';
+    }).join('');
+  }
+
+  return '<div class="novedad-card">'
+    + '<div class="card-header">'
+    +   '<div class="card-header-left">'
+    +     '<span class="badge-tipo ' + badgeClass + '">' + escHtml(nov.tipo || 'Novedad') + '</span>'
+    +     '<span class="card-asunto">' + resaltarTexto(nov.asunto || '(sin asunto)', nov._matches) + '</span>'
+    +   '</div>'
+    +   '<div class="card-meta">'
+    +     '<strong>' + formatFechaHora(nov.created_at) + '</strong><br>'
+    +     escHtml(nov.puesto || '—')
+    +   '</div>'
+    + '</div>'
+    + '<div class="card-body">'
+
+    +   '<div class="campo-fila">'
+    +     '<span class="campo-nombre">Cargado por</span>'
+    +     '<span class="campo-valor">' + escHtml(nov.cargado_por || '—') + '</span>'
+    +   '</div>'
+
+    +   '<div class="campo-fila">'
+    +     '<span class="campo-nombre">Estado</span>'
+    +     '<span class="campo-valor">' + pendienteHtml + '</span>'
+    +   '</div>'
+
+    +   (nov.puesto ? '<div class="campo-fila"><span class="campo-nombre">Puesto</span><span class="campo-valor">' + escHtml(nov.puesto) + '</span></div>' : '')
+
+    +   (nov.hora_evento ? '<div class="campo-fila"><span class="campo-nombre">Hora del evento</span><span class="campo-valor">' + escHtml(nov.hora_evento) + '</span></div>' : '')
+
+    +   (nov.ubicacion ? '<div class="campo-fila"><span class="campo-nombre">Ubicación</span><span class="campo-valor">' + escHtml(nov.ubicacion) + '</span></div>' : '')
+
+    +   (nov.fuerza_publica ? '<div class="campo-fila"><span class="campo-nombre">Fuerza pública</span><span class="campo-valor">' + escHtml(nov.fuerza_publica) + '</span></div>' : '')
+
+    +   (nov.nro_pd || nov.nro_pu ? '<div class="campo-fila"><span class="campo-nombre">PD / PU</span><span class="campo-valor">' + escHtml((nov.nro_pd||'—') + ' / ' + (nov.nro_pu||'—')) + '</span></div>' : '')
+
+    +   '<div class="campo-fila full">'
+    +     '<span class="campo-nombre">Detalle / Cuerpo de la novedad</span>'
+    +     '<span class="campo-valor destacado">' + resaltarTexto(nov.detalle || '(sin detalle)', nov._matches) + '</span>'
+    +   '</div>'
+
+    +   (nov.texto_informe ? '<div class="campo-fila full"><span class="campo-nombre">Texto informe</span><span class="campo-valor destacado">' + resaltarTexto(nov.texto_informe, nov._matches) + '</span></div>' : '')
+
+    +   (nov.observaciones ? '<div class="campo-fila full"><span class="campo-nombre">Observaciones</span><span class="campo-valor destacado">' + resaltarTexto(nov.observaciones, nov._matches) + '</span></div>' : '')
+
+    +   (actHtml ? '<div class="campo-fila full"><span class="campo-nombre">Actualizaciones (' + nov.actualizaciones.length + ')</span><div style="margin-top:4px;">' + actHtml + '</div></div>' : '')
+
+    +   '<div class="campo-fila">'
+    +     '<span class="campo-nombre">Palabras clave detectadas</span>'
+    +     '<span class="campo-valor">' + tagsHtml + '</span>'
+    +   '</div>'
+
+    +   '<div class="campo-fila">'
+    +     '<span class="campo-nombre">Fotos adjuntas</span>'
+    +     '<span class="campo-valor">' + fotosHtml + '</span>'
+    +   '</div>'
+
+    + '</div>'
+    + '</div>';
+}
+
+// ── LIGHTBOX ──
+function abrirLightbox(url) {
+  document.getElementById('lightbox-img').src = url;
+  document.getElementById('lightbox').classList.add('open');
+}
+function cerrarLightbox() {
+  document.getElementById('lightbox').classList.remove('open');
+  document.getElementById('lightbox-img').src = '';
+}
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') cerrarLightbox();
+});
+</script>
+</body>
+</html>
