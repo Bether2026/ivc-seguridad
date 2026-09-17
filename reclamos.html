@@ -632,13 +632,13 @@ function buscarReclamos() {
   var hastaISO = hasta + 'T23:59:59.999Z';
 
   var path = 'novedades?select=id,created_at,tipo,asunto,detalle,puesto,cargado_por,fotos,pendiente,relevancia,nro_pd,nro_pu,fuerza_publica,ubicacion,caso,area,hora_evento,actualizaciones,texto_informe,observaciones'
-    + '&gte=created_at.' + encodeURIComponent(desdeISO)
-    + '&lte=created_at.' + encodeURIComponent(hastaISO)
+    + '&created_at=gte.' + encodeURIComponent(desdeISO)
+    + '&created_at=lte.' + encodeURIComponent(hastaISO)
     + '&order=created_at.asc'
     + '&limit=2000';
 
   if (puesto) {
-    path += '&eq=puesto.' + encodeURIComponent(puesto);
+    path += '&puesto=eq.' + encodeURIComponent(puesto);
   }
 
   sbFetch(path).then(function(data) {
