@@ -556,17 +556,20 @@ var SUPABASE_KEY = 'sb_publishable_4wUP7GJvMvb8J3zWaWoXTg_jRXMvw0T';
   var raw = null;
   try { raw = localStorage.getItem(STORAGE_KEY); } catch(e) {}
   if (!raw) {
+    try { sessionStorage.setItem('redirect_after_login', '/reclamos.html'); } catch(e) {}
     window.location.replace('/');
     return;
   }
   var parsed = null;
   try { parsed = JSON.parse(raw); } catch(e) {}
   if (!parsed || !parsed.access_token) {
+    try { sessionStorage.setItem('redirect_after_login', '/reclamos.html'); } catch(e) {}
     window.location.replace('/');
     return;
   }
   var exp = parsed.expires_at;
   if (exp && Math.floor(Date.now() / 1000) >= exp) {
+    try { sessionStorage.setItem('redirect_after_login', '/reclamos.html'); } catch(e) {}
     window.location.replace('/');
     return;
   }

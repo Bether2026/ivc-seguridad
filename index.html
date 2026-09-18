@@ -9802,6 +9802,14 @@ function _doLogin() {
             };
             saveSession();
             resetInactivityTimer();
+            // Redirect pendiente (ej: venía de /reclamos.html antes de loguearse)
+            var redirectPendiente = null;
+            try { redirectPendiente = sessionStorage.getItem('redirect_after_login'); } catch(e) {}
+            if (redirectPendiente) {
+              try { sessionStorage.removeItem('redirect_after_login'); } catch(e) {}
+              window.location.href = redirectPendiente;
+              return;
+            }
             document.getElementById('auth-screen').style.display = 'none';
             document.getElementById('app').style.display = 'flex';
             $('tp-puesto').textContent = puesto;
