@@ -4254,6 +4254,7 @@ body {
               </div>
               <button onclick="clima_abrirModal()" style="padding:8px 14px;border-radius:10px;border:none;background:#3b82f6;color:#fff;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">🌧 Nueva alerta</button>
               <button id="clima-export-btn" onclick="climaExportarHTML()" style="padding:8px 14px;border-radius:10px;border:1px solid rgba(255,205,2,.5);background:rgba(255,205,2,.12);color:#FFCD02;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">📄 Exportar informe</button>
+              <button id="clima-export-pdf-btn" onclick="climaExportarPDF()" style="padding:8px 14px;border-radius:10px;border:1px solid rgba(239,68,68,.5);background:rgba(239,68,68,.12);color:#f87171;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">🖨 Exportar PDF</button>
               <button id="clima-btn-nuevo-relev" onclick="if(!window.CLIMA_ALERTA_ID){toast('Esperá que cargue el turno activo','err');return;}clima_abrirRelevamiento();" style="display:none;padding:8px 14px;border-radius:10px;border:none;background:#0f3158;color:#7cb0ff;border:1px solid rgba(124,176,255,.3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">📋 Nuevo relevamiento</button>
             </div>
             <!-- Filtro por barrio -->
@@ -36371,6 +36372,299 @@ window.climaExportarHTML = function() {
   };
 };
 
+
+
+// ════════════════════════════════════════════════════════════════════════════
+// EXPORT PDF — una hoja por punto, fotos incrustadas en base64
+// ════════════════════════════════════════════════════════════════════════════
+window.climaExportarPDF = function() {
+  if (!CLIMA_CTRL_DATOS || !CLIMA_CTRL_DATOS.length) {
+    toast('Sin relevamientos para exportar', 'err'); return;
+  }
+
+  // Detectar barrios disponibles (igual que el modal HTML)
+  var conDatos = {};
+  function pbPDF(p) {
+    if (!p) return 'Otro';
+    var s = p.toLowerCase();
+    if (s.indexOf('rodrigo')   >= 0) return 'Rodrigo Bueno';
+    if (s.indexOf('fraga')     >= 0) return 'Fraga';
+    if (s.indexOf('francisco') >= 0) return 'Papa Francisco';
+    return 'Otro';
+  }
+  CLIMA_CTRL_DATOS.forEach(function(n) { conDatos[pbPDF(n.puesto)] = true; });
+  var barrios = ['Rodrigo Bueno','Fraga','Papa Francisco'];
+  var disponibles = barrios.filter(function(b) { return conDatos[b]; });
+
+  // Si solo hay un barrio, exportar directo
+  if (disponibles.length <= 1) {
+    _climaGenerarPDF(disponibles.length === 0 ? ['todos'] : disponibles);
+    return;
+  }
+
+  // Modal de selección (mismo estilo que el HTML)
+  var overlay = document.createElement('div');
+  overlay.id = 'export-pdf-modal';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;padding:20px';
+
+  var modal = document.createElement('div');
+  modal.style.cssText = 'background:var(--bg2,#0d2137);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:24px;width:100%;max-width:340px;font-family:var(--font)';
+
+  var checks = '';
+  disponibles.forEach(function(b) {
+    var id = 'pdf-chk-' + b.replace(/\s/g,'-');
+    checks += '<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.1);margin-bottom:8px;cursor:pointer;color:#fff;font-size:13px;font-weight:600">'
+      + '<input type="checkbox" id="' + id + '" value="' + b + '" checked '
+      + 'style="width:18px;height:18px;accent-color:#ef4444;cursor:pointer">'
+      + b + '</label>';
+  });
+
+  modal.innerHTML = '<div style="font-size:15px;font-weight:800;color:#fff;margin-bottom:6px">🖨 Exportar PDF</div>'
+    + '<div style="font-size:12px;color:rgba(255,255,255,.5);margin-bottom:20px">Seleccioná los barrios a incluir</div>'
+    + checks
+    + '<div style="display:flex;gap:10px;margin-top:20px">'
+    + '<button id="pdf-btn-todo" style="flex:1;padding:11px;border-radius:10px;border:1px solid rgba(239,68,68,.4);background:rgba(239,68,68,.1);color:#f87171;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">📋 Exportar todo</button>'
+    + '<button id="pdf-btn-sel" style="flex:1;padding:11px;border-radius:10px;border:none;background:#ef4444;color:#fff;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">✓ Exportar selección</button>'
+    + '</div>'
+    + '<button id="pdf-btn-cancel" style="width:100%;margin-top:10px;padding:9px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:transparent;color:rgba(255,255,255,.4);font-family:var(--font);font-size:12px;cursor:pointer">Cancelar</button>';
+
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+
+  function cerrarPDF() { document.body.removeChild(overlay); }
+  document.getElementById('pdf-btn-cancel').onclick = cerrarPDF;
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) cerrarPDF(); });
+  document.getElementById('pdf-btn-todo').onclick = function() { cerrarPDF(); _climaGenerarPDF(['todos']); };
+  document.getElementById('pdf-btn-sel').onclick = function() {
+    var sel = [];
+    disponibles.forEach(function(b) {
+      if (document.getElementById('pdf-chk-' + b.replace(/\s/g,'-')).checked) sel.push(b);
+    });
+    if (!sel.length) { toast('Seleccioná al menos un barrio', 'err'); return; }
+    cerrarPDF();
+    _climaGenerarPDF(sel);
+  };
+};
+
+// ── Genera el PDF ─────────────────────────────────────────────────────────────
+window._climaGenerarPDF = async function(barrios) {
+  var btn = document.getElementById('clima-export-pdf-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Generando PDF...'; }
+
+  function pbPDF2(p) {
+    if (!p) return 'Otro';
+    var s = p.toLowerCase();
+    if (s.indexOf('rodrigo')   >= 0) return 'Rodrigo Bueno';
+    if (s.indexOf('fraga')     >= 0) return 'Fraga';
+    if (s.indexOf('francisco') >= 0) return 'Papa Francisco';
+    return 'Otro';
+  }
+
+  var esTodo = barrios.indexOf('todos') !== -1;
+  var datos = CLIMA_CTRL_DATOS.filter(function(n) {
+    if (esTodo) return true;
+    return barrios.indexOf(pbPDF2(n.puesto)) !== -1;
+  });
+
+  if (!datos.length) {
+    toast('Sin registros para los barrios seleccionados', 'err');
+    if (btn) { btn.disabled = false; btn.textContent = '🖨 Exportar PDF'; }
+    return;
+  }
+
+  // Colores por tipo de riesgo
+  function colorR(n) {
+    if (n.inundacion_activa)  return '#3b82f6';
+    if (n.riesgo_arbol)       return '#22c55e';
+    if (n.riesgo_poste)       return '#f97316';
+    if (n.desague_tapado)     return '#a855f7';
+    if (n.acumulacion_basura) return '#eab308';
+    return '#ef4444';
+  }
+  function emojiR(n) {
+    if (n.inundacion_activa)  return '🌊';
+    if (n.riesgo_arbol)       return '🌳';
+    if (n.riesgo_poste)       return '🔌';
+    if (n.desague_tapado)     return '🕳';
+    if (n.acumulacion_basura) return '🗑';
+    return '⚠️';
+  }
+  function riesgosR(n) {
+    var r = [];
+    if (n.acumulacion_basura) r.push({e:'🗑',l:'Basura',      c:'#eab308'});
+    if (n.desague_tapado)     r.push({e:'🕳',l:'Desagüe',     c:'#a855f7'});
+    if (n.riesgo_arbol)       r.push({e:'🌳',l:'Árbol',       c:'#22c55e'});
+    if (n.riesgo_poste)       r.push({e:'🔌',l:'Poste',       c:'#f97316'});
+    if (n.inundacion_activa)  r.push({e:'🌊',l:'Inundación',  c:'#3b82f6'});
+    if (n.otro)               r.push({e:'⚠️',l:n.otro_detalle||'Otro', c:'#ef4444'});
+    return r;
+  }
+  function fmtFecha(iso) {
+    if (!iso) return '-';
+    var d = new Date(iso);
+    return d.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric',timeZone:'America/Argentina/Buenos_Aires'})
+      + ' ' + d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',timeZone:'America/Argentina/Buenos_Aires'});
+  }
+
+  // Convertir imagen URL → base64
+  async function toBase64(url) {
+    try {
+      var res = await fetch(url);
+      var blob = await res.blob();
+      return await new Promise(function(resolve) {
+        var fr = new FileReader();
+        fr.onload = function() { resolve(fr.result); };
+        fr.readAsDataURL(blob);
+      });
+    } catch(e) { return null; }
+  }
+
+  // Construir páginas
+  var paginas = [];
+  for (var i = 0; i < datos.length; i++) {
+    var n = datos[i];
+    var fotos = n.fotos_urls;
+    if (!Array.isArray(fotos)) { try { fotos = JSON.parse(fotos||'null')||[]; } catch(e) { fotos=[]; } }
+
+    // Convertir fotos a base64
+    var fotosB64 = [];
+    for (var f = 0; f < fotos.length; f++) {
+      var b64 = await toBase64(fotos[f]);
+      if (b64) fotosB64.push(b64);
+    }
+
+    var color = colorR(n);
+    var riesgos = riesgosR(n);
+    var lat = n.lat ? parseFloat(n.lat).toFixed(5) : null;
+    var lng = n.lng ? parseFloat(n.lng).toFixed(5) : null;
+    var gmUrl = lat ? 'https://maps.google.com/?q=' + lat + ',' + lng : null;
+    var wzUrl = lat ? 'https://waze.com/ul?ll=' + lat + ',' + lng + '&navigate=yes' : null;
+
+    // Badges de riesgo
+    var badgesHtml = riesgos.map(function(r) {
+      return '<span style="display:inline-flex;align-items:center;gap:5px;padding:4px 12px;border-radius:20px;border:1.5px solid ' + r.c + ';color:' + r.c + ';background:' + r.c + '18;font-size:12px;font-weight:700;margin:3px 4px 3px 0">' + r.e + ' ' + r.l + '</span>';
+    }).join('');
+
+    // Fotos HTML
+    var fotosHtml = '';
+    if (fotosB64.length) {
+      fotosHtml = '<div style="margin-top:18px"><div style="font-size:10px;font-weight:700;color:#8ea3b4;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">Fotografías</div>'
+        + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px">';
+      fotosB64.forEach(function(b) {
+        fotosHtml += '<img src="' + b + '" style="width:100%;height:160px;object-fit:cover;border-radius:8px;border:1.5px solid #eef2f5">';
+      });
+      fotosHtml += '</div></div>';
+    }
+
+    // Coordenadas
+    var coordHtml = '';
+    if (lat) {
+      coordHtml = '<div style="margin-top:18px;padding:14px;background:#f0f7ff;border-radius:10px;border:1px solid #bfdbfe">'
+        + '<div style="font-size:10px;font-weight:700;color:#8ea3b4;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">Ubicación GPS</div>'
+        + '<div style="font-size:13px;color:#1D3343;font-weight:600;margin-bottom:10px">📍 ' + lat + ', ' + lng + '</div>'
+        + '<div style="display:flex;gap:8px;flex-wrap:wrap">'
+        + '<a href="' + gmUrl + '" style="display:inline-flex;align-items:center;gap:5px;padding:7px 14px;background:#4285f4;color:#fff;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none">📍 Google Maps</a>'
+        + '<a href="' + wzUrl + '" style="display:inline-flex;align-items:center;gap:5px;padding:7px 14px;background:#33ccff;color:#1a1a2e;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none">🗺 Waze</a>'
+        + '<a href="maps://maps.apple.com/?ll=' + lat + ',' + lng + '" style="display:inline-flex;align-items:center;gap:5px;padding:7px 14px;background:#1D3343;color:#fff;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none">🍎 Apple Maps</a>'
+        + '</div></div>';
+    } else {
+      coordHtml = '<div style="margin-top:18px;padding:12px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;color:#8ea3b4;font-size:12px;font-style:italic">Sin coordenadas GPS registradas</div>';
+    }
+
+    var paginaHtml = `
+<div class="pagina" style="page-break-after:always;padding:32px 36px;min-height:100vh;box-sizing:border-box;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;background:#fff;position:relative">
+
+  <!-- Franja de color por tipo -->
+  <div style="position:absolute;top:0;left:0;right:0;height:6px;background:${color}"></div>
+
+  <!-- Header institucional -->
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;padding-top:8px">
+    <div>
+      <div style="font-size:10px;font-weight:700;color:#8ea3b4;text-transform:uppercase;letter-spacing:.12em">Buenos Aires Ciudad</div>
+      <div style="font-size:11px;font-weight:600;color:#1D3343;margin-top:2px">IVC — Dirección General de Desarrollo Habitacional</div>
+      <div style="font-size:10px;color:#8ea3b4;margin-top:1px">IVC Seguridad y Emergencias</div>
+    </div>
+    <div style="text-align:right">
+      <div style="font-size:10px;font-weight:700;color:#FFCD02;text-transform:uppercase;letter-spacing:.1em;background:#1D3343;padding:4px 10px;border-radius:6px">Relevamiento Climático</div>
+      <div style="font-size:11px;color:#8ea3b4;margin-top:4px">${fmtFecha(n.created_at)}</div>
+    </div>
+  </div>
+
+  <!-- Divider -->
+  <div style="height:1px;background:#eef2f5;margin-bottom:20px"></div>
+
+  <!-- Puesto + barrio -->
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+    <div style="width:44px;height:44px;border-radius:50%;background:${color}18;border:2px solid ${color};display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">${emojiR(n)}</div>
+    <div>
+      <div style="font-size:20px;font-weight:900;color:#1D3343;line-height:1.1">${n.puesto||'-'}</div>
+      <div style="font-size:12px;color:#8ea3b4;margin-top:2px">${pbPDF2(n.puesto)} · ${n.agente||'-'}</div>
+    </div>
+  </div>
+
+  <!-- Badges de riesgo -->
+  ${badgesHtml ? '<div style="margin-bottom:16px">' + badgesHtml + '</div>' : ''}
+
+  <!-- Observaciones -->
+  ${n.observaciones ? `<div style="padding:14px;background:#f8fafc;border-radius:10px;border-left:4px solid ${color};margin-bottom:4px"><div style="font-size:10px;font-weight:700;color:#8ea3b4;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">Observaciones</div><div style="font-size:13px;color:#3a5568;line-height:1.6">${n.observaciones}</div></div>` : ''}
+
+  <!-- Coordenadas + links -->
+  ${coordHtml}
+
+  <!-- Fotos -->
+  ${fotosHtml}
+
+  <!-- Footer de página -->
+  <div style="position:absolute;bottom:20px;left:36px;right:36px;display:flex;justify-content:space-between;align-items:center;border-top:1px solid #eef2f5;padding-top:10px">
+    <div style="font-size:9px;color:#c0cdd8">Generado el ${new Date().toLocaleDateString('es-AR',{timeZone:'America/Argentina/Buenos_Aires'})} — Uso interno</div>
+    <div style="font-size:9px;color:#c0cdd8">Punto ${i+1} de ${datos.length}</div>
+  </div>
+</div>`;
+
+    paginas.push(paginaHtml);
+  }
+
+  // Armar el HTML completo e imprimir
+  var htmlCompleto = `<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Relevamiento Climático IVC — PDF</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #fff; }
+  @media print {
+    .pagina { page-break-after: always; }
+    .pagina:last-child { page-break-after: avoid; }
+    @page { margin: 0; size: A4; }
+  }
+</style>
+</head>
+<body>
+${paginas.join('\n')}
+</body>
+</html>`;
+
+  // Abrir en ventana nueva y disparar print
+  var win = window.open('', '_blank');
+  if (!win) {
+    toast('Habilitá las ventanas emergentes para exportar PDF', 'err');
+    if (btn) { btn.disabled = false; btn.textContent = '🖨 Exportar PDF'; }
+    return;
+  }
+  win.document.write(htmlCompleto);
+  win.document.close();
+  win.onload = function() {
+    setTimeout(function() {
+      win.focus();
+      win.print();
+    }, 800);
+  };
+
+  if (btn) { btn.disabled = false; btn.textContent = '🖨 Exportar PDF'; }
+  toast('PDF listo — guardá desde el diálogo de impresión', 'ok');
+};
 
 </script>
 
