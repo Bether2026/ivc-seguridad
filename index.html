@@ -36179,66 +36179,196 @@ window.climaCtrl_cargarAudit = function() {
     });
 };
 
-window.climaExportarHTML = function() {
-  var btn = document.getElementById('clima-export-btn');
-  // Usar los datos ya filtrados por turno que están en memoria
-  if (!CLIMA_CTRL_DATOS || !CLIMA_CTRL_DATOS.length) {
-    toast('Sin relevamientos en este turno para exportar', 'err'); return;
-  }
-  if (btn) { btn.disabled = true; btn.textContent = 'Generando...'; }
-  var datos = CLIMA_CTRL_DATOS.map(function(n) {
+// ── Helper: captura snapshot del pronóstico ──────────────────────────────────
+function _climaCapturarPronostico() {
+  if (!_CP_DATA) return null;
+  try {
+    var ahora = Math.floor(Date.now() / 1000);
+    var tiempos  = _CP_DATA.hourly.time;
+    var probPrec = _CP_DATA.hourly.precipitation_probability;
+    var prec     = _CP_DATA.hourly.precipitation;
+    var viento   = _CP_DATA.hourly.windspeed_10m;
+    var wcode    = _CP_DATA.hourly.weathercode;
+    var idx = 0;
+    for (var i = 0; i < tiempos.length; i++) { if (tiempos[i] <= ahora) idx = i; }
+    var maxProb = 0, maxPrec = 0, maxViento = 0, maxWcode = 0;
+    for (var h = idx; h < Math.min(idx + 3, tiempos.length); h++) {
+      if (probPrec[h] > maxProb)   maxProb   = probPrec[h];
+      if (prec[h]     > maxPrec)   maxPrec   = prec[h];
+      if (viento[h]   > maxViento) maxViento = viento[h];
+      if (wcode[h]    > maxWcode)  maxWcode  = wcode[h];
+    }
+    var rClasif = climaPronostico_clasificar(maxWcode, maxProb, maxPrec);
+    return {
+      nivel: rClasif.nivel, icon: rClasif.icon, color: rClasif.color,
+      prob: maxProb, prec: maxPrec.toFixed(1), viento: Math.round(maxViento),
+      desc: climaPronostico_wmoDesc(maxWcode),
+      hora: new Date().toLocaleTimeString('es-AR', { hour:'2-digit', minute:'2-digit', timeZone:'America/Argentina/Buenos_Aires' })
+    };
+  } catch(e) { return null; }
+}
+
+// ── Helper: genera y descarga el HTML del informe ────────────────────────────
+function _climaGenerarExport(barrios) {
+  // barrios = ['todos'] o array con los seleccionados ej ['Fraga','Papa Francisco']
+  var todosMapped = CLIMA_CTRL_DATOS.map(function(n) {
     var fotos = n.fotos_urls;
     if (!Array.isArray(fotos)) { try { fotos = JSON.parse(fotos||'null')||[]; } catch(e) { fotos=[]; } }
     return Object.assign({}, n, { fotos_urls: fotos });
   });
 
-  // Capturar snapshot del pronóstico actual si existe
-  var pronosticoSnap = null;
-  if (_CP_DATA) {
-    try {
-      var ahora = Math.floor(Date.now() / 1000);
-      var tiempos  = _CP_DATA.hourly.time;
-      var probPrec = _CP_DATA.hourly.precipitation_probability;
-      var prec     = _CP_DATA.hourly.precipitation;
-      var viento   = _CP_DATA.hourly.windspeed_10m;
-      var wcode    = _CP_DATA.hourly.weathercode;
-      var idx = 0;
-      for (var i = 0; i < tiempos.length; i++) { if (tiempos[i] <= ahora) idx = i; }
-      var maxProb = 0, maxPrec = 0, maxViento = 0, maxWcode = 0;
-      for (var h = idx; h < Math.min(idx + 3, tiempos.length); h++) {
-        if (probPrec[h] > maxProb)   maxProb   = probPrec[h];
-        if (prec[h]     > maxPrec)   maxPrec   = prec[h];
-        if (viento[h]   > maxViento) maxViento = viento[h];
-        if (wcode[h]    > maxWcode)  maxWcode  = wcode[h];
-      }
-      var rClasif = climaPronostico_clasificar(maxWcode, maxProb, maxPrec);
-      pronosticoSnap = {
-        nivel: rClasif.nivel,
-        icon:  rClasif.icon,
-        color: rClasif.color,
-        prob:  maxProb,
-        prec:  maxPrec.toFixed(1),
-        viento: Math.round(maxViento),
-        desc:  climaPronostico_wmoDesc(maxWcode),
-        hora:  new Date().toLocaleTimeString('es-AR', { hour:'2-digit', minute:'2-digit', timeZone:'America/Argentina/Buenos_Aires' })
-      };
-    } catch(e) { pronosticoSnap = null; }
+  var esTodo = barrios.indexOf('todos') !== -1;
+
+  // Función para mapear puesto → barrio (igual que en el template)
+  function puestoBarrioLocal(puesto) {
+    if (!puesto) return 'Otro';
+    var p = puesto.toLowerCase();
+    if (p.indexOf('rodrigo') >= 0) return 'Rodrigo Bueno';
+    if (p.indexOf('fraga')   >= 0) return 'Fraga';
+    if (p.indexOf('francisco') >= 0) return 'Papa Francisco';
+    return 'Otro';
   }
 
+  var datosFiltrados = esTodo ? todosMapped : todosMapped.filter(function(n) {
+    return barrios.indexOf(puestoBarrioLocal(n.puesto)) !== -1;
+  });
+
+  if (!datosFiltrados.length) {
+    toast('Sin registros para los barrios seleccionados', 'err'); return;
+  }
+
+  // Modificar el template: si es filtro específico, quitar botones de barrios no incluidos
   var binStr = atob(_CLIMA_EXPORT_B64);
   var bytes = new Uint8Array(binStr.length);
-  for (var i=0;i<binStr.length;i++){bytes[i]=binStr.charCodeAt(i);}
-  var html = new TextDecoder('utf-8').decode(bytes)
-    .replace('__DATOS_JSON__', JSON.stringify(datos))
-    .replace('__PRONOSTICO_JSON__', JSON.stringify(pronosticoSnap));
-  var blob = new Blob([html],{type:'text/html;charset=utf-8'});
-  var url = URL.createObjectURL(blob);
-  var a = document.createElement('a');
-  a.href=url; a.download='relevamiento-climatico-ivc-'+new Date().toISOString().substring(0,10)+'.html';
+  for (var i = 0; i < binStr.length; i++) { bytes[i] = binStr.charCodeAt(i); }
+  var htmlExport = new TextDecoder('utf-8').decode(bytes);
+
+  // Si no es "todos", ocultar botones de barrios que no están en la selección
+  if (!esTodo) {
+    var BARRIOS_MAP = {
+      'Rodrigo Bueno': 'f-rb',
+      'Fraga':         'f-fr',
+      'Papa Francisco':'f-pf',
+      'Otro':          'f-otros'
+    };
+    var todosBarrios = ['Rodrigo Bueno','Fraga','Papa Francisco','Otro'];
+    todosBarrios.forEach(function(b) {
+      if (barrios.indexOf(b) === -1) {
+        // Ocultar el botón de ese barrio en el HTML exportado
+        var bid = BARRIOS_MAP[b];
+        htmlExport = htmlExport.replace(
+          new RegExp('(<button[^>]+id="' + bid + '"[^>]*>)([^<]*)(</button>)', 'g'),
+          '<button id="' + bid + '" style="display:none">$2</button>'
+        );
+      }
+    });
+    // Si solo hay un barrio seleccionado, ocultar también "Todos"
+    if (barrios.length === 1) {
+      htmlExport = htmlExport.replace(
+        /(<button[^>]+id="f-todos"[^>]*>)([^<]*>?)(<\/button>)/g,
+        '<button id="f-todos" style="display:none">Todos</button>'
+      );
+    }
+  }
+
+  // Nombre del archivo
+  var fecha = new Date().toISOString().substring(0, 10);
+  var sufijo = esTodo ? 'todos' : barrios.map(function(b) {
+    return b.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+  }).join('_');
+
+  htmlExport = htmlExport
+    .replace('__DATOS_JSON__', JSON.stringify(datosFiltrados))
+    .replace('__PRONOSTICO_JSON__', JSON.stringify(_climaCapturarPronostico()));
+
+  var blob = new Blob([htmlExport], { type: 'text/html;charset=utf-8' });
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
+  a.href = url;
+  a.download = 'relevamiento-climatico-ivc-' + fecha + '-' + sufijo + '.html';
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  setTimeout(function(){URL.revokeObjectURL(url);},5000);
-  if (btn) { btn.disabled = false; btn.textContent = 'Exportar informe'; }
+  setTimeout(function() { URL.revokeObjectURL(url); }, 5000);
   toast('Informe exportado','ok');
+}
+
+// ── Modal de selección de barrios ────────────────────────────────────────────
+window.climaExportarHTML = function() {
+  if (!CLIMA_CTRL_DATOS || !CLIMA_CTRL_DATOS.length) {
+    toast('Sin relevamientos en este turno para exportar', 'err'); return;
+  }
+
+  // Detectar qué barrios tienen datos
+  var conDatos = {};
+  function pb(p) {
+    if (!p) return 'Otro';
+    var s = p.toLowerCase();
+    if (s.indexOf('rodrigo')   >= 0) return 'Rodrigo Bueno';
+    if (s.indexOf('fraga')     >= 0) return 'Fraga';
+    if (s.indexOf('francisco') >= 0) return 'Papa Francisco';
+    return 'Otro';
+  }
+  CLIMA_CTRL_DATOS.forEach(function(n) { conDatos[pb(n.puesto)] = true; });
+  var barrios = ['Rodrigo Bueno','Fraga','Papa Francisco'];
+  var disponibles = barrios.filter(function(b) { return conDatos[b]; });
+
+  // Si solo hay datos de un barrio, exportar directo sin modal
+  if (disponibles.length <= 1) {
+    _climaGenerarExport(disponibles.length === 0 ? ['todos'] : disponibles);
+    return;
+  }
+
+  // Crear modal
+  var overlay = document.createElement('div');
+  overlay.id = 'export-modal-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;padding:20px';
+
+  var modal = document.createElement('div');
+  modal.style.cssText = 'background:var(--bg2,#0d2137);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:24px;width:100%;max-width:340px;font-family:var(--font)';
+
+  var titulo = '<div style="font-size:15px;font-weight:800;color:#fff;margin-bottom:6px">📄 Exportar informe</div>';
+  var sub    = '<div style="font-size:12px;color:rgba(255,255,255,.5);margin-bottom:20px">Seleccioná los barrios a incluir</div>';
+
+  // Checkboxes por barrio
+  var checks = '';
+  disponibles.forEach(function(b) {
+    var id = 'exp-chk-' + b.replace(/\s/g,'-');
+    checks += '<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.1);margin-bottom:8px;cursor:pointer;color:#fff;font-size:13px;font-weight:600">'
+      + '<input type="checkbox" id="' + id + '" value="' + b + '" checked '
+      + 'style="width:18px;height:18px;accent-color:#3b82f6;cursor:pointer">'
+      + b + '</label>';
+  });
+
+  // Botones
+  var btns = '<div style="display:flex;gap:10px;margin-top:20px">'
+    + '<button id="exp-btn-todo" style="flex:1;padding:11px;border-radius:10px;border:1px solid rgba(255,205,2,.4);background:rgba(255,205,2,.1);color:#FFCD02;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">📋 Exportar todo</button>'
+    + '<button id="exp-btn-sel" style="flex:1;padding:11px;border-radius:10px;border:none;background:#3b82f6;color:#fff;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">✓ Exportar selección</button>'
+    + '</div>'
+    + '<button id="exp-btn-cancel" style="width:100%;margin-top:10px;padding:9px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:transparent;color:rgba(255,255,255,.4);font-family:var(--font);font-size:12px;cursor:pointer">Cancelar</button>';
+
+  modal.innerHTML = titulo + sub + checks + btns;
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+
+  function cerrar() { document.body.removeChild(overlay); }
+
+  document.getElementById('exp-btn-cancel').onclick = cerrar;
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) cerrar(); });
+
+  document.getElementById('exp-btn-todo').onclick = function() {
+    cerrar();
+    _climaGenerarExport(['todos']);
+  };
+
+  document.getElementById('exp-btn-sel').onclick = function() {
+    var sel = [];
+    disponibles.forEach(function(b) {
+      var id = 'exp-chk-' + b.replace(/\s/g,'-');
+      if (document.getElementById(id).checked) sel.push(b);
+    });
+    if (!sel.length) { toast('Seleccioná al menos un barrio', 'err'); return; }
+    cerrar();
+    _climaGenerarExport(sel);
+  };
 };
 
 
