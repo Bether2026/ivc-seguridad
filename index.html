@@ -36210,7 +36210,7 @@ function _climaCapturarPronostico() {
 }
 
 // ── Helper: genera y descarga el HTML del informe ────────────────────────────
-function _climaGenerarExport(barrios) {
+async function _climaGenerarExport(barrios) {
   // barrios = ['todos'] o array con los seleccionados ej ['Fraga','Papa Francisco']
   var todosMapped = CLIMA_CTRL_DATOS.map(function(n) {
     var fotos = n.fotos_urls;
@@ -36282,17 +36282,76 @@ function _climaGenerarExport(barrios) {
     .replace('__DATOS_JSON__', JSON.stringify(datosFiltrados))
     .replace('__PRONOSTICO_JSON__', JSON.stringify(_climaCapturarPronostico()));
 
-  var blob = new Blob([htmlExport], { type: 'text/html;charset=utf-8' });
-  var url  = URL.createObjectURL(blob);
-  var a    = document.createElement('a');
-  a.href = url;
-  a.download = 'relevamiento-climatico-ivc-' + fecha + '-' + sufijo + '.html';
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  setTimeout(function() { URL.revokeObjectURL(url); }, 5000);
-  toast('Informe exportado','ok');
+  // Subir a Supabase Storage y obtener URL firmada (48hs)
+  var btn = document.getElementById('clima-export-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Subiendo...'; }
+
+  try {
+    var fileName = 'relevamiento-climatico-ivc-' + fecha + '-' + sufijo + '-' + Date.now() + '.html';
+    var filePath = fileName;
+
+    // Obtener sesión actual para autenticar el upload
+    var session = null;
+    try {
+      var sd = await _SB.auth.getSession();
+      session = sd.data.session;
+    } catch(e) { }
+    var authHeader = session ? session.access_token : '{}'.supabaseKey;
+
+    // Subir el archivo
+    var uploadRes = await fetch('https://yqwqtvlcgmqbfkibqqqb.supabase.co/storage/v1/object/exports/' + filePath, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + (session ? session.access_token : window._SB_ANON_KEY),
+        'apikey': window._SB_ANON_KEY,
+        'Content-Type': 'text/html;charset=utf-8',
+        'x-upsert': 'true'
+      },
+      body: htmlExport
+    });
+
+    if (!uploadRes.ok) {
+      var err = await uploadRes.text();
+      throw new Error('Upload falló: ' + err);
+    }
+
+    // Generar URL firmada con 48hs de expiración
+    var signRes = await fetch('https://yqwqtvlcgmqbfkibqqqb.supabase.co/storage/v1/object/sign/exports/' + filePath, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + (session ? session.access_token : window._SB_ANON_KEY),
+        'apikey': window._SB_ANON_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ expiresIn: 172800 }) // 48 horas
+    });
+
+    if (!signRes.ok) throw new Error('No se pudo generar URL firmada');
+    var signData = await signRes.json();
+    var signedUrl = 'https://yqwqtvlcgmqbfkibqqqb.supabase.co/storage/v1' + signData.signedURL;
+
+    // Abrir en nueva pestaña — funciona perfecto en iOS Safari
+    window.open(signedUrl, '_blank');
+    toast('Informe listo — abriendo...', 'ok');
+
+  } catch(e) {
+    console.error('Export error:', e);
+    // Fallback: descarga local
+    var blob = new Blob([htmlExport], { type: 'text/html;charset=utf-8' });
+    var url  = URL.createObjectURL(blob);
+    var a    = document.createElement('a');
+    a.href = url;
+    a.download = 'relevamiento-climatico-ivc-' + fecha + '-' + sufijo + '.html';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(function() { URL.revokeObjectURL(url); }, 5000);
+    toast('Informe exportado (local)', 'ok');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '📄 Exportar informe'; }
+  }
 }
 
 // ── Modal de selección de barrios ────────────────────────────────────────────
+window._SB_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlxd3F0dmxjZ21xYmZraWJxcXFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1MzAxOTksImV4cCI6MjEwMDEwNjE5OX0.B0r9qHQwVuDZnzj0SHDxx5GQUIj5hc70lH2CLEsTHRE';
 window.climaExportarHTML = function() {
   if (!CLIMA_CTRL_DATOS || !CLIMA_CTRL_DATOS.length) {
     toast('Sin relevamientos en este turno para exportar', 'err'); return;
