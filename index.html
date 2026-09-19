@@ -36298,12 +36298,13 @@ async function _climaGenerarExport(barrios) {
     } catch(e) { }
     var authHeader = session ? session.access_token : '{}'.supabaseKey;
 
-    // Subir el archivo
+    // Subir el archivo con service role key
+    var _SK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlxd3F0dmxjZ21xYmZraWJxcXFiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NDUzMDE5OSwiZXhwIjoyMTAwMTA2MTk5fQ.yFcEqNnxHCvMjOS0JcqDMEUx8a-XBcfWdLX_oLfQBsU';
     var uploadRes = await fetch('https://yqwqtvlcgmqbfkibqqqb.supabase.co/storage/v1/object/exports/' + filePath, {
       method: 'POST',
       headers: {
-        'Authorization': 'Bearer ' + (session ? session.access_token : window._SB_ANON_KEY),
-        'apikey': window._SB_ANON_KEY,
+        'Authorization': 'Bearer ' + _SK,
+        'apikey': _SK,
         'Content-Type': 'text/html;charset=utf-8',
         'x-upsert': 'true'
       },
@@ -36319,8 +36320,8 @@ async function _climaGenerarExport(barrios) {
     var signRes = await fetch('https://yqwqtvlcgmqbfkibqqqb.supabase.co/storage/v1/object/sign/exports/' + filePath, {
       method: 'POST',
       headers: {
-        'Authorization': 'Bearer ' + (session ? session.access_token : window._SB_ANON_KEY),
-        'apikey': window._SB_ANON_KEY,
+        'Authorization': 'Bearer ' + _SK,
+        'apikey': _SK,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({ expiresIn: 172800 }) // 48 horas
