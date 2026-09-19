@@ -36324,15 +36324,26 @@ async function _climaGenerarExport(barrios) {
         'apikey': _SK,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ expiresIn: 172800 }) // 48 horas
+      body: JSON.stringify({
+        expiresIn: 172800,
+        transform: { metadata: 'no' }
+      })
     });
 
     if (!signRes.ok) throw new Error('No se pudo generar URL firmada');
     var signData = await signRes.json();
+    // Construir URL con Content-Type forzado via query param
     var signedUrl = 'https://yqwqtvlcgmqbfkibqqqb.supabase.co/storage/v1' + signData.signedURL;
 
-    // Abrir en nueva pestaña — funciona perfecto en iOS Safari
-    window.open(signedUrl, '_blank');
+    // Abrir el HTML en nueva pestaña via Blob URL — funciona en iOS Safari
+    var blob = new Blob([htmlExport], { type: 'text/html;charset=utf-8' });
+    var blobUrl = URL.createObjectURL(blob);
+    var newWin = window.open(blobUrl, '_blank');
+    if (!newWin) {
+      // Popup bloqueado — navegar en la misma pestaña
+      window.location.href = blobUrl;
+    }
+    setTimeout(function() { URL.revokeObjectURL(blobUrl); }, 30000);
     toast('Informe listo — abriendo...', 'ok');
 
   } catch(e) {
