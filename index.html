@@ -4255,6 +4255,7 @@ body {
               <button onclick="clima_abrirModal()" style="padding:8px 14px;border-radius:10px;border:none;background:#3b82f6;color:#fff;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">🌧 Nueva alerta</button>
               <button id="clima-export-btn" onclick="climaExportarHTML()" style="padding:8px 14px;border-radius:10px;border:1px solid rgba(255,205,2,.5);background:rgba(255,205,2,.12);color:#FFCD02;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">📄 Exportar informe</button>
               <button id="clima-export-pdf-btn" onclick="climaExportarPDF()" style="padding:8px 14px;border-radius:10px;border:1px solid rgba(239,68,68,.5);background:rgba(239,68,68,.12);color:#f87171;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">🖨 Exportar PDF</button>
+              <button id="clima-export-html-btn" onclick="climaDescargarHTML()" style="padding:8px 14px;border-radius:10px;border:1px solid rgba(99,102,241,.5);background:rgba(99,102,241,.12);color:#a5b4fc;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">💾 Descargar HTML</button>
               <button id="clima-btn-nuevo-relev" onclick="if(!window.CLIMA_ALERTA_ID){toast('Esperá que cargue el turno activo','err');return;}clima_abrirRelevamiento();" style="display:none;padding:8px 14px;border-radius:10px;border:none;background:#0f3158;color:#7cb0ff;border:1px solid rgba(124,176,255,.3);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">📋 Nuevo relevamiento</button>
             </div>
             <!-- Filtro por barrio -->
@@ -36363,6 +36364,113 @@ async function _climaGenerarExport(barrios) {
 }
 
 // ── Modal de selección de barrios ────────────────────────────────────────────
+// ── Descarga HTML directo (para PC) ─────────────────────────────────────────
+window.climaDescargarHTML = function() {
+  if (!CLIMA_CTRL_DATOS || !CLIMA_CTRL_DATOS.length) {
+    toast('Sin relevamientos para exportar', 'err'); return;
+  }
+
+  // Mismo modal de barrios
+  var conDatos = {};
+  function pbDL(p) {
+    if (!p) return 'Otro';
+    var s = p.toLowerCase();
+    if (s.indexOf('rodrigo') >= 0) return 'Rodrigo Bueno';
+    if (s.indexOf('fraga')   >= 0) return 'Fraga';
+    if (s.indexOf('francisco') >= 0) return 'Papa Francisco';
+    return 'Otro';
+  }
+  CLIMA_CTRL_DATOS.forEach(function(n) { conDatos[pbDL(n.puesto)] = true; });
+  var barrios = ['Rodrigo Bueno','Fraga','Papa Francisco'];
+  var disponibles = barrios.filter(function(b) { return conDatos[b]; });
+
+  if (disponibles.length <= 1) {
+    _climaDescargarHTMLFinal(disponibles.length === 0 ? ['todos'] : disponibles);
+    return;
+  }
+
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;padding:20px';
+  var modal = document.createElement('div');
+  modal.style.cssText = 'background:var(--bg2,#0d2137);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:24px;width:100%;max-width:340px;font-family:var(--font)';
+
+  var checks = '';
+  disponibles.forEach(function(b) {
+    var id = 'dl-chk-' + b.replace(/\s/g,'-');
+    checks += '<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.1);margin-bottom:8px;cursor:pointer;color:#fff;font-size:13px;font-weight:600">'
+      + '<input type="checkbox" id="' + id + '" value="' + b + '" checked style="width:18px;height:18px;accent-color:#6366f1;cursor:pointer">'
+      + b + '</label>';
+  });
+
+  modal.innerHTML = '<div style="font-size:15px;font-weight:800;color:#fff;margin-bottom:6px">💾 Descargar HTML</div>'
+    + '<div style="font-size:12px;color:rgba(255,255,255,.5);margin-bottom:20px">Seleccioná los barrios a incluir</div>'
+    + checks
+    + '<div style="display:flex;gap:10px;margin-top:20px">'
+    + '<button id="dl-btn-todo" style="flex:1;padding:11px;border-radius:10px;border:1px solid rgba(99,102,241,.4);background:rgba(99,102,241,.1);color:#a5b4fc;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">📋 Todo</button>'
+    + '<button id="dl-btn-sel" style="flex:1;padding:11px;border-radius:10px;border:none;background:#6366f1;color:#fff;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">✓ Selección</button>'
+    + '</div>'
+    + '<button id="dl-btn-cancel" style="width:100%;margin-top:10px;padding:9px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:transparent;color:rgba(255,255,255,.4);font-family:var(--font);font-size:12px;cursor:pointer">Cancelar</button>';
+
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+
+  function cerrar() { document.body.removeChild(overlay); }
+  document.getElementById('dl-btn-cancel').onclick = cerrar;
+  overlay.addEventListener('click', function(e) { if (e.target === overlay) cerrar(); });
+  document.getElementById('dl-btn-todo').onclick = function() { cerrar(); _climaDescargarHTMLFinal(['todos']); };
+  document.getElementById('dl-btn-sel').onclick = function() {
+    var sel = [];
+    disponibles.forEach(function(b) {
+      if (document.getElementById('dl-chk-' + b.replace(/\s/g,'-')).checked) sel.push(b);
+    });
+    if (!sel.length) { toast('Seleccioná al menos un barrio', 'err'); return; }
+    cerrar();
+    _climaDescargarHTMLFinal(sel);
+  };
+};
+
+function _climaDescargarHTMLFinal(barrios) {
+  var esTodo = barrios.indexOf('todos') !== -1;
+  function pb(p) {
+    if (!p) return 'Otro';
+    var s = p.toLowerCase();
+    if (s.indexOf('rodrigo') >= 0) return 'Rodrigo Bueno';
+    if (s.indexOf('fraga')   >= 0) return 'Fraga';
+    if (s.indexOf('francisco') >= 0) return 'Papa Francisco';
+    return 'Otro';
+  }
+  var datos = CLIMA_CTRL_DATOS.map(function(n) {
+    var fotos = n.fotos_urls;
+    if (!Array.isArray(fotos)) { try { fotos = JSON.parse(fotos||'null')||[]; } catch(e) { fotos=[]; } }
+    return Object.assign({}, n, { fotos_urls: fotos });
+  }).filter(function(n) {
+    return esTodo || barrios.indexOf(pb(n.puesto)) !== -1;
+  });
+
+  if (!datos.length) { toast('Sin registros para los barrios seleccionados', 'err'); return; }
+
+  var binStr = atob(_CLIMA_EXPORT_B64);
+  var bytes = new Uint8Array(binStr.length);
+  for (var i = 0; i < binStr.length; i++) { bytes[i] = binStr.charCodeAt(i); }
+  var htmlExport = new TextDecoder('utf-8').decode(bytes)
+    .replace('__DATOS_JSON__', JSON.stringify(datos))
+    .replace('__PRONOSTICO_JSON__', JSON.stringify(_climaCapturarPronostico()));
+
+  var fecha = new Date().toISOString().substring(0, 10);
+  var sufijo = esTodo ? 'todos' : barrios.map(function(b) {
+    return b.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
+  }).join('_');
+
+  var blob = new Blob([htmlExport], { type: 'text/html;charset=utf-8' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'relevamiento-climatico-ivc-' + fecha + '-' + sufijo + '.html';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function() { URL.revokeObjectURL(url); }, 5000);
+  toast('HTML descargado', 'ok');
+}
+
 window._SB_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlxd3F0dmxjZ21xYmZraWJxcXFiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ1MzAxOTksImV4cCI6MjEwMDEwNjE5OX0.B0r9qHQwVuDZnzj0SHDxx5GQUIj5hc70lH2CLEsTHRE';
 window.climaExportarHTML = function() {
   if (!CLIMA_CTRL_DATOS || !CLIMA_CTRL_DATOS.length) {
