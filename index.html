@@ -36688,14 +36688,16 @@ window._climaGenerarPDF = async function(barrios) {
   // Convertir imagen URL → base64
   async function toBase64(url) {
     try {
-      var res = await fetch(url);
+      var res = await fetch(url, { mode: 'cors', cache: 'no-cache' });
+      if (!res.ok) return url; // fallback a URL directa
       var blob = await res.blob();
-      return await new Promise(function(resolve) {
+      return await new Promise(function(resolve, reject) {
         var fr = new FileReader();
         fr.onload = function() { resolve(fr.result); };
+        fr.onerror = function() { resolve(url); }; // fallback
         fr.readAsDataURL(blob);
       });
-    } catch(e) { return null; }
+    } catch(e) { return url; } // fallback a URL directa si falla CORS
   }
 
   // Construir páginas
@@ -36729,10 +36731,14 @@ window._climaGenerarPDF = async function(barrios) {
     if (fotosB64.length) {
       fotosHtml = '<div style="margin-top:18px"><div style="font-size:10px;font-weight:700;color:#8ea3b4;text-transform:uppercase;letter-spacing:.1em;margin-bottom:8px">Fotografías</div>'
         + '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px">';
+      var cols = fotosB64.length === 1 ? '1fr' : fotosB64.length === 2 ? '1fr 1fr' : '1fr 1fr 1fr';
+      var h    = fotosB64.length === 1 ? '280px' : '180px';
+      fotosHtml += '<div style="display:grid;grid-template-columns:' + cols + ';gap:8px">';
       fotosB64.forEach(function(b) {
-        fotosHtml += '<img src="' + b + '" style="width:100%;height:160px;object-fit:cover;border-radius:8px;border:1.5px solid #eef2f5">';
+        fotosHtml += '<img src="' + b + '" style="width:100%;height:' + h + ';object-fit:cover;border-radius:8px;border:1.5px solid #eef2f5" crossorigin="anonymous">';
       });
-      fotosHtml += '</div></div>';
+      fotosHtml += '</div>';
+      fotosHtml += '</div>';
     }
 
     // Coordenadas
