@@ -36231,7 +36231,10 @@ async function _climaGenerarExport(barrios) {
     return 'Otro';
   }
 
-  var datosFiltrados = esTodo ? todosMapped : todosMapped.filter(function(n) {
+  var datosFiltrados = todosMapped.filter(function(n) {
+    // Excluir registros sin incidentes — son control interno
+    if (n.sin_incidentes) return false;
+    if (esTodo) return true;
     return barrios.indexOf(puestoBarrioLocal(n.puesto)) !== -1;
   });
 
@@ -36444,6 +36447,8 @@ function _climaDescargarHTMLFinal(barrios) {
     if (!Array.isArray(fotos)) { try { fotos = JSON.parse(fotos||'null')||[]; } catch(e) { fotos=[]; } }
     return Object.assign({}, n, { fotos_urls: fotos });
   }).filter(function(n) {
+    // Excluir sin incidentes — son control interno
+    if (n.sin_incidentes) return false;
     return esTodo || barrios.indexOf(pb(n.puesto)) !== -1;
   });
 
@@ -36641,6 +36646,8 @@ window._climaGenerarPDF = async function(barrios) { /* async mantenido por compa
 
   var esTodo = barrios.indexOf('todos') !== -1;
   var datos = CLIMA_CTRL_DATOS.filter(function(n) {
+    // Excluir sin incidentes — son control interno
+    if (n.sin_incidentes) return false;
     if (esTodo) return true;
     return barrios.indexOf(pbPDF2(n.puesto)) !== -1;
   });
@@ -36720,7 +36727,7 @@ window._climaGenerarPDF = async function(barrios) { /* async mantenido por compa
       var h    = fotosB64.length === 1 ? '280px' : '180px';
       fotosHtml += '<div style="display:grid;grid-template-columns:' + cols + ';gap:8px">';
       fotosB64.forEach(function(b) {
-        fotosHtml += '<img src="' + b + '" style="width:100%;height:' + h + ';object-fit:cover;border-radius:8px;border:1.5px solid #eef2f5" crossorigin="anonymous">';
+        fotosHtml += '<img src="' + b + '" loading="lazy" decoding="async" style="width:100%;height:' + h + ';object-fit:cover;border-radius:8px;border:1.5px solid #eef2f5">';
       });
       fotosHtml += '</div>';
       fotosHtml += '</div>';
@@ -36808,7 +36815,12 @@ window._climaGenerarPDF = async function(barrios) { /* async mantenido por compa
     .pagina { page-break-after: always; }
     .pagina:last-child { page-break-after: avoid; }
     @page { margin: 0; size: A4; }
+    img { 
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
   }
+  img { display: block; }
 </style>
 </head>
 <body>
@@ -36825,12 +36837,10 @@ ${paginas.join('\n')}
   }
   win.document.write(htmlCompleto);
   win.document.close();
-  win.onload = function() {
-    setTimeout(function() {
-      win.focus();
-      win.print();
-    }, 800);
-  };
+  // Disparar print sin esperar que carguen todas las imágenes
+  setTimeout(function() {
+    try { win.focus(); win.print(); } catch(e) {}
+  }, 400);
 
   if (btn) { btn.disabled = false; btn.textContent = '🖨 Exportar PDF'; }
   toast('PDF listo — guardá desde el diálogo de impresión', 'ok');
