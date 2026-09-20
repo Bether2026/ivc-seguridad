@@ -36630,10 +36630,10 @@ window.climaExportarPDF = function() {
   };
 };
 
-// ── Genera el PDF con jsPDF + html2canvas ────────────────────────────────────
+// ── Genera el PDF con jsPDF directo (sin html2canvas) ────────────────────────
 window._climaGenerarPDF = async function(barrios) {
   var btn = document.getElementById('clima-export-pdf-btn');
-  if (btn) { btn.disabled = true; btn.textContent = '⏳ Preparando...'; }
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Cargando...'; }
 
   function pbPDF2(p) {
     if (!p) return 'Otro';
@@ -36657,7 +36657,7 @@ window._climaGenerarPDF = async function(barrios) {
     return;
   }
 
-  // ── Cargar librerías dinámicamente ────────────────────────────────────────
+  // Cargar jsPDF
   function loadScript(src) {
     return new Promise(function(resolve, reject) {
       if (document.querySelector('script[src="' + src + '"]')) { resolve(); return; }
@@ -36666,45 +36666,69 @@ window._climaGenerarPDF = async function(barrios) {
       document.head.appendChild(s);
     });
   }
-
   try {
-    if (btn) btn.textContent = '⏳ Cargando librerías...';
+    if (btn) btn.textContent = '⏳ Preparando...';
     await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
-    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
   } catch(e) {
-    toast('Error cargando librerías PDF — verificá tu conexión', 'err');
+    toast('Error cargando librería PDF', 'err');
     if (btn) { btn.disabled = false; btn.textContent = '🖨 Exportar PDF'; }
     return;
   }
 
   var jsPDF = window.jspdf ? window.jspdf.jsPDF : window.jsPDF;
+  var pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
-  function colorR(n) {
-    if (n.inundacion_activa)  return '#3b82f6';
-    if (n.riesgo_arbol)       return '#22c55e';
-    if (n.riesgo_poste)       return '#f97316';
-    if (n.desague_tapado)     return '#a855f7';
-    if (n.acumulacion_basura) return '#eab308';
-    return '#ef4444';
+  // Barra de progreso
+  var overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.8);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px';
+  var pText = document.createElement('div');
+  pText.style.cssText = 'color:#fff;font-family:system-ui;font-size:15px;font-weight:700';
+  pText.textContent = 'Generando PDF...';
+  var pBar = document.createElement('div');
+  pBar.style.cssText = 'width:300px;background:rgba(255,255,255,.2);border-radius:20px;height:8px;overflow:hidden';
+  var pFill = document.createElement('div');
+  pFill.style.cssText = 'height:100%;background:#ef4444;border-radius:20px;width:0%;transition:width .2s';
+  pBar.appendChild(pFill);
+  var pSub = document.createElement('div');
+  pSub.style.cssText = 'color:rgba(255,255,255,.6);font-family:system-ui;font-size:12px';
+  overlay.appendChild(pText); overlay.appendChild(pBar); overlay.appendChild(pSub);
+  document.body.appendChild(overlay);
+
+  // Convertir imagen URL a dataURL
+  async function urlToDataUrl(url) {
+    try {
+      var res = await Promise.race([
+        fetch(url, { mode: 'cors' }),
+        new Promise(function(_, rej) { setTimeout(function(){ rej(new Error('timeout')); }, 4000); })
+      ]);
+      if (!res.ok) return null;
+      var blob = await res.blob();
+      return await new Promise(function(resolve) {
+        var fr = new FileReader();
+        fr.onload = function(){ resolve(fr.result); };
+        fr.onerror = function(){ resolve(null); };
+        fr.readAsDataURL(blob);
+      });
+    } catch(e) { return null; }
   }
-  function emojiR(n) {
-    if (n.inundacion_activa)  return '🌊';
-    if (n.riesgo_arbol)       return '🌳';
-    if (n.riesgo_poste)       return '🔌';
-    if (n.desague_tapado)     return '🕳';
-    if (n.acumulacion_basura) return '🗑';
-    return '⚠️';
+
+  function colorHex(n) {
+    if (n.inundacion_activa)  return [59,130,246];
+    if (n.riesgo_arbol)       return [34,197,94];
+    if (n.riesgo_poste)       return [249,115,22];
+    if (n.desague_tapado)     return [168,85,247];
+    if (n.acumulacion_basura) return [234,179,8];
+    return [239,68,68];
   }
-  function riesgosR(n) {
+  function tipoLabel(n) {
     var r = [];
-    if (n.acumulacion_basura) r.push({e:'🗑',l:'Basura',c:'#eab308'});
-    if (n.desague_tapado)     r.push({e:'🕳',l:'Desagüe',c:'#a855f7'});
-    if (n.riesgo_arbol)       r.push({e:'🌳',l:'Árbol',c:'#22c55e'});
-    if (n.riesgo_poste)       r.push({e:'🔌',l:'Poste',c:'#f97316'});
-    if (n.inundacion_activa)  r.push({e:'🌊',l:'Inundación',c:'#3b82f6'});
-    if (n.otro)               r.push({e:'⚠️',l:n.otro_detalle||'Otro',c:'#ef4444'});
-    return r;
+    if (n.acumulacion_basura) r.push('Basura');
+    if (n.desague_tapado)     r.push('Desague');
+    if (n.riesgo_arbol)       r.push('Arbol');
+    if (n.riesgo_poste)       r.push('Poste');
+    if (n.inundacion_activa)  r.push('Inundacion');
+    if (n.otro)               r.push(n.otro_detalle||'Otro');
+    return r.join(' · ') || 'Sin tipo';
   }
   function fmtFecha(iso) {
     if (!iso) return '-';
@@ -36712,144 +36736,170 @@ window._climaGenerarPDF = async function(barrios) {
     return d.toLocaleDateString('es-AR',{day:'2-digit',month:'2-digit',year:'numeric',timeZone:'America/Argentina/Buenos_Aires'})
       + ' ' + d.toLocaleTimeString('es-AR',{hour:'2-digit',minute:'2-digit',timeZone:'America/Argentina/Buenos_Aires'});
   }
-
-  // ── Crear contenedor oculto para renderizar cada página ───────────────────
-  var container = document.createElement('div');
-  container.style.cssText = 'position:fixed;left:-9999px;top:0;width:794px;background:#fff;z-index:-1';
-  document.body.appendChild(container);
-
-  var pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-  var pdfW = 210, pdfH = 297;
-
-  // ── Barra de progreso ─────────────────────────────────────────────────────
-  var progOverlay = document.createElement('div');
-  progOverlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.75);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px';
-  var progBar = document.createElement('div');
-  progBar.style.cssText = 'width:320px;background:rgba(255,255,255,.15);border-radius:20px;height:8px;overflow:hidden';
-  var progFill = document.createElement('div');
-  progFill.style.cssText = 'height:100%;background:#ef4444;border-radius:20px;width:0%;transition:width .3s';
-  progBar.appendChild(progFill);
-  var progText = document.createElement('div');
-  progText.style.cssText = 'color:#fff;font-family:system-ui;font-size:14px;font-weight:600';
-  progText.textContent = 'Generando PDF...';
-  var progSub = document.createElement('div');
-  progSub.style.cssText = 'color:rgba(255,255,255,.6);font-family:system-ui;font-size:12px';
-  progOverlay.appendChild(progText);
-  progOverlay.appendChild(progBar);
-  progOverlay.appendChild(progSub);
-  document.body.appendChild(progOverlay);
+  function splitText(pdf, text, maxW) {
+    return pdf.splitTextToSize(text || '', maxW);
+  }
 
   try {
     for (var i = 0; i < datos.length; i++) {
       var n = datos[i];
-      var pct = Math.round((i / datos.length) * 100);
-      progFill.style.width = pct + '%';
-      progSub.textContent = 'Página ' + (i+1) + ' de ' + datos.length;
+      pFill.style.width = Math.round((i/datos.length)*100) + '%';
+      pSub.textContent = 'Página ' + (i+1) + ' de ' + datos.length;
 
+      if (i > 0) pdf.addPage();
+
+      var col = colorHex(n);
+      var W = 210, H = 297;
+      var lm = 14, rm = 14, y = 0;
+      var cw = W - lm - rm;
+
+      // Franja de color top
+      pdf.setFillColor(col[0], col[1], col[2]);
+      pdf.rect(0, 0, W, 4, 'F');
+
+      // Header institucional
+      y = 10;
+      pdf.setFontSize(7); pdf.setTextColor(138,163,180);
+      pdf.setFont('helvetica','bold');
+      pdf.text('BUENOS AIRES CIUDAD', lm, y);
+      pdf.setFont('helvetica','normal');
+      pdf.setFontSize(7); pdf.setTextColor(29,51,67);
+      pdf.text('IVC — Direccion de Servicios Generales', lm, y+4);
+
+      // Badge derecho
+      pdf.setFillColor(29,51,67);
+      pdf.roundedRect(W-rm-38, y-3, 38, 8, 2, 2, 'F');
+      pdf.setFontSize(6); pdf.setTextColor(255,205,2);
+      pdf.setFont('helvetica','bold');
+      pdf.text('RELEVAMIENTO CLIMATICO', W-rm-37, y+1.5);
+      pdf.setFont('helvetica','normal');
+      pdf.setFontSize(7); pdf.setTextColor(138,163,180);
+      pdf.text(fmtFecha(n.created_at), W-rm-37, y+6.5);
+
+      // Línea separadora
+      y += 11;
+      pdf.setDrawColor(238,242,245); pdf.setLineWidth(0.3);
+      pdf.line(lm, y, W-rm, y);
+      y += 5;
+
+      // Puesto + agente
+      pdf.setFillColor(col[0], col[1], col[2]);
+      pdf.circle(lm+5, y+2, 4, 'F');
+      pdf.setFontSize(16); pdf.setTextColor(29,51,67); pdf.setFont('helvetica','bold');
+      pdf.text(n.puesto||'-', lm+12, y+4);
+      y += 9;
+      pdf.setFontSize(8); pdf.setTextColor(138,163,180); pdf.setFont('helvetica','normal');
+      pdf.text(pbPDF2(n.puesto) + ' · ' + (n.agente||'-'), lm+12, y);
+      y += 6;
+
+      // Tipo de riesgo badge
+      var tLabel = tipoLabel(n);
+      pdf.setFillColor(col[0]+'18'||240,247,255);
+      pdf.setFillColor(Math.min(col[0]+180,255), Math.min(col[1]+180,255), Math.min(col[2]+180,255));
+      var bw = pdf.getStringUnitWidth(tLabel)*8*0.352 + 8;
+      pdf.roundedRect(lm, y, bw, 6, 1.5, 1.5, 'F');
+      pdf.setDrawColor(col[0],col[1],col[2]); pdf.setLineWidth(0.4);
+      pdf.roundedRect(lm, y, bw, 6, 1.5, 1.5, 'S');
+      pdf.setFontSize(7); pdf.setTextColor(col[0],col[1],col[2]); pdf.setFont('helvetica','bold');
+      pdf.text(tLabel, lm+4, y+4.2);
+      y += 10;
+
+      // Observaciones
+      if (n.observaciones) {
+        pdf.setFillColor(248,250,252);
+        var obsLines = splitText(pdf, n.observaciones, cw-8);
+        var obsH = obsLines.length * 4.5 + 10;
+        pdf.roundedRect(lm, y, cw, obsH, 2, 2, 'F');
+        pdf.setFillColor(col[0],col[1],col[2]);
+        pdf.rect(lm, y, 2.5, obsH, 'F');
+        pdf.setFontSize(7); pdf.setTextColor(138,163,180); pdf.setFont('helvetica','bold');
+        pdf.text('OBSERVACIONES', lm+5, y+5);
+        pdf.setFontSize(9); pdf.setTextColor(58,85,104); pdf.setFont('helvetica','normal');
+        pdf.text(obsLines, lm+5, y+10);
+        y += obsH + 5;
+      }
+
+      // GPS
+      var lat = n.lat ? parseFloat(n.lat).toFixed(5) : null;
+      var lng = n.lng ? parseFloat(n.lng).toFixed(5) : null;
+      if (lat) {
+        pdf.setFillColor(240,247,255);
+        pdf.roundedRect(lm, y, cw, 20, 2, 2, 'F');
+        pdf.setDrawColor(191,219,254); pdf.setLineWidth(0.3);
+        pdf.roundedRect(lm, y, cw, 20, 2, 2, 'S');
+        pdf.setFontSize(7); pdf.setTextColor(138,163,180); pdf.setFont('helvetica','bold');
+        pdf.text('UBICACION GPS', lm+4, y+5);
+        pdf.setFontSize(9); pdf.setTextColor(29,51,67); pdf.setFont('helvetica','bold');
+        pdf.text('📍 ' + lat + ', ' + lng, lm+4, y+11);
+        // Link Google Maps
+        pdf.setFontSize(8); pdf.setTextColor(66,133,244); pdf.setFont('helvetica','normal');
+        pdf.textWithLink('→ Ver en Google Maps', lm+4, y+17, {url:'https://maps.google.com/?q='+lat+','+lng});
+        y += 25;
+      }
+
+      // Fotos
       var fotos = n.fotos_urls;
       if (!Array.isArray(fotos)) { try { fotos = JSON.parse(fotos||'null')||[]; } catch(e){ fotos=[]; } }
       if (n.foto_url && fotos.indexOf(n.foto_url)===-1) fotos.unshift(n.foto_url);
-      fotos = fotos.filter(function(u){ return u && u.length > 0; });
+      fotos = fotos.filter(function(u){ return u && u.length > 0; }).slice(0,3);
 
-      var color = colorR(n);
-      var riesgos = riesgosR(n);
-      var lat = n.lat ? parseFloat(n.lat).toFixed(5) : null;
-      var lng = n.lng ? parseFloat(n.lng).toFixed(5) : null;
-
-      var badgesHtml = riesgos.map(function(r) {
-        return '<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;border:1.5px solid '+r.c+';color:'+r.c+';background:'+r.c+'18;font-size:11px;font-weight:700;margin:2px 3px 2px 0">'+r.e+' '+r.l+'</span>';
-      }).join('');
-
-      var fotosHtml = '';
       if (fotos.length) {
-        var cols = fotos.length === 1 ? '1fr' : fotos.length === 2 ? '1fr 1fr' : '1fr 1fr 1fr';
-        var fh   = fotos.length === 1 ? '220px' : '150px';
-        fotosHtml = '<div style="margin-top:14px"><div style="font-size:9px;font-weight:700;color:#8ea3b4;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">Fotografías</div>'
-          + '<div style="display:grid;grid-template-columns:'+cols+';gap:8px">'
-          + fotos.map(function(u){ return '<img src="'+u+'" crossorigin="anonymous" style="width:100%;height:'+fh+';object-fit:cover;border-radius:6px;border:1px solid #eef2f5">'; }).join('')
-          + '</div></div>';
+        pdf.setFontSize(7); pdf.setTextColor(138,163,180); pdf.setFont('helvetica','bold');
+        pdf.text('FOTOGRAFIAS', lm, y+4);
+        y += 7;
+
+        var fotoW = fotos.length === 1 ? cw : fotos.length === 2 ? (cw-4)/2 : (cw-8)/3;
+        var fotoH = fotos.length === 1 ? 70 : 55;
+
+        for (var fi = 0; fi < fotos.length; fi++) {
+          var fx = lm + fi * (fotoW + 4);
+          pSub.textContent = 'Página ' + (i+1) + ': cargando foto ' + (fi+1) + '/' + fotos.length;
+          var dataUrl = await urlToDataUrl(fotos[fi]);
+          if (dataUrl) {
+            try {
+              pdf.addImage(dataUrl, 'JPEG', fx, y, fotoW, fotoH, '', 'FAST');
+            } catch(e2) {
+              // foto corrupta — skip
+            }
+          } else {
+            // placeholder gris si no cargó
+            pdf.setFillColor(238,242,245);
+            pdf.roundedRect(fx, y, fotoW, fotoH, 2, 2, 'F');
+            pdf.setFontSize(8); pdf.setTextColor(138,163,180);
+            pdf.text('Sin foto', fx + fotoW/2 - 5, y + fotoH/2);
+          }
+        }
+        y += fotoH + 4;
       }
 
-      var coordHtml = '';
-      if (lat) {
-        coordHtml = '<div style="margin-top:14px;padding:10px 12px;background:#f0f7ff;border-radius:8px;border:1px solid #bfdbfe">'
-          + '<div style="font-size:9px;font-weight:700;color:#8ea3b4;text-transform:uppercase;letter-spacing:.1em;margin-bottom:6px">Ubicación GPS</div>'
-          + '<div style="font-size:12px;color:#1D3343;font-weight:600;margin-bottom:8px">📍 '+lat+', '+lng+'</div>'
-          + '<div style="display:flex;gap:6px;flex-wrap:wrap">'
-          + '<a href="https://maps.google.com/?q='+lat+','+lng+'" style="padding:5px 10px;background:#4285f4;color:#fff;border-radius:6px;font-size:11px;font-weight:700;text-decoration:none">📍 Google Maps</a>'
-          + '<a href="https://waze.com/ul?ll='+lat+','+lng+'&navigate=yes" style="padding:5px 10px;background:#33ccff;color:#1a1a2e;border-radius:6px;font-size:11px;font-weight:700;text-decoration:none">🗺 Waze</a>'
-          + '</div></div>';
-      }
-
-      container.innerHTML = '<div style="padding:24px 28px;min-height:297mm;box-sizing:border-box;font-family:Helvetica,Arial,sans-serif;background:#fff;position:relative">'
-        + '<div style="position:absolute;top:0;left:0;right:0;height:5px;background:'+color+'"></div>'
-        + '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;padding-top:10px">'
-        + '<div><div style="font-size:9px;font-weight:700;color:#8ea3b4;text-transform:uppercase;letter-spacing:.1em">Buenos Aires Ciudad</div>'
-        + '<div style="font-size:10px;font-weight:600;color:#1D3343;margin-top:2px">IVC — Dirección de Servicios Generales</div></div>'
-        + '<div style="text-align:right"><div style="font-size:9px;font-weight:700;color:#FFCD02;background:#1D3343;padding:3px 8px;border-radius:5px">RELEVAMIENTO CLIMÁTICO</div>'
-        + '<div style="font-size:10px;color:#8ea3b4;margin-top:3px">'+fmtFecha(n.created_at)+'</div></div></div>'
-        + '<div style="height:1px;background:#eef2f5;margin-bottom:14px"></div>'
-        + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">'
-        + '<div style="width:38px;height:38px;border-radius:50%;background:'+color+'18;border:2px solid '+color+';display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">'+emojiR(n)+'</div>'
-        + '<div><div style="font-size:18px;font-weight:900;color:#1D3343;line-height:1.1">'+( n.puesto||'-')+'</div>'
-        + '<div style="font-size:11px;color:#8ea3b4;margin-top:1px">'+pbPDF2(n.puesto)+' · '+(n.agente||'-')+'</div></div></div>'
-        + (badgesHtml ? '<div style="margin-bottom:12px">'+badgesHtml+'</div>' : '')
-        + (n.observaciones ? '<div style="padding:10px 12px;background:#f8fafc;border-radius:8px;border-left:3px solid '+color+';margin-bottom:4px"><div style="font-size:9px;font-weight:700;color:#8ea3b4;text-transform:uppercase;letter-spacing:.1em;margin-bottom:4px">Observaciones</div><div style="font-size:12px;color:#3a5568;line-height:1.5">'+n.observaciones+'</div></div>' : '')
-        + coordHtml
-        + fotosHtml
-        + '<div style="position:absolute;bottom:16px;left:28px;right:28px;display:flex;justify-content:space-between;border-top:1px solid #eef2f5;padding-top:8px">'
-        + '<div style="font-size:8px;color:#c0cdd8">Generado el '+new Date().toLocaleDateString('es-AR',{timeZone:'America/Argentina/Buenos_Aires'})+'</div>'
-        + '<div style="font-size:8px;color:#c0cdd8">Punto '+(i+1)+' de '+datos.length+'</div></div>'
-        + '</div>';
-
-      // Esperar que carguen las imágenes
-      var imgs = container.querySelectorAll('img');
-      await Promise.all(Array.from(imgs).map(function(img) {
-        return new Promise(function(resolve) {
-          if (img.complete) { resolve(); return; }
-          img.onload = resolve;
-          img.onerror = resolve; // continuar aunque falle
-          setTimeout(resolve, 3000); // timeout 3s por imagen
-        });
-      }));
-
-      // Capturar con html2canvas
-      var canvas = await html2canvas(container, {
-        scale: 1.5,
-        useCORS: true,
-        allowTaint: false,
-        backgroundColor: '#ffffff',
-        logging: false
-      });
-
-      var imgData = canvas.toDataURL('image/jpeg', 0.85);
-      var imgW = pdfW;
-      var imgH = (canvas.height * pdfW) / canvas.width;
-
-      if (i > 0) pdf.addPage();
-      pdf.addImage(imgData, 'JPEG', 0, 0, imgW, Math.min(imgH, pdfH));
+      // Footer
+      pdf.setDrawColor(238,242,245); pdf.setLineWidth(0.3);
+      pdf.line(lm, H-10, W-rm, H-10);
+      pdf.setFontSize(7); pdf.setTextColor(192,205,216); pdf.setFont('helvetica','normal');
+      pdf.text('Generado el ' + new Date().toLocaleDateString('es-AR',{timeZone:'America/Argentina/Buenos_Aires'}) + ' — Uso interno', lm, H-6);
+      pdf.text('Punto ' + (i+1) + ' de ' + datos.length, W-rm-20, H-6);
     }
 
-    progFill.style.width = '100%';
-    progText.textContent = '✓ Guardando PDF...';
+    pFill.style.width = '100%';
+    pText.textContent = '✓ Guardando...';
 
     var fecha = new Date().toISOString().substring(0,10);
     var sufijo = esTodo ? 'todos' : barrios.map(function(b){
       return b.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
     }).join('_');
-
     pdf.save('relevamiento-climatico-ivc-'+fecha+'-'+sufijo+'.pdf');
-    toast('PDF generado correctamente', 'ok');
+    toast('PDF generado', 'ok');
 
   } catch(e) {
-    console.error('PDF error:', e);
-    toast('Error generando PDF: ' + e.message, 'err');
+    console.error(e);
+    toast('Error: ' + e.message, 'err');
   } finally {
-    document.body.removeChild(container);
-    document.body.removeChild(progOverlay);
+    document.body.removeChild(overlay);
     if (btn) { btn.disabled = false; btn.textContent = '🖨 Exportar PDF'; }
   }
 };
+
+;
 
 ;
 
