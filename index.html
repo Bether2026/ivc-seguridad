@@ -36626,7 +36626,7 @@ window.climaExportarPDF = function() {
 };
 
 // ── Genera el PDF ─────────────────────────────────────────────────────────────
-window._climaGenerarPDF = async function(barrios) {
+window._climaGenerarPDF = async function(barrios) { /* async mantenido por compatibilidad */
   var btn = document.getElementById('clima-export-pdf-btn');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ Generando PDF...'; }
 
@@ -36686,19 +36686,7 @@ window._climaGenerarPDF = async function(barrios) {
   }
 
   // Convertir imagen URL → base64
-  async function toBase64(url) {
-    try {
-      var res = await fetch(url, { mode: 'cors', cache: 'no-cache' });
-      if (!res.ok) return url; // fallback a URL directa
-      var blob = await res.blob();
-      return await new Promise(function(resolve, reject) {
-        var fr = new FileReader();
-        fr.onload = function() { resolve(fr.result); };
-        fr.onerror = function() { resolve(url); }; // fallback
-        fr.readAsDataURL(blob);
-      });
-    } catch(e) { return url; } // fallback a URL directa si falla CORS
-  }
+  // toBase64 eliminado — URLs directas de R2
 
   // Construir páginas
   var paginas = [];
@@ -36706,13 +36694,10 @@ window._climaGenerarPDF = async function(barrios) {
     var n = datos[i];
     var fotos = n.fotos_urls;
     if (!Array.isArray(fotos)) { try { fotos = JSON.parse(fotos||'null')||[]; } catch(e) { fotos=[]; } }
+    if (n.foto_url && fotos.indexOf(n.foto_url) === -1) fotos.unshift(n.foto_url);
 
-    // Convertir fotos a base64
-    var fotosB64 = [];
-    for (var f = 0; f < fotos.length; f++) {
-      var b64 = await toBase64(fotos[f]);
-      if (b64) fotosB64.push(b64);
-    }
+    // Usar URLs directas — bucket R2 público
+    var fotosB64 = fotos.filter(function(u){ return u && u.length > 0; });
 
     var color = colorR(n);
     var riesgos = riesgosR(n);
