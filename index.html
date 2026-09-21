@@ -13626,9 +13626,17 @@ function cargarVehiculosEnSelectores() {
   var necesitaRefresh = !session || (expiresAt - ahora) < 300; // menos de 5 min
 
   function _doCargar() {
-    db.from('vehiculos').select('id,modelo,patente').eq('activo', true).order('modelo', {ascending: true}).then(function(res) {
-      if (res.error) { console.error('Error cargando vehiculos:', res.error.message); return; }
-      var lista = res.data || [];
+    // Cargar vehículos y rutas activas en paralelo para marcar móviles en uso
+    Promise.all([
+      db.from('vehiculos').select('id,modelo,patente').eq('activo', true).order('modelo', {ascending: true}),
+      db.from('rutas').select('movil').eq('estado', 'activo')
+    ]).then(function(results) {
+      if (results[0].error) { console.error('Error cargando vehiculos:', results[0].error.message); return; }
+      var lista = results[0].data || [];
+      // Set de móviles con ruta abierta (formato "modelo · patente")
+      var movilesEnRuta = {};
+      (results[1].data || []).forEach(function(r) { if (r.movil) movilesEnRuta[r.movil] = true; });
+
       var selectIds = ['c-movil', 'em-movil', 'comb-movil', 'inc-movil', 'tal-movil'];
       selectIds.forEach(function(selId) {
         var sel = document.getElementById(selId);
@@ -13640,9 +13648,19 @@ function cargarVehiculosEnSelectores() {
         ph.textContent = lista.length ? '— Seleccionar móvil —' : '— Sin móviles disponibles —';
         sel.appendChild(ph);
         lista.forEach(function(v) {
+          var val = (v.modelo || '') + ' · ' + (v.patente || '');
           var opt = document.createElement('option');
-          opt.value = (v.modelo || '') + ' · ' + (v.patente || '');
-          opt.textContent = opt.value;
+          var enRuta = movilesEnRuta[val];
+          // Solo en c-movil (hoja de ruta) bloqueamos la selección
+          if (enRuta && selId === 'c-movil') {
+            opt.value = '';
+            opt.textContent = val + ' 🚫 Móvil en ruta';
+            opt.disabled = true;
+            opt.style.color = '#ef4444';
+          } else {
+            opt.value = val;
+            opt.textContent = val;
+          }
           sel.appendChild(opt);
         });
         if (valorActual) sel.value = valorActual;
@@ -18709,7 +18727,7 @@ function cargarRespTurnoSelect() {
   var sel = document.getElementById('c-resp-turno');
   if (!sel) return;
   sel.innerHTML = '<option value="">— Cargando... —</option>';
-  db.from('fichajes').select('agente,puesto').eq('activo', true).in('puesto', ['Responsable de turno', 'Administrador', 'Administración', 'Gerencia', 'PC', 'Jefe de departamento']).order('agente', {ascending: true}).then(function(res) {
+  db.from('fichajes').select('agente,puesto').eq('activo', true).eq('puesto', 'Responsable de turno').order('agente', {ascending: true}).then(function(res) {
     var fichados = (res && res.data) ? res.data : [];
     var opciones = '<option value="">— Seleccioná responsable de turno —</option>';
     if (!fichados.length) {
