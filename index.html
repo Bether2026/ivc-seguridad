@@ -36813,35 +36813,56 @@ window._climaGenerarPDF = async function(barrios) {
 
       // Observaciones
       if (n.observaciones) {
-        pdf.setFillColor(248,250,252);
-        var obsLines = splitText(pdf, n.observaciones, cw-8);
-        var obsH = obsLines.length * 4.5 + 10;
+        pdf.setFontSize(9);
+        var obsLines = splitText(pdf, n.observaciones, cw-10);
+        var obsH = obsLines.length * 5.5 + 14;
+        // Fondo blanco con borde suave
+        pdf.setFillColor(255,255,255);
         pdf.roundedRect(lm, y, cw, obsH, 2, 2, 'F');
+        pdf.setDrawColor(220,228,235); pdf.setLineWidth(0.3);
+        pdf.roundedRect(lm, y, cw, obsH, 2, 2, 'S');
+        // Barra de color izquierda
         pdf.setFillColor(col[0],col[1],col[2]);
-        pdf.rect(lm, y, 2.5, obsH, 'F');
+        pdf.roundedRect(lm, y, 3, obsH, 1, 1, 'F');
+        // Label
         pdf.setFontSize(7); pdf.setTextColor(138,163,180); pdf.setFont('helvetica','bold');
-        pdf.text('OBSERVACIONES', lm+5, y+5);
-        pdf.setFontSize(9); pdf.setTextColor(58,85,104); pdf.setFont('helvetica','normal');
-        pdf.text(obsLines, lm+5, y+10);
-        y += obsH + 5;
+        pdf.text('OBSERVACIONES', lm+7, y+5.5);
+        // Texto observación — más grande y legible
+        pdf.setFontSize(10); pdf.setTextColor(29,51,67); pdf.setFont('helvetica','normal');
+        pdf.text(obsLines, lm+7, y+11);
+        y += obsH + 6;
       }
 
       // GPS
       var lat = n.lat ? parseFloat(n.lat).toFixed(5) : null;
       var lng = n.lng ? parseFloat(n.lng).toFixed(5) : null;
       if (lat) {
+        // Sección GPS — fondo celeste con borde
         pdf.setFillColor(240,247,255);
-        pdf.roundedRect(lm, y, cw, 16, 2, 2, 'F');
+        pdf.roundedRect(lm, y, cw, 18, 2, 2, 'F');
         pdf.setDrawColor(191,219,254); pdf.setLineWidth(0.3);
-        pdf.roundedRect(lm, y, cw, 16, 2, 2, 'S');
+        pdf.roundedRect(lm, y, cw, 18, 2, 2, 'S');
+
+        // Label
         pdf.setFontSize(7); pdf.setTextColor(138,163,180); pdf.setFont('helvetica','bold');
         pdf.text('UBICACION GPS', lm+4, y+5);
-        // Solo links, sin coordenadas crudas
-        pdf.setFontSize(9); pdf.setTextColor(66,133,244); pdf.setFont('helvetica','normal');
-        pdf.textWithLink('📍 Ver en Google Maps', lm+4, y+11, {url:'https://maps.google.com/?q='+lat+','+lng});
-        pdf.setTextColor(51,204,255);
-        pdf.textWithLink('🗺 Waze', lm+60, y+11, {url:'https://waze.com/ul?ll='+lat+','+lng+'&navigate=yes'});
-        y += 21;
+
+        // Botón Google Maps
+        var gmLabel = 'Ver en Google Maps';
+        var gmW = 42; var gmH = 7; var gmX = lm+4; var gmY = y+8;
+        pdf.setFillColor(66,133,244);
+        pdf.roundedRect(gmX, gmY, gmW, gmH, 1.5, 1.5, 'F');
+        pdf.setFontSize(7.5); pdf.setTextColor(255,255,255); pdf.setFont('helvetica','bold');
+        pdf.textWithLink(gmLabel, gmX+3, gmY+5, {url:'https://maps.google.com/?q='+lat+','+lng});
+
+        // Botón Waze
+        var wzX = gmX + gmW + 4;
+        pdf.setFillColor(51,204,255);
+        pdf.roundedRect(wzX, gmY, 22, gmH, 1.5, 1.5, 'F');
+        pdf.setTextColor(20,20,40);
+        pdf.textWithLink('Waze', wzX+3, gmY+5, {url:'https://waze.com/ul?ll='+lat+','+lng+'&navigate=yes'});
+
+        y += 23;
       }
 
       // Fotos
