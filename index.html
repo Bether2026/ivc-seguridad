@@ -36760,56 +36760,64 @@ window._climaGenerarPDF = async function(barrios) {
       var lm = 14, rm = 14, y = 0;
       var cw = W - lm - rm;
 
-      // Franja de color top
+      // ── HEADER GCBA — placa azul oscuro institucional ──────────────────────
+      pdf.setFillColor(29, 51, 67); // #1D3343
+      pdf.rect(0, 0, W, 22, 'F');
+
+      // Línea amarilla inferior del header
+      pdf.setFillColor(255, 205, 2); // #FFCD02
+      pdf.rect(0, 22, W, 2, 'F');
+
+      // Nombre institución — blanco
+      pdf.setFontSize(8); pdf.setFont('helvetica','bold'); pdf.setTextColor(255,255,255);
+      pdf.text('BUENOS AIRES CIUDAD', lm, 9);
+      pdf.setFontSize(6.5); pdf.setFont('helvetica','normal'); pdf.setTextColor(255,255,255);
+      pdf.setGState(new pdf.GState({opacity: 0.7}));
+      pdf.text('IVC — Direccion de Servicios Generales', lm, 14);
+      pdf.setGState(new pdf.GState({opacity: 0.5}));
+      pdf.text('IVC Seguridad y Emergencias', lm, 18.5);
+      pdf.setGState(new pdf.GState({opacity: 1}));
+
+      // RELEVAMIENTO CLIMÁTICO — texto amarillo alineado a la derecha, sin badge
+      pdf.setFontSize(7); pdf.setFont('helvetica','bold'); pdf.setTextColor(255,205,2);
+      pdf.text('RELEVAMIENTO CLIMATICO', W-rm, 9, {align:'right'});
+      pdf.setFontSize(6.5); pdf.setFont('helvetica','normal'); pdf.setTextColor(255,255,255);
+      pdf.setGState(new pdf.GState({opacity:0.6}));
+      pdf.text(fmtFecha(n.created_at), W-rm, 14.5, {align:'right'});
+      pdf.setGState(new pdf.GState({opacity:1}));
+
+      y = 30;
+
+      // ── PUESTO — titular grande con color de riesgo ───────────────────────
+      // Círculo de color
       pdf.setFillColor(col[0], col[1], col[2]);
-      pdf.rect(0, 0, W, 4, 'F');
+      pdf.circle(lm+5, y+3, 5, 'F');
 
-      // Header institucional
-      y = 10;
-      pdf.setFontSize(7); pdf.setTextColor(138,163,180);
-      pdf.setFont('helvetica','bold');
-      pdf.text('BUENOS AIRES CIUDAD', lm, y);
-      pdf.setFont('helvetica','normal');
-      pdf.setFontSize(7); pdf.setTextColor(29,51,67);
-      pdf.text('IVC — Direccion de Servicios Generales', lm, y+4);
+      // Nombre del puesto — grande y bold
+      pdf.setFontSize(18); pdf.setFont('helvetica','bold'); pdf.setTextColor(29,51,67);
+      pdf.text(n.puesto||'-', lm+13, y+5);
 
-      // Badge derecho
-      pdf.setFillColor(29,51,67);
-      pdf.roundedRect(W-rm-38, y-3, 38, 8, 2, 2, 'F');
-      pdf.setFontSize(6); pdf.setTextColor(255,205,2);
-      pdf.setFont('helvetica','bold');
-      pdf.text('RELEVAMIENTO CLIMATICO', W-rm-37, y+1.5);
-      pdf.setFont('helvetica','normal');
-      pdf.setFontSize(7); pdf.setTextColor(138,163,180);
-      pdf.text(fmtFecha(n.created_at), W-rm-37, y+6.5);
+      // Barrio y agente — gris
+      y += 10;
+      pdf.setFontSize(8); pdf.setFont('helvetica','normal'); pdf.setTextColor(100,120,140);
+      pdf.text(pbPDF2(n.puesto) + '   ·   ' + (n.agente||'-') + '   ·   ' + fmtFecha(n.created_at), lm+13, y);
 
-      // Línea separadora
-      y += 11;
-      pdf.setDrawColor(238,242,245); pdf.setLineWidth(0.3);
-      pdf.line(lm, y, W-rm, y);
+      // Línea separadora fina
       y += 5;
-
-      // Puesto + agente
-      pdf.setFillColor(col[0], col[1], col[2]);
-      pdf.circle(lm+5, y+2, 4, 'F');
-      pdf.setFontSize(16); pdf.setTextColor(29,51,67); pdf.setFont('helvetica','bold');
-      pdf.text(n.puesto||'-', lm+12, y+4);
-      y += 9;
-      pdf.setFontSize(8); pdf.setTextColor(138,163,180); pdf.setFont('helvetica','normal');
-      pdf.text(pbPDF2(n.puesto) + ' · ' + (n.agente||'-'), lm+12, y);
+      pdf.setDrawColor(220,228,235); pdf.setLineWidth(0.3);
+      pdf.line(lm, y, W-rm, y);
       y += 6;
 
-      // Tipo de riesgo badge
+      // ── BADGE TIPO DE RIESGO ──────────────────────────────────────────────
       var tLabel = tipoLabel(n);
-      pdf.setFillColor(col[0]+'18'||240,247,255);
-      pdf.setFillColor(Math.min(col[0]+180,255), Math.min(col[1]+180,255), Math.min(col[2]+180,255));
-      var bw = pdf.getStringUnitWidth(tLabel)*8*0.352 + 8;
-      pdf.roundedRect(lm, y, bw, 6, 1.5, 1.5, 'F');
-      pdf.setDrawColor(col[0],col[1],col[2]); pdf.setLineWidth(0.4);
-      pdf.roundedRect(lm, y, bw, 6, 1.5, 1.5, 'S');
-      pdf.setFontSize(7); pdf.setTextColor(col[0],col[1],col[2]); pdf.setFont('helvetica','bold');
-      pdf.text(tLabel, lm+4, y+4.2);
-      y += 10;
+      pdf.setFillColor(Math.min(col[0]+185,255), Math.min(col[1]+185,255), Math.min(col[2]+185,255));
+      var bw = pdf.getStringUnitWidth(tLabel) * 7.5 * 0.352 + 10;
+      pdf.roundedRect(lm, y, bw, 7, 2, 2, 'F');
+      pdf.setDrawColor(col[0],col[1],col[2]); pdf.setLineWidth(0.5);
+      pdf.roundedRect(lm, y, bw, 7, 2, 2, 'S');
+      pdf.setFontSize(7.5); pdf.setFont('helvetica','bold'); pdf.setTextColor(col[0],col[1],col[2]);
+      pdf.text(tLabel, lm+5, y+5);
+      y += 12;
 
       // Observaciones
       if (n.observaciones) {
@@ -36901,12 +36909,15 @@ window._climaGenerarPDF = async function(barrios) {
         y += fotoH + 4;
       }
 
-      // Footer
-      pdf.setDrawColor(238,242,245); pdf.setLineWidth(0.3);
-      pdf.line(lm, H-10, W-rm, H-10);
-      pdf.setFontSize(7); pdf.setTextColor(192,205,216); pdf.setFont('helvetica','normal');
-      pdf.text('Generado el ' + new Date().toLocaleDateString('es-AR',{timeZone:'America/Argentina/Buenos_Aires'}) + ' — Uso interno', lm, H-6);
-      pdf.text('Punto ' + (i+1) + ' de ' + datos.length, W-rm-20, H-6);
+      // Footer con marca GCBA
+      pdf.setFillColor(29,51,67);
+      pdf.rect(0, H-12, W, 12, 'F');
+      pdf.setFontSize(7); pdf.setFont('helvetica','normal'); pdf.setTextColor(255,255,255);
+      pdf.setGState(new pdf.GState({opacity:0.6}));
+      pdf.text('Generado el ' + new Date().toLocaleDateString('es-AR',{timeZone:'America/Argentina/Buenos_Aires'}) + ' — Uso interno — IVC Seguridad y Emergencias', lm, H-5);
+      pdf.setGState(new pdf.GState({opacity:1}));
+      pdf.setFont('helvetica','bold'); pdf.setTextColor(255,205,2);
+      pdf.text('Punto ' + (i+1) + ' / ' + datos.length, W-rm-18, H-5);
     }
 
     pFill.style.width = '100%';
