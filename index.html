@@ -22285,73 +22285,88 @@ function checkPushStatus() {
 
 // ── ABM CHOFERES ──
 function cargarChoferesEnDropdown() {
-  // Tomar los agentes actualmente fichados (fichaje activo) como candidatos a chofer
-  db.from('fichajes').select('agente').eq('activo', true).order('agente')
-    .then(function(res) {
-      var sel = document.getElementById('c-chofer');
-      if (!sel) return;
-      var fichados = (res.data || []).map(function(f) { return f.agente; });
-      // Eliminar duplicados
-      fichados = fichados.filter(function(v, i, a) { return a.indexOf(v) === i; });
+  // Cruzar: fichados activos (todos) + choferes_lista (habilitados)
+  // → selector principal: solo los que son chofer Y están fichados ahora
+  // → selector "Otro": todos los fichados activos sin filtro
+  Promise.all([
+    db.from('fichajes').select('agente').eq('activo', true).order('agente'),
+    db.from('choferes_lista').select('nombre').eq('activo', true)
+  ]).then(function(results) {
+    var sel = document.getElementById('c-chofer');
+    if (!sel) return;
 
-      sel.innerHTML = '<option value="">— Seleccionar chofer —</option>';
-      fichados.forEach(function(nombre) {
-        var opt = document.createElement('option');
-        opt.value = nombre;
-        opt.textContent = nombre + ' ✓ fichado';
-        sel.appendChild(opt);
+    // Todos los fichados activos (sin duplicados)
+    var todosFichados = (results[0].data || []).map(function(f) { return f.agente; });
+    todosFichados = todosFichados.filter(function(v, i, a) { return a.indexOf(v) === i; });
+
+    // Nombres habilitados como choferes
+    var nombresChoferes = (results[1].data || []).map(function(c) { return c.nombre; });
+
+    // Intersección: fichado Y en choferes_lista
+    var choferesFichados = todosFichados.filter(function(n) {
+      return nombresChoferes.indexOf(n) >= 0;
+    });
+
+    sel.innerHTML = '<option value="">— Seleccionar chofer —</option>';
+    choferesFichados.forEach(function(nombre) {
+      var opt = document.createElement('option');
+      opt.value = nombre;
+      opt.textContent = nombre + ' ✓ fichado';
+      sel.appendChild(opt);
+    });
+
+    // Opción "Otro": para quien lleva el móvil sin ser chofer habitual
+    var optOtro = document.createElement('option');
+    optOtro.value = '__otro__';
+    optOtro.textContent = '— Otro (seleccionar de fichados) —';
+    sel.appendChild(optOtro);
+
+    // Selector secundario para "Otro": lista completa de fichados activos
+    var existing = document.getElementById('c-chofer-otro-wrap');
+    if (!existing) {
+      var wrap = document.createElement('div');
+      wrap.id = 'c-chofer-otro-wrap';
+      wrap.style.cssText = 'display:none;margin-top:8px';
+      var selOtro = document.createElement('select');
+      selOtro.id = 'c-chofer-otro';
+      selOtro.className = 'form-select';
+      selOtro.innerHTML = '<option value="">— Seleccionar persona fichada —</option>';
+      todosFichados.forEach(function(nombre) {
+        var o = document.createElement('option');
+        o.value = nombre; o.textContent = nombre;
+        selOtro.appendChild(o);
       });
-      // Opción "Otro" para quien lleva el móvil sin ser el chofer habitual
-      var optOtro = document.createElement('option');
-      optOtro.value = '__otro__';
-      optOtro.textContent = '— Otro (seleccionar de fichados) —';
-      sel.appendChild(optOtro);
-
-      // Selector secundario para "Otro" (oculto por defecto)
-      var existing = document.getElementById('c-chofer-otro-wrap');
-      if (!existing) {
-        var wrap = document.createElement('div');
-        wrap.id = 'c-chofer-otro-wrap';
-        wrap.style.cssText = 'display:none;margin-top:8px';
-        var selOtro = document.createElement('select');
-        selOtro.id = 'c-chofer-otro';
-        selOtro.className = 'form-select';
-        selOtro.innerHTML = '<option value="">— Seleccionar persona fichada —</option>';
-        fichados.forEach(function(nombre) {
+      wrap.appendChild(selOtro);
+      sel.parentNode.appendChild(wrap);
+    } else {
+      var selOtro2 = document.getElementById('c-chofer-otro');
+      if (selOtro2) {
+        selOtro2.innerHTML = '<option value="">— Seleccionar persona fichada —</option>';
+        todosFichados.forEach(function(nombre) {
           var o = document.createElement('option');
           o.value = nombre; o.textContent = nombre;
-          selOtro.appendChild(o);
+          selOtro2.appendChild(o);
         });
-        wrap.appendChild(selOtro);
-        sel.parentNode.appendChild(wrap);
-      } else {
-        var selOtro2 = document.getElementById('c-chofer-otro');
-        if (selOtro2) {
-          selOtro2.innerHTML = '<option value="">— Seleccionar persona fichada —</option>';
-          fichados.forEach(function(nombre) {
-            var o = document.createElement('option');
-            o.value = nombre; o.textContent = nombre;
-            selOtro2.appendChild(o);
-          });
-        }
       }
-      // Mostrar/ocultar selector secundario
-      sel.onchange = function() {
-        var wrap2 = document.getElementById('c-chofer-otro-wrap');
-        if (wrap2) wrap2.style.display = sel.value === '__otro__' ? 'block' : 'none';
-      };
+    }
 
-      // Incidencias: también usa fichados activos
-      var selInc = document.getElementById('inc-chofer');
-      if (selInc) {
-        selInc.innerHTML = '<option value="">— Seleccionar —</option>';
-        fichados.forEach(function(nombre) {
-          var opt = document.createElement('option');
-          opt.value = nombre; opt.textContent = nombre;
-          selInc.appendChild(opt);
-        });
-      }
-    });
+    // Mostrar/ocultar selector secundario
+    sel.onchange = function() {
+      var wrap2 = document.getElementById('c-chofer-otro-wrap');
+      if (wrap2) wrap2.style.display = sel.value === '__otro__' ? 'block' : 'none';
+    };
+
+    // Incidencias: usa todos los fichados activos
+    var selInc = document.getElementById('inc-chofer');
+    if (selInc) {
+      selInc.innerHTML = '<option value="">— Seleccionar —</option>';
+      todosFichados.forEach(function(nombre) {
+        var opt = document.createElement('option');
+        opt.value = nombre; opt.textContent = nombre;
+        selInc.appendChild(opt);
+      });
+    }
+  });
 }
 
 var PERSONAL_CACHE = [];
