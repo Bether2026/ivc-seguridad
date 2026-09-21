@@ -36384,7 +36384,7 @@ window.climaDescargarHTML = function() {
     return 'Otro';
   }
   CLIMA_CTRL_DATOS.forEach(function(n) { conDatos[pbDL(n.puesto)] = true; });
-  var barrios = ['Rodrigo Bueno','Fraga','Papa Francisco'];
+  var barrios = ['Rodrigo Bueno','Fraga','Papa Francisco','Otro'];
   var disponibles = barrios.filter(function(b) { return conDatos[b]; });
 
   if (disponibles.length <= 1) {
@@ -36493,7 +36493,7 @@ window.climaExportarHTML = function() {
     return 'Otro';
   }
   CLIMA_CTRL_DATOS.forEach(function(n) { conDatos[pb(n.puesto)] = true; });
-  var barrios = ['Rodrigo Bueno','Fraga','Papa Francisco'];
+  var barrios = ['Rodrigo Bueno','Fraga','Papa Francisco','Otro'];
   var disponibles = barrios.filter(function(b) { return conDatos[b]; });
 
   // Si solo hay datos de un barrio, exportar directo sin modal
@@ -36577,7 +36577,7 @@ window.climaExportarPDF = function() {
     return 'Otro';
   }
   CLIMA_CTRL_DATOS.forEach(function(n) { conDatos[pbPDF(n.puesto)] = true; });
-  var barrios = ['Rodrigo Bueno','Fraga','Papa Francisco'];
+  var barrios = ['Rodrigo Bueno','Fraga','Papa Francisco','Otro'];
   var disponibles = barrios.filter(function(b) { return conDatos[b]; });
 
   // Si solo hay un barrio, exportar directo
@@ -36604,11 +36604,11 @@ window.climaExportarPDF = function() {
   });
 
   modal.innerHTML = '<div style="font-size:15px;font-weight:800;color:#fff;margin-bottom:6px">🖨 Exportar PDF</div>'
-    + '<div style="font-size:12px;color:rgba(255,255,255,.5);margin-bottom:4px">Seleccioná un barrio para exportar</div>'
-    + '<div style="font-size:11px;color:rgba(239,68,68,.7);margin-bottom:16px">⚠️ El PDF se genera por barrio para evitar archivos muy grandes</div>'
+    + '<div style="font-size:12px;color:rgba(255,255,255,.5);margin-bottom:16px">Seleccioná los barrios a incluir</div>'
     + checks
     + '<div style="display:flex;gap:10px;margin-top:20px">'
-    + '<button id="pdf-btn-sel" style="flex:1;padding:11px;border-radius:10px;border:none;background:#ef4444;color:#fff;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">🖨 Generar PDF</button>'
+    + '<button id="pdf-btn-todo" style="flex:1;padding:11px;border-radius:10px;border:1px solid rgba(239,68,68,.4);background:rgba(239,68,68,.1);color:#f87171;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">📋 Exportar todo</button>'
+    + '<button id="pdf-btn-sel" style="flex:1;padding:11px;border-radius:10px;border:none;background:#ef4444;color:#fff;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">✓ Selección</button>'
     + '</div>'
     + '<button id="pdf-btn-cancel" style="width:100%;margin-top:10px;padding:9px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:transparent;color:rgba(255,255,255,.4);font-family:var(--font);font-size:12px;cursor:pointer">Cancelar</button>';
 
@@ -36618,13 +36618,13 @@ window.climaExportarPDF = function() {
   function cerrarPDF() { document.body.removeChild(overlay); }
   document.getElementById('pdf-btn-cancel').onclick = cerrarPDF;
   overlay.addEventListener('click', function(e) { if (e.target === overlay) cerrarPDF(); });
+  document.getElementById('pdf-btn-todo').onclick = function() { cerrarPDF(); _climaGenerarPDF(['todos']); };
   document.getElementById('pdf-btn-sel').onclick = function() {
     var sel = [];
     disponibles.forEach(function(b) {
       if (document.getElementById('pdf-chk-' + b.replace(/\s/g,'-')).checked) sel.push(b);
     });
     if (!sel.length) { toast('Seleccioná al menos un barrio', 'err'); return; }
-    if (sel.length > 1) { toast('Seleccioná un solo barrio por PDF', 'err'); return; }
     cerrarPDF();
     _climaGenerarPDF(sel);
   };
