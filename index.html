@@ -36696,13 +36696,20 @@ window._climaGenerarPDF = async function(barrios) {
 
   // Convertir imagen URL a dataURL
   async function urlToDataUrl(url) {
+    if (!url) return null;
+    // Normalizar URL — algunos registros guardan path relativo
+    var fullUrl = url;
+    if (url.startsWith('/') || !url.startsWith('http')) {
+      fullUrl = 'https://pub-438b0d51c7a246f38a92859d01cedecd.r2.dev/' + url.replace(/^\//, '');
+    }
     try {
       var res = await Promise.race([
-        fetch(url, { mode: 'cors' }),
-        new Promise(function(_, rej) { setTimeout(function(){ rej(new Error('timeout')); }, 4000); })
+        fetch(fullUrl, { mode: 'cors', cache: 'no-cache' }),
+        new Promise(function(_, rej) { setTimeout(function(){ rej(new Error('timeout')); }, 6000); })
       ]);
       if (!res.ok) return null;
       var blob = await res.blob();
+      if (!blob.type.startsWith('image/')) return null;
       return await new Promise(function(resolve) {
         var fr = new FileReader();
         fr.onload = function(){ resolve(fr.result); };
@@ -36824,17 +36831,17 @@ window._climaGenerarPDF = async function(barrios) {
       var lng = n.lng ? parseFloat(n.lng).toFixed(5) : null;
       if (lat) {
         pdf.setFillColor(240,247,255);
-        pdf.roundedRect(lm, y, cw, 20, 2, 2, 'F');
+        pdf.roundedRect(lm, y, cw, 16, 2, 2, 'F');
         pdf.setDrawColor(191,219,254); pdf.setLineWidth(0.3);
-        pdf.roundedRect(lm, y, cw, 20, 2, 2, 'S');
+        pdf.roundedRect(lm, y, cw, 16, 2, 2, 'S');
         pdf.setFontSize(7); pdf.setTextColor(138,163,180); pdf.setFont('helvetica','bold');
         pdf.text('UBICACION GPS', lm+4, y+5);
-        pdf.setFontSize(9); pdf.setTextColor(29,51,67); pdf.setFont('helvetica','bold');
-        pdf.text('📍 ' + lat + ', ' + lng, lm+4, y+11);
-        // Link Google Maps
-        pdf.setFontSize(8); pdf.setTextColor(66,133,244); pdf.setFont('helvetica','normal');
-        pdf.textWithLink('→ Ver en Google Maps', lm+4, y+17, {url:'https://maps.google.com/?q='+lat+','+lng});
-        y += 25;
+        // Solo links, sin coordenadas crudas
+        pdf.setFontSize(9); pdf.setTextColor(66,133,244); pdf.setFont('helvetica','normal');
+        pdf.textWithLink('📍 Ver en Google Maps', lm+4, y+11, {url:'https://maps.google.com/?q='+lat+','+lng});
+        pdf.setTextColor(51,204,255);
+        pdf.textWithLink('🗺 Waze', lm+60, y+11, {url:'https://waze.com/ul?ll='+lat+','+lng+'&navigate=yes'});
+        y += 21;
       }
 
       // Fotos
@@ -36848,11 +36855,12 @@ window._climaGenerarPDF = async function(barrios) {
         pdf.text('FOTOGRAFIAS', lm, y+4);
         y += 7;
 
-        var fotoW = fotos.length === 1 ? cw : fotos.length === 2 ? (cw-4)/2 : (cw-8)/3;
-        var fotoH = fotos.length === 1 ? 70 : 55;
+        var fotoW = fotos.length === 1 ? cw * 0.7 : fotos.length === 2 ? (cw-4)/2 : (cw-8)/3;
+        var fotoH = fotos.length === 1 ? 55 : fotos.length === 2 ? 50 : 45;
+        var fotoX = fotos.length === 1 ? lm + (cw - fotoW)/2 : lm; // centrar si es única
 
         for (var fi = 0; fi < fotos.length; fi++) {
-          var fx = lm + fi * (fotoW + 4);
+          var fx = fotos.length === 1 ? fotoX : lm + fi * (fotoW + 4);
           pSub.textContent = 'Página ' + (i+1) + ': cargando foto ' + (fi+1) + '/' + fotos.length;
           var dataUrl = await urlToDataUrl(fotos[fi]);
           if (dataUrl) {
