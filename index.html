@@ -22289,23 +22289,19 @@ function cargarChoferesEnDropdown() {
   // → selector principal: solo los que son chofer Y están fichados ahora
   // → selector "Otro": todos los fichados activos sin filtro
   Promise.all([
-    db.from('fichajes').select('agente').eq('activo', true).order('agente'),
-    db.from('choferes_lista').select('nombre').eq('activo', true)
+    db.from('fichajes').select('agente').eq('activo', true).eq('puesto', 'Choferes').order('agente'),
+    db.from('fichajes').select('agente').eq('activo', true).order('agente')
   ]).then(function(results) {
     var sel = document.getElementById('c-chofer');
     if (!sel) return;
 
-    // Todos los fichados activos (sin duplicados)
-    var todosFichados = (results[0].data || []).map(function(f) { return f.agente; });
+    // Choferes fichados: puesto = 'Choferes' y activo (sin duplicados)
+    var choferesFichados = (results[0].data || []).map(function(f) { return f.agente; });
+    choferesFichados = choferesFichados.filter(function(v, i, a) { return a.indexOf(v) === i; });
+
+    // Todos los fichados activos para el selector "Otro" (sin duplicados)
+    var todosFichados = (results[1].data || []).map(function(f) { return f.agente; });
     todosFichados = todosFichados.filter(function(v, i, a) { return a.indexOf(v) === i; });
-
-    // Nombres habilitados como choferes
-    var nombresChoferes = (results[1].data || []).map(function(c) { return c.nombre; });
-
-    // Intersección: fichado Y en choferes_lista
-    var choferesFichados = todosFichados.filter(function(n) {
-      return nombresChoferes.indexOf(n) >= 0;
-    });
 
     sel.innerHTML = '<option value="">— Seleccionar chofer —</option>';
     choferesFichados.forEach(function(nombre) {
