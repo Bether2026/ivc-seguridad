@@ -1480,25 +1480,7 @@ body {
           <label class="form-label" style="font-size:10px">Texto del informe <span style="font-weight:400;color:var(--text3)">(peg&#xE1; el texto del Access)</span></label>
           <textarea class="form-textarea" id="n-texto-informe" style="min-height:80px;border-color:rgba(59,130,246,.3);margin-bottom:0" placeholder="Peg&#xE1; ac&#xE1; el texto formal..."></textarea>
         </div>
-        <!-- CLASIFICACIÓN — solo visible para Administración dentro del informe -->
-        <div id="n-relev-wrap">
-          <label class="form-label" style="font-size:10px;color:var(--accent3)">🏷️ Clasificación de la novedad</label>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:4px">
-            <label id="relev-btn-normal" onclick="setRelevancia('Normal')" style="cursor:pointer;padding:10px 8px;border-radius:10px;border:1px solid rgba(124,176,255,0.18);background:rgba(124,176,255,0.06);text-align:center;transition:all .15s;display:flex;flex-direction:column;gap:4px;align-items:center">
-              <span style="font-size:18px">📋</span>
-              <span style="font-size:11px;font-weight:700;color:var(--text2)">Normal</span>
-            </label>
-            <label id="relev-btn-Alta" onclick="setRelevancia('Alta')" style="cursor:pointer;padding:10px 8px;border-radius:10px;border:1px solid rgba(245,158,11,0.2);background:rgba(245,158,11,0.06);text-align:center;transition:all .15s;display:flex;flex-direction:column;gap:4px;align-items:center">
-              <span style="font-size:18px">⚠️</span>
-              <span style="font-size:11px;font-weight:700;color:#fbbf24">Importante</span>
-            </label>
-            <label id="relev-btn-Urgente" onclick="setRelevancia('Urgente')" style="cursor:pointer;padding:10px 8px;border-radius:10px;border:1px solid rgba(239,68,68,0.2);background:rgba(239,68,68,0.06);text-align:center;transition:all .15s;display:flex;flex-direction:column;gap:4px;align-items:center">
-              <span style="font-size:18px">🚨</span>
-              <span style="font-size:11px;font-weight:700;color:#f87171">Urgente</span>
-            </label>
-          </div>
-          <input type="hidden" id="n-relev" value="Normal">
-        </div>
+
       </div>
     </div>
 
@@ -5591,6 +5573,17 @@ body {
         <input type="checkbox" id="gp-fuerza" style="display:none"/>
         <input type="checkbox" id="gp-pendiente" style="display:none"/>
 
+        <!-- Clasificación de relevancia — solo administración -->
+        <div class="form-group" id="gp-relev-wrap">
+          <label class="form-label" style="font-size:10px;color:var(--accent3);text-transform:uppercase;letter-spacing:.06em">🏷️ Clasificación de la novedad</label>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:4px">
+            <label id="gp-relev-btn-Normal" onclick="gpSetRelevancia('Normal')" style="cursor:pointer;padding:10px 8px;border-radius:10px;border:2px solid rgba(124,176,255,0.5);background:rgba(124,176,255,0.1);text-align:center;transition:all .15s;display:flex;flex-direction:column;gap:4px;align-items:center"><span style="font-size:18px">📋</span><span style="font-size:11px;font-weight:700;color:#a5b4fc">Normal</span></label>
+            <label id="gp-relev-btn-Alta" onclick="gpSetRelevancia('Alta')" style="cursor:pointer;padding:10px 8px;border-radius:10px;border:1px solid rgba(245,158,11,0.2);background:rgba(245,158,11,0.06);text-align:center;transition:all .15s;display:flex;flex-direction:column;gap:4px;align-items:center"><span style="font-size:18px">⚠️</span><span style="font-size:11px;font-weight:700;color:#fbbf24">Importante</span></label>
+            <label id="gp-relev-btn-Urgente" onclick="gpSetRelevancia('Urgente')" style="cursor:pointer;padding:10px 8px;border-radius:10px;border:1px solid rgba(239,68,68,0.2);background:rgba(239,68,68,0.06);text-align:center;transition:all .15s;display:flex;flex-direction:column;gap:4px;align-items:center"><span style="font-size:18px">🚨</span><span style="font-size:11px;font-weight:700;color:#f87171">Urgente</span></label>
+          </div>
+          <input type="hidden" id="gp-relev" value="Normal">
+        </div>
+
         <!-- Subir fotos desde la computadora -->
         <div style="margin-bottom:14px">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
@@ -7565,7 +7558,6 @@ function _editarNovedad() {
           asuntoEl = document.getElementById('n-asunto-otro');
           ubicEl = document.getElementById('n-ubicacion');
           detEl = document.getElementById('n-detalle');
-          relevEl = document.getElementById('n-relev');
           pendEl = document.getElementById('n-pend');
           var puestoSel2 = document.getElementById('n-puesto-sel');
           var horaEl2 = document.getElementById('n-hora-evento');
@@ -7577,7 +7569,6 @@ function _editarNovedad() {
           if (asuntoEl) asuntoEl.value = n.asunto || '';
           if (ubicEl) ubicEl.value = n.ubicacion || '';
           if (detEl) detEl.value = n.detalle || '';
-          if (relevEl) relevEl.value = n.relevancia || 'Normal';
           if (pendEl) pendEl.checked = n.pendiente || false;
           if (horaEl2) horaEl2.value = n.hora_evento || '';
           if (nroPdEl2) nroPdEl2.value = '';
@@ -8983,7 +8974,7 @@ function abrirSelectorFoto(inputId) {
 // ── Draft de novedad: protege el texto del form si Android mata la app al abrir la cámara ──
 var NOV_DRAFT_KEY = 'ivc_nov_draft';
 var NOV_DRAFT_TTL = 30 * 60 * 1000; // 30 minutos
-var NOV_DRAFT_FIELDS = ['n-puesto-sel','n-puesto-otro-txt','n-tipo','n-asunto-otro','n-ubicacion','n-detalle','n-agente','n-area','n-urgente','n-relev','n-nro-pd','n-nro-pu','n-texto-informe','n-hora-evento'];
+var NOV_DRAFT_FIELDS = ['n-puesto-sel','n-puesto-otro-txt','n-tipo','n-asunto-otro','n-ubicacion','n-detalle','n-agente','n-area','n-urgente','n-nro-pd','n-nro-pu','n-texto-informe','n-hora-evento'];
 
 function guardarDraftNovedad() {
   var ov = document.getElementById('ov-nov');
@@ -9031,7 +9022,6 @@ function restaurarDraftNovedad() {
 function limpiarDraftNovedad() {
   try { localStorage.removeItem(NOV_DRAFT_KEY); } catch (e) {}
   // Resetear selector visual de relevancia
-  if (typeof setRelevancia === 'function') setRelevancia('Normal');
 }
 
 function usarCamara(inputId) {
@@ -17135,7 +17125,7 @@ function _saveNov() {
             texto_informe: ($('n-texto-informe') && $('n-texto-informe').value.trim()) ? $('n-texto-informe').value.trim() : null,
             nro_pd: ($('n-nro-pd') && $('n-nro-pd').value) ? parseInt($('n-nro-pd').value) : null,
             nro_pu: ($('n-nro-pu') && $('n-nro-pu').value) ? parseInt($('n-nro-pu').value) : null,
-            relevancia: (function() { var el = document.getElementById('n-relev'); return (el && el.value && el.value !== '') ? el.value : 'Normal'; })(),
+            relevancia: 'Normal',
             area: ($('n-area') && $('n-area').value) ? $('n-area').value : null,
             pendiente: pend,
             caso: null,
@@ -17272,18 +17262,7 @@ function toggleUrgente() {
     btn.style.color = '#fca5a5';
     if (icon) { icon.textContent = '🚨'; icon.style.transform = 'scale(1.2)'; }
     if (badge) badge.style.display = 'inline-block';
-    // Sincronizar relevancia hacia arriba
-    var rInp = document.getElementById('n-relev');
-    if (rInp && rInp.value !== 'Urgente') {
-      if (rInp) rInp.value = 'Urgente';
-      ['Normal','Alta','Urgente'].forEach(function(v) {
-        var b = document.getElementById('relev-btn-' + v);
-        if (!b) return;
-        if (v === 'Urgente') { b.style.background='rgba(239,68,68,0.18)'; b.style.borderColor='rgba(239,68,68,0.7)'; b.style.boxShadow='0 0 0 2px rgba(239,68,68,0.25)'; }
-        else if (v === 'Alta') { b.style.background='rgba(245,158,11,0.06)'; b.style.borderColor='rgba(245,158,11,0.2)'; b.style.boxShadow='none'; }
-        else { b.style.background='rgba(124,176,255,0.06)'; b.style.borderColor='rgba(124,176,255,0.18)'; b.style.boxShadow='none'; }
-      });
-    }
+
   } else {
     btn.style.background = 'rgba(239,68,68,.06)';
     btn.style.borderColor = 'rgba(239,68,68,.25)';
@@ -22754,6 +22733,7 @@ var GP_STATE = {
   anio:      null,
   origenId:  null,
   origen:    null,
+  relevancia: null,  // pre-cargada desde la novedad de origen
   novedadesVinculadas: [],  // [{id, asunto, detalle, fotos, puesto, hora, fuente}]
 };
 
@@ -22791,7 +22771,7 @@ function selPartesTab(tab) {
 function abrirGenerarParteNovedad(novId) {
   if (!_esAdminParte()) { toast('Sin permiso para generar partes', 'err'); return; }
   db.from('novedades')
-    .select('id,asunto,detalle,texto_informe,observaciones,fotos,puesto,hora_evento,created_at,nro_pd,nro_pu,parte_id')
+    .select('id,asunto,detalle,texto_informe,observaciones,fotos,puesto,hora_evento,created_at,nro_pd,nro_pu,parte_id,relevancia')
     .eq('id', novId).single()
     .then(function(r) {
       if (r.error || !r.data) { toast('Error cargando novedad', 'err'); return; }
@@ -22810,8 +22790,9 @@ function abrirGenerarParteNovedad(novId) {
         hora:   n.hora_evento || '',
         fuente: 'novedad'
       }];
-      GP_STATE.origen   = 'novedad';
-      GP_STATE.origenId = novId;
+      GP_STATE.origen     = 'novedad';
+      GP_STATE.origenId   = novId;
+      GP_STATE.relevancia = n.relevancia || 'Normal';
       _gpAbrirModal();
     });
 }
@@ -22932,6 +22913,10 @@ function _gpAbrirModal(tipoForzado) {
     var el = document.getElementById(id); if (el) el.checked = false;
   });
   // pendiente eliminado
+
+  // Resetear selector de relevancia (pre-carga la existente si viene de una novedad)
+  if (typeof gpSetRelevancia === 'function') gpSetRelevancia(GP_STATE.relevancia || 'Normal');
+  GP_STATE.relevancia = null; // limpiar para próxima apertura manual
 
   openOv('ov-generar-parte');
 
@@ -23276,6 +23261,30 @@ function gpCancelar() {
   closeOv('ov-generar-parte');
 }
 
+// ── Clasificación de relevancia en modal PD/PU ──
+function gpSetRelevancia(val) {
+  document.getElementById('gp-relev').value = val;
+  var btns = { 'Normal': 'gp-relev-btn-Normal', 'Alta': 'gp-relev-btn-Alta', 'Urgente': 'gp-relev-btn-Urgente' };
+  var styles = {
+    'Normal':  { border: '2px solid rgba(124,176,255,0.5)',  bg: 'rgba(124,176,255,0.1)'  },
+    'Alta':    { border: '2px solid rgba(245,158,11,0.7)',   bg: 'rgba(245,158,11,0.15)'  },
+    'Urgente': { border: '2px solid rgba(239,68,68,0.7)',    bg: 'rgba(239,68,68,0.15)'   }
+  };
+  var inactive = {
+    'Normal':  { border: '1px solid rgba(124,176,255,0.18)', bg: 'rgba(124,176,255,0.06)' },
+    'Alta':    { border: '1px solid rgba(245,158,11,0.2)',   bg: 'rgba(245,158,11,0.06)'  },
+    'Urgente': { border: '1px solid rgba(239,68,68,0.2)',    bg: 'rgba(239,68,68,0.06)'   }
+  };
+  Object.keys(btns).forEach(function(k) {
+    var el = document.getElementById(btns[k]);
+    if (!el) return;
+    var s = (k === val) ? styles[k] : inactive[k];
+    el.style.border = s.border;
+    el.style.background = s.bg;
+    el.style.boxShadow = (k === val) ? '0 0 0 1px ' + s.border.split(' ').pop() : 'none';
+  });
+}
+
 // ── Guardar parte ─────────────────────────────────────────────
 function gpGuardar() {
   var parteId = document.getElementById('gp-parte-id').value;
@@ -23365,7 +23374,8 @@ function gpGuardar() {
 
         // Actualizar parte_id + número visible en los registros de origen
         var nroDisplay = GP_STATE.nro + '/' + GP_STATE.anio;
-        var updOrigen = { parte_id: parteId };
+        var _gpRelev = (document.getElementById('gp-relev') || {}).value || 'Normal';
+        var updOrigen = { parte_id: parteId, relevancia: _gpRelev };
         if (tipo === 'PD') { updOrigen.nro_pd = nroDisplay; updOrigen.nro_pu = null; }
         else               { updOrigen.nro_pu = nroDisplay; updOrigen.nro_pd = null; }
 
