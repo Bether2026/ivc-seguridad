@@ -1480,6 +1480,25 @@ body {
           <label class="form-label" style="font-size:10px">Texto del informe <span style="font-weight:400;color:var(--text3)">(peg&#xE1; el texto del Access)</span></label>
           <textarea class="form-textarea" id="n-texto-informe" style="min-height:80px;border-color:rgba(59,130,246,.3);margin-bottom:0" placeholder="Peg&#xE1; ac&#xE1; el texto formal..."></textarea>
         </div>
+        <!-- CLASIFICACIÓN — solo visible para Administración dentro del informe -->
+        <div id="n-relev-wrap">
+          <label class="form-label" style="font-size:10px;color:var(--accent3)">🏷️ Clasificación de la novedad</label>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:4px">
+            <label id="relev-btn-normal" onclick="setRelevancia('Normal')" style="cursor:pointer;padding:10px 8px;border-radius:10px;border:1px solid rgba(124,176,255,0.18);background:rgba(124,176,255,0.06);text-align:center;transition:all .15s;display:flex;flex-direction:column;gap:4px;align-items:center">
+              <span style="font-size:18px">📋</span>
+              <span style="font-size:11px;font-weight:700;color:var(--text2)">Normal</span>
+            </label>
+            <label id="relev-btn-Alta" onclick="setRelevancia('Alta')" style="cursor:pointer;padding:10px 8px;border-radius:10px;border:1px solid rgba(245,158,11,0.2);background:rgba(245,158,11,0.06);text-align:center;transition:all .15s;display:flex;flex-direction:column;gap:4px;align-items:center">
+              <span style="font-size:18px">⚠️</span>
+              <span style="font-size:11px;font-weight:700;color:#fbbf24">Importante</span>
+            </label>
+            <label id="relev-btn-Urgente" onclick="setRelevancia('Urgente')" style="cursor:pointer;padding:10px 8px;border-radius:10px;border:1px solid rgba(239,68,68,0.2);background:rgba(239,68,68,0.06);text-align:center;transition:all .15s;display:flex;flex-direction:column;gap:4px;align-items:center">
+              <span style="font-size:18px">🚨</span>
+              <span style="font-size:11px;font-weight:700;color:#f87171">Urgente</span>
+            </label>
+          </div>
+          <input type="hidden" id="n-relev" value="Normal">
+        </div>
       </div>
     </div>
 
@@ -2250,6 +2269,21 @@ body {
       <div class="tabs">
         <button class="tab active" onclick="novTab('todas',this)">Todas</button>
         <button class="tab" onclick="novTab('historial',this)">📚 Historial completo</button>
+      </div>
+      <!-- Filtros de relevancia — solo visibles para roles de gestión -->
+      <div id="nov-relev-filtros" style="display:none;gap:8px;margin-bottom:12px;margin-top:4px">
+        <button id="nov-rf-todas" onclick="novRelevanciaFiltrar('todas')"
+          style="flex:1;padding:9px 10px;border-radius:10px;border:1px solid var(--border2);background:rgba(124,176,255,0.1);color:var(--text2);font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">
+          Todas
+        </button>
+        <button id="nov-rf-relevantes" onclick="novRelevanciaFiltrar('relevantes')"
+          style="flex:1;padding:9px 10px;border-radius:10px;border:1px solid rgba(245,158,11,0.3);background:rgba(245,158,11,0.07);color:#fbbf24;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">
+          ⚠️ Importantes
+        </button>
+        <button id="nov-rf-urgentes" onclick="novRelevanciaFiltrar('urgentes')"
+          style="flex:1;padding:9px 10px;border-radius:10px;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.07);color:#f87171;font-family:var(--font);font-size:12px;font-weight:700;cursor:pointer">
+          🚨 Urgentes
+        </button>
       </div>
       <div id="nov-list"></div>
 
@@ -5784,6 +5818,21 @@ body {
 
 <!-- ── OVERLAY: NUEVO/EDITAR TURNO ── -->
 <!-- ── OVERLAY LECTURA URGENTE ── -->
+<!-- MODAL DIGEST — novedades desde última sesión -->
+<div id="ov-digest" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(6,27,52,0.92);backdrop-filter:blur(8px);flex-direction:column;align-items:center;justify-content:flex-start;padding:env(safe-area-inset-top,0px) 0 0 0;overflow-y:auto">
+  <div style="width:100%;max-width:520px;margin:0 auto;padding:16px 16px 32px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-top:12px">
+      <div>
+        <div style="font-size:13px;font-weight:800;color:var(--accent3);text-transform:uppercase;letter-spacing:.08em">📋 Desde tu última sesión</div>
+        <div id="digest-sub" style="font-size:11px;color:var(--text3);margin-top:2px"></div>
+      </div>
+    </div>
+    <div id="digest-list" style="display:flex;flex-direction:column;gap:10px"></div>
+    <button onclick="cerrarDigest(true)" style="width:100%;margin-top:20px;padding:14px;border-radius:12px;border:none;background:var(--accent);color:#fff;font-family:var(--font);font-size:14px;font-weight:700;cursor:pointer">Ver novedades relevantes →</button>
+    <button onclick="cerrarDigest(false)" style="width:100%;margin-top:8px;padding:11px;border-radius:12px;border:1px solid var(--border2);background:transparent;color:var(--text3);font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer">Ingresar sin filtrar</button>
+  </div>
+</div>
+
 <div id="ov-urgente-leer">
   <div class="urgente-modal">
     <button onclick="cerrarUrgenteOverlay()" style="position:absolute;top:12px;right:14px;background:rgba(239,68,68,.2);border:1px solid rgba(239,68,68,.4);color:#fca5a5;border-radius:8px;padding:4px 10px;font-family:var(--font);font-size:12px;cursor:pointer">✕ Cerrar</button>
@@ -8934,7 +8983,7 @@ function abrirSelectorFoto(inputId) {
 // ── Draft de novedad: protege el texto del form si Android mata la app al abrir la cámara ──
 var NOV_DRAFT_KEY = 'ivc_nov_draft';
 var NOV_DRAFT_TTL = 30 * 60 * 1000; // 30 minutos
-var NOV_DRAFT_FIELDS = ['n-puesto-sel','n-puesto-otro-txt','n-tipo','n-asunto-otro','n-ubicacion','n-detalle','n-agente','n-area','n-urgente','n-nro-pd','n-nro-pu','n-texto-informe','n-hora-evento'];
+var NOV_DRAFT_FIELDS = ['n-puesto-sel','n-puesto-otro-txt','n-tipo','n-asunto-otro','n-ubicacion','n-detalle','n-agente','n-area','n-urgente','n-relev','n-nro-pd','n-nro-pu','n-texto-informe','n-hora-evento'];
 
 function guardarDraftNovedad() {
   var ov = document.getElementById('ov-nov');
@@ -8981,6 +9030,8 @@ function restaurarDraftNovedad() {
 
 function limpiarDraftNovedad() {
   try { localStorage.removeItem(NOV_DRAFT_KEY); } catch (e) {}
+  // Resetear selector visual de relevancia
+  if (typeof setRelevancia === 'function') setRelevancia('Normal');
 }
 
 function usarCamara(inputId) {
@@ -9602,6 +9653,7 @@ var AGENTES = ['ACOSTA PAMELA', 'ACUÑA EMANUEL FABIAN', 'ACUÑA JUAN FEDERICO',
 var USER = null;
 var CUR_VIEW = 'dashboard';
 var CUR_NOV_TAB = 'todas';
+var CUR_NOV_RELEV = 'todas'; // 'todas' | 'relevantes' | 'urgentes'
 var CUR_CHOF_TAB = 'activas';
 var SEL_AGENT = null;
 var TIMER = null;
@@ -9821,6 +9873,14 @@ function _doLogin() {
             var sbPuesto = document.getElementById('sb-puesto');
             if (sbPuesto) sbPuesto.textContent = puesto;
             initApp();
+            // Digest: registrar apertura y mostrar novedades relevantes si hay
+            var DIGEST_ROLES = ['Gerencia','PC','Administrador','Administración','Responsable de turno','Jefe de departamento'];
+            if (DIGEST_ROLES.indexOf(puesto) >= 0 || rol === 'ADMIN') {
+              var _prevOpen = registrarAperturaApp(puesto);
+              if (_prevOpen) {
+                setTimeout(function() { mostrarDigestLogin(puesto, _prevOpen); }, 1500);
+              }
+            }
           });
         case 4:
           return _context25.a(2);
@@ -9880,13 +9940,6 @@ function initApp() {
   if (!CAN_SEE_CHOFERES.includes(USER.puesto) && USER.rol !== 'ADMIN' && USER.rol !== 'TODOS') {
     if (nbCh) nbCh.style.display = 'none';
     if (siCh) siCh.style.display = 'none';
-  }
-
-  // Relevancia en novedades: solo Administración, Gerencia, Administrador
-  var CAN_SEE_RELEV = ['Administración', 'Administrador', 'Gerencia', 'PC'];
-  var relevWrap = document.getElementById('n-relev-wrap');
-  if (relevWrap && !CAN_SEE_RELEV.includes(USER.puesto) && USER.rol !== 'ADMIN') {
-    relevWrap.style.display = 'none';
   }
 
   // La visibilidad de todas las secciones la maneja aplicarPermisosAlLogin()
@@ -16840,6 +16893,8 @@ function cargarMasNovedades() {
   var q = db.from('novedades').select('id,created_at,tipo,relevancia,asunto,detalle,puesto,cargado_por,caso,area,fotos,ubicacion,nro_pd,nro_pu,pendiente,solo_admin,fuerza_publica').order('created_at', { ascending: false }).range(desde, desde + NOV_LIMIT - 1);
   if (f) q = q.eq('puesto', f);
   if (CUR_NOV_TAB === 'pendientes') q = q.eq('pendiente', true);
+  if (CUR_NOV_RELEV === 'urgentes')   q = q.eq('relevancia', 'Urgente');
+  if (CUR_NOV_RELEV === 'relevantes') q = q.in('relevancia', ['Alta', 'Urgente']);
   q.then(function(res) {
     if (res.error) {
       NOV_PAGE--;
@@ -16872,6 +16927,8 @@ function _loadNovedades() {
           }).range(0, NOV_LIMIT - 1);
           if (f) q = q.eq('puesto', f);
           if (CUR_NOV_TAB === 'pendientes') q = q.eq('pendiente', true);
+          if (CUR_NOV_RELEV === 'urgentes')   q = q.eq('relevancia', 'Urgente');
+          if (CUR_NOV_RELEV === 'relevantes') q = q.in('relevancia', ['Alta', 'Urgente']);
           _context38.n = 1;
           return q;
         case 1:
@@ -16912,11 +16969,13 @@ function novTab(tab, btn) {
   var listEl = document.getElementById('nov-list');
   var histPanel = document.getElementById('nov-historial-panel');
   var searchBox = document.getElementById('nov-search');
+  var relevFiltros = document.getElementById('nov-relev-filtros');
 
   if (tab === 'historial') {
-    if (listEl) { listEl.style.display = 'none'; listEl.innerHTML = ''; } // vaciar para evitar IDs duplicados con el historial
+    if (listEl) { listEl.style.display = 'none'; listEl.innerHTML = ''; }
     if (searchBox && searchBox.parentElement) searchBox.parentElement.style.display = 'none';
     if (histPanel) histPanel.style.display = 'block';
+    if (relevFiltros) relevFiltros.style.display = 'none';
     if (typeof _initFiltrosHistNov === 'function') _initFiltrosHistNov();
     if (typeof construcc_initBotones === 'function') construcc_initBotones();
     return;
@@ -16924,7 +16983,48 @@ function novTab(tab, btn) {
     if (listEl) listEl.style.display = 'block';
     if (searchBox && searchBox.parentElement) searchBox.parentElement.style.display = 'block';
     if (histPanel) histPanel.style.display = 'none';
+    // Mostrar filtros solo para roles con acceso a relevancia
+    var CAN_SEE = ['Gerencia','PC','Administrador','Administración','Responsable de turno','Jefe de departamento'];
+    if (relevFiltros && window.USER && (CAN_SEE.indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN')) {
+      relevFiltros.style.display = 'flex';
+    }
+    // Resetear filtro de relevancia al cambiar de tab
+    CUR_NOV_RELEV = 'todas';
+    var rfTodas = document.getElementById('nov-rf-todas');
+    if (rfTodas) { rfTodas.style.background='rgba(124,176,255,0.18)'; rfTodas.style.borderColor='rgba(124,176,255,0.5)'; rfTodas.style.color='var(--text)'; rfTodas.style.boxShadow='0 0 0 2px rgba(124,176,255,0.5)'; }
+    var rfRel = document.getElementById('nov-rf-relevantes');
+    if (rfRel) { rfRel.style.background='rgba(245,158,11,0.07)'; rfRel.style.borderColor='rgba(245,158,11,0.3)'; rfRel.style.color='#fbbf24'; rfRel.style.boxShadow='none'; }
+    var rfUrg = document.getElementById('nov-rf-urgentes');
+    if (rfUrg) { rfUrg.style.background='rgba(239,68,68,0.07)'; rfUrg.style.borderColor='rgba(239,68,68,0.3)'; rfUrg.style.color='#f87171'; rfUrg.style.boxShadow='none'; }
   }
+  loadNovedades();
+}
+
+function novRelevanciaFiltrar(filtro) {
+  CUR_NOV_RELEV = filtro;
+  // Actualizar estilos de los 3 botones
+  var cfg = {
+    'todas':      { id: 'nov-rf-todas',      bg: 'rgba(124,176,255,0.18)', border: 'rgba(124,176,255,0.5)', color: 'var(--text)' },
+    'relevantes': { id: 'nov-rf-relevantes', bg: 'rgba(245,158,11,0.18)',  border: 'rgba(245,158,11,0.6)', color: '#fbbf24' },
+    'urgentes':   { id: 'nov-rf-urgentes',   bg: 'rgba(239,68,68,0.18)',   border: 'rgba(239,68,68,0.6)',  color: '#f87171' }
+  };
+  ['todas','relevantes','urgentes'].forEach(function(k) {
+    var btn = document.getElementById('nov-rf-' + k);
+    if (!btn) return;
+    if (k === filtro) {
+      btn.style.background   = cfg[k].bg;
+      btn.style.borderColor  = cfg[k].border;
+      btn.style.color        = cfg[k].color;
+      btn.style.boxShadow    = '0 0 0 2px ' + cfg[k].border;
+    } else {
+      // resetear al estilo apagado
+      if (k === 'todas')      { btn.style.background='rgba(124,176,255,0.1)'; btn.style.borderColor='var(--border2)'; btn.style.color='var(--text2)'; btn.style.boxShadow='none'; }
+      if (k === 'relevantes') { btn.style.background='rgba(245,158,11,0.07)'; btn.style.borderColor='rgba(245,158,11,0.3)'; btn.style.color='#fbbf24'; btn.style.boxShadow='none'; }
+      if (k === 'urgentes')   { btn.style.background='rgba(239,68,68,0.07)';  btn.style.borderColor='rgba(239,68,68,0.3)';  btn.style.color='#f87171'; btn.style.boxShadow='none'; }
+    }
+  });
+  NOV_PAGE = 0;
+  NOV_CACHE = [];
   loadNovedades();
 }
 // ─── NOVEDAD HELPERS ───
@@ -17035,7 +17135,7 @@ function _saveNov() {
             texto_informe: ($('n-texto-informe') && $('n-texto-informe').value.trim()) ? $('n-texto-informe').value.trim() : null,
             nro_pd: ($('n-nro-pd') && $('n-nro-pd').value) ? parseInt($('n-nro-pd').value) : null,
             nro_pu: ($('n-nro-pu') && $('n-nro-pu').value) ? parseInt($('n-nro-pu').value) : null,
-            relevancia: 'Normal',
+            relevancia: (function() { var el = document.getElementById('n-relev'); return (el && el.value && el.value !== '') ? el.value : 'Normal'; })(),
             area: ($('n-area') && $('n-area').value) ? $('n-area').value : null,
             pendiente: pend,
             caso: null,
@@ -17123,6 +17223,40 @@ $('n-pend').addEventListener('change', function () {
   
 });
 
+// ── Clasificación de relevancia (3 niveles) ──
+function setRelevancia(valor) {
+  var inp = document.getElementById('n-relev');
+  if (inp) inp.value = valor;
+  var ids = ['Normal', 'Alta', 'Urgente'];
+  ids.forEach(function(v) {
+    var btn = document.getElementById('relev-btn-' + v);
+    if (!btn) return;
+    var activo = (v === valor);
+    if (v === 'Normal') {
+      btn.style.background = activo ? 'rgba(124,176,255,0.22)' : 'rgba(124,176,255,0.06)';
+      btn.style.borderColor = activo ? 'rgba(124,176,255,0.6)' : 'rgba(124,176,255,0.18)';
+      btn.style.boxShadow = activo ? '0 0 0 2px rgba(124,176,255,0.25)' : 'none';
+    } else if (v === 'Alta') {
+      btn.style.background = activo ? 'rgba(245,158,11,0.18)' : 'rgba(245,158,11,0.06)';
+      btn.style.borderColor = activo ? 'rgba(245,158,11,0.7)' : 'rgba(245,158,11,0.2)';
+      btn.style.boxShadow = activo ? '0 0 0 2px rgba(245,158,11,0.25)' : 'none';
+    } else {
+      btn.style.background = activo ? 'rgba(239,68,68,0.18)' : 'rgba(239,68,68,0.06)';
+      btn.style.borderColor = activo ? 'rgba(239,68,68,0.7)' : 'rgba(239,68,68,0.2)';
+      btn.style.boxShadow = activo ? '0 0 0 2px rgba(239,68,68,0.25)' : 'none';
+    }
+  });
+  // Sincronizar: si eligen Urgente activan el toggle de comunicación inmediata
+  if (valor === 'Urgente') {
+    var urgInp = document.getElementById('n-urgente');
+    if (urgInp && urgInp.value !== '1') toggleUrgente();
+  } else {
+    // Si bajan la relevancia, desactivar urgente
+    var urgInp2 = document.getElementById('n-urgente');
+    if (urgInp2 && urgInp2.value === '1') toggleUrgente();
+  }
+}
+
 // ── Toggle botón comunicación inmediata ──
 function toggleUrgente() {
   var inp = document.getElementById('n-urgente');
@@ -17138,6 +17272,18 @@ function toggleUrgente() {
     btn.style.color = '#fca5a5';
     if (icon) { icon.textContent = '🚨'; icon.style.transform = 'scale(1.2)'; }
     if (badge) badge.style.display = 'inline-block';
+    // Sincronizar relevancia hacia arriba
+    var rInp = document.getElementById('n-relev');
+    if (rInp && rInp.value !== 'Urgente') {
+      if (rInp) rInp.value = 'Urgente';
+      ['Normal','Alta','Urgente'].forEach(function(v) {
+        var b = document.getElementById('relev-btn-' + v);
+        if (!b) return;
+        if (v === 'Urgente') { b.style.background='rgba(239,68,68,0.18)'; b.style.borderColor='rgba(239,68,68,0.7)'; b.style.boxShadow='0 0 0 2px rgba(239,68,68,0.25)'; }
+        else if (v === 'Alta') { b.style.background='rgba(245,158,11,0.06)'; b.style.borderColor='rgba(245,158,11,0.2)'; b.style.boxShadow='none'; }
+        else { b.style.background='rgba(124,176,255,0.06)'; b.style.borderColor='rgba(124,176,255,0.18)'; b.style.boxShadow='none'; }
+      });
+    }
   } else {
     btn.style.background = 'rgba(239,68,68,.06)';
     btn.style.borderColor = 'rgba(239,68,68,.25)';
@@ -17156,6 +17302,8 @@ function resetUrgenteBtn() {
   if (btn) { btn.style.background = 'rgba(239,68,68,.06)'; btn.style.borderColor = 'rgba(239,68,68,.25)'; btn.style.color = 'var(--text3)'; }
   if (icon) { icon.textContent = '🔔'; icon.style.transform = 'scale(1)'; }
   if (badge) badge.style.display = 'none';
+  // Resetear también el selector visual
+  setRelevancia('Normal');
 }
 
 // ─── CONTROL DE OBJETIVO — COMPLETO ───
@@ -21370,6 +21518,95 @@ function _solicitarPermisoNotif() {
   }));
   return _solicitarPermisoNotif.apply(this, arguments);
 }
+// ── DIGEST POST-LOGIN — novedades relevantes desde última apertura ──
+function cerrarDigest(irANovedades) {
+  var ov = document.getElementById('ov-digest');
+  if (ov) ov.style.display = 'none';
+  if (irANovedades) {
+    // Navegar a novedades y activar filtro de relevancia
+    if (typeof goView === 'function') goView('novedades');
+    setTimeout(function() {
+      if (typeof novRelevanciaFiltrar === 'function') novRelevanciaFiltrar('relevantes');
+    }, 300);
+  }
+}
+
+// Guarda el timestamp de apertura ANTES de mostrarlo, para que la
+// próxima apertura compare desde ahora
+function registrarAperturaApp(puesto) {
+  if (!puesto) return;
+  var DIGEST_ROLES = ['Gerencia','PC','Administrador','Administración','Responsable de turno','Jefe de departamento'];
+  if (DIGEST_ROLES.indexOf(puesto) < 0 && (!window.USER || window.USER.rol !== 'ADMIN')) return;
+  try {
+    var key = 'ivc_last_open_' + puesto;
+    var prev = localStorage.getItem(key);
+    // Guardar timestamp actual como "esta apertura"
+    localStorage.setItem(key, new Date().toISOString());
+    // Devolver el timestamp ANTERIOR para que el digest lo use
+    return prev;
+  } catch(e) { return null; }
+}
+
+function mostrarDigestLogin(puesto, desdeFecha) {
+  if (!window.db || !desdeFecha) return;
+  db.from('novedades')
+    .select('id,created_at,tipo,asunto,relevancia,detalle,ubicacion,puesto,cargado_por,fotos,nro_pd,nro_pu')
+    .in('relevancia', ['Alta', 'Urgente'])
+    .gt('created_at', desdeFecha)
+    .order('created_at', { ascending: false })
+    .limit(30)
+    .then(function(r) {
+      if (r.error || !r.data || !r.data.length) return;
+      var novedades = r.data;
+      var ov = document.getElementById('ov-digest');
+      var list = document.getElementById('digest-list');
+      var sub = document.getElementById('digest-sub');
+      if (!ov || !list) return;
+      var diffMs = Date.now() - new Date(desdeFecha).getTime();
+      var diffH = Math.round(diffMs / 3600000);
+      var diffLabel = diffH < 1 ? 'hace menos de 1 hora'
+        : diffH < 24 ? 'hace ' + diffH + ' h'
+        : 'hace ' + Math.round(diffH / 24) + ' día(s)';
+      if (sub) sub.textContent = novedades.length + ' novedad(es) importante(s) — última vez que abriste: ' + diffLabel;
+      list.innerHTML = novedades.map(function(n) {
+        var isUrg = n.relevancia === 'Urgente';
+        var borderClr = isUrg ? 'rgba(239,68,68,0.5)' : 'rgba(245,158,11,0.4)';
+        var bgClr = isUrg ? 'rgba(239,68,68,0.07)' : 'rgba(245,158,11,0.06)';
+        var badge = isUrg
+          ? '<span style="background:rgba(239,68,68,.2);color:#fca5a5;border:1px solid rgba(239,68,68,.4);border-radius:6px;padding:2px 8px;font-size:10px;font-weight:800">🚨 URGENTE</span>'
+          : '<span style="background:rgba(245,158,11,.15);color:#fbbf24;border:1px solid rgba(245,158,11,.35);border-radius:6px;padding:2px 8px;font-size:10px;font-weight:800">⚠️ IMPORTANTE</span>';
+        var fecha = new Date(n.created_at);
+        var horaStr = fecha.toLocaleDateString('es-AR', {day:'2-digit',month:'2-digit'})
+          + ' ' + fecha.toLocaleTimeString('es-AR', {hour:'2-digit',minute:'2-digit'});
+        var titulo = n.asunto || n.tipo || 'Novedad';
+        var fotos = (n.fotos && n.fotos.length)
+          ? '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">'
+            + n.fotos.slice(0,3).map(function(url) {
+                return '<img src="' + url + '" style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:1px solid var(--border2)" loading="lazy">';
+              }).join('') + '</div>'
+          : '';
+        var pdpu = (n.nro_pd || n.nro_pu)
+          ? '<div style="font-size:10px;color:var(--accent3);margin-top:4px;font-family:var(--mono)">'
+            + (n.nro_pd ? 'PD #' + n.nro_pd : '')
+            + (n.nro_pd && n.nro_pu ? ' · ' : '')
+            + (n.nro_pu ? 'PU #' + n.nro_pu : '')
+            + '</div>'
+          : '';
+        return '<div style="background:' + bgClr + ';border:1px solid ' + borderClr + ';border-radius:12px;padding:14px 14px 12px">'
+          + '<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px">'
+          + badge
+          + '<span style="font-size:10px;color:var(--text3);white-space:nowrap">' + horaStr + '</span>'
+          + '</div>'
+          + '<div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px">' + titulo + '</div>'
+          + '<div style="font-size:12px;color:var(--text3)">📍 ' + (n.ubicacion || 'Sin ubicación') + ' — ' + (n.puesto || '') + '</div>'
+          + (n.detalle ? '<div style="font-size:12px;color:var(--text2);margin-top:6px;line-height:1.5">' + n.detalle + '</div>' : '')
+          + pdpu + fotos
+          + '</div>';
+      }).join('');
+      ov.style.display = 'flex';
+    });
+}
+
 function mostrarBannerAlerta(titulo, mensaje, relevancia) {
   var isUrgente = relevancia === 'Urgente';
   var banner = document.getElementById('alerta-banner');
@@ -22196,6 +22433,20 @@ if ('serviceWorker' in navigator) {
         setTimeout(function() {
           if (!window._camaraAbierta) reg.update().catch(function() {});
         }, 30000);
+        // Digest: si lleva más de 2 horas en background, mostrar novedades al volver
+        if (window.USER && window.USER.puesto) {
+          var _ahoraVuelve = Date.now();
+          setTimeout(function() {
+            if (!window.USER || !window.USER.puesto) return;
+            var MIN_AUSENCIA_MS = 2 * 60 * 60 * 1000; // 2 horas
+            if (_ahoraVuelve - (window._ultimoVisible || 0) < MIN_AUSENCIA_MS) return;
+            var _prev = registrarAperturaApp(window.USER.puesto);
+            if (_prev) mostrarDigestLogin(window.USER.puesto, _prev);
+          }, 1000);
+        }
+      } else {
+        // Al ir a background, guardar el momento exacto
+        window._ultimoVisible = Date.now();
       }
     });
     // Subscribe to push server if permission granted
@@ -24276,6 +24527,11 @@ setTimeout(function () {
       $('tp-puesto').textContent = session.puesto;
       $('sb-puesto') && ($('sb-puesto').textContent = session.puesto);
       initApp();
+      // Digest al reabrir la app sin login
+      (function() {
+        var _prev = registrarAperturaApp(session.puesto);
+        if (_prev) setTimeout(function() { mostrarDigestLogin(session.puesto, _prev); }, 1500);
+      })();
     } else {
       // Verificar si hay sesión recordada
       var remembered = null;
@@ -24295,6 +24551,11 @@ setTimeout(function () {
             $('sb-puesto') && ($('sb-puesto').textContent = puestoR);
             saveSession();
             initApp();
+            // Digest al reabrir la app sin login
+            (function() {
+              var _prev = registrarAperturaApp(puestoR);
+              if (_prev) setTimeout(function() { mostrarDigestLogin(puestoR, _prev); }, 1500);
+            })();
             setTimeout(function() {
               toast('&#x1F44B; Bienvenido/a, ' + puestoR);
             }, 800);
