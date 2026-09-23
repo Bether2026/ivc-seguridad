@@ -23375,16 +23375,17 @@ function gpGuardar() {
         // Actualizar parte_id + número visible en los registros de origen
         var nroDisplay = GP_STATE.nro + '/' + GP_STATE.anio;
         var _gpRelev = (document.getElementById('gp-relev') || {}).value || 'Normal';
-        var updOrigen = { parte_id: parteId, relevancia: _gpRelev };
-        if (tipo === 'PD') { updOrigen.nro_pd = nroDisplay; updOrigen.nro_pu = null; }
-        else               { updOrigen.nro_pu = nroDisplay; updOrigen.nro_pd = null; }
+        var updOrigen    = { parte_id: parteId, relevancia: _gpRelev };
+        var updOrigenObj = { parte_id: parteId };
+        if (tipo === 'PD') { updOrigen.nro_pd = nroDisplay; updOrigen.nro_pu = null; updOrigenObj.nro_pd = nroDisplay; updOrigenObj.nro_pu = null; }
+        else               { updOrigen.nro_pu = nroDisplay; updOrigen.nro_pd = null; updOrigenObj.nro_pu = nroDisplay; updOrigenObj.nro_pd = null; }
 
         var promises = [];
         novIds.forEach(function(nid) {
           promises.push(db.from('novedades').update(updOrigen).eq('id', nid));
         });
         objIds.forEach(function(oid) {
-          promises.push(db.from('objetivos').update(updOrigen).eq('id', oid));
+          promises.push(db.from('objetivos').update(updOrigenObj).eq('id', oid));
         });
         if (GP_STATE.origen === 'inventario' && GP_STATE.origenId) {
           promises.push(db.from('inventario').update({ parte_id: parteId }).eq('id', GP_STATE.origenId));
