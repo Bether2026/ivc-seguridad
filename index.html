@@ -8197,7 +8197,19 @@ function renderNovCard(n) {
   // badges relevancia y actualizada — sin badge de tipo
   h += '<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px">';
   if (n.relevancia === 'Urgente') h += '<span class="badge b-red">URGENTE</span>';
-  if (n.relevancia === 'Alta') h += '<span class="badge b-yellow">ALTA</span>';
+  else if (n.relevancia === 'Alta') h += '<span class="badge b-yellow">ALTA</span>';
+  else {
+    // Para roles de supervisión: mostrar estado de clasificación (Normal o sin clasificar)
+    var ROLES_SUP = ['Gerencia','PC','Administrador','Administración','Responsable de turno','Jefe de departamento'];
+    if (USER && (ROLES_SUP.indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN')) {
+      var tienePDPU = n.nro_pd || n.nro_pu;
+      if (!tienePDPU) {
+        h += '<span class="badge" style="background:rgba(100,116,139,0.15);color:#94a3b8;border:1px solid rgba(100,116,139,0.25)">Sin clasificar</span>';
+      } else {
+        h += '<span class="badge" style="background:rgba(100,116,139,0.1);color:#94a3b8;border:1px solid rgba(100,116,139,0.2)">Normal</span>';
+      }
+    }
+  }
   if (n.actualizaciones && n.actualizaciones.length) {
     h += '<span class="badge" style="background:rgba(5,150,105,0.2);color:#34d399;border:1px solid rgba(5,150,105,0.3)">&#128260; ACTUALIZADA</span>';
     var noLeidas = getNoLeidas(n.id, n.actualizaciones.length);
@@ -23674,6 +23686,26 @@ function _gpRenderDetalle(p) {
 
   var h = '';
 
+  // Badge de clasificación (si las novedades vinculadas tienen relevancia)
+  if (PARTE_ACTUAL && PARTE_ACTUAL.novedad_ids && PARTE_ACTUAL.novedad_ids.length && window.db) {
+    db.from('novedades').select('relevancia').in('id', PARTE_ACTUAL.novedad_ids)
+      .then(function(r) {
+        if (!r.data || !r.data.length) return;
+        var relevMax = r.data.reduce(function(max, n) {
+          if (n.relevancia === 'Urgente') return 'Urgente';
+          if (n.relevancia === 'Alta' && max !== 'Urgente') return 'Alta';
+          return max;
+        }, 'Normal');
+        if (relevMax === 'Normal') return;
+        var badge = relevMax === 'Urgente'
+          ? '<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(239,68,68,.15);color:#fca5a5;border:1px solid rgba(239,68,68,.4);border-radius:6px;padding:3px 10px;font-size:11px;font-weight:800">🚨 URGENTE</span>'
+          : '<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(245,158,11,.15);color:#fbbf24;border:1px solid rgba(245,158,11,.35);border-radius:6px;padding:3px 10px;font-size:11px;font-weight:800">⚠️ IMPORTANTE</span>';
+        var body = document.getElementById('pd-detalle-body-nuevo');
+        if (body) body.insertAdjacentHTML('afterbegin',
+          '<div style="margin-bottom:12px">' + badge + '</div>');
+      });
+  }
+
   // Header info
   h += '<div style="background:var(--bg3);border-radius:10px;padding:12px 14px;margin-bottom:14px;display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px">';
   h += '<div><span style="color:var(--text3)">Fecha</span><br><strong>' + fechaStr + (p.hora ? ' ' + p.hora : '') + '</strong></div>';
@@ -23820,6 +23852,20 @@ function gpEditarParteActual() {
 
   _gpCargarPersonal();
   _gpRenderTextosOriginales();
+
+  // Pre-cargar clasificación actual del parte
+  if (typeof gpSetRelevancia === 'function') {
+    // Buscar la relevancia en las novedades vinculadas o usar Normal como default
+    var relevActual = 'Normal';
+    if (PARTE_ACTUAL.novedad_ids && PARTE_ACTUAL.novedad_ids.length && window.db) {
+      db.from('novedades').select('relevancia').eq('id', PARTE_ACTUAL.novedad_ids[0]).single()
+        .then(function(r) {
+          if (r.data && r.data.relevancia) gpSetRelevancia(r.data.relevancia);
+        });
+    } else {
+      gpSetRelevancia(relevActual);
+    }
+  }
 
   setTimeout(function() {
     var selResp = document.getElementById('gp-responsable');
