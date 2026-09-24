@@ -1120,7 +1120,8 @@ body::after { display: none; }
   .sidebar-logo-text strong { font-size: 16px; font-weight: 800; display: block; letter-spacing: -.02em; }
   .sidebar-logo-text span { font-size: 11.5px; color: var(--text3); font-weight: 500; display: block; }
   .sidebar-dsg { font-style: normal; font-size: 9px; font-weight: 700; letter-spacing: .08em; background: rgba(124,176,255,.12); border: 1px solid rgba(124,176,255,.28); color: var(--accent3); border-radius: 4px; padding: 1px 5px; vertical-align: middle; }
-  .sidebar-nav { flex: 1; display: flex; flex-direction: column; gap: 3px; }
+  .sidebar-nav { flex: 1; display: flex; flex-direction: column; gap: 3px; overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch; scrollbar-width: none; }
+  .sidebar-nav::-webkit-scrollbar { display: none; }
   .sidebar-item {
     display: flex; align-items: center; gap: 12px;
     padding: 12px 14px;
