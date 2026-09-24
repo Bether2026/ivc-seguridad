@@ -16913,6 +16913,12 @@ function cargarMasNovedades() {
 }
 
 function loadNovedades() {
+  // Mostrar filtros de relevancia para roles con acceso, independientemente del tab
+  var CAN_SEE_RF = ['Gerencia','PC','Administrador','Administración','Responsable de turno','Jefe de departamento'];
+  var relevFiltros = document.getElementById('nov-relev-filtros');
+  if (relevFiltros && window.USER && (CAN_SEE_RF.indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN')) {
+    if (CUR_NOV_TAB !== 'historial') relevFiltros.style.display = 'flex';
+  }
   return _loadNovedades.apply(this, arguments);
 }
 function _loadNovedades() {
