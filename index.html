@@ -8186,7 +8186,7 @@ function renderNovedadesAgrupadas(list) {
 }
 function renderNovCard(n) {
   var bc = TIPO_BADGE[n.tipo] || 'b-gray';
-  var borderColor = n.relevancia === 'Urgente' ? 'var(--red)' : n.relevancia === 'Alta' ? 'var(--yellow)' : 'var(--border)';
+  var borderColor = n.relevancia === 'Urgente' ? 'var(--red)' : n.relevancia === 'Alta' ? 'var(--yellow)' : 'var(--green)';
   var hora = formatTs(n.created_at);
   var ubic = n.ubicacion || n.puesto || '';
   var h = '<div style="background:var(--bg2);border:1px solid var(--border);border-left:3px solid ' + borderColor + ';border-radius:10px;margin-bottom:8px;overflow:hidden">';
