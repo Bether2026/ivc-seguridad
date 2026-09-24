@@ -8241,11 +8241,32 @@ function renderNovCard(n) {
 
   // Informe administrativo — solo lectura para roles de gestión
   var ROLES_INFORME = ['Gerencia','PC','Administrador','Administración','Responsable de turno','Jefe de departamento','Programación'];
-  if (n.texto_informe && USER && (ROLES_INFORME.indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN')) {
-    h += '<div style="background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.2);border-radius:8px;padding:10px 12px;margin-bottom:10px">';
-    h += '<div style="font-size:10px;font-weight:700;color:var(--accent3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">📋 Informe administrativo</div>';
-    h += '<div style="font-size:12px;color:var(--text2);line-height:1.7;white-space:pre-wrap">' + n.texto_informe + '</div>';
-    h += '</div>';
+  if (USER && (ROLES_INFORME.indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN')) {
+    var contenedorInforme = 'inf-' + n.id;
+    h += '<div id="' + contenedorInforme + '" style="margin-bottom:10px"></div>';
+    // Se carga después del innerHTML via JS
+    if (n.texto_informe) {
+      // Tiene texto_informe directo en la novedad
+      setTimeout(function() {
+        var el = document.getElementById(contenedorInforme);
+        if (!el) return;
+        el.innerHTML = '<div style="background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.2);border-radius:8px;padding:10px 12px">'
+          + '<div style="font-size:10px;font-weight:700;color:var(--accent3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">📋 Informe administrativo</div>'
+          + '<div style="font-size:12px;color:var(--text2);line-height:1.7;white-space:pre-wrap">' + n.texto_informe + '</div></div>';
+      }, 0);
+    } else if (n.parte_id && window.db) {
+      // Buscar texto_admin en partes_diarios
+      setTimeout(function() {
+        db.from('partes_diarios').select('texto_admin,tipo,nro_pd,anio').eq('id', n.parte_id).single()
+          .then(function(r) {
+            var el = document.getElementById(contenedorInforme);
+            if (!el || !r.data || !r.data.texto_admin) return;
+            el.innerHTML = '<div style="background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.2);border-radius:8px;padding:10px 12px">'
+              + '<div style="font-size:10px;font-weight:700;color:var(--accent3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">📋 Informe administrativo</div>'
+              + '<div style="font-size:12px;color:var(--text2);line-height:1.7;white-space:pre-wrap">' + r.data.texto_admin + '</div></div>';
+          });
+      }, 0);
+    }
   }
 
   // Info adicional
@@ -16902,7 +16923,7 @@ function cargarMasNovedades() {
   NOV_PAGE++;
   var f = filtro();
   var desde = NOV_PAGE * NOV_LIMIT;
-  var q = db.from('novedades').select('id,created_at,tipo,relevancia,asunto,detalle,puesto,cargado_por,caso,area,fotos,ubicacion,nro_pd,nro_pu,pendiente,solo_admin,fuerza_publica').order('created_at', { ascending: false }).range(desde, desde + NOV_LIMIT - 1);
+  var q = db.from('novedades').select('id,created_at,tipo,relevancia,asunto,detalle,puesto,cargado_por,caso,area,fotos,ubicacion,nro_pd,nro_pu,pendiente,solo_admin,fuerza_publica,texto_informe,parte_id').order('created_at', { ascending: false }).range(desde, desde + NOV_LIMIT - 1);
   if (f) q = q.eq('puesto', f);
   if (CUR_NOV_TAB === 'pendientes') q = q.eq('pendiente', true);
   if (CUR_NOV_RELEV === 'urgentes')   q = q.eq('relevancia', 'Urgente');
@@ -16940,7 +16961,7 @@ function _loadNovedades() {
           if (el) el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3)">Cargando...</div>';
           f = filtro();
           NOV_PAGE = 0;
-          q = db.from('novedades').select('id,created_at,tipo,relevancia,asunto,detalle,puesto,cargado_por,caso,area,fotos,ubicacion,nro_pd,nro_pu,pendiente,solo_admin,fuerza_publica,texto_informe').order('created_at', {
+          q = db.from('novedades').select('id,created_at,tipo,relevancia,asunto,detalle,puesto,cargado_por,caso,area,fotos,ubicacion,nro_pd,nro_pu,pendiente,solo_admin,fuerza_publica,texto_informe,parte_id').order('created_at', {
             ascending: false
           }).range(0, NOV_LIMIT - 1);
           if (f) q = q.eq('puesto', f);
