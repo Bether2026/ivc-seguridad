@@ -8239,6 +8239,15 @@ function renderNovCard(n) {
     h += '<div style="font-size:13px;color:var(--text2);line-height:1.7;margin-bottom:10px">' + n.detalle + '</div>';
   }
 
+  // Informe administrativo — solo lectura para roles de gestión
+  var ROLES_INFORME = ['Gerencia','PC','Administrador','Administración','Responsable de turno','Jefe de departamento','Programación'];
+  if (n.texto_informe && USER && (ROLES_INFORME.indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN')) {
+    h += '<div style="background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.2);border-radius:8px;padding:10px 12px;margin-bottom:10px">';
+    h += '<div style="font-size:10px;font-weight:700;color:var(--accent3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">📋 Informe administrativo</div>';
+    h += '<div style="font-size:12px;color:var(--text2);line-height:1.7;white-space:pre-wrap">' + n.texto_informe + '</div>';
+    h += '</div>';
+  }
+
   // Info adicional
   h += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">';
   if (n.puesto) h += '<span class="badge b-gray">' + n.puesto + '</span>';
@@ -16931,7 +16940,7 @@ function _loadNovedades() {
           if (el) el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3)">Cargando...</div>';
           f = filtro();
           NOV_PAGE = 0;
-          q = db.from('novedades').select('id,created_at,tipo,relevancia,asunto,detalle,puesto,cargado_por,caso,area,fotos,ubicacion,nro_pd,nro_pu,pendiente,solo_admin,fuerza_publica').order('created_at', {
+          q = db.from('novedades').select('id,created_at,tipo,relevancia,asunto,detalle,puesto,cargado_por,caso,area,fotos,ubicacion,nro_pd,nro_pu,pendiente,solo_admin,fuerza_publica,texto_informe').order('created_at', {
             ascending: false
           }).range(0, NOV_LIMIT - 1);
           if (f) q = q.eq('puesto', f);
