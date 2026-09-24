@@ -23436,9 +23436,14 @@ function gpGuardar() {
         else               { updOrigen.nro_pu = nroDisplay; updOrigen.nro_pd = null; updOrigenObj.nro_pu = nroDisplay; updOrigenObj.nro_pd = null; }
 
         var promises = [];
-        novIds.forEach(function(nid) {
-          promises.push(db.from('novedades').update(updOrigen).eq('id', nid));
-        });
+        if (novIds.length) {
+          novIds.forEach(function(nid) {
+            promises.push(db.from('novedades').update(updOrigen).eq('id', nid));
+          });
+        } else {
+          // Fallback: actualizar todas las novedades vinculadas por parte_id
+          promises.push(db.from('novedades').update({ relevancia: _gpRelev }).eq('parte_id', parteId));
+        }
         objIds.forEach(function(oid) {
           promises.push(db.from('objetivos').update(updOrigenObj).eq('id', oid));
         });
