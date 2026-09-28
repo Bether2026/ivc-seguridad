@@ -35049,6 +35049,12 @@ window.clima_cargarPanel = function() {
   var puedeExportClima = window.USER && (['Gerencia', 'PC', 'Administrador'].indexOf(USER.puesto) >= 0 || USER.rol === 'ADMIN');
   var btnExportClima = document.getElementById('clima-export-btn');
   if (btnExportClima) btnExportClima.style.display = puedeExportClima ? '' : 'none';
+  // Exportar PDF y Descargar HTML — solo Gerencia y Administración de sistema
+  var puedeExportPdfHtml = window.USER && (USER.puesto === 'Gerencia' || USER.rol === 'ADMIN');
+  var btnExportPdf  = document.getElementById('clima-export-pdf-btn');
+  var btnExportHtml = document.getElementById('clima-export-html-btn');
+  if (btnExportPdf)  btnExportPdf.style.display  = puedeExportPdfHtml ? '' : 'none';
+  if (btnExportHtml) btnExportHtml.style.display = puedeExportPdfHtml ? '' : 'none';
   var tabAlertas  = document.getElementById('cctrl-tab-alertas');
   var tabAudit    = document.getElementById('cctrl-tab-audit');
   var btnNueva    = document.querySelector('#view-clima-ctrl button[onclick="clima_abrirModal()"]');
