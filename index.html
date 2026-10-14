@@ -29146,7 +29146,7 @@ var RBRB_TIPOS_LISTA = [
   'Otro'
 ];
 
-var TIPOS_DESC = {
+window.TIPOS_DESC = {
   'Comercio': 'Locales o actividades comerciales permanentes o dentro de un inmueble (kioscos, peluquerías, herrerías, remiserías, tatuajes, gimnasios, comedores comerciales, etc.).',
   'Puesto en vía pública': 'Venta informal, puestos ambulantes, estructuras portátiles instaladas sobre la vereda o calle (carritos, mesas, etc.).',
   'Taller clandestino': 'Establecimientos de producción, confección o reparación no habilitados (talleres textiles, mecánicos o industriales clandestinos).',
@@ -29183,8 +29183,8 @@ window.rbrb_renderTipoSel = function rbrb_renderTipoSel() {
   var descEl = document.getElementById('rbrb-tipo-desc');
   if (descEl) {
     var lastSel = RBRB_TIPOS_SEL[RBRB_TIPOS_SEL.length - 1];
-    if (lastSel && TIPOS_DESC[lastSel]) {
-      descEl.textContent = TIPOS_DESC[lastSel];
+    if (lastSel && window.TIPOS_DESC && window.TIPOS_DESC[lastSel]) {
+      descEl.textContent = window.TIPOS_DESC[lastSel];
       descEl.style.display = 'block';
     } else {
       descEl.style.display = 'none';
@@ -31194,8 +31194,8 @@ window.frfr_renderTipoSel = function frfr_renderTipoSel() {
   var descEl = document.getElementById('frfr-tipo-desc');
   if (descEl) {
     var lastSel = FRFR_TIPOS_SEL[FRFR_TIPOS_SEL.length - 1];
-    if (lastSel && TIPOS_DESC[lastSel]) {
-      descEl.textContent = TIPOS_DESC[lastSel];
+    if (lastSel && window.TIPOS_DESC && window.TIPOS_DESC[lastSel]) {
+      descEl.textContent = window.TIPOS_DESC[lastSel];
       descEl.style.display = 'block';
     } else {
       descEl.style.display = 'none';
@@ -32766,8 +32766,8 @@ window.pfpf_renderTipoSel = function pfpf_renderTipoSel() {
   var descEl = document.getElementById('pfpf-tipo-desc');
   if (descEl) {
     var lastSel = PFPF_TIPOS_SEL[PFPF_TIPOS_SEL.length - 1];
-    if (lastSel && TIPOS_DESC[lastSel]) {
-      descEl.textContent = TIPOS_DESC[lastSel];
+    if (lastSel && window.TIPOS_DESC && window.TIPOS_DESC[lastSel]) {
+      descEl.textContent = window.TIPOS_DESC[lastSel];
       descEl.style.display = 'block';
     } else {
       descEl.style.display = 'none';
