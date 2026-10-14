@@ -28963,14 +28963,14 @@ var RBRB_COLORES = {
   'Comercio': '#f59e0b',
   'Puesto en vía pública': '#a855f7',
   'Construcción que invade línea municipal': '#ef4444',
-  'Taller clandestino': '#f97316',
+  'Taller clandestino': '#dc2626',
   'Ampliación sin protocolo': '#ec4899',
   'Ocupación espacio común': '#06b6d4',
-  'Vehículos abandonados': '#22d3ee',
+  'Vehículos abandonados': '#84cc16',
   'Organizaciones Sociales': '#10b981',
-  'Comunitarias y Comedores': '#f59e42',
-  'Espacios Religiosos y Políticos': '#818cf8',
-  'Infraestructura y Residuos Urbanos': '#64748b',
+  'Comunitarias y Comedores': '#f97316',
+  'Espacios Religiosos y Políticos': '#6366f1',
+  'Infraestructura y Residuos Urbanos': '#0ea5e9',
   'Otro': '#94a3b8'
 };
 
@@ -30377,25 +30377,29 @@ function rbrb_actualizarMapa() {
     // Multi-tipo: split tipo por ' + ' y hacer icono partido
     var _tipos = ((r&&r.tipo)||'').split(' + ').map(function(t){return t.trim();}).filter(Boolean);
     var _iconHtml;
+    var _uid = 'rb' + (r.id || Math.random().toString(36).slice(2,7));
     if (_tipos.length >= 2) {
       var c1 = rbrb_colorDe(_tipos[0]), c2 = rbrb_colorDe(_tipos[1]);
-      _iconHtml = '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24">' +
-        '<defs><clipPath id="lh"><rect x="0" y="0" width="12" height="24"/></clipPath>' +
-        '<clipPath id="rh"><rect x="12" y="0" width="12" height="24"/></clipPath></defs>' +
-        '<circle cx="12" cy="12" r="11" fill="'+c1+'" clip-path="url(#lh)"/>' +
-        '<circle cx="12" cy="12" r="11" fill="'+c2+'" clip-path="url(#rh)"/>' +
-        '<circle cx="12" cy="12" r="11" fill="none" stroke="#fff" stroke-width="1.5"/>' +
+      _iconHtml = '<svg xmlns="http://www.w3.org/2000/svg" width="26" height="32" viewBox="0 0 24 30" style="filter:drop-shadow(0 2px 3px rgba(0,0,0,.5))">' +
+        '<defs>' +
+        '<clipPath id="lhc_'+_uid+'"><rect x="0" y="0" width="12" height="30"/></clipPath>' +
+        '<clipPath id="rhc_'+_uid+'"><rect x="12" y="0" width="12" height="30"/></clipPath>' +
+        '</defs>' +
+        '<path d="M12 0C5.4 0 0 5.4 0 12c0 7.2 12 18 12 18S24 19.2 24 12C24 5.4 18.6 0 12 0z" fill="'+c1+'" clip-path="url(#lhc_'+_uid+')"/>' +
+        '<path d="M12 0C5.4 0 0 5.4 0 12c0 7.2 12 18 12 18S24 19.2 24 12C24 5.4 18.6 0 12 0z" fill="'+c2+'" clip-path="url(#rhc_'+_uid+')"/>' +
+        '<path d="M12 0C5.4 0 0 5.4 0 12c0 7.2 12 18 12 18S24 19.2 24 12C24 5.4 18.6 0 12 0z" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1"/>' +
         '</svg>';
     } else {
       var _p = (RBRB_ICONOS[_tipoKey]||RBRB_ICONOS['Otro']).replace(/COLOR/g, '#fff');
-      _iconHtml = '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" style="filter:drop-shadow(0 2px 4px rgba(0,0,0,.6))">' +
-        '<circle cx="12" cy="12" r="12" fill="'+c+'"/>' +
-        _p +
+      _iconHtml = '<svg xmlns="http://www.w3.org/2000/svg" width="26" height="32" viewBox="0 0 24 30" style="filter:drop-shadow(0 2px 3px rgba(0,0,0,.5))">' +
+        '<defs><clipPath id="ic_'+_uid+'"><circle cx="12" cy="10" r="9"/></clipPath></defs>' +
+        '<path d="M12 0C5.4 0 0 5.4 0 12c0 7.2 12 18 12 18S24 19.2 24 12C24 5.4 18.6 0 12 0z" fill="'+c+'"/>' +
+        '<g clip-path="url(#ic_'+_uid+')" transform="translate(3.6,1.6) scale(0.7)">' + _p + '</g>' +
         '</svg>';
     }
     var icon = L.divIcon({
       html: _iconHtml,
-      iconSize: [28,28], iconAnchor: [14,14], className: ''
+      iconSize: [26,32], iconAnchor: [13,32], className: ''
     });
     var marker = L.marker([r.lat, r.lng], { icon: icon });
 
@@ -31037,14 +31041,14 @@ var FRFR_COLORES = {
   'Comercio': '#f59e0b',
   'Puesto en vía pública': '#a855f7',
   'Construcción que invade línea municipal': '#ef4444',
-  'Taller clandestino': '#f97316',
+  'Taller clandestino': '#dc2626',
   'Ampliación sin protocolo': '#ec4899',
   'Ocupación espacio común': '#06b6d4',
-  'Vehículos abandonados': '#22d3ee',
+  'Vehículos abandonados': '#84cc16',
   'Organizaciones Sociales': '#10b981',
-  'Comunitarias y Comedores': '#f59e42',
-  'Espacios Religiosos y Políticos': '#818cf8',
-  'Infraestructura y Residuos Urbanos': '#64748b',
+  'Comunitarias y Comedores': '#f97316',
+  'Espacios Religiosos y Políticos': '#6366f1',
+  'Infraestructura y Residuos Urbanos': '#0ea5e9',
   'Otro': '#94a3b8'
 };
 
@@ -32353,25 +32357,29 @@ function frfr_actualizarMapa() {
     // Multi-tipo: split tipo por ' + ' y hacer icono partido
     var _tipos = ((r&&r.tipo)||'').split(' + ').map(function(t){return t.trim();}).filter(Boolean);
     var _iconHtml;
+    var _uid = 'fr' + (r.id || Math.random().toString(36).slice(2,7));
     if (_tipos.length >= 2) {
       var c1 = frfr_colorDe(_tipos[0]), c2 = frfr_colorDe(_tipos[1]);
-      _iconHtml = '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24">' +
-        '<defs><clipPath id="lh"><rect x="0" y="0" width="12" height="24"/></clipPath>' +
-        '<clipPath id="rh"><rect x="12" y="0" width="12" height="24"/></clipPath></defs>' +
-        '<circle cx="12" cy="12" r="11" fill="'+c1+'" clip-path="url(#lh)"/>' +
-        '<circle cx="12" cy="12" r="11" fill="'+c2+'" clip-path="url(#rh)"/>' +
-        '<circle cx="12" cy="12" r="11" fill="none" stroke="#fff" stroke-width="1.5"/>' +
+      _iconHtml = '<svg xmlns="http://www.w3.org/2000/svg" width="26" height="32" viewBox="0 0 24 30" style="filter:drop-shadow(0 2px 3px rgba(0,0,0,.5))">' +
+        '<defs>' +
+        '<clipPath id="lhc_'+_uid+'"><rect x="0" y="0" width="12" height="30"/></clipPath>' +
+        '<clipPath id="rhc_'+_uid+'"><rect x="12" y="0" width="12" height="30"/></clipPath>' +
+        '</defs>' +
+        '<path d="M12 0C5.4 0 0 5.4 0 12c0 7.2 12 18 12 18S24 19.2 24 12C24 5.4 18.6 0 12 0z" fill="'+c1+'" clip-path="url(#lhc_'+_uid+')"/>' +
+        '<path d="M12 0C5.4 0 0 5.4 0 12c0 7.2 12 18 12 18S24 19.2 24 12C24 5.4 18.6 0 12 0z" fill="'+c2+'" clip-path="url(#rhc_'+_uid+')"/>' +
+        '<path d="M12 0C5.4 0 0 5.4 0 12c0 7.2 12 18 12 18S24 19.2 24 12C24 5.4 18.6 0 12 0z" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1"/>' +
         '</svg>';
     } else {
       var _p = (FRFR_ICONOS[_tipoKey]||FRFR_ICONOS['Otro']).replace(/COLOR/g, '#fff');
-      _iconHtml = '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" style="filter:drop-shadow(0 2px 4px rgba(0,0,0,.6))">' +
-        '<circle cx="12" cy="12" r="12" fill="'+c+'"/>' +
-        _p +
+      _iconHtml = '<svg xmlns="http://www.w3.org/2000/svg" width="26" height="32" viewBox="0 0 24 30" style="filter:drop-shadow(0 2px 3px rgba(0,0,0,.5))">' +
+        '<defs><clipPath id="ic_'+_uid+'"><circle cx="12" cy="10" r="9"/></clipPath></defs>' +
+        '<path d="M12 0C5.4 0 0 5.4 0 12c0 7.2 12 18 12 18S24 19.2 24 12C24 5.4 18.6 0 12 0z" fill="'+c+'"/>' +
+        '<g clip-path="url(#ic_'+_uid+')" transform="translate(3.6,1.6) scale(0.7)">' + _p + '</g>' +
         '</svg>';
     }
     var icon = L.divIcon({
       html: _iconHtml,
-      iconSize: [28,28], iconAnchor: [14,14], className: ''
+      iconSize: [26,32], iconAnchor: [13,32], className: ''
     });
     var marker = L.marker([r.lat, r.lng], { icon: icon });
 
@@ -32609,14 +32617,14 @@ var PFPF_COLORES = {
   'Comercio': '#f59e0b',
   'Puesto en vía pública': '#a855f7',
   'Construcción que invade línea municipal': '#ef4444',
-  'Taller clandestino': '#f97316',
+  'Taller clandestino': '#dc2626',
   'Ampliación sin protocolo': '#ec4899',
   'Ocupación espacio común': '#06b6d4',
-  'Vehículos abandonados': '#22d3ee',
+  'Vehículos abandonados': '#84cc16',
   'Organizaciones Sociales': '#10b981',
-  'Comunitarias y Comedores': '#f59e42',
-  'Espacios Religiosos y Políticos': '#818cf8',
-  'Infraestructura y Residuos Urbanos': '#64748b',
+  'Comunitarias y Comedores': '#f97316',
+  'Espacios Religiosos y Políticos': '#6366f1',
+  'Infraestructura y Residuos Urbanos': '#0ea5e9',
   'Otro': '#94a3b8'
 };
 
@@ -33951,25 +33959,29 @@ function pfpf_actualizarMapa() {
     // Multi-tipo: split tipo por ' + ' y hacer icono partido
     var _tipos = ((r&&r.tipo)||'').split(' + ').map(function(t){return t.trim();}).filter(Boolean);
     var _iconHtml;
+    var _uid = 'pf' + (r.id || Math.random().toString(36).slice(2,7));
     if (_tipos.length >= 2) {
       var c1 = pfpf_colorDe(_tipos[0]), c2 = pfpf_colorDe(_tipos[1]);
-      _iconHtml = '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24">' +
-        '<defs><clipPath id="lh"><rect x="0" y="0" width="12" height="24"/></clipPath>' +
-        '<clipPath id="rh"><rect x="12" y="0" width="12" height="24"/></clipPath></defs>' +
-        '<circle cx="12" cy="12" r="11" fill="'+c1+'" clip-path="url(#lh)"/>' +
-        '<circle cx="12" cy="12" r="11" fill="'+c2+'" clip-path="url(#rh)"/>' +
-        '<circle cx="12" cy="12" r="11" fill="none" stroke="#fff" stroke-width="1.5"/>' +
+      _iconHtml = '<svg xmlns="http://www.w3.org/2000/svg" width="26" height="32" viewBox="0 0 24 30" style="filter:drop-shadow(0 2px 3px rgba(0,0,0,.5))">' +
+        '<defs>' +
+        '<clipPath id="lhc_'+_uid+'"><rect x="0" y="0" width="12" height="30"/></clipPath>' +
+        '<clipPath id="rhc_'+_uid+'"><rect x="12" y="0" width="12" height="30"/></clipPath>' +
+        '</defs>' +
+        '<path d="M12 0C5.4 0 0 5.4 0 12c0 7.2 12 18 12 18S24 19.2 24 12C24 5.4 18.6 0 12 0z" fill="'+c1+'" clip-path="url(#lhc_'+_uid+')"/>' +
+        '<path d="M12 0C5.4 0 0 5.4 0 12c0 7.2 12 18 12 18S24 19.2 24 12C24 5.4 18.6 0 12 0z" fill="'+c2+'" clip-path="url(#rhc_'+_uid+')"/>' +
+        '<path d="M12 0C5.4 0 0 5.4 0 12c0 7.2 12 18 12 18S24 19.2 24 12C24 5.4 18.6 0 12 0z" fill="none" stroke="rgba(255,255,255,0.7)" stroke-width="1"/>' +
         '</svg>';
     } else {
       var _p = (PFPF_ICONOS[_tipoKey]||PFPF_ICONOS['Otro']).replace(/COLOR/g, '#fff');
-      _iconHtml = '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" style="filter:drop-shadow(0 2px 4px rgba(0,0,0,.6))">' +
-        '<circle cx="12" cy="12" r="12" fill="'+c+'"/>' +
-        _p +
+      _iconHtml = '<svg xmlns="http://www.w3.org/2000/svg" width="26" height="32" viewBox="0 0 24 30" style="filter:drop-shadow(0 2px 3px rgba(0,0,0,.5))">' +
+        '<defs><clipPath id="ic_'+_uid+'"><circle cx="12" cy="10" r="9"/></clipPath></defs>' +
+        '<path d="M12 0C5.4 0 0 5.4 0 12c0 7.2 12 18 12 18S24 19.2 24 12C24 5.4 18.6 0 12 0z" fill="'+c+'"/>' +
+        '<g clip-path="url(#ic_'+_uid+')" transform="translate(3.6,1.6) scale(0.7)">' + _p + '</g>' +
         '</svg>';
     }
     var icon = L.divIcon({
       html: _iconHtml,
-      iconSize: [28,28], iconAnchor: [14,14], className: ''
+      iconSize: [26,32], iconAnchor: [13,32], className: ''
     });
     var marker = L.marker([r.lat, r.lng], { icon: icon });
 
