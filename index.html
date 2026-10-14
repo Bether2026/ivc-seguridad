@@ -4420,6 +4420,7 @@ body {
               <div class="form-group">
                 <label class="form-label">Tipo de situación <span style="color:var(--text3);font-weight:400">(podés elegir varios)</span></label>
                 <div id="rbrb-tipo-sel" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+                <div id="rbrb-tipo-desc" style="display:none;margin-top:8px;font-size:12px;color:var(--text3);line-height:1.5;padding:8px 12px;background:rgba(255,255,255,.04);border-radius:8px;border-left:3px solid var(--border2)"></div>
                 <input id="rbrb-tipo-otro" class="form-input" type="text" placeholder="Describí el tipo de situación..."
                   style="display:none;margin-top:8px">
               </div>
@@ -4831,6 +4832,7 @@ body {
               <div class="form-group">
                 <label class="form-label">Tipo de situación <span style="color:var(--text3);font-weight:400">(podés elegir varios)</span></label>
                 <div id="frfr-tipo-sel" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+                <div id="frfr-tipo-desc" style="display:none;margin-top:8px;font-size:12px;color:var(--text3);line-height:1.5;padding:8px 12px;background:rgba(255,255,255,.04);border-radius:8px;border-left:3px solid var(--border2)"></div>
                 <input id="frfr-tipo-otro" class="form-input" type="text" placeholder="Describí el tipo de situación..."
                   style="display:none;margin-top:8px">
               </div>
@@ -5111,6 +5113,7 @@ body {
               <div class="form-group">
                 <label class="form-label">Tipo de situación <span style="color:var(--text3);font-weight:400">(podés elegir varios)</span></label>
                 <div id="pfpf-tipo-sel" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+                <div id="pfpf-tipo-desc" style="display:none;margin-top:8px;font-size:12px;color:var(--text3);line-height:1.5;padding:8px 12px;background:rgba(255,255,255,.04);border-radius:8px;border-left:3px solid var(--border2)"></div>
                 <input id="pfpf-tipo-otro" class="form-input" type="text" placeholder="Describí el tipo de situación..."
                   style="display:none;margin-top:8px">
               </div>
@@ -29142,6 +29145,21 @@ var RBRB_TIPOS_LISTA = [
   'Infraestructura y Residuos Urbanos',
   'Otro'
 ];
+
+var TIPOS_DESC = {
+  'Comercio': 'Locales o actividades comerciales permanentes o dentro de un inmueble (kioscos, peluquerías, herrerías, remiserías, tatuajes, gimnasios, comedores comerciales, etc.).',
+  'Puesto en vía pública': 'Venta informal, puestos ambulantes, estructuras portátiles instaladas sobre la vereda o calle (carritos, mesas, etc.).',
+  'Taller clandestino': 'Establecimientos de producción, confección o reparación no habilitados (talleres textiles, mecánicos o industriales clandestinos).',
+  'Ampliación sin protocolo': 'Obras, construcciones, anexos, marquesinas o refacciones edilicias realizadas sin autorización o fuera de la normativa.',
+  'Ocupación espacio común': 'Uso no autorizado de pasillos, patios compartidos, veredas o pasajes con objetos, mercadería o estructuras fijas.',
+  'Vehículos abandonados': 'Autos, camionetas, motos o chasis en desuso, deteriorados o mal estacionados por tiempo prolongado en la vía pública.',
+  'Organizaciones Sociales': 'Comedores comunitarios, merenderos, centros comunitarios (CPI), hogares de ancianos, centros culturales o puntos de entrega de alimentos.',
+  'Comunitarias y Comedores': 'Comedores comunitarios, merenderos, centros comunitarios (CPI), hogares de ancianos, centros culturales o puntos de entrega de alimentos.',
+  'Espacios Religiosos y Políticos': 'Capillas, iglesias, templos, unidades básicas, locales partidarios u organizaciones de agrupación política o social.',
+  'Infraestructura y Residuos Urbanos': 'Acumulación de escombros, contenedores desbordados, bolsas de residuos en la calle, o problemas en luminarias y postes.',
+  'Otro': 'Usar solo si el hecho no encaja en ninguna de las categorías anteriores.'
+};
+
 var RBRB_TIPOS_SEL = [];
 
 window.rbrb_renderTipoSel = function rbrb_renderTipoSel() {
@@ -29161,6 +29179,17 @@ window.rbrb_renderTipoSel = function rbrb_renderTipoSel() {
   // Mostrar/ocultar campo Otro
   var otro = document.getElementById('rbrb-tipo-otro');
   if (otro) otro.style.display = RBRB_TIPOS_SEL.indexOf('Otro') >= 0 ? 'block' : 'none';
+  // Descripción del tipo seleccionado/último tocado
+  var descEl = document.getElementById('rbrb-tipo-desc');
+  if (descEl) {
+    var lastSel = RBRB_TIPOS_SEL[RBRB_TIPOS_SEL.length - 1];
+    if (lastSel && TIPOS_DESC[lastSel]) {
+      descEl.textContent = TIPOS_DESC[lastSel];
+      descEl.style.display = 'block';
+    } else {
+      descEl.style.display = 'none';
+    }
+  }
 }
 
 window.rbrb_toggleTipo = function(t) {
@@ -31161,6 +31190,17 @@ window.frfr_renderTipoSel = function frfr_renderTipoSel() {
   // Mostrar/ocultar campo Otro
   var otro = document.getElementById('frfr-tipo-otro');
   if (otro) otro.style.display = FRFR_TIPOS_SEL.indexOf('Otro') >= 0 ? 'block' : 'none';
+  // Descripción del tipo seleccionado/último tocado
+  var descEl = document.getElementById('frfr-tipo-desc');
+  if (descEl) {
+    var lastSel = FRFR_TIPOS_SEL[FRFR_TIPOS_SEL.length - 1];
+    if (lastSel && TIPOS_DESC[lastSel]) {
+      descEl.textContent = TIPOS_DESC[lastSel];
+      descEl.style.display = 'block';
+    } else {
+      descEl.style.display = 'none';
+    }
+  }
 }
 
 window.frfr_toggleTipo = function(t) {
@@ -32722,6 +32762,17 @@ window.pfpf_renderTipoSel = function pfpf_renderTipoSel() {
   // Mostrar/ocultar campo Otro
   var otro = document.getElementById('pfpf-tipo-otro');
   if (otro) otro.style.display = PFPF_TIPOS_SEL.indexOf('Otro') >= 0 ? 'block' : 'none';
+  // Descripción del tipo seleccionado/último tocado
+  var descEl = document.getElementById('pfpf-tipo-desc');
+  if (descEl) {
+    var lastSel = PFPF_TIPOS_SEL[PFPF_TIPOS_SEL.length - 1];
+    if (lastSel && TIPOS_DESC[lastSel]) {
+      descEl.textContent = TIPOS_DESC[lastSel];
+      descEl.style.display = 'block';
+    } else {
+      descEl.style.display = 'none';
+    }
+  }
 }
 
 window.pfpf_toggleTipo = function(t) {
