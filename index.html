@@ -28955,6 +28955,7 @@ var RBRB_REGISTROS = [];
 var RBRB_CERTEZA = 'Confirmado';
 var RBRB_SECTOR = 'Barrio historico';
 var RBRB_MAP = null;
+var RBRB_CLUSTER = null;
 var RBRB_MARKERS = [];
 var RBRB_MAP_INIT = false;
 
@@ -29111,12 +29112,30 @@ window.rbrb_tab = function(name, btn) {
         var _js = document.createElement('script');
         _js.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
         _js.onload = function() {
-          rbrb_crearMapaPrincipal();
-          rbrb_buildMapaFilters();
-          rbrb_actualizarMapa();
+          // Cargar MarkerCluster si no está cargado
+          if (!window.L || !L.MarkerClusterGroup) {
+            if (!document.getElementById('mc-css')) {
+              var _mcc = document.createElement('link'); _mcc.id='mc-css'; _mcc.rel='stylesheet'; _mcc.href='https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css'; document.head.appendChild(_mcc);
+              var _mcd = document.createElement('link'); _mcd.id='mc-css-def'; _mcd.rel='stylesheet'; _mcd.href='https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css'; document.head.appendChild(_mcd);
+            }
+            var _mcj = document.createElement('script'); _mcj.src='https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js';
+            _mcj.onload = function() { rbrb_crearMapaPrincipal(); rbrb_buildMapaFilters(); rbrb_actualizarMapa(); };
+            document.head.appendChild(_mcj);
+          } else {
+            rbrb_crearMapaPrincipal(); rbrb_buildMapaFilters(); rbrb_actualizarMapa();
+          }
         };
         document.head.appendChild(_js);
       } else {
+        if (!L.MarkerClusterGroup) {
+          if (!document.getElementById('mc-css')) {
+            var _mcc2 = document.createElement('link'); _mcc2.id='mc-css'; _mcc2.rel='stylesheet'; _mcc2.href='https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css'; document.head.appendChild(_mcc2);
+            var _mcd2 = document.createElement('link'); _mcd2.id='mc-css-def'; _mcd2.rel='stylesheet'; _mcd2.href='https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css'; document.head.appendChild(_mcd2);
+          }
+          var _mcj2 = document.createElement('script'); _mcj2.src='https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js';
+          _mcj2.onload = function() { rbrb_crearMapaPrincipal(); rbrb_buildMapaFilters(); rbrb_actualizarMapa(); };
+          document.head.appendChild(_mcj2); return;
+        }
         rbrb_crearMapaPrincipal();
         rbrb_buildMapaFilters();
         rbrb_actualizarMapa();
@@ -30358,8 +30377,25 @@ function rbrb_crearMapaPrincipal() {
 
 function rbrb_actualizarMapa() {
   if (!RBRB_MAP) return;
-  RBRB_MARKERS.forEach(function(m) { RBRB_MAP.removeLayer(m); });
+  // Limpiar cluster si existe
+  if (window.RBRB_CLUSTER) { RBRB_CLUSTER.clearLayers(); } else {
+    RBRB_MARKERS.forEach(function(m) { RBRB_MAP.removeLayer(m); });
+  }
   RBRB_MARKERS = [];
+  // Inicializar cluster
+  if (!window.RBRB_CLUSTER && window.L && L.MarkerClusterGroup) {
+    RBRB_CLUSTER = L.markerClusterGroup({
+      showCoverageOnHover: false,
+      maxClusterRadius: 55,
+      disableClusteringAtZoom: 18,
+      iconCreateFunction: function(c) {
+        var n = c.getChildCount();
+        var sz = n < 10 ? 34 : n < 50 ? 44 : 56;
+        return L.divIcon({ html: '<div>' + n + '</div>', className: 'ivc-cluster', iconSize: [sz, sz] });
+      }
+    });
+    RBRB_CLUSTER.addTo(RBRB_MAP);
+  }
   if (RBRB_MANUAL_MARKER) { RBRB_MAP.removeLayer(RBRB_MANUAL_MARKER); RBRB_MANUAL_MARKER = null; }
   var conGPS = RBRB_REGISTROS.filter(function(r) {
     if (!r || typeof r !== 'object') return false;
@@ -30457,7 +30493,7 @@ function rbrb_actualizarMapa() {
     });
     var popup = L.popup({ maxWidth: 280, className: 'rbrb-popup' }).setContent(popupContent);
     marker.bindPopup(popup);
-    marker.addTo(RBRB_MAP);
+    if (window.RBRB_CLUSTER) { RBRB_CLUSTER.addLayer(marker); } else { marker.addTo(RBRB_MAP); }
     RBRB_MARKERS.push(marker);
   });
 
@@ -31033,6 +31069,7 @@ var FRFR_UNLOCKED = false;
 var FRFR_REGISTROS = [];
 var FRFR_CERTEZA = 'Confirmado';
 var FRFR_MAP = null;
+var FRFR_CLUSTER = null;
 var FRFR_MARKERS = [];
 var FRFR_MAP_INIT = false;
 
@@ -31141,12 +31178,30 @@ window.frfr_tab = function(name, btn) {
         var _js = document.createElement('script');
         _js.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
         _js.onload = function() {
-          frfr_crearMapaPrincipal();
-          frfr_buildMapaFilters();
-          frfr_actualizarMapa();
+          // Cargar MarkerCluster si no está cargado
+          if (!window.L || !L.MarkerClusterGroup) {
+            if (!document.getElementById('mc-css')) {
+              var _mcc = document.createElement('link'); _mcc.id='mc-css'; _mcc.rel='stylesheet'; _mcc.href='https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css'; document.head.appendChild(_mcc);
+              var _mcd = document.createElement('link'); _mcd.id='mc-css-def'; _mcd.rel='stylesheet'; _mcd.href='https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css'; document.head.appendChild(_mcd);
+            }
+            var _mcj = document.createElement('script'); _mcj.src='https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js';
+            _mcj.onload = function() { frfr_crearMapaPrincipal(); frfr_buildMapaFilters(); frfr_actualizarMapa(); };
+            document.head.appendChild(_mcj);
+          } else {
+            frfr_crearMapaPrincipal(); frfr_buildMapaFilters(); frfr_actualizarMapa();
+          }
         };
         document.head.appendChild(_js);
       } else {
+        if (!L.MarkerClusterGroup) {
+          if (!document.getElementById('mc-css')) {
+            var _mcc2 = document.createElement('link'); _mcc2.id='mc-css'; _mcc2.rel='stylesheet'; _mcc2.href='https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css'; document.head.appendChild(_mcc2);
+            var _mcd2 = document.createElement('link'); _mcd2.id='mc-css-def'; _mcd2.rel='stylesheet'; _mcd2.href='https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css'; document.head.appendChild(_mcd2);
+          }
+          var _mcj2 = document.createElement('script'); _mcj2.src='https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js';
+          _mcj2.onload = function() { frfr_crearMapaPrincipal(); frfr_buildMapaFilters(); frfr_actualizarMapa(); };
+          document.head.appendChild(_mcj2); return;
+        }
         frfr_crearMapaPrincipal();
         frfr_buildMapaFilters();
         frfr_actualizarMapa();
@@ -32338,8 +32393,25 @@ function frfr_crearMapaPrincipal() {
 
 function frfr_actualizarMapa() {
   if (!FRFR_MAP) return;
-  FRFR_MARKERS.forEach(function(m) { FRFR_MAP.removeLayer(m); });
+  // Limpiar cluster si existe
+  if (window.FRFR_CLUSTER) { FRFR_CLUSTER.clearLayers(); } else {
+    FRFR_MARKERS.forEach(function(m) { FRFR_MAP.removeLayer(m); });
+  }
   FRFR_MARKERS = [];
+  // Inicializar cluster
+  if (!window.FRFR_CLUSTER && window.L && L.MarkerClusterGroup) {
+    FRFR_CLUSTER = L.markerClusterGroup({
+      showCoverageOnHover: false,
+      maxClusterRadius: 55,
+      disableClusteringAtZoom: 18,
+      iconCreateFunction: function(c) {
+        var n = c.getChildCount();
+        var sz = n < 10 ? 34 : n < 50 ? 44 : 56;
+        return L.divIcon({ html: '<div>' + n + '</div>', className: 'ivc-cluster', iconSize: [sz, sz] });
+      }
+    });
+    FRFR_CLUSTER.addTo(FRFR_MAP);
+  }
   if (RBRB_MANUAL_MARKER) { FRFR_MAP.removeLayer(RBRB_MANUAL_MARKER); RBRB_MANUAL_MARKER = null; }
   var conGPS = FRFR_REGISTROS.filter(function(r) {
     if (!r || typeof r !== 'object') return false;
@@ -32437,7 +32509,7 @@ function frfr_actualizarMapa() {
     });
     var popup = L.popup({ maxWidth: 280, className: 'frfr-popup' }).setContent(popupContent);
     marker.bindPopup(popup);
-    marker.addTo(FRFR_MAP);
+    if (window.FRFR_CLUSTER) { FRFR_CLUSTER.addLayer(marker); } else { marker.addTo(FRFR_MAP); }
     FRFR_MARKERS.push(marker);
   });
 
@@ -32609,6 +32681,7 @@ var PFPF_UNLOCKED = false;
 var PFPF_REGISTROS = [];
 var PFPF_CERTEZA = 'Confirmado';
 var PFPF_MAP = null;
+var PFPF_CLUSTER = null;
 var PFPF_MARKERS = [];
 var PFPF_MAP_INIT = false;
 
@@ -32717,12 +32790,30 @@ window.pfpf_tab = function(name, btn) {
         var _js = document.createElement('script');
         _js.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
         _js.onload = function() {
-          pfpf_crearMapaPrincipal();
-          pfpf_buildMapaFilters();
-          pfpf_actualizarMapa();
+          // Cargar MarkerCluster si no está cargado
+          if (!window.L || !L.MarkerClusterGroup) {
+            if (!document.getElementById('mc-css')) {
+              var _mcc = document.createElement('link'); _mcc.id='mc-css'; _mcc.rel='stylesheet'; _mcc.href='https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css'; document.head.appendChild(_mcc);
+              var _mcd = document.createElement('link'); _mcd.id='mc-css-def'; _mcd.rel='stylesheet'; _mcd.href='https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css'; document.head.appendChild(_mcd);
+            }
+            var _mcj = document.createElement('script'); _mcj.src='https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js';
+            _mcj.onload = function() { pfpf_crearMapaPrincipal(); pfpf_buildMapaFilters(); pfpf_actualizarMapa(); };
+            document.head.appendChild(_mcj);
+          } else {
+            pfpf_crearMapaPrincipal(); pfpf_buildMapaFilters(); pfpf_actualizarMapa();
+          }
         };
         document.head.appendChild(_js);
       } else {
+        if (!L.MarkerClusterGroup) {
+          if (!document.getElementById('mc-css')) {
+            var _mcc2 = document.createElement('link'); _mcc2.id='mc-css'; _mcc2.rel='stylesheet'; _mcc2.href='https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css'; document.head.appendChild(_mcc2);
+            var _mcd2 = document.createElement('link'); _mcd2.id='mc-css-def'; _mcd2.rel='stylesheet'; _mcd2.href='https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css'; document.head.appendChild(_mcd2);
+          }
+          var _mcj2 = document.createElement('script'); _mcj2.src='https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js';
+          _mcj2.onload = function() { pfpf_crearMapaPrincipal(); pfpf_buildMapaFilters(); pfpf_actualizarMapa(); };
+          document.head.appendChild(_mcj2); return;
+        }
         pfpf_crearMapaPrincipal();
         pfpf_buildMapaFilters();
         pfpf_actualizarMapa();
@@ -33940,8 +34031,25 @@ function pfpf_crearMapaPrincipal() {
 
 function pfpf_actualizarMapa() {
   if (!PFPF_MAP) return;
-  PFPF_MARKERS.forEach(function(m) { PFPF_MAP.removeLayer(m); });
+  // Limpiar cluster si existe
+  if (window.PFPF_CLUSTER) { PFPF_CLUSTER.clearLayers(); } else {
+    PFPF_MARKERS.forEach(function(m) { PFPF_MAP.removeLayer(m); });
+  }
   PFPF_MARKERS = [];
+  // Inicializar cluster
+  if (!window.PFPF_CLUSTER && window.L && L.MarkerClusterGroup) {
+    PFPF_CLUSTER = L.markerClusterGroup({
+      showCoverageOnHover: false,
+      maxClusterRadius: 55,
+      disableClusteringAtZoom: 18,
+      iconCreateFunction: function(c) {
+        var n = c.getChildCount();
+        var sz = n < 10 ? 34 : n < 50 ? 44 : 56;
+        return L.divIcon({ html: '<div>' + n + '</div>', className: 'ivc-cluster', iconSize: [sz, sz] });
+      }
+    });
+    PFPF_CLUSTER.addTo(PFPF_MAP);
+  }
   if (RBRB_MANUAL_MARKER) { PFPF_MAP.removeLayer(RBRB_MANUAL_MARKER); RBRB_MANUAL_MARKER = null; }
   var conGPS = PFPF_REGISTROS.filter(function(r) {
     if (!r || typeof r !== 'object') return false;
@@ -34039,7 +34147,7 @@ function pfpf_actualizarMapa() {
     });
     var popup = L.popup({ maxWidth: 280, className: 'pfpf-popup' }).setContent(popupContent);
     marker.bindPopup(popup);
-    marker.addTo(PFPF_MAP);
+    if (window.PFPF_CLUSTER) { PFPF_CLUSTER.addLayer(marker); } else { marker.addTo(PFPF_MAP); }
     PFPF_MARKERS.push(marker);
   });
 
