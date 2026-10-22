@@ -35844,7 +35844,7 @@ function climaCtrl_renderLista() {
 }
 
 window.climaCtrl_eliminar = function(id) {
-  if (!window.USER || USER.puesto !== 'Administrador') { toast('Sin permiso', 'err'); return; }
+  if (!window.USER || (USER.puesto !== 'Administrador' && USER.puesto !== 'Gerencia' && USER.rol !== 'ADMIN')) { toast('Sin permiso', 'err'); return; }
   if (!confirm('¿Eliminar este relevamiento climático definitivamente?')) return;
   db.from('relevamiento_clima').delete().eq('id', id).select().then(function(res) {
     if (res.error) { toast('Error: ' + res.error.message, 'err'); return; }
@@ -36443,7 +36443,7 @@ window.climaCtrl_cancelarAlerta = function(idx) {
 };
 
 window.climaCtrl_eliminarAlerta = function(idx) {
-  if (!window.USER || USER.puesto !== 'Administrador') { toast('Sin permiso', 'err'); return; }
+  if (!window.USER || (USER.puesto !== 'Administrador' && USER.puesto !== 'Gerencia' && USER.rol !== 'ADMIN')) { toast('Sin permiso', 'err'); return; }
   var entrada = _CLIMA_ALERTAS_IDX[idx];
   if (!entrada || !entrada.todos.length) return;
   if (!confirm('¿Eliminar definitivamente esta alerta y todos sus registros? Esta acción no se puede deshacer.')) return;
