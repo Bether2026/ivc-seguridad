@@ -35235,6 +35235,40 @@ window.clima_suscribir = function() {
 var CLIMA_CTRL_FILTRO    = 'todos';
 var CLIMA_CTRL_DATOS     = [];
 var CLIMA_CTRL_ALERTA_ID = null;  // alerta_id del turno visible en el panel
+var CLIMA_CTRL_TIPO      = null;  // filtro por tipo de riesgo (campo del registro) o 'sin_incidentes'
+
+var CLIMA_TIPO_LABELS = {
+  inundacion_activa: 'Inundaci\xF3n', riesgo_arbol: '\xC1rbol', riesgo_poste: 'Poste',
+  desague_tapado: 'Desag\xFCe', acumulacion_basura: 'Basura', otro: 'Otro', sin_incidentes: 'Sin incidentes'
+};
+
+function _climaCumpleTipo(n) {
+  if (!CLIMA_CTRL_TIPO) return true;
+  if (CLIMA_CTRL_TIPO === 'sin_incidentes') {
+    return n.sin_incidentes || (!n.inundacion_activa && !n.riesgo_arbol && !n.riesgo_poste && !n.desague_tapado && !n.acumulacion_basura && !n.otro);
+  }
+  return !n.sin_incidentes && !!n[CLIMA_CTRL_TIPO];
+}
+
+// Barrio del panel → barrio de los modales de export
+function _climaBarrioFiltroExport() {
+  if (CLIMA_CTRL_FILTRO === 'todos') return null;
+  return CLIMA_CTRL_FILTRO === 'otro' ? 'Otro' : CLIMA_CTRL_FILTRO;
+}
+
+function _climaSufijoTipo() {
+  return CLIMA_CTRL_TIPO ? '-' + CLIMA_CTRL_TIPO.replace(/_/g, '-') : '';
+}
+
+function _climaAvisoTipoModal() {
+  if (!CLIMA_CTRL_TIPO) return '';
+  return '<div style="font-size:12px;color:#fde68a;background:rgba(234,179,8,.12);border:1px solid rgba(234,179,8,.3);border-radius:8px;padding:8px 10px;margin:-8px 0 14px">Filtro activo: solo <b>' + CLIMA_TIPO_LABELS[CLIMA_CTRL_TIPO] + '</b></div>';
+}
+
+window.climaCtrl_filtrarTipo = function(tipo) {
+  CLIMA_CTRL_TIPO = (tipo && tipo !== CLIMA_CTRL_TIPO) ? tipo : null;
+  climaCtrl_renderLista();
+};
 
 window.clima_verPanel = function() {
   goView('clima-ctrl');
@@ -35708,9 +35742,10 @@ function climaCtrl_renderLista() {
   var secDurante = datos.filter(function(n) { return (_alertaFaseMap[n.alerta_id] || '') === 'durante'; });
   var secPost    = datos.filter(function(n) { return (_alertaFaseMap[n.alerta_id] || '') === 'post'; });
 
-  function _stat(emoji, label, val, color) {
+  function _stat(emoji, label, val, color, tipo) {
     if (!val) return '';
-    return '<div style="display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 10px;border-radius:10px;background:var(--bg3);min-width:54px">'
+    var activo = tipo ? CLIMA_CTRL_TIPO === tipo : !CLIMA_CTRL_TIPO;
+    return '<div role="button" title="Filtrar: ' + label + '" onclick="climaCtrl_filtrarTipo(' + (tipo ? '\'' + tipo + '\'' : 'null') + ')" style="display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 10px;border-radius:10px;background:' + (activo ? 'rgba(59,130,246,.18)' : 'var(--bg3)') + ';border:1px solid ' + (activo ? color : 'transparent') + ';min-width:54px;cursor:pointer;user-select:none">'
       + '<span style="font-size:16px">' + emoji + '</span>'
       + '<span style="font-size:14px;font-weight:900;color:' + color + '">' + val + '</span>'
       + '<span style="font-size:9px;color:var(--text3);text-align:center;white-space:nowrap">' + label + '</span>'
@@ -35731,19 +35766,25 @@ function climaCtrl_renderLista() {
     }).length;
     return '<div style="display:flex;gap:6px;flex-wrap:wrap;padding:10px 14px;background:var(--bg2);border-radius:12px;border:1px solid var(--border);border-left:4px solid ' + borderColor + ';margin-bottom:8px;align-items:center">'
       + '<div style="font-size:11px;font-weight:800;color:var(--text3);width:100%;margin-bottom:4px">' + label + '</div>'
-      + _stat('\uD83D\uDCCB', 'Total', total, '#93c5fd')
-      + _stat('\uD83C\uDF0A', 'Inundaci\xF3n', inund, '#ef4444')
-      + _stat('\uD83C\uDF33', '\xC1rbol', arbol, '#f97316')
-      + _stat('\uD83D\uDD0C', 'Poste', poste, '#f97316')
-      + _stat('\uD83D\uDD73', 'Desag\xFCe', desague, '#a855f7')
-      + _stat('\uD83D\uDDD1', 'Basura', basura, '#eab308')
-      + _stat('\u26A0\uFE0F', 'Otro', otro, '#fca5a5')
-      + _stat('\u2705', 'Sin incidentes', sinRiesgo, '#34d399')
+      + _stat('\uD83D\uDCCB', 'Total', total, '#93c5fd', null)
+      + _stat('\uD83C\uDF0A', 'Inundaci\xF3n', inund, '#ef4444', 'inundacion_activa')
+      + _stat('\uD83C\uDF33', '\xC1rbol', arbol, '#f97316', 'riesgo_arbol')
+      + _stat('\uD83D\uDD0C', 'Poste', poste, '#f97316', 'riesgo_poste')
+      + _stat('\uD83D\uDD73', 'Desag\xFCe', desague, '#a855f7', 'desague_tapado')
+      + _stat('\uD83D\uDDD1', 'Basura', basura, '#eab308', 'acumulacion_basura')
+      + _stat('\u26A0\uFE0F', 'Otro', otro, '#fca5a5', 'otro')
+      + _stat('\u2705', 'Sin incidentes', sinRiesgo, '#34d399', 'sin_incidentes')
       + '</div>';
+  }
+
+  function _vacioTipo() {
+    return '<div style="color:var(--text3);font-size:12px;padding:16px;text-align:center">Sin registros de ' + CLIMA_TIPO_LABELS[CLIMA_CTRL_TIPO] + ' en esta secci\xF3n</div>';
   }
 
   function _buildCards(arr) {
     var out = '';
+    arr = arr.filter(_climaCumpleTipo);
+    if (!arr.length && CLIMA_CTRL_TIPO) return _vacioTipo();
     arr.forEach(function(n) {
       var fecha = '';
       try {
@@ -36934,6 +36975,7 @@ async function _climaGenerarExport(barrios) {
   var datosFiltrados = todosMapped.filter(function(n) {
     // Excluir registros sin incidentes — son control interno
     if (n.sin_incidentes) return false;
+    if (!_climaCumpleTipo(n)) return false;
     if (esTodo) return true;
     return barrios.indexOf(puestoBarrioLocal(n.puesto)) !== -1;
   });
@@ -36978,9 +37020,9 @@ async function _climaGenerarExport(barrios) {
 
   // Nombre del archivo
   var fecha = new Date().toISOString().substring(0, 10);
-  var sufijo = esTodo ? 'todos' : barrios.map(function(b) {
+  var sufijo = (esTodo ? 'todos' : barrios.map(function(b) {
     return b.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-  }).join('_');
+  }).join('_')) + _climaSufijoTipo();
 
   htmlExport = htmlExport
     .replace('__DATOS_JSON__', JSON.stringify(datosFiltrados))
@@ -37101,12 +37143,12 @@ window.climaDescargarHTML = function() {
   disponibles.forEach(function(b) {
     var id = 'dl-chk-' + b.replace(/\s/g,'-');
     checks += '<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.1);margin-bottom:8px;cursor:pointer;color:#fff;font-size:13px;font-weight:600">'
-      + '<input type="checkbox" id="' + id + '" value="' + b + '" checked style="width:18px;height:18px;accent-color:#6366f1;cursor:pointer">'
+      + '<input type="checkbox" id="' + id + '" value="' + b + '"' + (_climaBarrioFiltroExport() && _climaBarrioFiltroExport() !== b ? '' : ' checked') + ' style="width:18px;height:18px;accent-color:#6366f1;cursor:pointer">'
       + b + '</label>';
   });
 
   modal.innerHTML = '<div style="font-size:15px;font-weight:800;color:#fff;margin-bottom:6px">💾 Descargar HTML</div>'
-    + '<div style="font-size:12px;color:rgba(255,255,255,.5);margin-bottom:20px">Seleccioná los barrios a incluir</div>'
+    + '<div style="font-size:12px;color:rgba(255,255,255,.5);margin-bottom:20px">Seleccioná los barrios a incluir</div>' + _climaAvisoTipoModal()
     + checks
     + '<div style="display:flex;gap:10px;margin-top:20px">'
     + '<button id="dl-btn-todo" style="flex:1;padding:11px;border-radius:10px;border:1px solid rgba(99,102,241,.4);background:rgba(99,102,241,.1);color:#a5b4fc;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">📋 Todo</button>'
@@ -37149,6 +37191,7 @@ function _climaDescargarHTMLFinal(barrios) {
   }).filter(function(n) {
     // Excluir sin incidentes — son control interno
     if (n.sin_incidentes) return false;
+    if (!_climaCumpleTipo(n)) return false;
     return esTodo || barrios.indexOf(pb(n.puesto)) !== -1;
   });
 
@@ -37162,9 +37205,9 @@ function _climaDescargarHTMLFinal(barrios) {
     .replace('__PRONOSTICO_JSON__', JSON.stringify(_climaCapturarPronostico()));
 
   var fecha = new Date().toISOString().substring(0, 10);
-  var sufijo = esTodo ? 'todos' : barrios.map(function(b) {
+  var sufijo = (esTodo ? 'todos' : barrios.map(function(b) {
     return b.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
-  }).join('_');
+  }).join('_')) + _climaSufijoTipo();
 
   var blob = new Blob([htmlExport], { type: 'text/html;charset=utf-8' });
   var url = URL.createObjectURL(blob);
@@ -37211,14 +37254,14 @@ window.climaExportarHTML = function() {
   modal.style.cssText = 'background:var(--bg2,#0d2137);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:24px;width:100%;max-width:340px;font-family:var(--font)';
 
   var titulo = '<div style="font-size:15px;font-weight:800;color:#fff;margin-bottom:6px">📄 Exportar informe</div>';
-  var sub    = '<div style="font-size:12px;color:rgba(255,255,255,.5);margin-bottom:20px">Seleccioná los barrios a incluir</div>';
+  var sub    = '<div style="font-size:12px;color:rgba(255,255,255,.5);margin-bottom:20px">Seleccioná los barrios a incluir</div>' + _climaAvisoTipoModal();
 
   // Checkboxes por barrio
   var checks = '';
   disponibles.forEach(function(b) {
     var id = 'exp-chk-' + b.replace(/\s/g,'-');
     checks += '<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.1);margin-bottom:8px;cursor:pointer;color:#fff;font-size:13px;font-weight:600">'
-      + '<input type="checkbox" id="' + id + '" value="' + b + '" checked '
+      + '<input type="checkbox" id="' + id + '" value="' + b + '"' + (_climaBarrioFiltroExport() && _climaBarrioFiltroExport() !== b ? '' : ' checked') + ' '
       + 'style="width:18px;height:18px;accent-color:#3b82f6;cursor:pointer">'
       + b + '</label>';
   });
@@ -37298,13 +37341,13 @@ window.climaExportarPDF = function() {
   disponibles.forEach(function(b) {
     var id = 'pdf-chk-' + b.replace(/\s/g,'-');
     checks += '<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.1);margin-bottom:8px;cursor:pointer;color:#fff;font-size:13px;font-weight:600">'
-      + '<input type="checkbox" id="' + id + '" value="' + b + '" checked '
+      + '<input type="checkbox" id="' + id + '" value="' + b + '"' + (_climaBarrioFiltroExport() && _climaBarrioFiltroExport() !== b ? '' : ' checked') + ' '
       + 'style="width:18px;height:18px;accent-color:#ef4444;cursor:pointer">'
       + b + '</label>';
   });
 
   modal.innerHTML = '<div style="font-size:15px;font-weight:800;color:#fff;margin-bottom:6px">🖨 Exportar PDF</div>'
-    + '<div style="font-size:12px;color:rgba(255,255,255,.5);margin-bottom:16px">Seleccioná los barrios a incluir</div>'
+    + '<div style="font-size:12px;color:rgba(255,255,255,.5);margin-bottom:16px">Seleccioná los barrios a incluir</div>' + _climaAvisoTipoModal()
     + checks
     + '<div style="display:flex;gap:10px;margin-top:20px">'
     + '<button id="pdf-btn-todo" style="flex:1;padding:11px;border-radius:10px;border:1px solid rgba(239,68,68,.4);background:rgba(239,68,68,.1);color:#f87171;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">📋 Exportar todo</button>'
@@ -37347,6 +37390,7 @@ window._climaGenerarPDF = async function(barrios) {
   var esTodo = barrios.indexOf('todos') !== -1;
   var datos = CLIMA_CTRL_DATOS.filter(function(n) {
     if (n.sin_incidentes) return false;
+    if (!_climaCumpleTipo(n)) return false;
     if (esTodo) return true;
     return barrios.indexOf(pbPDF2(n.puesto)) !== -1;
   });
@@ -37627,7 +37671,7 @@ window._climaGenerarPDF = async function(barrios) {
     var sufijo = esTodo ? 'todos' : barrios.map(function(b){
       return b.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
     }).join('_');
-    pdf.save('relevamiento-climatico-ivc-'+fecha+'-'+sufijo+'.pdf');
+    pdf.save('relevamiento-climatico-ivc-'+fecha+'-'+sufijo+_climaSufijoTipo()+'.pdf');
     toast('PDF generado', 'ok');
 
   } catch(e) {
