@@ -35805,7 +35805,7 @@ function climaCtrl_renderLista() {
       _CLIMA_EDIT_IDX.push(n);
       out += '<div style="margin-top:10px;display:flex;gap:8px;justify-content:flex-end">';
       out += '<button onclick="climaCtrl_abrirEditar(' + idxEdit + ')" type="button" style="padding:4px 10px;border-radius:6px;border:1px solid var(--border2);background:transparent;color:var(--accent3);font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">\u270F\uFE0F Editar</button>';
-      if (window.USER && USER.puesto === 'Administrador') {
+      if (window.USER && (USER.puesto === 'Administrador' || USER.puesto === 'Gerencia' || USER.rol === 'ADMIN')) {
         out += '<button onclick="climaCtrl_eliminar(\'' + n.id + '\')" type="button" style="padding:4px 10px;border-radius:6px;border:1px solid rgba(239,68,68,.4);background:transparent;color:#ef4444;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">\uD83D\uDDD1 Eliminar</button>';
       }
       out += '</div></div>';
