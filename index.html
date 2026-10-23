@@ -37036,50 +37036,14 @@ async function _climaGenerarExport(barrios) {
     var fileName = 'relevamiento-climatico-ivc-' + fecha + '-' + sufijo + '-' + Date.now() + '.html';
     var filePath = fileName;
 
-    // Obtener sesión actual para autenticar el upload
-    var session = null;
-    try {
-      var sd = await _SB.auth.getSession();
-      session = sd.data.session;
-    } catch(e) { }
-    var authHeader = session ? session.access_token : '{}'.supabaseKey;
-
-    // Subir el archivo con service role key
-    var _SK = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlxd3F0dmxjZ21xYmZraWJxcXFiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NDUzMDE5OSwiZXhwIjoyMTAwMTA2MTk5fQ.yFcEqNnxHCvMjOS0JcqDMEUx8a-XBcfWdLX_oLfQBsU';
-    var uploadRes = await fetch('https://yqwqtvlcgmqbfkibqqqb.supabase.co/storage/v1/object/exports/' + filePath, {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + _SK,
-        'apikey': _SK,
-        'Content-Type': 'text/html;charset=utf-8',
-        'x-upsert': 'true'
-      },
-      body: htmlExport
-    });
-
-    if (!uploadRes.ok) {
-      var err = await uploadRes.text();
-      throw new Error('Upload falló: ' + err);
-    }
-
-    // Generar URL firmada con 48hs de expiración
-    var signRes = await fetch('https://yqwqtvlcgmqbfkibqqqb.supabase.co/storage/v1/object/sign/exports/' + filePath, {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + _SK,
-        'apikey': _SK,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        expiresIn: 172800,
-        transform: { metadata: 'no' }
-      })
-    });
-
-    if (!signRes.ok) throw new Error('No se pudo generar URL firmada');
-    var signData = await signRes.json();
-    // Construir URL con Content-Type forzado via query param
-    var signedUrl = 'https://yqwqtvlcgmqbfkibqqqb.supabase.co/storage/v1' + signData.signedURL;
+    // Guarda una copia del informe en Storage con la sesión del usuario.
+    // (Antes se usaba la clave maestra; nunca debe estar en el navegador.)
+    var subida = await db.storage.from('exports').upload(
+      filePath,
+      new Blob([htmlExport], { type: 'text/html;charset=utf-8' }),
+      { contentType: 'text/html;charset=utf-8', upsert: false }
+    );
+    if (subida.error) throw new Error('Upload falló: ' + subida.error.message);
 
     // Abrir el HTML en nueva pestaña via Blob URL — funciona en iOS Safari
     var blob = new Blob([htmlExport], { type: 'text/html;charset=utf-8' });
