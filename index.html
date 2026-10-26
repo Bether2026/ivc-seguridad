@@ -878,6 +878,24 @@ body::after { display: none; }
 .hist-modo-btn { padding: 12px; border: none; border-radius: var(--radius-xs); background: transparent; color: var(--text2); font-family: var(--font); font-size: 15px; font-weight: 800; cursor: pointer; transition: background .15s, color .15s; }
 .hist-modo-btn.active { background: var(--accent); color: #fff; box-shadow: 0 4px 14px var(--glow); }
 .hist-barra { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
+.hist-sel { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.hist-sel-btn { padding: 9px 14px; border-radius: 12px; border: 1px solid var(--border2); background: var(--bg2); color: var(--text2); font-family: var(--font); font-size: 13px; font-weight: 700; cursor: pointer; transition: border-color .15s, background .15s; }
+.hist-sel-btn:hover { border-color: var(--accent2); color: var(--text); }
+.hist-sel-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; box-shadow: 0 4px 14px var(--glow); }
+.hist-sel-btn.vacio { opacity: .45; }
+.hist-sel-btn .n { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 10px; background: rgba(255,255,255,.12); font-size: 11px; }
+.hist-kpi.clic { cursor: pointer; border: 2px solid transparent; transition: border-color .15s, background .15s; }
+.hist-kpi.clic:hover { background: rgba(6,27,52,.8); }
+.hist-kpi.sel { border-color: var(--hc); background: rgba(6,27,52,.9); }
+.hist-kpi.clic .hist-n-l::after { content: ' \203A'; }
+.hist-quien { display: inline-block; margin: 4px 4px 0 0; padding: 4px 11px; border-radius: 20px; border: 1px solid var(--border2); background: rgba(6,27,52,.55); color: var(--text); font-family: var(--font); font-size: 12px; font-weight: 700; cursor: pointer; }
+.hist-quien:hover { border-color: var(--accent2); }
+.hist-quien.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.hist-quien .n { color: var(--text3); font-weight: 600; }
+.hist-quien.active .n { color: rgba(255,255,255,.75); }
+.hist-filtro { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 4px 2px 8px; }
+.hist-filtro .hist-mov-tit { margin: 0; }
+.hist-quitar { background: none; border: none; color: var(--accent3); font-family: var(--font); font-size: 12px; font-weight: 700; cursor: pointer; padding: 0; }
 .hist-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
 .hist-card { text-align: left; font-family: var(--font); color: var(--text); background: linear-gradient(180deg, rgba(20,59,103,.55) 0%, rgba(10,39,71,.9) 100%); border: 1px solid var(--border2); border-radius: var(--radius); padding: 16px; cursor: pointer; transition: border-color .15s, transform .15s; }
 .hist-card:hover { border-color: var(--accent2); transform: translateY(-2px); }
@@ -2493,8 +2511,8 @@ body {
           <button type="button" id="hist-modo-movil" class="hist-modo-btn active" onclick="histChof_modo('movil')">🚐 Móviles</button>
           <button type="button" id="hist-modo-chofer" class="hist-modo-btn" onclick="histChof_modo('chofer')">👤 Choferes</button>
         </div>
+        <div class="hist-sel" id="hist-sel"></div>
         <div class="hist-barra">
-          <select class="form-select" id="hist-sel" onchange="histChof_render()"></select>
           <select class="form-select" id="hist-periodo" onchange="histChof_periodo(this.value)">
             <option value="7">Últimos 7 días</option>
             <option value="30" selected>Últimos 30 días</option>
@@ -20599,7 +20617,8 @@ function startGPSRefresh()      { /* GPS desactivado */ }
 // HISTORIAL DE MÓVILES Y CHOFERES — solo Gerencia y Administrador del sistema
 // Junta rutas, combustible, incidencias y taller por móvil o por chofer.
 // ══════════════════════════════════════════════════════════════════════════
-var HIST_CHOF = { modo: 'movil', data: null, listas: null, reqId: 0, claves: [] };
+// elegido = móvil/chofer abierto · sub = filtro por el otro (chofer del móvil o móvil del chofer) · tipo = 'ruta' | 'comb' | 'inc'
+var HIST_CHOF = { modo: 'movil', data: null, listas: null, reqId: 0, claves: [], elegido: '', sub: '', subClaves: [], tipo: '' };
 
 function histChof_puedeVer() {
   return !!(window.USER && (USER.puesto === 'Gerencia' || USER.puesto === 'Administrador' || USER.rol === 'ADMIN'));
@@ -20640,7 +20659,7 @@ window.histChof_modo = function(modo) {
   HIST_CHOF.modo = modo;
   document.getElementById('hist-modo-movil').classList.toggle('active', modo === 'movil');
   document.getElementById('hist-modo-chofer').classList.toggle('active', modo === 'chofer');
-  document.getElementById('hist-sel').value = '';
+  HIST_CHOF.elegido = HIST_CHOF.sub = HIST_CHOF.tipo = '';
   histChof_render();
 };
 
@@ -20658,11 +20677,24 @@ window.histChof_periodo = function(p) {
   histChof_cargar();
 };
 
+// i = posición en HIST_CHOF.claves; -1 = todos
 window.histChof_elegir = function(i) {
-  document.getElementById('hist-sel').value = HIST_CHOF.claves[i] || '';
+  HIST_CHOF.elegido = HIST_CHOF.claves[i] || '';
+  HIST_CHOF.sub = HIST_CHOF.tipo = '';
   histChof_render();
   var cont = document.getElementById('chof-sub-historial');
   if (cont && cont.scrollIntoView) cont.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+
+window.histChof_sub = function(i) {
+  var k = HIST_CHOF.subClaves[i] || '';
+  HIST_CHOF.sub = HIST_CHOF.sub === k ? '' : k;
+  histChof_render();
+};
+
+window.histChof_tipo = function(t) {
+  HIST_CHOF.tipo = HIST_CHOF.tipo === t ? '' : t;
+  histChof_render();
 };
 
 function histChof_cargar() {
@@ -20762,8 +20794,7 @@ function histChof_render() {
   var modo = HIST_CHOF.modo;
   var campo = modo === 'movil' ? 'movil' : 'chofer';
   var otro = modo === 'movil' ? 'chofer' : 'movil';
-  var sel = document.getElementById('hist-sel');
-  var elegido = sel.value;
+  var elegido = HIST_CHOF.elegido;
 
   var todos = _histEventos();
   if (modo === 'chofer') todos = todos.filter(function(e) { return e.tipo !== 'taller'; }); // taller no registra chofer
@@ -20778,10 +20809,17 @@ function histChof_render() {
     (grupos[k] = grupos[k] || []).push(e);
   });
   var claves = Object.keys(nombres).sort(function(a, b) { return nombres[a].localeCompare(nombres[b], 'es'); });
-  var optHtml = '<option value="">' + (modo === 'movil' ? 'Todos los m\xF3viles' : 'Todos los choferes') + '</option>';
-  claves.forEach(function(k) { optHtml += '<option value="' + _histEsc(k) + '">' + _histEsc(nombres[k]) + '</option>'; });
-  sel.innerHTML = optHtml;
-  if (elegido && nombres[elegido]) sel.value = elegido; else elegido = '';
+  if (elegido && !nombres[elegido]) elegido = HIST_CHOF.elegido = '';
+  HIST_CHOF.claves = claves;
+
+  // Botones de móviles / choferes
+  var bHtml = '<button type="button" class="hist-sel-btn' + (elegido ? '' : ' active') + '" onclick="histChof_elegir(-1)">' + (modo === 'movil' ? 'Todos los m\xF3viles' : 'Todos los choferes') + '</button>';
+  claves.forEach(function(k, i) {
+    var n = grupos[k] ? grupos[k].length : 0;
+    bHtml += '<button type="button" class="hist-sel-btn' + (k === elegido ? ' active' : '') + (n ? '' : ' vacio') + '" onclick="histChof_elegir(' + i + ')">'
+      + _histEsc(nombres[k]) + (n ? '<span class="n">' + n + '</span>' : '') + '</button>';
+  });
+  document.getElementById('hist-sel').innerHTML = bHtml;
 
   var cont = document.getElementById('hist-cont');
   if (elegido) { cont.innerHTML = _histDetalle(nombres[elegido], grupos[elegido] || [], modo, otro); return; }
@@ -20789,7 +20827,6 @@ function histChof_render() {
   // ── Vista general: una tarjeta por móvil / chofer con actividad ──
   var activos = claves.filter(function(k) { return grupos[k]; });
   activos.sort(function(a, b) { return grupos[b].length - grupos[a].length; });
-  HIST_CHOF.claves = activos;
   if (!activos.length) {
     cont.innerHTML = '<div class="empty"><div class="icon">🕘</div><p>Sin movimientos en este per\xEDodo</p></div>';
     return;
@@ -20800,7 +20837,7 @@ function histChof_render() {
     var tercero = modo === 'movil'
       ? { v: t.cargas, l: 'Cargas combust.' }
       : { v: Object.keys(t.usos).length, l: 'M\xF3viles usados' };
-    html += '<button type="button" class="hist-card" onclick="histChof_elegir(' + i + ')">'
+    html += '<button type="button" class="hist-card" onclick="histChof_elegir(' + claves.indexOf(k) + ')">'
       + '<div class="hist-card-nom">' + (modo === 'movil' ? '🚐 ' : '👤 ') + _histEsc(nombres[k]) + '</div>'
       + '<div class="hist-card-nums">'
       + '<div><div class="hist-n-v" style="color:#93c5fd">' + t.viajes + '</div><div class="hist-n-l">Viajes</div></div>'
@@ -20819,30 +20856,58 @@ function histChof_render() {
 
 // ── Detalle de un móvil / chofer ──
 function _histDetalle(nombre, evs, modo, otro) {
-  var t = _histTotales(evs, otro);
+  var tTodos = _histTotales(evs, otro); // para la lista de nombres, sin filtrar
+  var sub = HIST_CHOF.sub, tipo = HIST_CHOF.tipo;
+  // Filtro por chofer (en móviles) o por móvil (en choferes)
+  var evsSub = sub ? evs.filter(function(e) { return _histKey(e[otro]) === sub; }) : evs;
+  var t = _histTotales(evsSub, otro);
   var r = HIST_CHOF.rango;
-  var html = '<button type="button" class="hist-volver" onclick="document.getElementById(\'hist-sel\').value=\'\';histChof_render()">← Ver ' + (modo === 'movil' ? 'todos los m\xF3viles' : 'todos los choferes') + '</button>';
+
+  function kpi(k, valor, label, color) {
+    return '<div class="hist-kpi clic' + (tipo === k ? ' sel' : '') + '" style="--hc:' + color + '" role="button" title="Ver solo ' + label.toLowerCase() + '" onclick="histChof_tipo(\'' + k + '\')">'
+      + '<div class="hist-n-v" style="color:' + color + '">' + valor + '</div><div class="hist-n-l">' + label + '</div></div>';
+  }
+
+  var html = '<button type="button" class="hist-volver" onclick="histChof_elegir(-1)">← Ver ' + (modo === 'movil' ? 'todos los m\xF3viles' : 'todos los choferes') + '</button>';
   html += '<div class="hist-hero">'
     + '<div class="hist-hero-nom">' + (modo === 'movil' ? '🚐 ' : '👤 ') + _histEsc(nombre) + '</div>'
-    + '<div class="hist-hero-per">Del ' + _histFechaLarga(r.desde) + ' al ' + _histFechaLarga(r.hasta) + '</div>'
+    + '<div class="hist-hero-per">Del ' + _histFechaLarga(r.desde) + ' al ' + _histFechaLarga(r.hasta)
+    + (sub ? ' \xB7 solo con <b>' + _histEsc(tTodos.usosNom[sub] || '') + '</b>' : '') + '</div>'
     + '<div class="hist-kpis">'
-    + '<div class="hist-kpi"><div class="hist-n-v" style="color:#93c5fd">' + t.viajes + '</div><div class="hist-n-l">Viajes</div></div>'
+    + kpi('ruta', t.viajes, 'Viajes', '#93c5fd')
     + '<div class="hist-kpi"><div class="hist-n-v" style="color:#7cb0ff">' + _histFmtNum(t.km) + '</div><div class="hist-n-l">Km recorridos</div></div>'
-    + '<div class="hist-kpi"><div class="hist-n-v" style="color:#fbbf24">$ ' + _histFmtNum(t.plata) + '</div><div class="hist-n-l">Combustible \xB7 ' + _histFmtNum(t.litros, 1) + ' L</div></div>'
-    + '<div class="hist-kpi"><div class="hist-n-v" style="color:' + (t.inc ? '#f87171' : '#6ee7b7') + '">' + t.inc + '</div><div class="hist-n-l">Incidencias</div></div>'
+    + kpi('comb', '$ ' + _histFmtNum(t.plata), 'Combustible \xB7 ' + _histFmtNum(t.litros, 1) + ' L', '#fbbf24')
+    + kpi('inc', t.inc, 'Incidencias', t.inc ? '#f87171' : '#6ee7b7')
     + '</div>';
-  var usosK = Object.keys(t.usos).sort(function(a, b) { return t.usos[b] - t.usos[a]; });
+
+  // Nombres clickeables: filtran este móvil por chofer (o este chofer por móvil)
+  var usosK = Object.keys(tTodos.usos).sort(function(a, b) { return tTodos.usos[b] - tTodos.usos[a]; });
+  HIST_CHOF.subClaves = usosK;
   if (usosK.length) {
-    html += '<div class="hist-uso">' + (modo === 'movil' ? 'Lo manejaron: ' : 'Us\xF3: ')
-      + usosK.map(function(k) { return '<b>' + _histEsc(t.usosNom[k]) + '</b> (' + t.usos[k] + ')'; }).join(', ') + '</div>';
+    html += '<div class="hist-uso">' + (modo === 'movil' ? 'Lo manejaron:' : 'Us\xF3:') + '<div>'
+      + usosK.map(function(k, i) {
+          return '<button type="button" class="hist-quien' + (k === sub ? ' active' : '') + '" onclick="histChof_sub(' + i + ')">'
+            + _histEsc(tTodos.usosNom[k]) + ' <span class="n">(' + tTodos.usos[k] + ')</span></button>';
+        }).join('')
+      + '</div></div>';
   }
   if (t.taller) html += '<div class="hist-uso">🔧 ' + t.taller + (t.taller === 1 ? ' ingreso' : ' ingresos') + ' a taller' + (t.enTaller ? ' \xB7 <b style="color:#c4b5fd">hoy sigue en taller</b>' : '') + '</div>';
   html += '</div>';
 
-  evs = evs.slice().sort(function(a, b) { return new Date(b.fecha || 0) - new Date(a.fecha || 0); });
-  if (!evs.length) return html + '<div class="empty"><p>Sin movimientos en este per\xEDodo</p></div>';
-  html += '<div class="hist-mov-tit">Movimientos</div>';
-  evs.forEach(function(e) { html += _histFila(e, modo); });
+  // Filtro por tipo de movimiento (cuadros de arriba)
+  var lista = evsSub;
+  if (tipo === 'ruta') lista = lista.filter(function(e) { return e.tipo === 'ruta'; });
+  else if (tipo === 'comb') lista = lista.filter(function(e) { return e.tipo === 'comb'; });
+  else if (tipo === 'inc') lista = lista.filter(function(e) { return e.tipo === 'inc' || (e.tipo === 'ruta' && _histParadasInc(e.r).inc.length); });
+  lista = lista.slice().sort(function(a, b) { return new Date(b.fecha || 0) - new Date(a.fecha || 0); });
+
+  var titulos = { ruta: 'Viajes', comb: 'Cargas de combustible', inc: 'Incidencias' };
+  var hayFiltro = sub || tipo;
+  html += '<div class="hist-filtro"><div class="hist-mov-tit">' + (tipo ? titulos[tipo] : 'Movimientos') + ' (' + lista.length + ')</div>'
+    + (hayFiltro ? '<button type="button" class="hist-quitar" onclick="HIST_CHOF.sub=HIST_CHOF.tipo=\'\';histChof_render()">✕ Quitar filtros</button>' : '')
+    + '</div>';
+  if (!lista.length) return html + '<div class="empty"><p>' + (hayFiltro ? 'No hay movimientos con este filtro' : 'Sin movimientos en este per\xEDodo') + '</p></div>';
+  lista.forEach(function(e) { html += _histFila(e, modo); });
   return html;
 }
 
