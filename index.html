@@ -873,6 +873,35 @@ body::after { display: none; }
 .chofer-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px; }
 .chofer-name { font-size: 15px; font-weight: 700; letter-spacing: -.015em; }
 .chofer-sub  { font-size: 12px; color: var(--text3); margin-top: 3px; font-family: var(--mono); }
+/* Historial de móviles / choferes */
+.hist-modo { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 5px; background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius-sm); margin-bottom: 12px; }
+.hist-modo-btn { padding: 11px; border: none; border-radius: var(--radius-xs); background: transparent; color: var(--text2); font-family: var(--font); font-size: 14px; font-weight: 700; cursor: pointer; transition: background .15s, color .15s; }
+.hist-modo-btn.active { background: var(--accent); color: #fff; box-shadow: 0 4px 14px var(--glow); }
+.hist-filtros { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+.hist-filtros .form-label { margin-bottom: 4px; }
+.hist-f-sel { flex: 2 1 220px; }
+.hist-f-fecha { flex: 1 1 130px; }
+.hist-chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.hist-chip { padding: 6px 12px; border-radius: 20px; border: 1px solid var(--border2); background: var(--bg3); color: var(--text2); font-family: var(--font); font-size: 12px; font-weight: 700; cursor: pointer; }
+.hist-chip.active { background: rgba(37,99,235,.22); border-color: var(--accent2); color: #fff; }
+.hist-chip.off { opacity: .45; text-decoration: line-through; }
+.hist-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; margin: 4px 0 12px; }
+.hist-stat { background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 10px 12px; }
+.hist-stat-v { font-size: 18px; font-weight: 900; letter-spacing: -.02em; }
+.hist-stat-l { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.hist-usos { background: var(--bg2); border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 10px 12px; margin-bottom: 14px; font-size: 12px; color: var(--text2); }
+.hist-usos b { color: var(--text); }
+.hist-usos .hist-pill { display: inline-block; margin: 4px 4px 0 0; padding: 3px 9px; border-radius: 20px; background: var(--bg3); border: 1px solid var(--border2); font-size: 11px; font-weight: 700; color: var(--text2); }
+.hist-dia { font-size: 11px; font-weight: 800; color: var(--accent3); text-transform: uppercase; letter-spacing: .08em; padding: 12px 2px 6px; border-bottom: 1px solid var(--border2); margin-bottom: 8px; }
+.hist-ev { display: flex; gap: 12px; background: var(--bg2); border: 1px solid var(--border); border-left: 4px solid var(--hc, var(--accent2)); border-radius: var(--radius-sm); padding: 12px; margin-bottom: 8px; }
+.hist-ev-ico { font-size: 20px; line-height: 1; flex-shrink: 0; }
+.hist-ev-body { flex: 1; min-width: 0; }
+.hist-ev-top { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.hist-ev-tit { font-size: 13px; font-weight: 800; }
+.hist-ev-hora { font-size: 11px; color: var(--text3); font-family: var(--mono); white-space: nowrap; }
+.hist-ev-sub { font-size: 12px; color: var(--text2); margin-top: 3px; }
+.hist-ev-det { font-size: 12px; color: var(--text3); margin-top: 4px; line-height: 1.45; }
+.hist-tag { display: inline-block; margin: 6px 4px 0 0; padding: 2px 8px; border-radius: 8px; font-size: 11px; font-weight: 700; background: rgba(239,68,68,.14); color: #fca5a5; border: 1px solid rgba(239,68,68,.25); }
 .route-list { list-style: none; position: relative; }
 .route-list::before {
   content: ''; position: absolute;
@@ -2370,8 +2399,8 @@ body {
         <button class="tab" onclick="chofSubTab('combustible',this)">⛽ Combustible</button>
         <button class="tab" onclick="chofSubTab('incidencias',this)">⚠️ Incidencias</button>
         <button class="tab" onclick="chofSubTab('taller',this)">🔧 Taller</button>
-        <button class="tab" id="tab-gps" onclick="chofSubTab('gps',this)" style="display:none">📡 GPS</button>
         <button class="tab" id="tab-imprimir-ruta" onclick="chofSubTab('imprimir-ruta',this)" style="display:none">📄 Imp. Ruta</button>
+        <button class="tab" id="tab-historial-chof" onclick="chofSubTab('historial',this)" style="display:none">🕘 Historial</button>
       </div>
 
       <!-- SUB-TAB: RUTAS -->
@@ -2450,17 +2479,36 @@ body {
       </div>
 
       <!-- SUB-TAB: GPS -->
-      <div id="chof-sub-gps" style="display:none">
-        <div class="card" style="margin-bottom:10px">
-          <div class="card-head">
-            <span class="card-lbl">📡 Móviles activos</span>
-            <span class="badge b-green" id="gps-count">0 activos</span>
+      <!-- SUB-TAB: HISTORIAL (solo Gerencia y Administrador del sistema) -->
+      <div id="chof-sub-historial" style="display:none">
+        <div class="hist-modo">
+          <button type="button" id="hist-modo-movil" class="hist-modo-btn active" onclick="histChof_modo('movil')">🚐 Móviles</button>
+          <button type="button" id="hist-modo-chofer" class="hist-modo-btn" onclick="histChof_modo('chofer')">👤 Choferes</button>
+        </div>
+        <div class="hist-filtros">
+          <div class="hist-f-sel">
+            <label class="form-label" id="hist-sel-lbl">Móvil</label>
+            <select class="form-select" id="hist-sel" onchange="histChof_render()"></select>
           </div>
-          <div id="gps-moviles-list"></div>
+          <div class="hist-f-fecha">
+            <label class="form-label">Desde</label>
+            <input type="date" class="form-input" id="hist-desde" onchange="histChof_periodo(null)">
+          </div>
+          <div class="hist-f-fecha">
+            <label class="form-label">Hasta</label>
+            <input type="date" class="form-input" id="hist-hasta" onchange="histChof_periodo(null)">
+          </div>
         </div>
-        <div class="card" style="padding:0;overflow:hidden">
-          <div id="gps-map-frame" style="width:100%;height:320px"></div>
+        <div class="hist-chips" id="hist-periodos">
+          <button type="button" class="hist-chip" data-p="hoy" onclick="histChof_periodo('hoy')">Hoy</button>
+          <button type="button" class="hist-chip" data-p="7" onclick="histChof_periodo('7')">7 días</button>
+          <button type="button" class="hist-chip active" data-p="30" onclick="histChof_periodo('30')">30 días</button>
+          <button type="button" class="hist-chip" data-p="mes" onclick="histChof_periodo('mes')">Este mes</button>
+          <button type="button" class="hist-chip" data-p="90" onclick="histChof_periodo('90')">3 meses</button>
         </div>
+        <div class="hist-chips" id="hist-tipos"></div>
+        <div id="hist-resumen"></div>
+        <div id="hist-lista"></div>
       </div>
     </div>
     <div class="view" id="view-estadisticas">
@@ -10045,6 +10093,9 @@ function initApp() {
   if ($('tab-gps')) $('tab-gps').style.display = canSeeGPS ? 'flex' : 'none';
   var canSeeImpRuta = (USER.rol === 'ADMIN' || ['Administrador', 'Administración', 'Gerencia', 'PC', 'Responsable de turno'].indexOf(USER.puesto) >= 0);
   if ($('tab-imprimir-ruta')) $('tab-imprimir-ruta').style.display = canSeeImpRuta ? 'flex' : 'none';
+  // Historial de móviles/choferes — exclusivo Gerencia y Administrador del sistema
+  if ($('tab-historial-chof')) $('tab-historial-chof').style.display = histChof_puedeVer() ? 'flex' : 'none';
+  if (!histChof_puedeVer() && $('chof-sub-historial')) $('chof-sub-historial').style.display = 'none';
   // Relevamiento: solo ADMIN
   var canSeeRelev = (USER.rol === 'ADMIN');
   if ($('si-relevamiento')) $('si-relevamiento').style.display = canSeeRelev ? 'block' : 'none';
@@ -19104,26 +19155,24 @@ function chofSubTab(tab, btn) {
     return b.classList.remove('active');
   });
   btn.classList.add('active');
-  ['rutas', 'combustible', 'incidencias', 'taller', 'gps', 'imprimir-ruta'].forEach(function (t) {
+  ['rutas', 'combustible', 'incidencias', 'taller', 'imprimir-ruta', 'historial'].forEach(function (t) {
     var el = document.getElementById('chof-sub-' + t);
     if (el) el.style.display = t === tab ? 'block' : 'none';
   });
+  // Historial es solo consulta: sin botón "+"
+  var _fabH = document.getElementById('fab');
+  if (tab === 'historial') { if (_fabH) _fabH.style.display = 'none'; }
+  else actualizarFABvisibilidad('choferes');
   if (tab === 'combustible') loadCombustible();
   else if (tab === 'incidencias') loadIncidencias();
   else if (tab === 'taller') loadTaller();
-  else if (tab === 'gps') {
-    if (!USER || ['Gerencia', 'PC', 'Administrador'].indexOf(USER.puesto) < 0) {
-      var elG = document.getElementById('chof-sub-gps');
-      if (elG) elG.style.display = 'none';
+  else if (tab === 'historial') {
+    if (!histChof_puedeVer()) {
+      var elH = document.getElementById('chof-sub-historial');
+      if (elH) elH.style.display = 'none';
       return;
     }
-    loadGPS();
-    // Auto-refresh cada 30 segundos mientras se ve el mapa
-    if (GPS_REFRESH_INTERVAL) clearInterval(GPS_REFRESH_INTERVAL);
-    GPS_REFRESH_INTERVAL = setInterval(function() {
-      if (CUR_CHOF_SUBTAB === 'gps') loadGPS();
-      else { clearInterval(GPS_REFRESH_INTERVAL); GPS_REFRESH_INTERVAL = null; }
-    }, 30000);
+    histChof_abrir();
   }
 }
 function fabClick() {
@@ -20546,6 +20595,335 @@ function verRecorridoGPS() { /* GPS desactivado */ }
 function startGPSTransmission() { GPS_TRACKING = false; return Promise.resolve(); }
 function stopGPSTransmission()  { GPS_TRACKING = false; if (GPS_INTERVAL) { clearInterval(GPS_INTERVAL); GPS_INTERVAL = null; } return Promise.resolve(); }
 function startGPSRefresh()      { /* GPS desactivado */ }
+
+// ══════════════════════════════════════════════════════════════════════════
+// HISTORIAL DE MÓVILES Y CHOFERES — solo Gerencia y Administrador del sistema
+// Junta rutas, combustible, incidencias y taller en una línea de tiempo.
+// ══════════════════════════════════════════════════════════════════════════
+var HIST_CHOF = {
+  modo: 'movil',
+  periodo: '30',
+  tipos: { ruta: true, comb: true, inc: true, taller: true },
+  data: null,
+  listas: null,
+  reqId: 0
+};
+
+var HIST_TIPOS = [
+  { k: 'ruta',   label: '📋 Rutas',       color: '#3b82f6' },
+  { k: 'comb',   label: '⛽ Combustible', color: '#f59e0b' },
+  { k: 'inc',    label: '⚠️ Incidencias', color: '#ef4444' },
+  { k: 'taller', label: '🔧 Taller',      color: '#8b5cf6' }
+];
+
+function histChof_puedeVer() {
+  return !!(window.USER && (USER.puesto === 'Gerencia' || USER.puesto === 'Administrador' || USER.rol === 'ADMIN'));
+}
+
+function _histEsc(v) {
+  return String(v == null ? '' : v).replace(/[&<>"']/g, function(c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
+function _histKey(v) { return String(v || '').trim().toLowerCase(); }
+function _histNum(v) { var n = parseFloat(v); return isNaN(n) ? null : n; }
+function _histFmtNum(n, dec) { return Number(n).toLocaleString('es-AR', { maximumFractionDigits: dec || 0 }); }
+function _histHora(iso) {
+  if (!iso) return '';
+  try { return new Date(iso).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Argentina/Buenos_Aires' }); }
+  catch (e) { return ''; }
+}
+// Suma días a una fecha 'YYYY-MM-DD'
+function _histSumarDias(ymd, dias) {
+  var d = new Date(ymd + 'T12:00:00Z');
+  d.setUTCDate(d.getUTCDate() + dias);
+  return d.toISOString().substring(0, 10);
+}
+function _histLabelDia(ymd) {
+  var hoy = fechaHoyAR();
+  if (ymd === hoy) return 'Hoy';
+  if (ymd === _histSumarDias(hoy, -1)) return 'Ayer';
+  var d = new Date(ymd + 'T12:00:00Z');
+  var dias = ['Domingo', 'Lunes', 'Martes', 'Mi\xE9rcoles', 'Jueves', 'Viernes', 'S\xE1bado'];
+  return dias[d.getUTCDay()] + ' ' + ymd.substring(8, 10) + '/' + ymd.substring(5, 7) + '/' + ymd.substring(0, 4);
+}
+
+window.histChof_abrir = function() {
+  if (!histChof_puedeVer()) return;
+  if (!document.getElementById('hist-desde').value) {
+    histChof_periodo(HIST_CHOF.periodo);
+    return;
+  }
+  histChof_cargar();
+};
+
+window.histChof_modo = function(modo) {
+  HIST_CHOF.modo = modo;
+  document.getElementById('hist-modo-movil').classList.toggle('active', modo === 'movil');
+  document.getElementById('hist-modo-chofer').classList.toggle('active', modo === 'chofer');
+  document.getElementById('hist-sel-lbl').textContent = modo === 'movil' ? 'M\xF3vil' : 'Chofer';
+  document.getElementById('hist-sel').value = '';
+  histChof_render();
+};
+
+window.histChof_periodo = function(p) {
+  var desdeEl = document.getElementById('hist-desde');
+  var hastaEl = document.getElementById('hist-hasta');
+  var hoy = fechaHoyAR();
+  if (p) {
+    var desde = hoy;
+    if (p === '7') desde = _histSumarDias(hoy, -6);
+    else if (p === '30') desde = _histSumarDias(hoy, -29);
+    else if (p === '90') desde = _histSumarDias(hoy, -89);
+    else if (p === 'mes') desde = hoy.substring(0, 8) + '01';
+    desdeEl.value = desde;
+    hastaEl.value = hoy;
+  }
+  HIST_CHOF.periodo = p;
+  document.querySelectorAll('#hist-periodos .hist-chip').forEach(function(b) {
+    b.classList.toggle('active', b.getAttribute('data-p') === p);
+  });
+  if (!desdeEl.value || !hastaEl.value) return;
+  if (desdeEl.value > hastaEl.value) { toast('La fecha "Desde" no puede ser posterior a "Hasta"', 'err'); return; }
+  histChof_cargar();
+};
+
+window.histChof_toggleTipo = function(k) {
+  HIST_CHOF.tipos[k] = !HIST_CHOF.tipos[k];
+  histChof_render();
+};
+
+window.histChof_elegir = function(valor) {
+  var sel = document.getElementById('hist-sel');
+  sel.value = valor;
+  histChof_render();
+  var cont = document.getElementById('chof-sub-historial');
+  if (cont && cont.scrollIntoView) cont.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+
+function histChof_cargar() {
+  var desde = document.getElementById('hist-desde').value;
+  var hasta = document.getElementById('hist-hasta').value;
+  var ini = desde + 'T00:00:00-03:00';
+  var fin = hasta + 'T23:59:59.999-03:00';
+  var reqId = ++HIST_CHOF.reqId;
+  document.getElementById('hist-resumen').innerHTML = '';
+  document.getElementById('hist-lista').innerHTML = '<div style="padding:30px;text-align:center;color:var(--text3)">Cargando historial...</div>';
+
+  var consultas = [
+    db.from('rutas').select('*').gte('inicio', ini).lte('inicio', fin).order('inicio', { ascending: false }).limit(2000),
+    db.from('combustible').select('*').gte('created_at', ini).lte('created_at', fin).order('created_at', { ascending: false }).limit(2000),
+    db.from('incidencias').select('*').gte('created_at', ini).lte('created_at', fin).order('created_at', { ascending: false }).limit(2000),
+    db.from('taller').select('*').gte('created_at', ini).lte('created_at', fin).order('created_at', { ascending: false }).limit(2000)
+  ];
+  // Listas de móviles y choferes: una sola vez por sesión
+  if (!HIST_CHOF.listas) {
+    consultas.push(db.from('vehiculos').select('modelo,patente'));
+    consultas.push(db.from('choferes_lista').select('nombre'));
+  }
+
+  Promise.all(consultas).then(function(res) {
+    if (reqId !== HIST_CHOF.reqId) return; // llegó una consulta más nueva
+    var err = res.filter(function(r) { return r && r.error; })[0];
+    if (err) {
+      document.getElementById('hist-lista').innerHTML = '<div class="empty"><p>Error: ' + _histEsc(err.error.message) + '</p></div>';
+      return;
+    }
+    if (!HIST_CHOF.listas) {
+      HIST_CHOF.listas = {
+        moviles: (res[4].data || []).map(function(v) { return (v.modelo || '') + ' \xB7 ' + (v.patente || ''); }),
+        choferes: (res[5].data || []).map(function(c) { return c.nombre; })
+      };
+    }
+    HIST_CHOF.data = { rutas: res[0].data || [], comb: res[1].data || [], inc: res[2].data || [], taller: res[3].data || [] };
+    histChof_render();
+  }).catch(function(e) {
+    if (reqId !== HIST_CHOF.reqId) return;
+    document.getElementById('hist-lista').innerHTML = '<div class="empty"><p>Error cargando historial: ' + _histEsc(e && e.message) + '</p></div>';
+  });
+}
+
+// Pasa los registros de las 4 tablas a eventos con el mismo formato
+function _histEventos() {
+  var d = HIST_CHOF.data, evs = [];
+  d.rutas.forEach(function(r) { evs.push({ tipo: 'ruta', fecha: r.inicio || r.created_at, movil: r.movil, chofer: r.chofer, r: r }); });
+  d.comb.forEach(function(r) { evs.push({ tipo: 'comb', fecha: r.created_at, movil: r.movil, chofer: r.chofer, r: r }); });
+  d.inc.forEach(function(r) { evs.push({ tipo: 'inc', fecha: r.created_at, movil: r.movil, chofer: r.chofer, r: r }); });
+  d.taller.forEach(function(r) { evs.push({ tipo: 'taller', fecha: r.created_at, movil: r.movil, chofer: null, r: r }); });
+  return evs;
+}
+
+function _histParadasConInc(r) {
+  var p = r.paradas;
+  if (typeof p === 'string') { try { p = JSON.parse(p); } catch (e) { p = []; } }
+  if (!Array.isArray(p)) p = [];
+  return { total: p.length, inc: p.filter(function(x) { return x && x.con_incidencia; }) };
+}
+
+function _histKmRuta(r) {
+  var a = _histNum(r.km_inicial), b = _histNum(r.km_final);
+  if (a == null || b == null) return null;
+  var km = b - a;
+  return (km >= 0 && km < 5000) ? km : null; // descarta cargas erróneas
+}
+
+function histChof_render() {
+  if (!HIST_CHOF.data) return;
+  var modo = HIST_CHOF.modo;
+  var campo = modo === 'movil' ? 'movil' : 'chofer';
+  var sel = document.getElementById('hist-sel');
+  var elegido = sel.value;
+
+  var todos = _histEventos();
+  if (modo === 'chofer') todos = todos.filter(function(e) { return e.tipo !== 'taller'; }); // taller no registra chofer
+
+  // Opciones del selector: lista oficial + lo que aparezca en el período
+  var nombres = {};
+  (modo === 'movil' ? HIST_CHOF.listas.moviles : HIST_CHOF.listas.choferes).forEach(function(n) { if (n && String(n).trim()) nombres[_histKey(n)] = String(n).trim(); });
+  var cuenta = {};
+  todos.forEach(function(e) {
+    var k = _histKey(e[campo]);
+    if (!k) return;
+    if (!nombres[k]) nombres[k] = String(e[campo]).trim();
+    cuenta[k] = (cuenta[k] || 0) + 1;
+  });
+  var claves = Object.keys(nombres).sort(function(a, b) { return nombres[a].localeCompare(nombres[b], 'es'); });
+  var optHtml = '<option value="">' + (modo === 'movil' ? 'Todos los m\xF3viles' : 'Todos los choferes') + '</option>';
+  claves.forEach(function(k) {
+    optHtml += '<option value="' + _histEsc(k) + '">' + _histEsc(nombres[k]) + (cuenta[k] ? ' (' + cuenta[k] + ')' : '') + '</option>';
+  });
+  sel.innerHTML = optHtml;
+  if (elegido && nombres[elegido]) sel.value = elegido; else elegido = '';
+
+  // Chips de tipo
+  var chips = '';
+  HIST_TIPOS.forEach(function(t) {
+    if (modo === 'chofer' && t.k === 'taller') return;
+    chips += '<button type="button" class="hist-chip' + (HIST_CHOF.tipos[t.k] ? '' : ' off') + '" style="' + (HIST_CHOF.tipos[t.k] ? 'border-color:' + t.color : '') + '" onclick="histChof_toggleTipo(\'' + t.k + '\')">' + t.label + '</button>';
+  });
+  document.getElementById('hist-tipos').innerHTML = chips;
+
+  var delSel = elegido ? todos.filter(function(e) { return _histKey(e[campo]) === elegido; }) : todos;
+
+  // ── Resumen ──
+  var rutas = delSel.filter(function(e) { return e.tipo === 'ruta'; });
+  var cargas = delSel.filter(function(e) { return e.tipo === 'comb'; });
+  var km = 0, litros = 0, importe = 0, incParadas = 0;
+  rutas.forEach(function(e) { km += _histKmRuta(e.r) || 0; incParadas += _histParadasConInc(e.r).inc.length; });
+  cargas.forEach(function(e) { litros += _histNum(e.r.litros) || 0; importe += _histNum(e.r.importe) || 0; });
+  var incs = delSel.filter(function(e) { return e.tipo === 'inc'; }).length + incParadas;
+  var talleres = delSel.filter(function(e) { return e.tipo === 'taller'; }).length;
+
+  function stat(v, l, c) { return '<div class="hist-stat"><div class="hist-stat-v" style="color:' + c + '">' + v + '</div><div class="hist-stat-l">' + l + '</div></div>'; }
+  var res = '<div class="hist-stats">'
+    + stat(rutas.length, 'Hojas de ruta', '#93c5fd')
+    + stat(_histFmtNum(km), 'Km recorridos', '#7cb0ff')
+    + stat(cargas.length, 'Cargas de combustible', '#fbbf24')
+    + stat(_histFmtNum(litros, 1) + ' L', 'Litros cargados', '#fbbf24')
+    + stat('$ ' + _histFmtNum(importe), 'Gasto en combustible', '#fcd34d')
+    + stat(incs, 'Incidencias', incs ? '#f87171' : '#6ee7b7')
+    + (modo === 'movil' ? stat(talleres, 'Ingresos a taller', '#c4b5fd') : '')
+    + '</div>';
+
+  // Quién usó el móvil / qué móviles usó el chofer / actividad general
+  var otro = modo === 'movil' ? 'chofer' : 'movil';
+  var usos = {}, usosNom = {};
+  var base = elegido ? rutas : delSel;
+  var campoUso = elegido ? otro : campo;
+  base.forEach(function(e) {
+    var k = _histKey(e[campoUso]);
+    if (!k) return;
+    usos[k] = (usos[k] || 0) + 1;
+    usosNom[k] = String(e[campoUso]).trim();
+  });
+  var usosK = Object.keys(usos).sort(function(a, b) { return usos[b] - usos[a]; });
+  if (usosK.length) {
+    var titUso = elegido
+      ? (modo === 'movil' ? 'Choferes que lo usaron' : 'M\xF3viles que us\xF3') + ' <span style="color:var(--text3)">(hojas de ruta)</span>'
+      : (modo === 'movil' ? 'M\xF3viles con actividad' : 'Choferes con actividad') + ' <span style="color:var(--text3)">\xB7 toc\xE1 uno para ver su historial</span>';
+    res += '<div class="hist-usos"><b>' + titUso + '</b><div>';
+    HIST_CHOF.pills = usosK;
+    usosK.forEach(function(k, i) {
+      var pill = _histEsc(usosNom[k]) + ' \xB7 ' + usos[k];
+      if (!elegido) res += '<button type="button" class="hist-pill" style="cursor:pointer;font-family:var(--font)" onclick="histChof_elegir(HIST_CHOF.pills[' + i + '])">' + pill + '</button>';
+      else res += '<span class="hist-pill">' + pill + '</span>';
+    });
+    res += '</div></div>';
+  }
+  document.getElementById('hist-resumen').innerHTML = res;
+
+  // ── Línea de tiempo ──
+  var evs = delSel.filter(function(e) { return HIST_CHOF.tipos[e.tipo]; });
+  evs.sort(function(a, b) { return new Date(b.fecha || 0) - new Date(a.fecha || 0); });
+
+  var lista = document.getElementById('hist-lista');
+  if (!evs.length) {
+    lista.innerHTML = '<div class="empty"><div class="icon">🕘</div><p>Sin movimientos en este per\xEDodo</p></div>';
+    return;
+  }
+  var MAX = 400;
+  var html = '', ultimoDia = null;
+  evs.slice(0, MAX).forEach(function(e) {
+    var dia = fechaCorta(e.fecha);
+    if (dia !== ultimoDia) { html += '<div class="hist-dia">' + _histLabelDia(dia) + '</div>'; ultimoDia = dia; }
+    html += _histCardEvento(e, modo);
+  });
+  if (evs.length > MAX) html += '<div style="padding:12px;text-align:center;color:var(--text3);font-size:12px">Se muestran los ' + MAX + ' movimientos m\xE1s recientes de ' + evs.length + '. Acot\xE1 el per\xEDodo para ver el resto.</div>';
+  lista.innerHTML = html;
+}
+
+function _histCardEvento(e, modo) {
+  var r = e.r, ico, color, tit, hora = _histHora(e.fecha), det = [], tags = '';
+  // En modo móvil se destaca el chofer y viceversa
+  var quien = modo === 'movil'
+    ? (e.chofer ? '👤 ' + _histEsc(e.chofer) : '') + (e.movil ? (e.chofer ? ' \xB7 ' : '') + '🚐 ' + _histEsc(e.movil) : '')
+    : (e.movil ? '🚐 ' + _histEsc(e.movil) : '') + (e.chofer ? (e.movil ? ' \xB7 ' : '') + '👤 ' + _histEsc(e.chofer) : '');
+
+  if (e.tipo === 'ruta') {
+    ico = '📋'; color = '#3b82f6';
+    tit = 'Hoja de ruta' + (r.estado === 'activo' ? ' <span style="color:#6ee7b7;font-size:11px">\xB7 en curso</span>' : '');
+    if (r.fin) hora += ' → ' + _histHora(r.fin);
+    var kmIni = _histNum(r.km_inicial), kmFin = _histNum(r.km_final), kmR = _histKmRuta(r);
+    if (kmIni != null) det.push('Km ' + _histFmtNum(kmIni) + (kmFin != null ? ' → ' + _histFmtNum(kmFin) : '') + (kmR != null ? ' (' + _histFmtNum(kmR) + ' km)' : ''));
+    if (r.combustible_inicial || r.combustible_final) det.push('⛽ ' + _histEsc(r.combustible_inicial || '?') + (r.combustible_final ? ' → ' + _histEsc(r.combustible_final) : ''));
+    var par = _histParadasConInc(r);
+    if (par.total) det.push(par.total + (par.total === 1 ? ' parada' : ' paradas'));
+    if (r.puesto) det.push('Cargada por ' + _histEsc(r.puesto));
+    par.inc.forEach(function(p) {
+      tags += '<span class="hist-tag">⚠️ ' + _histEsc(p.tipo_inc || 'Incidencia') + (p.puesto ? ' — ' + _histEsc(p.puesto) : '') + (p.detalle_inc ? ': ' + _histEsc(p.detalle_inc) : '') + '</span>';
+    });
+    if (par.inc.length) color = '#ef4444';
+  } else if (e.tipo === 'comb') {
+    ico = '⛽'; color = '#f59e0b'; tit = 'Carga de combustible';
+    if (_histNum(r.litros)) det.push(_histFmtNum(r.litros, 2) + ' L');
+    if (_histNum(r.importe)) det.push('$ ' + _histFmtNum(r.importe, 2));
+    if (r.estacion) det.push(_histEsc(r.estacion));
+    if (_histNum(r.km)) det.push('Km ' + _histFmtNum(r.km));
+  } else if (e.tipo === 'inc') {
+    ico = '⚠️'; color = '#ef4444'; tit = 'Incidencia' + (r.tipo ? ': ' + _histEsc(r.tipo) : '');
+    if (r.descripcion) det.push(_histEsc(r.descripcion));
+    if (r.ubicacion) det.push('📍 ' + _histEsc(r.ubicacion));
+  } else {
+    ico = '🔧'; color = '#8b5cf6'; tit = 'Ingreso a taller' + (r.tipo ? ': ' + _histEsc(r.tipo) : '');
+    if (r.taller_nombre) det.push(_histEsc(r.taller_nombre));
+    if (r.descripcion) det.push(_histEsc(r.descripcion));
+    if (_histNum(r.km_ingreso)) det.push('Km ' + _histFmtNum(r.km_ingreso));
+    if (_histNum(r.costo_estimado)) det.push('Costo est. $ ' + _histFmtNum(r.costo_estimado, 2));
+    det.push(r.estado === 'finalizado'
+      ? 'Sali\xF3 ' + (r.fecha_salida ? fechaCorta(r.fecha_salida).split('-').reverse().join('/') : '')
+      : '<span style="color:#c4b5fd">Sigue en taller</span>');
+  }
+  if (r.foto) det.push('<a href="' + _histEsc(r.foto) + '" target="_blank" rel="noopener" style="color:var(--accent3)">📷 Ver foto</a>');
+
+  return '<div class="hist-ev" style="--hc:' + color + '">'
+    + '<div class="hist-ev-ico">' + ico + '</div>'
+    + '<div class="hist-ev-body">'
+    + '<div class="hist-ev-top"><div class="hist-ev-tit">' + tit + '</div><div class="hist-ev-hora">' + hora + '</div></div>'
+    + (quien ? '<div class="hist-ev-sub">' + quien + '</div>' : '')
+    + (det.length ? '<div class="hist-ev-det">' + det.join(' \xB7 ') + '</div>' : '')
+    + tags
+    + '</div></div>';
+}
 var LIC_FILE = null;
 var CUR_FICH_TAB = 'fichaje';
 function fichTab(tab, btn) {
