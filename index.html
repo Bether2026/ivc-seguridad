@@ -1958,7 +1958,7 @@ body {
     <div class="form-group"><label class="form-label">Descripción</label><textarea class="form-textarea" id="inc-desc" style="min-height:80px" placeholder="Detalle del incidente..."></textarea></div>
     <div class="form-group">
       <label class="form-label">📷 Foto (opcional)</label>
-      <input type="file" id="inc-foto-input" accept="image/*" style="display:none" onchange="previewSingleFoto(this, 'inc-foto-preview')">
+      <input type="file" id="inc-foto-input" accept="image/*" style="display:none" onchange="previewSingleFoto(this, 'inc-foto-preview', 'INC_FOTO')">
       <div onclick="abrirSelectorFoto('inc-foto-input')" style="border:2px dashed var(--border2);border-radius:8px;padding:14px;text-align:center;cursor:pointer">📷 Tocá para foto</div>
       <div id="inc-foto-preview" style="margin-top:8px"></div>
     </div>
@@ -20412,72 +20412,43 @@ function _loadIncidencias() {
   }));
   return _loadIncidencias.apply(this, arguments);
 }
+// Si adjuntaron foto, se sube primero y la incidencia se guarda ya con la foto
 function saveIncidencia() {
-  return _saveIncidencia.apply(this, arguments);
-}
-function _saveIncidencia() {
-  _saveIncidencia = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee60() {
-    var payload, _yield$db$from$insert5, ins, error, url;
-    return _regenerator().w(function (_context60) {
-      while (1) switch (_context60.n) {
-        case 0:
-          setLoading('btn-save-inc', true);
-          payload = {
-            chofer: document.getElementById('inc-chofer').value,
-            movil: document.getElementById('inc-movil').value,
-            tipo: document.getElementById('inc-tipo').value,
-            descripcion: document.getElementById('inc-desc').value,
-            ubicacion: document.getElementById('inc-ubicacion').value,
-            puesto: USER.puesto
-          };
-          _context60.n = 1;
-          return db.from('incidencias').insert(payload).select().single();
-        case 1:
-          _yield$db$from$insert5 = _context60.v;
-          ins = _yield$db$from$insert5.data;
-          error = _yield$db$from$insert5.error;
-          if (!error) {
-            _context60.n = 2;
-            break;
-          }
-          setLoading('btn-save-inc', false);
-          toast('Error: ' + error.message, 'err');
-          return _context60.a(2);
-        case 2:
-          if (!INC_FOTO) {
-            _context60.n = 5;
-            break;
-          }
-          toast('Subiendo foto...', 'info');
-          _context60.n = 3;
-          return uploadSingleFoto(INC_FOTO, "incidencias/".concat(ins.id, "_").concat(Date.now(), ".jpg"));
-        case 3:
-          url = _context60.v;
-          if (!url) {
-            _context60.n = 4;
-            break;
-          }
-          _context60.n = 4;
-          return db.from('incidencias').update({
-            foto: url
-          }).eq('id', ins.id);
-        case 4:
-          INC_FOTO = null;
-        case 5:
-          setLoading('btn-save-inc', false);
-          closeOv('ov-incidencia');
-          toast('[!] Incidencia registrada');
-          ['inc-movil', 'inc-desc', 'inc-ubicacion'].forEach(function (id) {
-            return document.getElementById(id).value = '';
-          });
-          document.getElementById('inc-foto-preview').innerHTML = '';
-          loadIncidencias();
-        case 6:
-          return _context60.a(2);
-      }
-    }, _callee60);
-  }));
-  return _saveIncidencia.apply(this, arguments);
+  var payload = {
+    chofer: document.getElementById('inc-chofer').value,
+    movil: document.getElementById('inc-movil').value,
+    tipo: document.getElementById('inc-tipo').value,
+    descripcion: document.getElementById('inc-desc').value,
+    ubicacion: document.getElementById('inc-ubicacion').value,
+    puesto: USER.puesto
+  };
+  setLoading('btn-save-inc', true);
+  var subida = Promise.resolve(null);
+  if (INC_FOTO) {
+    toast('Subiendo foto...', 'info');
+    subida = uploadSingleFoto(INC_FOTO, 'incidencias').then(function(url) {
+      if (!url) throw new Error('No se pudo subir la foto. Prob\xE1 de nuevo.');
+      return url;
+    });
+  }
+  subida.then(function(url) {
+    if (url) payload.foto = url;
+    return db.from('incidencias').insert(payload);
+  }).then(function(res) {
+    if (res.error) throw new Error(res.error.message);
+    setLoading('btn-save-inc', false);
+    closeOv('ov-incidencia');
+    toast('[!] Incidencia registrada');
+    ['inc-movil', 'inc-desc', 'inc-ubicacion', 'inc-foto-input'].forEach(function (id) {
+      document.getElementById(id).value = '';
+    });
+    INC_FOTO = null;
+    document.getElementById('inc-foto-preview').innerHTML = '';
+    loadIncidencias();
+  }).catch(function(e) {
+    setLoading('btn-save-inc', false);
+    toast('Error: ' + e.message, 'err');
+  });
 }
 function loadTaller() {
   return _loadTaller.apply(this, arguments);
