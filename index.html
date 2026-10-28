@@ -19202,10 +19202,10 @@ function chofSubTab(tab, btn) {
     var el = document.getElementById('chof-sub-' + t);
     if (el) el.style.display = t === tab ? 'block' : 'none';
   });
-  // Historial es solo consulta: sin botón "+"
+  // Historial es solo consulta: sin botón "+". En el resto se muestra
+  // (el .fab está oculto por CSS, así que hay que poner 'flex' explícito).
   var _fabH = document.getElementById('fab');
-  if (tab === 'historial') { if (_fabH) _fabH.style.display = 'none'; }
-  else actualizarFABvisibilidad('choferes');
+  if (_fabH) _fabH.style.display = tab === 'historial' ? 'none' : 'flex';
   if (tab === 'combustible') loadCombustible();
   else if (tab === 'incidencias') loadIncidencias();
   else if (tab === 'taller') loadTaller();
