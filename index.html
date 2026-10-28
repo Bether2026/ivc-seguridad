@@ -895,6 +895,13 @@ body::after { display: none; }
 .hist-quien.active .n { color: rgba(255,255,255,.75); }
 .hist-filtro { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 4px 2px 8px; }
 .hist-filtro .hist-mov-tit { margin: 0; }
+.cupo { background: rgba(6,27,52,.55); border: 1px solid var(--border2); border-radius: var(--radius-sm); padding: 10px 12px; margin-top: 12px; }
+.cupo-top { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; color: var(--text2); font-weight: 700; }
+.cupo-top b { font-size: 14px; white-space: nowrap; }
+.cupo-bar { height: 8px; border-radius: 6px; background: rgba(255,255,255,.08); overflow: hidden; margin: 8px 0 6px; }
+.cupo-bar div { height: 100%; border-radius: 6px; }
+.cupo-sub { font-size: 11px; color: var(--text3); }
+.cupo-alerta { margin-top: 8px; padding: 8px 10px; border-radius: 8px; background: rgba(239,68,68,.14); border: 1px solid rgba(239,68,68,.35); color: #fca5a5; font-size: 12px; font-weight: 700; }
 .hist-quitar { background: none; border: none; color: var(--accent3); font-family: var(--font); font-size: 12px; font-weight: 700; cursor: pointer; padding: 0; }
 .hist-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
 .hist-card { text-align: left; font-family: var(--font); color: var(--text); background: linear-gradient(180deg, rgba(20,59,103,.55) 0%, rgba(10,39,71,.9) 100%); border: 1px solid var(--border2); border-radius: var(--radius); padding: 16px; cursor: pointer; transition: border-color .15s, transform .15s; }
@@ -1916,11 +1923,12 @@ body {
     <div class="form-group"><label class="form-label">Chofer</label>
       <select class="form-select" id="comb-chofer"><option value="">— Seleccionar —</option><option>ACOSTA PAMELA</option><option>ALVAREZ OZON NICOLAS MARCELO</option><option>ARROYO LAURA</option><option>CASTILLO ANGEL HERNAN</option><option>CONTE LUCAS EZEQUIEL</option><option>DEL COLLE DAMIAN EZEQUIEL</option><option>GIMENEZ GREGORIO</option><option>LUACES JONATHAN RICARDO</option></select>
     </div>
-    <div class="form-group"><label class="form-label">Móvil / Vehículo</label><select class="form-select" id="comb-movil"><option value="">— Seleccionar móvil —</option></select></div>
+    <div class="form-group"><label class="form-label">Móvil / Vehículo</label><select class="form-select" id="comb-movil" onchange="cupoModalActualizar(true)"><option value="">— Seleccionar móvil —</option></select></div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Litros</label><input class="form-input" type="number" step="0.1" id="comb-litros" placeholder="Litros"/></div>
-      <div class="form-group"><label class="form-label">Importe ($)</label><input class="form-input" type="number" id="comb-importe" placeholder="Importe"/></div>
+      <div class="form-group"><label class="form-label">Importe ($)</label><input class="form-input" type="number" id="comb-importe" placeholder="Importe" oninput="cupoModalActualizar(false)"/></div>
     </div>
+    <div id="comb-cupo-info" style="margin:-4px 0 12px"></div>
     <div class="form-group"><label class="form-label">Estación de servicio</label><input class="form-input" id="comb-estacion" placeholder="Ej: YPF Av. Castañares 2400"/></div>
     <div class="form-group"><label class="form-label">Kilómetros del vehículo</label><input class="form-input" type="number" id="comb-km" placeholder="Km actuales"/></div>
     <div class="form-group">
@@ -20390,6 +20398,8 @@ function _saveCombustible() {
             return document.getElementById(id).value = '';
           });
           document.getElementById('comb-foto-preview').innerHTML = '';
+          document.getElementById('comb-cupo-info').innerHTML = '';
+          _CUPO_MODAL.movil = null;
           loadCombustible();
         case 6:
           return _context58.a(2);
@@ -20711,7 +20721,9 @@ function histChof_cargar() {
     db.from('rutas').select('*').gte('inicio', ini).lte('inicio', fin).order('inicio', { ascending: false }).limit(2000),
     db.from('combustible').select('*').gte('created_at', ini).lte('created_at', fin).order('created_at', { ascending: false }).limit(2000),
     db.from('incidencias').select('*').gte('created_at', ini).lte('created_at', fin).order('created_at', { ascending: false }).limit(2000),
-    db.from('taller').select('*').gte('created_at', ini).lte('created_at', fin).order('created_at', { ascending: false }).limit(2000)
+    db.from('taller').select('*').gte('created_at', ini).lte('created_at', fin).order('created_at', { ascending: false }).limit(2000),
+    // Cargas del período de cupo actual (independiente de las fechas elegidas)
+    db.from('combustible').select('movil,importe,created_at').gte('created_at', cupoPeriodo(fechaHoyAR()).desde + 'T00:00:00-03:00')
   ];
   // Listas de móviles y choferes: una sola vez por sesión
   if (!HIST_CHOF.listas) {
@@ -20728,11 +20740,12 @@ function histChof_cargar() {
     }
     if (!HIST_CHOF.listas) {
       HIST_CHOF.listas = {
-        moviles: (res[4].data || []).map(function(v) { return (v.modelo || '') + ' \xB7 ' + (v.patente || ''); }),
-        choferes: (res[5].data || []).map(function(c) { return c.nombre; })
+        moviles: (res[5].data || []).map(function(v) { return (v.modelo || '') + ' \xB7 ' + (v.patente || ''); }),
+        choferes: (res[6].data || []).map(function(c) { return c.nombre; })
       };
     }
     HIST_CHOF.data = { rutas: res[0].data || [], comb: res[1].data || [], inc: res[2].data || [], taller: res[3].data || [] };
+    HIST_CHOF.cupoCargas = res[4].data || [];
     HIST_CHOF.rango = { desde: desde, hasta: hasta };
     histChof_render();
   }).catch(function(e) {
@@ -20846,12 +20859,21 @@ function histChof_render() {
       + '</div>'
       + (t.inc ? '<span class="hist-badge mal">⚠️ ' + t.inc + (t.inc === 1 ? ' incidencia' : ' incidencias') + '</span>' : '<span class="hist-badge ok">✓ Sin incidencias</span>')
       + (t.enTaller ? '<span class="hist-badge tall">🔧 En taller</span>' : '')
+      + (modo === 'movil' ? _histCupo(nombres[k]) : '')
       + '</button>';
   });
   html += '</div>';
   var sinAct = claves.length - activos.length;
   if (sinAct) html += '<div style="padding:12px 2px;color:var(--text3);font-size:12px">' + sinAct + (modo === 'movil' ? (sinAct === 1 ? ' m\xF3vil' : ' m\xF3viles') : (sinAct === 1 ? ' chofer' : ' choferes')) + ' sin actividad en este per\xEDodo.</div>';
   cont.innerHTML = html;
+}
+
+// Barra de cupo mensual del móvil (período actual, no el elegido en el filtro)
+function _histCupo(movil) {
+  var monto = cupoDe(movil);
+  if (!monto) return '';
+  var per = cupoPeriodo(fechaHoyAR());
+  return cupoBarra(monto, cupoUsado(movil, HIST_CHOF.cupoCargas, per), per);
 }
 
 // ── Detalle de un móvil / chofer ──
@@ -20878,7 +20900,8 @@ function _histDetalle(nombre, evs, modo, otro) {
     + '<div class="hist-kpi"><div class="hist-n-v" style="color:#7cb0ff">' + _histFmtNum(t.km) + '</div><div class="hist-n-l">Km recorridos</div></div>'
     + kpi('comb', '$ ' + _histFmtNum(t.plata), 'Combustible \xB7 ' + _histFmtNum(t.litros, 1) + ' L', '#fbbf24')
     + kpi('inc', t.inc, 'Incidencias', t.inc ? '#f87171' : '#6ee7b7')
-    + '</div>';
+    + '</div>'
+    + (modo === 'movil' ? _histCupo(nombre) : '');
 
   // Nombres clickeables: filtran este móvil por chofer (o este chofer por móvil)
   var usosK = Object.keys(tTodos.usos).sort(function(a, b) { return tTodos.usos[b] - tTodos.usos[a]; });
@@ -20945,6 +20968,119 @@ function _histFila(e, modo) {
     + '<div><div class="hist-row-t">' + tit + '</div>' + (sub.length ? '<div class="hist-row-s">' + sub.join(' \xB7 ') + '</div>' : '') + '</div>'
     + '</div>';
 }
+
+// ══════════════════════════════════════════════════════════════════════════
+// CUPO MENSUAL DE COMBUSTIBLE POR MÓVIL
+// Monto fijo en pesos por patente. Se renueva el primer día hábil de cada mes
+// (sin sábados, domingos ni feriados nacionales) y no se acumula: lo que no se
+// usa se pierde. Para cambiar un monto, editar esta tabla.
+// ══════════════════════════════════════════════════════════════════════════
+var CUPO_COMB = {   // patente sin guiones ni espacios → pesos por mes
+  'AA909LD': 300000,  // S-10
+  'AA909LE': 300000,  // S-10
+  'AA909LF': 300000,  // S-10
+  'MYH863': 260000,
+  'KWI159': 370000
+};
+// Días no hábiles que no salen del cálculo automático (feriados trasladados, puentes): 'YYYY-MM-DD'
+var CUPO_NO_HABILES_EXTRA = [];
+
+function _cupoPatente(movil) {
+  var s = String(movil || '');
+  var i = s.lastIndexOf('\xB7');
+  if (i >= 0) s = s.substring(i + 1);
+  return s.toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+function cupoDe(movil) {
+  var p = _cupoPatente(movil);
+  return p && CUPO_COMB[p] ? CUPO_COMB[p] : null;
+}
+
+var _CUPO_FERIADOS = {};
+// Feriados nacionales inamovibles + Carnaval y Viernes Santo (dependen de Pascua)
+function _cupoFeriados(y) {
+  if (_CUPO_FERIADOS[y]) return _CUPO_FERIADOS[y];
+  var set = {};
+  ['01-01', '03-24', '04-02', '05-01', '05-25', '06-20', '07-09', '12-08', '12-25'].forEach(function(md) { set[y + '-' + md] = true; });
+  // Domingo de Pascua (algoritmo de Gauss / Meeus)
+  var a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4;
+  var f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30;
+  var i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7, m = Math.floor((a + 11 * h + 22 * l) / 451);
+  var mes = Math.floor((h + l - 7 * m + 114) / 31), dia = ((h + l - 7 * m + 114) % 31) + 1;
+  var pascua = y + '-' + String(mes).padStart(2, '0') + '-' + String(dia).padStart(2, '0');
+  [-48, -47, -2].forEach(function(n) { set[_histSumarDias(pascua, n)] = true; }); // lunes y martes de Carnaval, Viernes Santo
+  CUPO_NO_HABILES_EXTRA.forEach(function(f2) { if (f2.substring(0, 4) === String(y)) set[f2] = true; });
+  _CUPO_FERIADOS[y] = set;
+  return set;
+}
+function _cupoEsHabil(ymd) {
+  var dow = new Date(ymd + 'T12:00:00Z').getUTCDay();
+  return dow !== 0 && dow !== 6 && !_cupoFeriados(+ymd.substring(0, 4))[ymd];
+}
+function _cupoPrimerHabil(y, m) { // m: 1-12
+  var f = y + '-' + String(m).padStart(2, '0') + '-01';
+  while (!_cupoEsHabil(f)) f = _histSumarDias(f, 1);
+  return f;
+}
+// Período de cupo al que pertenece una fecha 'YYYY-MM-DD': { desde, hasta (inclusive), mes }
+function cupoPeriodo(ymd) {
+  var y = +ymd.substring(0, 4), m = +ymd.substring(5, 7);
+  if (ymd < _cupoPrimerHabil(y, m)) { m--; if (!m) { m = 12; y--; } }
+  var ny = m === 12 ? y + 1 : y, nm = m === 12 ? 1 : m + 1;
+  var meses = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+  return { desde: _cupoPrimerHabil(y, m), hasta: _histSumarDias(_cupoPrimerHabil(ny, nm), -1), mes: meses[m - 1] };
+}
+// Suma lo cargado por un móvil dentro de un período
+function cupoUsado(movil, cargas, per) {
+  var p = _cupoPatente(movil), total = 0;
+  (cargas || []).forEach(function(c) {
+    var f = fechaCorta(c.created_at);
+    if (_cupoPatente(c.movil) === p && f >= per.desde && f <= per.hasta) total += _histNum(c.importe) || 0;
+  });
+  return total;
+}
+function cupoBarra(monto, usado, per) {
+  var queda = monto - usado;
+  var pct = Math.min(100, Math.round(usado / monto * 100));
+  var color = queda < 0 ? '#ef4444' : pct >= 80 ? '#f59e0b' : '#10b981';
+  return '<div class="cupo">'
+    + '<div class="cupo-top"><span>Cupo de ' + per.mes + '</span><b style="color:' + color + '">'
+    + (queda < 0 ? 'Excedido $ ' + _histFmtNum(-queda) : 'Quedan $ ' + _histFmtNum(queda)) + '</b></div>'
+    + '<div class="cupo-bar"><div style="width:' + pct + '%;background:' + color + '"></div></div>'
+    + '<div class="cupo-sub">Usado $ ' + _histFmtNum(usado) + ' de $ ' + _histFmtNum(monto) + ' \xB7 se renueva el ' + _histFechaLarga(_histSumarDias(per.hasta, 1)) + '</div>'
+    + '</div>';
+}
+
+// ── Aviso de cupo en el formulario de carga de combustible ──
+var _CUPO_MODAL = { movil: null, usado: null, req: 0 };
+window.cupoModalActualizar = function(recargar) {
+  var box = document.getElementById('comb-cupo-info');
+  if (!box) return;
+  var movil = document.getElementById('comb-movil').value;
+  var monto = cupoDe(movil);
+  if (!movil || !monto) { box.innerHTML = ''; _CUPO_MODAL.movil = null; return; }
+  var per = cupoPeriodo(fechaHoyAR());
+  var pintar = function() {
+    var importe = _histNum(document.getElementById('comb-importe').value) || 0;
+    var queda = monto - _CUPO_MODAL.usado;
+    var html = cupoBarra(monto, _CUPO_MODAL.usado, per);
+    if (importe > 0 && importe > queda) {
+      html += '<div class="cupo-alerta">⚠️ Esta carga supera el cupo del mes' + (queda > 0 ? ' por $ ' + _histFmtNum(importe - queda) : '') + '</div>';
+    }
+    box.innerHTML = html;
+  };
+  if (!recargar && _CUPO_MODAL.movil === movil && _CUPO_MODAL.usado != null) { pintar(); return; }
+  _CUPO_MODAL.movil = movil; _CUPO_MODAL.usado = null;
+  var req = ++_CUPO_MODAL.req;
+  box.innerHTML = '<div class="cupo-sub">Consultando cupo...</div>';
+  // Se traen todas las cargas del período y se filtra por patente (el texto del móvil puede variar)
+  db.from('combustible').select('movil,importe,created_at').gte('created_at', per.desde + 'T00:00:00-03:00').then(function(res) {
+    if (req !== _CUPO_MODAL.req) return;
+    if (res.error) { box.innerHTML = ''; return; }
+    _CUPO_MODAL.usado = cupoUsado(movil, res.data || [], per);
+    pintar();
+  });
+};
 var LIC_FILE = null;
 var CUR_FICH_TAB = 'fichaje';
 function fichTab(tab, btn) {
