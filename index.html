@@ -1944,7 +1944,7 @@ body {
     <div class="form-group"><label class="form-label">Móvil / Vehículo</label><select class="form-select" id="comb-movil" onchange="cupoModalActualizar(true)"><option value="">— Seleccionar móvil —</option></select></div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Litros</label><input class="form-input" type="number" step="0.1" id="comb-litros" placeholder="Litros"/></div>
-      <div class="form-group"><label class="form-label">Importe ($)</label><input class="form-input" type="number" id="comb-importe" placeholder="Ej: 50000" min="1000" oninput="combAvisoImporte();cupoModalActualizar(false)"/></div>
+      <div class="form-group"><label class="form-label">Importe ($)</label><input class="form-input" type="text" inputmode="decimal" autocomplete="off" id="comb-importe" placeholder="Ej: 50.000" oninput="combAvisoImporte();cupoModalActualizar(false)"/></div>
     </div>
     <div id="comb-importe-aviso" class="cupo-alerta" style="display:none;margin:-6px 0 12px"></div>
     <div id="comb-cupo-info" style="margin:-4px 0 12px"></div>
@@ -20365,12 +20365,23 @@ function uploadSingleFoto(file, ruta) {
     return null;
   });
 }
-// Aviso mientras escriben un importe abreviado (40 en vez de 40000)
+// Importe en formato argentino: punto para los miles y coma para los decimales
+// ("75.999" → 75999, "75.999,50" → 75999.5). Devuelve null si el formato no es válido.
+function parseImporteAR(txt) {
+  var s = String(txt == null ? '' : txt).replace(/[$\s]/g, '');
+  if (!s) return 0;
+  if (!/^\d{1,3}(\.\d{3})*(,\d{1,2})?$/.test(s) && !/^\d+(,\d{1,2})?$/.test(s)) return null;
+  return parseFloat(s.replace(/\./g, '').replace(',', '.'));
+}
+// Aviso mientras escriben: formato inválido o importe abreviado (40 en vez de 40.000)
 function combAvisoImporte() {
   var el = document.getElementById('comb-importe-aviso');
   if (!el) return;
-  var v = parseFloat(document.getElementById('comb-importe').value) || 0;
-  if (v > 0 && v < COMB_IMPORTE_MIN) {
+  var v = parseImporteAR(document.getElementById('comb-importe').value);
+  if (v === null) {
+    el.textContent = '⚠️ Us\xE1 punto para los miles y coma para los decimales (ej. 75.999 o 75.999,50)';
+    el.style.display = '';
+  } else if (v > 0 && v < COMB_IMPORTE_MIN) {
     el.textContent = '⚠️ Escrib\xED el importe completo del ticket: ' + _histFmtNum(v * 1000) + ', no ' + _histFmtNum(v);
     el.style.display = '';
   } else {
@@ -20406,9 +20417,14 @@ function cargarFichadosEnSelect(selId) {
 function saveCombustible() {
   if (!COMB_FOTO) { toast('📷 Sacale foto al ticket: es obligatoria', 'err'); return; }
   // Se cargaban importes en miles (50 en vez de 50.000): se pide el monto completo
-  var _imp = parseFloat(document.getElementById('comb-importe').value) || 0;
+  var _imp = parseImporteAR(document.getElementById('comb-importe').value);
+  if (_imp === null) {
+    toast('Revis\xE1 el importe: punto para los miles y coma para los decimales (ej. 75.999,50)', 'err');
+    document.getElementById('comb-importe').focus();
+    return;
+  }
   if (_imp < COMB_IMPORTE_MIN) {
-    toast('Escrib\xED el importe completo en pesos, tal como figura en el ticket (ej. 50000, no 50)', 'err');
+    toast('Escrib\xED el importe completo en pesos, tal como figura en el ticket (ej. 50.000, no 50)', 'err');
     document.getElementById('comb-importe').focus();
     return;
   }
@@ -20416,7 +20432,7 @@ function saveCombustible() {
     chofer: document.getElementById('comb-chofer').value,
     movil: document.getElementById('comb-movil').value,
     litros: parseFloat(document.getElementById('comb-litros').value) || 0,
-    importe: parseFloat(document.getElementById('comb-importe').value) || 0,
+    importe: _imp,
     estacion: document.getElementById('comb-estacion').value,
     km: parseInt(document.getElementById('comb-km').value) || null,
     puesto: USER.puesto
@@ -21153,7 +21169,7 @@ window.cupoModalActualizar = function(recargar) {
   if (!movil || !monto) { box.innerHTML = ''; _CUPO_MODAL.movil = null; return; }
   var per = cupoPeriodo(fechaHoyAR());
   var pintar = function() {
-    var importe = _histNum(document.getElementById('comb-importe').value) || 0;
+    var importe = parseImporteAR(document.getElementById('comb-importe').value) || 0;
     var queda = monto - _CUPO_MODAL.usado;
     var html = cupoBarra(monto, _CUPO_MODAL.usado, per);
     if (importe > 0 && importe > queda) {
