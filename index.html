@@ -1944,7 +1944,7 @@ body {
     <div class="form-group"><label class="form-label">Móvil / Vehículo</label><select class="form-select" id="comb-movil" onchange="cupoModalActualizar(true)"><option value="">— Seleccionar móvil —</option></select></div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Litros</label><input class="form-input" type="number" step="0.1" id="comb-litros" placeholder="Litros"/></div>
-      <div class="form-group"><label class="form-label">Importe ($)</label><input class="form-input" type="number" id="comb-importe" placeholder="Importe" oninput="cupoModalActualizar(false)"/></div>
+      <div class="form-group"><label class="form-label">Importe ($)</label><input class="form-input" type="number" id="comb-importe" placeholder="Ej: 50000" min="1000" oninput="cupoModalActualizar(false)"/></div>
     </div>
     <div id="comb-cupo-info" style="margin:-4px 0 12px"></div>
     <div class="form-group"><label class="form-label">Estación de servicio</label><input class="form-input" id="comb-estacion" placeholder="Ej: YPF Av. Castañares 2400"/></div>
@@ -20347,7 +20347,7 @@ function _loadCombustible() {
           rows = _yield$db$from$select3.data;
           list = rows || [];
           document.getElementById('combustible-list').innerHTML = list.length ? list.map(function (r) {
-            return "\n<div class=\"chofer-card\">\n<div class=\"chofer-head\">\n<div>\n<div class=\"chofer-name\">\u26FD ".concat(r.movil || '', "</div>\n<div class=\"chofer-sub\">").concat(r.chofer, " \xB7 ").concat(r.estacion || '', "</div>\n</div>\n<span class=\"badge b-blue\">").concat(formatTs(r.created_at), "</span>\n</div>\n<div style=\"display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px\">\n<div style=\"background:var(--bg3);border-radius:6px;padding:8px;text-align:center\">\n<div style=\"font-size:10px;color:var(--text3)\">Litros</div>\n<div style=\"font-size:16px;font-weight:700;color:var(--accent3)\">").concat(r.litros || 0, "L</div>\n</div>\n<div style=\"background:var(--bg3);border-radius:6px;padding:8px;text-align:center\">\n<div style=\"font-size:10px;color:var(--text3)\">Importe</div>\n<div style=\"font-size:16px;font-weight:700;color:var(--green)\">$").concat(r.importe || 0, "</div>\n</div>\n<div style=\"background:var(--bg3);border-radius:6px;padding:8px;text-align:center\">\n<div style=\"font-size:10px;color:var(--text3)\">Km</div>\n<div style=\"font-size:16px;font-weight:700;color:var(--yellow)\">").concat(r.km || '—', "</div>\n</div>\n</div>\n").concat(r.foto ? "<img src=\"".concat(r.foto, "\" onclick=\"abrirFotoLightbox('").concat(r.foto, "')\" style=\"width:100%;max-height:120px;object-fit:cover;border-radius:8px;border:1px solid var(--border2);cursor:zoom-in\" loading=\"lazy\">") : '<div style="font-size:12px;font-weight:700;color:#fca5a5">⚠️ Sin foto del ticket</div>', "\n</div>");
+            return "\n<div class=\"chofer-card\">\n<div class=\"chofer-head\">\n<div>\n<div class=\"chofer-name\">\u26FD ".concat(r.movil || '', "</div>\n<div class=\"chofer-sub\">").concat(r.chofer, " \xB7 ").concat(r.estacion || '', "</div>\n</div>\n<span class=\"badge b-blue\">").concat(formatTs(r.created_at), "</span>\n</div>\n<div style=\"display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px\">\n<div style=\"background:var(--bg3);border-radius:6px;padding:8px;text-align:center\">\n<div style=\"font-size:10px;color:var(--text3)\">Litros</div>\n<div style=\"font-size:16px;font-weight:700;color:var(--accent3)\">").concat(r.litros || 0, "L</div>\n</div>\n<div style=\"background:var(--bg3);border-radius:6px;padding:8px;text-align:center\">\n<div style=\"font-size:10px;color:var(--text3)\">Importe</div>\n<div style=\"font-size:16px;font-weight:700;color:var(--green)\">$").concat(_histFmtNum(combImporte(r.importe)), "</div>\n</div>\n<div style=\"background:var(--bg3);border-radius:6px;padding:8px;text-align:center\">\n<div style=\"font-size:10px;color:var(--text3)\">Km</div>\n<div style=\"font-size:16px;font-weight:700;color:var(--yellow)\">").concat(r.km || '—', "</div>\n</div>\n</div>\n").concat(r.foto ? "<img src=\"".concat(r.foto, "\" onclick=\"abrirFotoLightbox('").concat(r.foto, "')\" style=\"width:100%;max-height:120px;object-fit:cover;border-radius:8px;border:1px solid var(--border2);cursor:zoom-in\" loading=\"lazy\">") : '<div style="font-size:12px;font-weight:700;color:#fca5a5">⚠️ Sin foto del ticket</div>', "\n</div>");
           }).join('') : '<div class="empty"><div class="icon">⛽</div><p>Sin cargas registradas</p></div>';
         case 2:
           return _context57.a(2);
@@ -20368,6 +20368,13 @@ function uploadSingleFoto(file, ruta) {
 // así nunca queda una carga registrada sin su ticket.
 function saveCombustible() {
   if (!COMB_FOTO) { toast('📷 Sacale foto al ticket: es obligatoria', 'err'); return; }
+  // Se cargaban importes en miles (50 en vez de 50.000): se pide el monto completo
+  var _imp = parseFloat(document.getElementById('comb-importe').value) || 0;
+  if (_imp < COMB_IMPORTE_MIN) {
+    toast('Escrib\xED el importe completo en pesos, tal como figura en el ticket (ej. 50000, no 50)', 'err');
+    document.getElementById('comb-importe').focus();
+    return;
+  }
   var payload = {
     chofer: document.getElementById('comb-chofer').value,
     movil: document.getElementById('comb-movil').value,
@@ -20755,7 +20762,7 @@ function _histTotales(evs, otroCampo) {
     } else if (e.tipo === 'comb') {
       t.cargas++;
       t.litros += _histNum(e.r.litros) || 0;
-      t.plata += _histNum(e.r.importe) || 0;
+      t.plata += combImporte(e.r.importe);
     } else if (e.tipo === 'inc') {
       t.inc++;
     } else if (e.tipo === 'taller') {
@@ -20913,7 +20920,7 @@ function _histFila(e, modo) {
   } else if (e.tipo === 'comb') {
     ico = '⛽'; tit = 'Carga de combustible';
     if (_histNum(r.litros)) sub.push(_histFmtNum(r.litros, 1) + ' L');
-    if (_histNum(r.importe)) sub.push('$ ' + _histFmtNum(r.importe));
+    if (_histNum(r.importe)) sub.push('$ ' + _histFmtNum(combImporte(r.importe)));
     if (r.estacion) sub.push(_histEsc(r.estacion));
     if (modo === 'chofer' && e.movil) sub.push(_histEsc(e.movil));
     if (!r.foto) sub.push('<span class="inc">sin ticket</span>');
@@ -20955,9 +20962,9 @@ function _histFilaDetalle(e) {
   if (e.tipo !== 'taller') c('Chofer', _histEsc(e.chofer || ''));
 
   if (e.tipo === 'comb') {
-    var lt = _histNum(r.litros), imp = _histNum(r.importe);
+    var lt = _histNum(r.litros), impCargado = _histNum(r.importe), imp = impCargado != null ? combImporte(impCargado) : null;
     c('Litros', lt != null ? _histFmtNum(lt, 2) + ' L' : '');
-    c('Importe', imp != null ? '$ ' + _histFmtNum(imp, 2) : '');
+    c('Importe', imp != null ? '$ ' + _histFmtNum(imp, 2) + (imp !== impCargado ? ' <span style="color:var(--text3);font-weight:600">(cargado como ' + _histFmtNum(impCargado, 2) + ')</span>' : '') : '');
     if (lt && imp) c('Precio por litro', '$ ' + _histFmtNum(imp / lt, 2));
     c('Estaci\xF3n', _histEsc(r.estacion || ''));
     c('Km del veh\xEDculo', _histNum(r.km) ? _histFmtNum(r.km) : '');
@@ -21021,6 +21028,14 @@ var CUPO_COMB = {   // patente sin guiones ni espacios → pesos por mes
   'MYH863': 260000,
   'KWI159': 370000
 };
+// Importe mínimo aceptado al registrar una carga. Antes se cargaban importes en miles
+// (50 en vez de 50.000): los registros viejos por debajo de este valor se leen como miles.
+var COMB_IMPORTE_MIN = 1000;
+function combImporte(v) {
+  var n = _histNum(v);
+  if (n == null) return 0;
+  return n > 0 && n < COMB_IMPORTE_MIN ? n * 1000 : n;
+}
 // Días no hábiles que no salen del cálculo automático (feriados trasladados, puentes): 'YYYY-MM-DD'
 var CUPO_NO_HABILES_EXTRA = [];
 
@@ -21074,7 +21089,7 @@ function cupoUsado(movil, cargas, per) {
   var p = _cupoPatente(movil), total = 0;
   (cargas || []).forEach(function(c) {
     var f = fechaCorta(c.created_at);
-    if (_cupoPatente(c.movil) === p && f >= per.desde && f <= per.hasta) total += _histNum(c.importe) || 0;
+    if (_cupoPatente(c.movil) === p && f >= per.desde && f <= per.hasta) total += combImporte(c.importe);
   });
   return total;
 }
