@@ -1939,13 +1939,14 @@ body {
   <div class="modal">
     <div class="modal-head"><span class="modal-title">⛽ Carga de Combustible</span><button class="btn-close" onclick="closeOv('ov-combustible')">×</button></div>
     <div class="form-group"><label class="form-label">Chofer</label>
-      <select class="form-select" id="comb-chofer"><option value="">— Seleccionar —</option><option>ACOSTA PAMELA</option><option>ALVAREZ OZON NICOLAS MARCELO</option><option>ARROYO LAURA</option><option>CASTILLO ANGEL HERNAN</option><option>CONTE LUCAS EZEQUIEL</option><option>DEL COLLE DAMIAN EZEQUIEL</option><option>GIMENEZ GREGORIO</option><option>LUACES JONATHAN RICARDO</option></select>
+      <select class="form-select" id="comb-chofer"><option value="">— Cargando fichados... —</option></select>
     </div>
     <div class="form-group"><label class="form-label">Móvil / Vehículo</label><select class="form-select" id="comb-movil" onchange="cupoModalActualizar(true)"><option value="">— Seleccionar móvil —</option></select></div>
     <div class="form-row">
       <div class="form-group"><label class="form-label">Litros</label><input class="form-input" type="number" step="0.1" id="comb-litros" placeholder="Litros"/></div>
-      <div class="form-group"><label class="form-label">Importe ($)</label><input class="form-input" type="number" id="comb-importe" placeholder="Ej: 50000" min="1000" oninput="cupoModalActualizar(false)"/></div>
+      <div class="form-group"><label class="form-label">Importe ($)</label><input class="form-input" type="number" id="comb-importe" placeholder="Ej: 50000" min="1000" oninput="combAvisoImporte();cupoModalActualizar(false)"/></div>
     </div>
+    <div id="comb-importe-aviso" class="cupo-alerta" style="display:none;margin:-6px 0 12px"></div>
     <div id="comb-cupo-info" style="margin:-4px 0 12px"></div>
     <div class="form-group"><label class="form-label">Estación de servicio</label><input class="form-input" id="comb-estacion" placeholder="Ej: YPF Av. Castañares 2400"/></div>
     <div class="form-group"><label class="form-label">Kilómetros del vehículo</label><input class="form-input" type="number" id="comb-km" placeholder="Km actuales"/></div>
@@ -19244,7 +19245,7 @@ function fabClick() {
       openOv('ov-agenda');
     } else toast('Solo administraci\xF3n puede cargar operativos', 'err');
   } else if (CUR_VIEW === 'choferes') {
-    if (CUR_CHOF_SUBTAB === 'rutas') { cargarRespTurnoSelect(); cargarVehiculosEnSelectores(); openOv('ov-chof'); }else if (CUR_CHOF_SUBTAB === 'combustible') { cargarVehiculosEnSelectores(); openOv('ov-combustible'); }else if (CUR_CHOF_SUBTAB === 'incidencias') { cargarVehiculosEnSelectores(); openOv('ov-incidencia'); }else if (CUR_CHOF_SUBTAB === 'taller') { cargarVehiculosEnSelectores(); openOv('ov-taller'); }
+    if (CUR_CHOF_SUBTAB === 'rutas') { cargarRespTurnoSelect(); cargarVehiculosEnSelectores(); openOv('ov-chof'); }else if (CUR_CHOF_SUBTAB === 'combustible') { cargarVehiculosEnSelectores(); cargarFichadosComb(); openOv('ov-combustible'); }else if (CUR_CHOF_SUBTAB === 'incidencias') { cargarVehiculosEnSelectores(); openOv('ov-incidencia'); }else if (CUR_CHOF_SUBTAB === 'taller') { cargarVehiculosEnSelectores(); openOv('ov-taller'); }
   }
 }
 // Ocultar FAB en C.Objetivo para barrios con recorrido automático
@@ -20364,6 +20365,42 @@ function uploadSingleFoto(file, ruta) {
     return null;
   });
 }
+// Aviso mientras escriben un importe abreviado (40 en vez de 40000)
+function combAvisoImporte() {
+  var el = document.getElementById('comb-importe-aviso');
+  if (!el) return;
+  var v = parseFloat(document.getElementById('comb-importe').value) || 0;
+  if (v > 0 && v < COMB_IMPORTE_MIN) {
+    el.textContent = '⚠️ Escrib\xED el importe completo del ticket: ' + _histFmtNum(v * 1000) + ', no ' + _histFmtNum(v);
+    el.style.display = '';
+  } else {
+    el.style.display = 'none';
+  }
+}
+// Lista de quien carga combustible: solo personas fichadas en este momento
+// (primero los choferes, después el resto de los fichados)
+function cargarFichadosComb() {
+  var sel = document.getElementById('comb-chofer');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">— Cargando fichados... —</option>';
+  db.from('fichajes').select('agente,puesto').eq('activo', true).order('agente').then(function(res) {
+    if (res.error) { sel.innerHTML = '<option value="">Error al cargar fichados</option>'; return; }
+    var choferes = [], otros = [], vistos = {};
+    (res.data || []).forEach(function(f) {
+      var n = String(f.agente || '').trim();
+      if (!n || vistos[n]) return;
+      vistos[n] = true;
+      (f.puesto === 'Choferes' ? choferes : otros).push(n);
+    });
+    var opt = function(n) { return '<option value="' + _histEsc(n) + '">' + _histEsc(n) + '</option>'; };
+    var html = '<option value="">' + (choferes.length || otros.length ? '— Seleccionar —' : '— Nadie fichado en este momento —') + '</option>';
+    if (choferes.length) html += '<optgroup label="Choferes fichados">' + choferes.map(opt).join('') + '</optgroup>';
+    if (otros.length) html += '<optgroup label="Otras personas fichadas">' + otros.map(opt).join('') + '</optgroup>';
+    sel.innerHTML = html;
+  }).catch(function() {
+    sel.innerHTML = '<option value="">Error al cargar fichados</option>';
+  });
+}
 // La foto del ticket es obligatoria: se sube primero y la carga se guarda ya con la foto,
 // así nunca queda una carga registrada sin su ticket.
 function saveCombustible() {
@@ -20401,6 +20438,7 @@ function saveCombustible() {
     COMB_FOTO = null;
     document.getElementById('comb-foto-preview').innerHTML = '';
     document.getElementById('comb-cupo-info').innerHTML = '';
+    document.getElementById('comb-importe-aviso').style.display = 'none';
     _CUPO_MODAL.movil = null;
     loadCombustible();
   }).catch(function(e) {
