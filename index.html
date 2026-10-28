@@ -926,6 +926,22 @@ body::after { display: none; }
 .hist-mov-tit { font-size: 12px; font-weight: 800; color: var(--text3); text-transform: uppercase; letter-spacing: .08em; margin: 4px 2px 8px; }
 .hist-row { display: grid; grid-template-columns: 74px 30px 1fr; align-items: center; gap: 8px; padding: 11px 12px; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 6px; }
 .hist-row.con-foto { grid-template-columns: 74px 30px 1fr 56px; }
+.hist-item { margin-bottom: 6px; }
+.hist-item .hist-row { margin-bottom: 0; cursor: pointer; }
+.hist-item .hist-row:hover { border-color: var(--border3); }
+.hist-item.abierta .hist-row { border-color: var(--accent2); border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+.hist-det { display: none; background: rgba(6,27,52,.6); border: 1px solid var(--accent2); border-top: none; border-radius: 0 0 var(--radius-sm) var(--radius-sm); padding: 14px; }
+.hist-item.abierta .hist-det { display: block; }
+.hist-det-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px 16px; }
+.hist-det-l { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: .05em; }
+.hist-det-v { font-size: 13px; font-weight: 700; color: var(--text); margin-top: 2px; word-break: break-word; }
+.hist-det-foto { display: block; max-width: 100%; max-height: 420px; margin-top: 14px; border-radius: 10px; border: 1px solid var(--border2); cursor: zoom-in; }
+.hist-det-sin { margin-top: 12px; font-size: 13px; font-weight: 700; color: #fca5a5; }
+.hist-det-par-tit { margin: 14px 0 6px; font-size: 11px; font-weight: 800; color: var(--text3); text-transform: uppercase; letter-spacing: .08em; }
+.hist-det-par { font-size: 12px; color: var(--text2); padding: 7px 0; border-top: 1px solid var(--border); }
+.hist-det-par b { color: var(--text); }
+.hist-det-par span { color: var(--text3); }
+.hist-det-par .inc { color: #fca5a5; font-weight: 700; margin-top: 2px; }
 .hist-row-foto { width: 56px; height: 56px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border2); cursor: zoom-in; }
 .hist-row-f { font-family: var(--mono); font-size: 11px; color: var(--text3); line-height: 1.35; }
 .hist-row-f b { color: var(--text2); font-size: 12px; }
@@ -20912,14 +20928,84 @@ function _histFila(e, modo) {
   }
   // Miniatura de la foto (ticket de combustible, foto de incidencia); se amplía al tocarla
   var foto = r.foto
-    ? '<img class="hist-row-foto" src="' + _histEsc(r.foto) + '" alt="' + (e.tipo === 'comb' ? 'Ticket' : 'Foto') + '" loading="lazy" onclick="abrirFotoLightbox(this.src)">'
+    ? '<img class="hist-row-foto" src="' + _histEsc(r.foto) + '" alt="' + (e.tipo === 'comb' ? 'Ticket' : 'Foto') + '" loading="lazy" onclick="event.stopPropagation();abrirFotoLightbox(this.src)">'
     : '';
-  return '<div class="hist-row' + (foto ? ' con-foto' : '') + '">'
+  // Tocar la fila despliega el detalle completo
+  return '<div class="hist-item">'
+    + '<div class="hist-row' + (foto ? ' con-foto' : '') + '" role="button" onclick="this.parentNode.classList.toggle(\'abierta\')">'
     + '<div class="hist-row-f"><b>' + _histDiaMes(e.fecha) + '</b><br>' + _histHora(e.fecha) + '</div>'
     + '<div class="hist-row-i">' + ico + '</div>'
     + '<div><div class="hist-row-t">' + tit + '</div>' + (sub.length ? '<div class="hist-row-s">' + sub.join(' \xB7 ') + '</div>' : '') + '</div>'
     + foto
+    + '</div>'
+    + '<div class="hist-det">' + _histFilaDetalle(e) + '</div>'
     + '</div>';
+}
+
+// Detalle completo de un movimiento (se muestra al desplegar la fila)
+function _histFilaDetalle(e) {
+  var r = e.r, campos = [], extra = '';
+  function c(label, valor) { if (valor !== null && valor !== undefined && valor !== '') campos.push([label, valor]); }
+  function fechaHora(iso) { return iso ? _histFechaLarga(fechaCorta(iso)) + ' ' + _histHora(iso) : ''; }
+  function fotoGrande(url, alt) {
+    return '<img class="hist-det-foto" src="' + _histEsc(url) + '" alt="' + alt + '" loading="lazy" onclick="abrirFotoLightbox(this.src)">';
+  }
+  c('Fecha', fechaHora(e.fecha));
+  c('M\xF3vil', _histEsc(e.movil || ''));
+  if (e.tipo !== 'taller') c('Chofer', _histEsc(e.chofer || ''));
+
+  if (e.tipo === 'comb') {
+    var lt = _histNum(r.litros), imp = _histNum(r.importe);
+    c('Litros', lt != null ? _histFmtNum(lt, 2) + ' L' : '');
+    c('Importe', imp != null ? '$ ' + _histFmtNum(imp, 2) : '');
+    if (lt && imp) c('Precio por litro', '$ ' + _histFmtNum(imp / lt, 2));
+    c('Estaci\xF3n', _histEsc(r.estacion || ''));
+    c('Km del veh\xEDculo', _histNum(r.km) ? _histFmtNum(r.km) : '');
+    c('Registrada por', _histEsc(r.puesto || ''));
+    extra = r.foto ? fotoGrande(r.foto, 'Ticket') : '<div class="hist-det-sin">⚠️ Sin foto del ticket</div>';
+  } else if (e.tipo === 'ruta') {
+    var kmR = _histKmRuta(r);
+    c('Estado', r.estado === 'activo' ? 'En curso' : 'Finalizado');
+    c('Fin', fechaHora(r.fin));
+    c('Km inicial', _histNum(r.km_inicial) != null ? _histFmtNum(r.km_inicial) : '');
+    c('Km final', _histNum(r.km_final) != null ? _histFmtNum(r.km_final) : '');
+    c('Km recorridos', kmR != null ? _histFmtNum(kmR) : '');
+    c('Combustible al salir', _histEsc(r.combustible_inicial || ''));
+    c('Combustible al volver', _histEsc(r.combustible_final || ''));
+    c('Cargada por', _histEsc(r.puesto || ''));
+    var p = r.paradas;
+    if (typeof p === 'string') { try { p = JSON.parse(p); } catch (x) { p = []; } }
+    if (Array.isArray(p) && p.length) {
+      extra = '<div class="hist-det-par-tit">Paradas</div>' + p.map(function(pa, i) {
+        pa = pa || {};
+        var horas = (pa.hora || '') + (pa.hora_salida ? ' a ' + pa.hora_salida : '');
+        return '<div class="hist-det-par">'
+          + '<b>' + (i + 1) + '. ' + _histEsc(pa.puesto || 'Parada') + '</b>' + (horas ? ' <span>' + _histEsc(horas) + '</span>' : '')
+          + (pa.km_llegada ? ' <span>\xB7 km ' + _histEsc(pa.km_llegada) + '</span>' : '')
+          + (pa.con_incidencia ? '<div class="inc">⚠️ ' + _histEsc(pa.tipo_inc || 'Incidencia') + (pa.detalle_inc ? ': ' + _histEsc(pa.detalle_inc) : '') + '</div>' : '')
+          + (pa.observaciones ? '<div>' + _histEsc(pa.observaciones) + '</div>' : '')
+          + '</div>';
+      }).join('');
+    }
+  } else if (e.tipo === 'inc') {
+    c('Tipo', _histEsc(r.tipo || ''));
+    c('Ubicaci\xF3n', _histEsc(r.ubicacion || ''));
+    c('Descripci\xF3n', _histEsc(r.descripcion || ''));
+    c('Registrada por', _histEsc(r.puesto || ''));
+    if (r.foto) extra = fotoGrande(r.foto, 'Foto');
+  } else {
+    c('Tipo', _histEsc(r.tipo || ''));
+    c('Taller', _histEsc(r.taller_nombre || ''));
+    c('Descripci\xF3n', _histEsc(r.descripcion || ''));
+    c('Km al ingresar', _histNum(r.km_ingreso) ? _histFmtNum(r.km_ingreso) : '');
+    c('Costo estimado', _histNum(r.costo_estimado) ? '$ ' + _histFmtNum(r.costo_estimado, 2) : '');
+    c('Estado', r.estado === 'finalizado' ? 'Finalizado' : 'Sigue en taller');
+    c('Salida', fechaHora(r.fecha_salida));
+    c('Registrado por', _histEsc(r.puesto || ''));
+  }
+  return '<div class="hist-det-grid">'
+    + campos.map(function(x) { return '<div><div class="hist-det-l">' + x[0] + '</div><div class="hist-det-v">' + x[1] + '</div></div>'; }).join('')
+    + '</div>' + extra;
 }
 
 // ══════════════════════════════════════════════════════════════════════════
