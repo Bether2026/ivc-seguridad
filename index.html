@@ -925,6 +925,8 @@ body::after { display: none; }
 .hist-uso b { color: var(--text); }
 .hist-mov-tit { font-size: 12px; font-weight: 800; color: var(--text3); text-transform: uppercase; letter-spacing: .08em; margin: 4px 2px 8px; }
 .hist-row { display: grid; grid-template-columns: 74px 30px 1fr; align-items: center; gap: 8px; padding: 11px 12px; background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 6px; }
+.hist-row.con-foto { grid-template-columns: 74px 30px 1fr 56px; }
+.hist-row-foto { width: 56px; height: 56px; object-fit: cover; border-radius: 8px; border: 1px solid var(--border2); cursor: zoom-in; }
 .hist-row-f { font-family: var(--mono); font-size: 11px; color: var(--text3); line-height: 1.35; }
 .hist-row-f b { color: var(--text2); font-size: 12px; }
 .hist-row-i { font-size: 18px; text-align: center; }
@@ -1932,9 +1934,9 @@ body {
     <div class="form-group"><label class="form-label">Estación de servicio</label><input class="form-input" id="comb-estacion" placeholder="Ej: YPF Av. Castañares 2400"/></div>
     <div class="form-group"><label class="form-label">Kilómetros del vehículo</label><input class="form-input" type="number" id="comb-km" placeholder="Km actuales"/></div>
     <div class="form-group">
-      <label class="form-label">📷 Foto del ticket (opcional)</label>
-      <input type="file" id="comb-foto-input" accept="image/*" style="display:none" onchange="previewSingleFoto(this, 'comb-foto-preview')">
-      <div onclick="abrirSelectorFoto('comb-foto-input')" style="border:2px dashed var(--border2);border-radius:8px;padding:14px;text-align:center;cursor:pointer">📷 Tocá para foto</div>
+      <label class="form-label">📷 Foto del ticket <span style="color:#fca5a5">(obligatoria)</span></label>
+      <input type="file" id="comb-foto-input" accept="image/*" style="display:none" onchange="previewSingleFoto(this, 'comb-foto-preview', 'COMB_FOTO')">
+      <div onclick="abrirSelectorFoto('comb-foto-input')" style="border:2px dashed var(--border2);border-radius:8px;padding:14px;text-align:center;cursor:pointer">📷 Tocá para sacar foto al ticket</div>
       <div id="comb-foto-preview" style="margin-top:8px"></div>
     </div>
     <button class="btn-login" id="btn-save-comb" onclick="saveCombustible()">⛽ Registrar Carga</button>
@@ -20329,7 +20331,7 @@ function _loadCombustible() {
           rows = _yield$db$from$select3.data;
           list = rows || [];
           document.getElementById('combustible-list').innerHTML = list.length ? list.map(function (r) {
-            return "\n<div class=\"chofer-card\">\n<div class=\"chofer-head\">\n<div>\n<div class=\"chofer-name\">\u26FD ".concat(r.movil || '', "</div>\n<div class=\"chofer-sub\">").concat(r.chofer, " \xB7 ").concat(r.estacion || '', "</div>\n</div>\n<span class=\"badge b-blue\">").concat(formatTs(r.created_at), "</span>\n</div>\n<div style=\"display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px\">\n<div style=\"background:var(--bg3);border-radius:6px;padding:8px;text-align:center\">\n<div style=\"font-size:10px;color:var(--text3)\">Litros</div>\n<div style=\"font-size:16px;font-weight:700;color:var(--accent3)\">").concat(r.litros || 0, "L</div>\n</div>\n<div style=\"background:var(--bg3);border-radius:6px;padding:8px;text-align:center\">\n<div style=\"font-size:10px;color:var(--text3)\">Importe</div>\n<div style=\"font-size:16px;font-weight:700;color:var(--green)\">$").concat(r.importe || 0, "</div>\n</div>\n<div style=\"background:var(--bg3);border-radius:6px;padding:8px;text-align:center\">\n<div style=\"font-size:10px;color:var(--text3)\">Km</div>\n<div style=\"font-size:16px;font-weight:700;color:var(--yellow)\">").concat(r.km || '—', "</div>\n</div>\n</div>\n").concat(r.foto ? "<img src=\"".concat(r.foto, "\" onclick=\"abrirFotoLightbox('").concat(r.foto, "')\" style=\"width:100%;max-height:120px;object-fit:cover;border-radius:8px;border:1px solid var(--border2);cursor:zoom-in\" loading=\"lazy\">") : '', "\n</div>");
+            return "\n<div class=\"chofer-card\">\n<div class=\"chofer-head\">\n<div>\n<div class=\"chofer-name\">\u26FD ".concat(r.movil || '', "</div>\n<div class=\"chofer-sub\">").concat(r.chofer, " \xB7 ").concat(r.estacion || '', "</div>\n</div>\n<span class=\"badge b-blue\">").concat(formatTs(r.created_at), "</span>\n</div>\n<div style=\"display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px\">\n<div style=\"background:var(--bg3);border-radius:6px;padding:8px;text-align:center\">\n<div style=\"font-size:10px;color:var(--text3)\">Litros</div>\n<div style=\"font-size:16px;font-weight:700;color:var(--accent3)\">").concat(r.litros || 0, "L</div>\n</div>\n<div style=\"background:var(--bg3);border-radius:6px;padding:8px;text-align:center\">\n<div style=\"font-size:10px;color:var(--text3)\">Importe</div>\n<div style=\"font-size:16px;font-weight:700;color:var(--green)\">$").concat(r.importe || 0, "</div>\n</div>\n<div style=\"background:var(--bg3);border-radius:6px;padding:8px;text-align:center\">\n<div style=\"font-size:10px;color:var(--text3)\">Km</div>\n<div style=\"font-size:16px;font-weight:700;color:var(--yellow)\">").concat(r.km || '—', "</div>\n</div>\n</div>\n").concat(r.foto ? "<img src=\"".concat(r.foto, "\" onclick=\"abrirFotoLightbox('").concat(r.foto, "')\" style=\"width:100%;max-height:120px;object-fit:cover;border-radius:8px;border:1px solid var(--border2);cursor:zoom-in\" loading=\"lazy\">") : '<div style="font-size:12px;font-weight:700;color:#fca5a5">⚠️ Sin foto del ticket</div>', "\n</div>");
           }).join('') : '<div class="empty"><div class="icon">⛽</div><p>Sin cargas registradas</p></div>';
         case 2:
           return _context57.a(2);
@@ -20338,75 +20340,50 @@ function _loadCombustible() {
   }));
   return _loadCombustible.apply(this, arguments);
 }
-function saveCombustible() {
-  return _saveCombustible.apply(this, arguments);
+// Sube un archivo a R2 (comprimido). Devuelve la URL pública o null si falla.
+function uploadSingleFoto(file, ruta) {
+  var carpeta = String(ruta || 'general').split('/')[0];
+  return uploadToR2Comprimido(file, carpeta).catch(function(e) {
+    console.error('uploadSingleFoto:', e);
+    return null;
+  });
 }
-function _saveCombustible() {
-  _saveCombustible = _asyncToGenerator(/*#__PURE__*/_regenerator().m(function _callee58() {
-    var payload, _yield$db$from$insert4, ins, error, url;
-    return _regenerator().w(function (_context58) {
-      while (1) switch (_context58.n) {
-        case 0:
-          setLoading('btn-save-comb', true);
-          payload = {
-            chofer: document.getElementById('comb-chofer').value,
-            movil: document.getElementById('comb-movil').value,
-            litros: parseFloat(document.getElementById('comb-litros').value) || 0,
-            importe: parseFloat(document.getElementById('comb-importe').value) || 0,
-            estacion: document.getElementById('comb-estacion').value,
-            km: parseInt(document.getElementById('comb-km').value) || null,
-            puesto: USER.puesto
-          };
-          _context58.n = 1;
-          return db.from('combustible').insert(payload).select().single();
-        case 1:
-          _yield$db$from$insert4 = _context58.v;
-          ins = _yield$db$from$insert4.data;
-          error = _yield$db$from$insert4.error;
-          if (!error) {
-            _context58.n = 2;
-            break;
-          }
-          setLoading('btn-save-comb', false);
-          toast('Error: ' + error.message, 'err');
-          return _context58.a(2);
-        case 2:
-          if (!COMB_FOTO) {
-            _context58.n = 5;
-            break;
-          }
-          toast('Subiendo foto...', 'info');
-          _context58.n = 3;
-          return uploadSingleFoto(COMB_FOTO, "combustible/".concat(ins.id, "_").concat(Date.now(), ".jpg"));
-        case 3:
-          url = _context58.v;
-          if (!url) {
-            _context58.n = 4;
-            break;
-          }
-          _context58.n = 4;
-          return db.from('combustible').update({
-            foto: url
-          }).eq('id', ins.id);
-        case 4:
-          COMB_FOTO = null;
-        case 5:
-          setLoading('btn-save-comb', false);
-          closeOv('ov-combustible');
-          toast('⛽ Carga registrada');
-          ['comb-movil', 'comb-litros', 'comb-importe', 'comb-estacion', 'comb-km'].forEach(function (id) {
-            return document.getElementById(id).value = '';
-          });
-          document.getElementById('comb-foto-preview').innerHTML = '';
-          document.getElementById('comb-cupo-info').innerHTML = '';
-          _CUPO_MODAL.movil = null;
-          loadCombustible();
-        case 6:
-          return _context58.a(2);
-      }
-    }, _callee58);
-  }));
-  return _saveCombustible.apply(this, arguments);
+// La foto del ticket es obligatoria: se sube primero y la carga se guarda ya con la foto,
+// así nunca queda una carga registrada sin su ticket.
+function saveCombustible() {
+  if (!COMB_FOTO) { toast('📷 Sacale foto al ticket: es obligatoria', 'err'); return; }
+  var payload = {
+    chofer: document.getElementById('comb-chofer').value,
+    movil: document.getElementById('comb-movil').value,
+    litros: parseFloat(document.getElementById('comb-litros').value) || 0,
+    importe: parseFloat(document.getElementById('comb-importe').value) || 0,
+    estacion: document.getElementById('comb-estacion').value,
+    km: parseInt(document.getElementById('comb-km').value) || null,
+    puesto: USER.puesto
+  };
+  setLoading('btn-save-comb', true);
+  toast('Subiendo foto del ticket...', 'info');
+  uploadSingleFoto(COMB_FOTO, 'combustible').then(function(url) {
+    if (!url) throw new Error('No se pudo subir la foto del ticket. Prob\xE1 de nuevo.');
+    payload.foto = url;
+    return db.from('combustible').insert(payload);
+  }).then(function(res) {
+    if (res.error) throw new Error(res.error.message);
+    setLoading('btn-save-comb', false);
+    closeOv('ov-combustible');
+    toast('⛽ Carga registrada');
+    ['comb-movil', 'comb-litros', 'comb-importe', 'comb-estacion', 'comb-km', 'comb-foto-input'].forEach(function (id) {
+      document.getElementById(id).value = '';
+    });
+    COMB_FOTO = null;
+    document.getElementById('comb-foto-preview').innerHTML = '';
+    document.getElementById('comb-cupo-info').innerHTML = '';
+    _CUPO_MODAL.movil = null;
+    loadCombustible();
+  }).catch(function(e) {
+    setLoading('btn-save-comb', false);
+    toast('Error: ' + e.message, 'err');
+  });
 }
 function loadIncidencias() {
   return _loadIncidencias.apply(this, arguments);
@@ -20952,6 +20929,7 @@ function _histFila(e, modo) {
     if (_histNum(r.importe)) sub.push('$ ' + _histFmtNum(r.importe));
     if (r.estacion) sub.push(_histEsc(r.estacion));
     if (modo === 'chofer' && e.movil) sub.push(_histEsc(e.movil));
+    if (!r.foto) sub.push('<span class="inc">sin ticket</span>');
   } else if (e.tipo === 'inc') {
     ico = '⚠️'; tit = '<span style="color:#fca5a5">Incidencia' + (r.tipo ? ': ' + _histEsc(r.tipo) : '') + '</span>';
     if (r.descripcion) sub.push(_histEsc(r.descripcion));
@@ -20961,11 +20939,15 @@ function _histFila(e, modo) {
     if (r.taller_nombre) sub.push(_histEsc(r.taller_nombre));
     sub.push(r.estado === 'finalizado' ? 'sali\xF3 ' + (r.fecha_salida ? _histDiaMes(r.fecha_salida) : '') : '<span style="color:#c4b5fd">sigue en taller</span>');
   }
-  if (r.foto) sub.push('<a href="' + _histEsc(r.foto) + '" target="_blank" rel="noopener" style="color:var(--accent3)">foto</a>');
-  return '<div class="hist-row">'
+  // Miniatura de la foto (ticket de combustible, foto de incidencia); se amplía al tocarla
+  var foto = r.foto
+    ? '<img class="hist-row-foto" src="' + _histEsc(r.foto) + '" alt="' + (e.tipo === 'comb' ? 'Ticket' : 'Foto') + '" loading="lazy" onclick="abrirFotoLightbox(this.src)">'
+    : '';
+  return '<div class="hist-row' + (foto ? ' con-foto' : '') + '">'
     + '<div class="hist-row-f"><b>' + _histDiaMes(e.fecha) + '</b><br>' + _histHora(e.fecha) + '</div>'
     + '<div class="hist-row-i">' + ico + '</div>'
     + '<div><div class="hist-row-t">' + tit + '</div>' + (sub.length ? '<div class="hist-row-s">' + sub.join(' \xB7 ') + '</div>' : '') + '</div>'
+    + foto
     + '</div>';
 }
 
