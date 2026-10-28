@@ -1965,7 +1965,7 @@ body {
   <div class="modal">
     <div class="modal-head"><span class="modal-title">⚠️ Nueva Incidencia</span><button class="btn-close" onclick="closeOv('ov-incidencia')">×</button></div>
     <div class="form-group"><label class="form-label">Chofer</label>
-      <select class="form-select" id="inc-chofer"><option value="">— Seleccionar —</option><option>ACOSTA PAMELA</option><option>ALVAREZ OZON NICOLAS MARCELO</option><option>ARROYO LAURA</option><option>CONTE LUCAS EZEQUIEL</option><option>LUACES JONATHAN RICARDO</option></select>
+      <select class="form-select" id="inc-chofer"><option value="">— Cargando fichados... —</option></select>
     </div>
     <div class="form-group"><label class="form-label">Móvil</label><select class="form-select" id="inc-movil"><option value="">— Seleccionar móvil —</option></select></div>
     <div class="form-group"><label class="form-label">Tipo de incidencia</label>
@@ -19245,7 +19245,7 @@ function fabClick() {
       openOv('ov-agenda');
     } else toast('Solo administraci\xF3n puede cargar operativos', 'err');
   } else if (CUR_VIEW === 'choferes') {
-    if (CUR_CHOF_SUBTAB === 'rutas') { cargarRespTurnoSelect(); cargarVehiculosEnSelectores(); openOv('ov-chof'); }else if (CUR_CHOF_SUBTAB === 'combustible') { cargarVehiculosEnSelectores(); cargarFichadosComb(); openOv('ov-combustible'); }else if (CUR_CHOF_SUBTAB === 'incidencias') { cargarVehiculosEnSelectores(); openOv('ov-incidencia'); }else if (CUR_CHOF_SUBTAB === 'taller') { cargarVehiculosEnSelectores(); openOv('ov-taller'); }
+    if (CUR_CHOF_SUBTAB === 'rutas') { cargarRespTurnoSelect(); cargarVehiculosEnSelectores(); openOv('ov-chof'); }else if (CUR_CHOF_SUBTAB === 'combustible') { cargarVehiculosEnSelectores(); cargarFichadosEnSelect('comb-chofer'); openOv('ov-combustible'); }else if (CUR_CHOF_SUBTAB === 'incidencias') { cargarVehiculosEnSelectores(); cargarFichadosEnSelect('inc-chofer'); openOv('ov-incidencia'); }else if (CUR_CHOF_SUBTAB === 'taller') { cargarVehiculosEnSelectores(); openOv('ov-taller'); }
   }
 }
 // Ocultar FAB en C.Objetivo para barrios con recorrido automático
@@ -20377,10 +20377,10 @@ function combAvisoImporte() {
     el.style.display = 'none';
   }
 }
-// Lista de quien carga combustible: solo personas fichadas en este momento
+// Lista de chofer en Combustible e Incidencias: solo personas fichadas en este momento
 // (primero los choferes, después el resto de los fichados)
-function cargarFichadosComb() {
-  var sel = document.getElementById('comb-chofer');
+function cargarFichadosEnSelect(selId) {
+  var sel = document.getElementById(selId);
   if (!sel) return;
   sel.innerHTML = '<option value="">— Cargando fichados... —</option>';
   db.from('fichajes').select('agente,puesto').eq('activo', true).order('agente').then(function(res) {
@@ -23286,17 +23286,7 @@ function cargarChoferesEnDropdown() {
       var wrap2 = document.getElementById('c-chofer-otro-wrap');
       if (wrap2) wrap2.style.display = sel.value === '__otro__' ? 'block' : 'none';
     };
-
-    // Incidencias: usa todos los fichados activos
-    var selInc = document.getElementById('inc-chofer');
-    if (selInc) {
-      selInc.innerHTML = '<option value="">— Seleccionar —</option>';
-      todosFichados.forEach(function(nombre) {
-        var opt = document.createElement('option');
-        opt.value = nombre; opt.textContent = nombre;
-        selInc.appendChild(opt);
-      });
-    }
+    // (Incidencias y Combustible cargan sus fichados al abrir el formulario: cargarFichadosEnSelect)
   });
 }
 
