@@ -1778,7 +1778,7 @@ body {
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <div class="form-group"><label class="form-label">KM iniciales *</label>
-        <input class="form-input" id="c-km-ini" type="number" placeholder="Ej: 45230" min="0"/>
+        <input class="form-input" id="c-km-ini" type="text" inputmode="numeric" autocomplete="off" placeholder="Ej: 45.230"/>
       </div>
       <div class="form-group"><label class="form-label">Combustible inicial *</label>
         <select class="form-select" id="c-comb-ini">
@@ -1910,7 +1910,7 @@ body {
     <input type="hidden" id="fin-ruta-id">
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
       <div class="form-group"><label class="form-label">KM finales *</label>
-        <input class="form-input" id="fin-km" type="number" placeholder="Ej: 45380" min="0"/>
+        <input class="form-input" id="fin-km" type="text" inputmode="numeric" autocomplete="off" placeholder="Ej: 45.380"/>
       </div>
       <div class="form-group"><label class="form-label">Combustible final *</label>
         <select class="form-select" id="fin-comb">
@@ -1943,13 +1943,13 @@ body {
     </div>
     <div class="form-group"><label class="form-label">Móvil / Vehículo</label><select class="form-select" id="comb-movil" onchange="cupoModalActualizar(true)"><option value="">— Seleccionar móvil —</option></select></div>
     <div class="form-row">
-      <div class="form-group"><label class="form-label">Litros</label><input class="form-input" type="number" step="0.1" id="comb-litros" placeholder="Litros"/></div>
+      <div class="form-group"><label class="form-label">Litros</label><input class="form-input" type="text" inputmode="decimal" autocomplete="off" id="comb-litros" placeholder="Ej: 44,5"/></div>
       <div class="form-group"><label class="form-label">Importe ($)</label><input class="form-input" type="text" inputmode="decimal" autocomplete="off" id="comb-importe" placeholder="Ej: 50.000" oninput="combAvisoImporte();cupoModalActualizar(false)"/></div>
     </div>
     <div id="comb-importe-aviso" class="cupo-alerta" style="display:none;margin:-6px 0 12px"></div>
     <div id="comb-cupo-info" style="margin:-4px 0 12px"></div>
     <div class="form-group"><label class="form-label">Estación de servicio</label><input class="form-input" id="comb-estacion" placeholder="Ej: YPF Av. Castañares 2400"/></div>
-    <div class="form-group"><label class="form-label">Kilómetros del vehículo</label><input class="form-input" type="number" id="comb-km" placeholder="Km actuales"/></div>
+    <div class="form-group"><label class="form-label">Kilómetros del vehículo</label><input class="form-input" type="text" inputmode="numeric" autocomplete="off" id="comb-km" placeholder="Ej: 243.043"/></div>
     <div class="form-group">
       <label class="form-label">📷 Foto del ticket <span style="color:#fca5a5">(obligatoria)</span></label>
       <input type="file" id="comb-foto-input" accept="image/*" style="display:none" onchange="previewSingleFoto(this, 'comb-foto-preview', 'COMB_FOTO')">
@@ -18752,8 +18752,9 @@ function saveParada(finalizar) {
 
 function confirmarFinRuta() {
   var rutaId = document.getElementById('fin-ruta-id').value;
-  var kmFin = parseInt(document.getElementById('fin-km').value);
+  var kmFin = parseKmAR(document.getElementById('fin-km').value);
   var combFin = document.getElementById('fin-comb').value;
+  if (kmFin === null) { toast('Revisá los KM finales: solo números (ej. 45.380)', 'err'); return; }
   if (!kmFin) { toast('Ingresá los KM finales', 'err'); return; }
   if (!combFin) { toast('Seleccioná el nivel de combustible final', 'err'); return; }
   // Foto final opcional
@@ -18797,7 +18798,8 @@ function _saveChof() {
             chofer = selOtroVal ? selOtroVal.value : '';
           }
           movil = $('c-movil').value;
-          kmIni = parseInt(document.getElementById('c-km-ini').value) || 0;
+          kmIni = parseKmAR(document.getElementById('c-km-ini').value);
+          if (kmIni === null) { toast('Revisá los KM iniciales: solo números (ej. 45.230)', 'err'); return _ctx42.a(2); }
           combIni = document.getElementById('c-comb-ini').value;
           obs = $('c-obs').value;
           respTurno = (document.getElementById('c-resp-turno') ? document.getElementById('c-resp-turno').value.trim() : '');
@@ -20371,6 +20373,27 @@ function parseImporteAR(txt) {
   if (!/^\d{1,3}(\.\d{3})*(,\d{1,2})?$/.test(s) && !/^\d+(,\d{1,2})?$/.test(s)) return null;
   return parseFloat(s.replace(/\./g, '').replace(',', '.'));
 }
+// Litros: acepta coma o punto como decimal ("44,5", "44.5", "44,500"). null si no es un número.
+function parseLitrosAR(txt) {
+  var s = String(txt == null ? '' : txt).replace(/[\sLl]/g, '');
+  if (!s) return 0;
+  if (s.indexOf(',') >= 0) s = s.replace(/\./g, '').replace(',', '.');
+  if (!/^\d+(\.\d+)?$/.test(s)) return null;
+  return parseFloat(s);
+}
+// Km: entero, con o sin separador de miles ("243.043", "243043"). null si no es válido.
+function parseKmAR(txt) {
+  var s = String(txt == null ? '' : txt).replace(/\s/g, '');
+  if (!s) return 0;
+  if (!/^\d+$/.test(s) && !/^\d{1,3}([.,]\d{3})+$/.test(s)) return null;
+  return parseInt(s.replace(/[.,]/g, ''), 10);
+}
+// Errores de red (en el celular aparecen como "TypeError: Load failed" o "Failed to fetch")
+function esErrorDeRed(msg) {
+  return /fetch|load failed|network|conexi/i.test(String(msg || ''));
+}
+var COMB_LITROS_MAX = 200;
+var _COMB_SUBIDA = { file: null, url: null }; // la foto ya subida no se vuelve a subir al reintentar
 // Aviso mientras escriben: formato inválido o importe abreviado (40 en vez de 40.000)
 function combAvisoImporte() {
   var el = document.getElementById('comb-importe-aviso');
@@ -20426,23 +20449,55 @@ function saveCombustible() {
     document.getElementById('comb-importe').focus();
     return;
   }
+  var _lt = parseLitrosAR(document.getElementById('comb-litros').value);
+  if (_lt === null || _lt > COMB_LITROS_MAX) {
+    toast('Revis\xE1 los litros: escrib\xED lo que dice el ticket (ej. 44,5)', 'err');
+    document.getElementById('comb-litros').focus();
+    return;
+  }
+  var _km = parseKmAR(document.getElementById('comb-km').value);
+  if (_km === null) {
+    toast('Revis\xE1 los kil\xF3metros: solo n\xFAmeros, sin decimales (ej. 243.043)', 'err');
+    document.getElementById('comb-km').focus();
+    return;
+  }
   var payload = {
     chofer: document.getElementById('comb-chofer').value,
     movil: document.getElementById('comb-movil').value,
-    litros: parseFloat(document.getElementById('comb-litros').value) || 0,
+    litros: _lt,
     importe: _imp,
     estacion: document.getElementById('comb-estacion').value,
-    km: parseInt(document.getElementById('comb-km').value) || null,
+    km: _km || null,
     puesto: USER.puesto
   };
+  // id propio: si se reintenta una carga que en realidad ya se guardó, no se duplica
+  if (window.crypto && crypto.randomUUID) payload.id = crypto.randomUUID();
+  var insertar = function(intentos) {
+    return db.from('combustible').insert(payload).then(function(res) {
+      if (res.error && esErrorDeRed(res.error.message) && intentos > 0) {
+        return new Promise(function(r) { setTimeout(r, 2000); }).then(function() { return insertar(intentos - 1); });
+      }
+      if (res.error && res.error.code === '23505') return { error: null }; // ya estaba guardada
+      return res;
+    });
+  };
   setLoading('btn-save-comb', true);
-  toast('Subiendo foto del ticket...', 'info');
-  uploadSingleFoto(COMB_FOTO, 'combustible').then(function(url) {
-    if (!url) throw new Error('No se pudo subir la foto del ticket. Prob\xE1 de nuevo.');
+  var foto = COMB_FOTO;
+  var subir = _COMB_SUBIDA.file === foto && _COMB_SUBIDA.url
+    ? Promise.resolve(_COMB_SUBIDA.url)
+    : (toast('Subiendo foto del ticket...', 'info'), uploadSingleFoto(foto, 'combustible'));
+  subir.then(function(url) {
+    if (!url) throw new Error('No se pudo subir la foto del ticket. Revis\xE1 la se\xF1al y toc\xE1 Registrar de nuevo.');
+    _COMB_SUBIDA = { file: foto, url: url };
     payload.foto = url;
-    return db.from('combustible').insert(payload);
+    return insertar(2);
   }).then(function(res) {
-    if (res.error) throw new Error(res.error.message);
+    if (res.error) {
+      throw new Error(esErrorDeRed(res.error.message)
+        ? 'Sin conexi\xF3n: la carga no se guard\xF3. Revis\xE1 la se\xF1al y toc\xE1 Registrar de nuevo (no hace falta sacar otra foto).'
+        : res.error.message);
+    }
+    _COMB_SUBIDA = { file: null, url: null };
     setLoading('btn-save-comb', false);
     closeOv('ov-combustible');
     toast('⛽ Carga registrada');
@@ -21165,7 +21220,8 @@ window.cupoModalActualizar = function(recargar) {
   if (!box) return;
   var movil = document.getElementById('comb-movil').value;
   var monto = cupoDe(movil);
-  if (!movil || !monto) { box.innerHTML = ''; _CUPO_MODAL.movil = null; return; }
+  // El cupo disponible es información solo para Gerencia, Emergencias y Administrador
+  if (!movil || !monto || !histChof_puedeVer()) { box.innerHTML = ''; _CUPO_MODAL.movil = null; return; }
   var per = cupoPeriodo(fechaHoyAR());
   var pintar = function() {
     var importe = parseImporteAR(document.getElementById('comb-importe').value) || 0;
