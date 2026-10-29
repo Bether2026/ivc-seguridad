@@ -2540,17 +2540,15 @@ body {
         </div>
         <div class="hist-sel" id="hist-sel"></div>
         <div class="hist-barra">
-          <select class="form-select" id="hist-periodo" onchange="histChof_periodo(this.value)">
-            <option value="7">Últimos 7 días</option>
-            <option value="30" selected>Últimos 30 días</option>
-            <option value="mes">Este mes</option>
-            <option value="90">Últimos 3 meses</option>
-            <option value="custom">Elegir fechas…</option>
+          <select class="form-select" id="hist-mes" onchange="histChof_mesAnio()" aria-label="Mes">
+            <option value="01">Enero</option><option value="02">Febrero</option><option value="03">Marzo</option>
+            <option value="04">Abril</option><option value="05">Mayo</option><option value="06">Junio</option>
+            <option value="07">Julio</option><option value="08">Agosto</option><option value="09">Septiembre</option>
+            <option value="10">Octubre</option><option value="11">Noviembre</option><option value="12">Diciembre</option>
           </select>
-        </div>
-        <div class="hist-barra" id="hist-fechas" style="display:none">
-          <input type="date" class="form-input" id="hist-desde" onchange="histChof_cargar()" aria-label="Desde">
-          <input type="date" class="form-input" id="hist-hasta" onchange="histChof_cargar()" aria-label="Hasta">
+          <select class="form-select" id="hist-anio" onchange="histChof_mesAnio()" aria-label="Año"></select>
+          <input type="hidden" id="hist-desde">
+          <input type="hidden" id="hist-hasta">
         </div>
         <div id="hist-cont"></div>
       </div>
@@ -20684,7 +20682,12 @@ function _histFechaLarga(ymd) { return ymd.substring(8, 10) + '/' + ymd.substrin
 window.histChof_abrir = function() {
   if (!histChof_puedeVer()) return;
   if (!document.getElementById('hist-desde').value) {
-    histChof_periodo(document.getElementById('hist-periodo').value);
+    // Primera vez: mes y año actuales
+    var hoy = fechaHoyAR(), selA = document.getElementById('hist-anio');
+    for (var a = +hoy.substring(0, 4); a >= 2025; a--) selA.add(new Option(a, a));
+    selA.value = hoy.substring(0, 4);
+    document.getElementById('hist-mes').value = hoy.substring(5, 7);
+    histChof_mesAnio();
     return;
   }
   histChof_cargar();
@@ -20698,17 +20701,13 @@ window.histChof_modo = function(modo) {
   histChof_render();
 };
 
-window.histChof_periodo = function(p) {
-  var hoy = fechaHoyAR();
-  document.getElementById('hist-fechas').style.display = p === 'custom' ? '' : 'none';
-  if (p === 'custom') return; // espera a que elija las fechas
-  var desde = hoy;
-  if (p === '7') desde = _histSumarDias(hoy, -6);
-  else if (p === '30') desde = _histSumarDias(hoy, -29);
-  else if (p === '90') desde = _histSumarDias(hoy, -89);
-  else if (p === 'mes') desde = hoy.substring(0, 8) + '01';
+// Filtro por mes calendario completo (del 1 al último día)
+window.histChof_mesAnio = function() {
+  var a = +document.getElementById('hist-anio').value, m = +document.getElementById('hist-mes').value;
+  var desde = a + '-' + String(m).padStart(2, '0') + '-01';
+  var sig = m === 12 ? (a + 1) + '-01-01' : a + '-' + String(m + 1).padStart(2, '0') + '-01';
   document.getElementById('hist-desde').value = desde;
-  document.getElementById('hist-hasta').value = hoy;
+  document.getElementById('hist-hasta').value = _histSumarDias(sig, -1);
   histChof_cargar();
 };
 
