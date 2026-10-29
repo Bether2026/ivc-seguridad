@@ -2532,7 +2532,7 @@ body {
       </div>
 
       <!-- SUB-TAB: GPS -->
-      <!-- SUB-TAB: HISTORIAL (solo Gerencia y Administrador del sistema) -->
+      <!-- SUB-TAB: HISTORIAL (solo Gerencia, Emergencias y Administrador del sistema) -->
       <div id="chof-sub-historial" style="display:none">
         <div class="hist-modo">
           <button type="button" id="hist-modo-movil" class="hist-modo-btn active" onclick="histChof_modo('movil')">🚐 Móviles</button>
@@ -10137,7 +10137,7 @@ function initApp() {
   if ($('tab-gps')) $('tab-gps').style.display = canSeeGPS ? 'flex' : 'none';
   var canSeeImpRuta = (USER.rol === 'ADMIN' || ['Administrador', 'Administración', 'Gerencia', 'PC', 'Responsable de turno'].indexOf(USER.puesto) >= 0);
   if ($('tab-imprimir-ruta')) $('tab-imprimir-ruta').style.display = canSeeImpRuta ? 'flex' : 'none';
-  // Historial de móviles/choferes — exclusivo Gerencia y Administrador del sistema
+  // Historial de móviles/choferes — Gerencia, Emergencias y Administrador del sistema
   if ($('tab-historial-chof')) $('tab-historial-chof').style.display = histChof_puedeVer() ? 'flex' : 'none';
   if (!histChof_puedeVer() && $('chof-sub-historial')) $('chof-sub-historial').style.display = 'none';
   // Relevamiento: solo ADMIN
@@ -20649,14 +20649,14 @@ function stopGPSTransmission()  { GPS_TRACKING = false; if (GPS_INTERVAL) { clea
 function startGPSRefresh()      { /* GPS desactivado */ }
 
 // ══════════════════════════════════════════════════════════════════════════
-// HISTORIAL DE MÓVILES Y CHOFERES — solo Gerencia y Administrador del sistema
+// HISTORIAL DE MÓVILES Y CHOFERES — solo Gerencia, Emergencias y Administrador del sistema
 // Junta rutas, combustible, incidencias y taller por móvil o por chofer.
 // ══════════════════════════════════════════════════════════════════════════
 // elegido = móvil/chofer abierto · sub = filtro por el otro (chofer del móvil o móvil del chofer) · tipo = 'ruta' | 'comb' | 'inc'
 var HIST_CHOF = { modo: 'movil', data: null, listas: null, reqId: 0, claves: [], elegido: '', sub: '', subClaves: [], tipo: '' };
 
 function histChof_puedeVer() {
-  return !!(window.USER && (USER.puesto === 'Gerencia' || USER.puesto === 'Administrador' || USER.rol === 'ADMIN'));
+  return !!(window.USER && (USER.puesto === 'Gerencia' || USER.puesto === 'Administrador' || USER.puesto === 'Emergencias' || USER.rol === 'ADMIN'));
 }
 
 function _histEsc(v) {
