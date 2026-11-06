@@ -10980,9 +10980,13 @@ function prevFotoItemInv(idx, input) {
   });
 }
 
+// Movimiento ya guardado cuyos ítems fallaron: al reintentar solo se guardan los ítems
+var INV_MOV_PEND = null;
+
 function abrirNuevoMovimiento() {
   INV_TIPO = '';
   INV_FOTO_ITEMS = {};
+  INV_MOV_PEND = null;
   var campos = ['inv-persona', 'inv-destino', 'inv-obs', 'inv-area-otro'];
   campos.forEach(function(id) { var el = document.getElementById(id); if (el) el.value = ''; });
   var area = document.getElementById('inv-area'); if (area) area.value = '';
@@ -11048,7 +11052,10 @@ function guardarMovimientoInv() {
     hora:                _invHora
   };
 
-  db.from('inventario').insert(mov).select().single().then(function(res) {
+  var guardarMov = INV_MOV_PEND
+    ? Promise.resolve({ data: { id: INV_MOV_PEND } })
+    : db.from('inventario').insert(mov).select().single();
+  guardarMov.then(function(res) {
     if (res.error) {
       toast('Error: ' + res.error.message, 'err');
       setLoading('btn-save-inv', false);
@@ -11066,7 +11073,24 @@ function guardarMovimientoInv() {
         n_sap:         it.n_sap
       };
     });
-    db.from('inventario_items').insert(itemsConId).then(function() {
+    var insertarItems = function(intentos) {
+      return db.from('inventario_items').insert(itemsConId).then(function(ri) {
+        if (ri.error && intentos > 0) {
+          return new Promise(function(r) { setTimeout(r, 2000); }).then(function() { return insertarItems(intentos - 1); });
+        }
+        return ri;
+      });
+    };
+    insertarItems(2).then(function(ri) {
+      // Antes se ignoraba este error: el movimiento quedaba guardado sin ítems
+      if (ri.error) {
+        INV_MOV_PEND = movId;
+        setLoading('btn-save-inv', false);
+        console.error('inventario_items:', ri.error);
+        toast('No se guardaron los \xEDtems (' + ri.error.message + '). Toc\xE1 Guardar de nuevo para reintentar.', 'err');
+        return;
+      }
+      INV_MOV_PEND = null;
       // Subir fotos de ítems a R2
       var fotoPromises = [];
       Object.keys(INV_FOTO_ITEMS).forEach(function(idx) {
@@ -11096,8 +11120,17 @@ function verDetalleInv(id) {
     var body  = document.getElementById('inv-det-body');
     var title = document.getElementById('inv-det-title');
     if (!body) return;
+    // Fotos del movimiento (en los que quedaron sin ítems son lo único que muestra qué se movió)
+    var mov = (window._INV_DATA || []).filter(function(m) { return m.id === id; })[0];
+    var fotos = mov && Array.isArray(mov.fotos) ? mov.fotos : [];
+    var fotosHtml = fotos.length
+      ? '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:10px">' + fotos.map(function(u) {
+          return '<img src="' + u + '" loading="lazy" onclick="abrirFotoLightbox(this.src)" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--border2);cursor:zoom-in">';
+        }).join('') + '</div>'
+      : '';
     if (!items.length) {
-      body.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:10px 0">Sin \xEDtems registrados</div>';
+      if (title) title.textContent = 'Detalle';
+      body.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:10px 0">' + (r.error ? 'No se pudieron cargar los \xEDtems. Prob\xE1 de nuevo.' : 'Los \xEDtems de este movimiento no quedaron guardados.' + (fotos.length ? ' Estas son las fotos que se cargaron:' : '')) + '</div>' + fotosHtml;
       openOv('ov-inv-detalle');
       return;
     }
@@ -11112,7 +11145,7 @@ function verDetalleInv(id) {
       if (it.n_sap)        html += '<div style="color:var(--text3)">SAP: <strong style="color:var(--text)">' + it.n_sap + '</strong></div>';
       html += '</div></div>';
     });
-    html += '</div>';
+    html += '</div>' + fotosHtml;
     body.innerHTML = html;
     openOv('ov-inv-detalle');
   });
