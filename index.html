@@ -37765,29 +37765,24 @@ async function _climaGenerarExport(barrios) {
       { contentType: 'text/html;charset=utf-8', upsert: false }
     );
     if (subida.error) throw new Error('Upload falló: ' + subida.error.message);
-
-    // Abrir el HTML en nueva pestaña via Blob URL — funciona en iOS Safari
-    var blob = new Blob([htmlExport], { type: 'text/html;charset=utf-8' });
-    var blobUrl = URL.createObjectURL(blob);
-    var newWin = window.open(blobUrl, '_blank');
-    if (!newWin) {
-      // Popup bloqueado — navegar en la misma pestaña
-      window.location.href = blobUrl;
-    }
-    setTimeout(function() { URL.revokeObjectURL(blobUrl); }, 30000);
-    toast('Informe listo — abriendo...', 'ok');
-
   } catch(e) {
+    // Si no se pudo guardar la copia, igual se descarga el archivo
     console.error('Export error:', e);
-    // Fallback: descarga local
+  }
+
+  try {
+    // Descargar el informe como documento .html
     var blob = new Blob([htmlExport], { type: 'text/html;charset=utf-8' });
     var url  = URL.createObjectURL(blob);
     var a    = document.createElement('a');
     a.href = url;
     a.download = 'relevamiento-climatico-ivc-' + fecha + '-' + sufijo + '.html';
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
-    setTimeout(function() { URL.revokeObjectURL(url); }, 5000);
-    toast('Informe exportado (local)', 'ok');
+    setTimeout(function() { URL.revokeObjectURL(url); }, 30000);
+    toast('Informe descargado', 'ok');
+  } catch(e) {
+    console.error('Descarga error:', e);
+    toast('No se pudo descargar el informe', 'err');
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = '📄 Exportar informe'; }
   }
