@@ -6743,8 +6743,8 @@ body {
       </select>
     </div>
     <div class="form-group">
-      <label class="form-label">Foto de seguimiento (opcional)</label>
-      <input type="file" id="upd-nov-foto-input" accept="image/*,application/pdf" style="display:none" onchange="previewSingleFoto(this,'upd-nov-foto-preview')">
+      <label class="form-label">Fotos de seguimiento (opcional, hasta 4)</label>
+      <input type="file" id="upd-nov-foto-input" accept="image/*,application/pdf" style="display:none" multiple onchange="updNovFotosElegidas(this)">
       <div onclick="abrirSelectorFoto('upd-nov-foto-input')" style="border:2px dashed var(--border2);border-radius:8px;padding:12px;text-align:center;cursor:pointer;background:var(--bg3)">&#128247; Agregar foto o PDF</div>
       <div id="upd-nov-foto-preview" style="margin-top:8px"></div>
     </div>
@@ -7884,6 +7884,37 @@ function resetSelTipoObj() {
 }
 
 
+// Fotos de "Actualizar novedad": hasta 4 por actualización. La cruz las quita de
+// la lista real (antes solo borraba la vista previa y la foto se subía igual).
+var UPD_NOV_FOTOS = [];
+var UPD_NOV_MAX = 4;
+function updNovFotosElegidas(input) {
+  var nuevos = Array.prototype.slice.call(input.files || []);
+  input.value = '';
+  if (!nuevos.length) return;
+  var lugar = UPD_NOV_MAX - UPD_NOV_FOTOS.length;
+  if (nuevos.length > lugar) toast('Hasta ' + UPD_NOV_MAX + ' fotos por actualización', 'err');
+  UPD_NOV_FOTOS = UPD_NOV_FOTOS.concat(nuevos.slice(0, Math.max(0, lugar)));
+  renderUpdNovFotos();
+}
+function quitarFotoUpdNov(idx) {
+  UPD_NOV_FOTOS.splice(idx, 1);
+  renderUpdNovFotos();
+}
+function renderUpdNovFotos() {
+  var wrap = document.getElementById('upd-nov-foto-preview');
+  if (!wrap) return;
+  wrap.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;margin-top:8px';
+  wrap.innerHTML = UPD_NOV_FOTOS.map(function(f, i) {
+    var inner = f.type === 'application/pdf'
+      ? '<div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(239,68,68,.12);gap:2px;padding:4px"><span style="font-size:22px">📄</span><span style="font-size:8px;color:var(--text2);font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:74px">' + escapeHTML(f.name) + '</span></div>'
+      : '<img src="' + URL.createObjectURL(f) + '" style="width:100%;height:100%;object-fit:cover">';
+    return '<div style="position:relative;width:80px;height:80px;border-radius:8px;overflow:hidden;border:1px solid var(--border2)">' + inner
+      + '<span style="position:absolute;left:3px;bottom:3px;background:rgba(0,0,0,.6);color:#fff;font-size:10px;font-weight:700;border-radius:4px;padding:0 4px">' + (i + 1) + '</span>'
+      + '<button type="button" onclick="quitarFotoUpdNov(' + i + ')" aria-label="Quitar foto ' + (i + 1) + '" style="position:absolute;top:2px;right:2px;width:22px;height:22px;border-radius:50%;background:rgba(239,68,68,.9);border:none;color:#fff;font-size:13px;cursor:pointer;line-height:1">&times;</button></div>';
+  }).join('');
+}
+
 async function abrirActualizarNovedad(id) {
   // Get novedad data from cache (set during render)
   var novData = (window.NOV_CARD_CACHE && window.NOV_CARD_CACHE[id]) ? window.NOV_CARD_CACHE[id] : null;
@@ -7892,8 +7923,8 @@ async function abrirActualizarNovedad(id) {
   document.getElementById('upd-nov-id').value = id;
   document.getElementById('upd-nov-titulo').textContent = titulo;
   document.getElementById('upd-nov-texto').value = '';
-  var fotoPreview = document.getElementById('upd-nov-foto-preview');
-  if (fotoPreview) fotoPreview.innerHTML = '';
+  UPD_NOV_FOTOS = [];
+  renderUpdNovFotos();
   var fotoInpReset = document.getElementById('upd-nov-foto-input');
   if (fotoInpReset) fotoInpReset.value = '';
 
@@ -7963,19 +7994,20 @@ function _guardarActualizacionNovedad() {
               minute: '2-digit', hour12: false, timeZone: 'America/Argentina/Buenos_Aires'}),
             autor: autor || USER.puesto,
             texto: texto,
-            foto: null
-          }; // Subir foto si hay
-          fotoInput = document.getElementById('upd-nov-foto-input');
-          if (!(fotoInput && fotoInput.files && fotoInput.files[0])) {
+            foto: null,
+            fotos: []
+          }; // Subir fotos si hay (de a una; 'foto' queda con la primera por compatibilidad)
+          if (!UPD_NOV_FOTOS.length) {
             _context14.n = 5;
             break;
           }
-          fileOrig = fotoInput.files[0];
           _context14.n = 3;
-          return uploadToR2Comprimido(fileOrig, 'novedades');
+          return subirFotosDeAUna(UPD_NOV_FOTOS, 'novedades');
         case 3:
           urlSubida = _context14.v;
-          if (urlSubida) nuevaAct.foto = urlSubida;
+          nuevaAct.fotos = urlSubida.urls;
+          nuevaAct.foto = urlSubida.urls[0] || null;
+          if (urlSubida.fallidas) toast(urlSubida.fallidas + ' foto(s) no se pudieron subir. Revisá la señal y agregalas en otra actualización.', 'err');
         case 5:
           acts.push(nuevaAct);
 
@@ -8014,9 +8046,11 @@ function _guardarActualizacionNovedad() {
               cargado_por: autorVal || USER.puesto,
               ref_novedad_id: id
             };
-            if (urlSubida) _insertPayload.fotos = [urlSubida];
+            if (nuevaAct.fotos && nuevaAct.fotos.length) _insertPayload.fotos = nuevaAct.fotos.slice();
             db.from('novedades').insert(_insertPayload).then(function() {});
           }
+          UPD_NOV_FOTOS = [];
+          renderUpdNovFotos();
           window._UPD_NOV_ORIGINAL = null;
           loadNovedades();
           loadDash();
@@ -8206,11 +8240,12 @@ function guardarEdicionCompletaNovedad() {
   if (!detalle) { toast('El detalle es obligatorio', 'err'); return; }
   setLoading('btn-save-ena', true);
 
-  // Subir fotos nuevas primero
+  // Subir fotos nuevas primero, de a una (en paralelo fallaban en celulares y se perdían sin avisar)
   var fotoPromise = ENA_FOTOS_NUEVAS.length
-    ? Promise.all(ENA_FOTOS_NUEVAS.map(function(f) {
-        return uploadToR2Comprimido(f, 'novedades').catch(function() { return null; });
-      })).then(function(urls) { return urls.filter(Boolean); })
+    ? subirFotosDeAUna(ENA_FOTOS_NUEVAS, 'novedades').then(function(r) {
+        if (r.fallidas) toast(r.fallidas + ' foto(s) no se pudieron subir. Revisá la señal y volvé a agregarlas.', 'err');
+        return r.urls;
+      })
     : Promise.resolve([]);
 
   fotoPromise.then(function(nuevasUrls) {
@@ -8397,7 +8432,17 @@ function renderNovCard(n) {
       h += '<div style="background:var(--bg3);border-radius:8px;padding:10px 12px;margin-bottom:6px;border-left:2px solid var(--accent2)">';
       h += '<div style="font-size:10px;color:var(--accent3);font-weight:700;margin-bottom:4px">' + upd.fecha + ' — ' + upd.autor + '</div>';
       h += '<div style="font-size:13px;color:var(--text2);line-height:1.6">' + upd.texto + '</div>';
-      if (upd.foto) h += '<img src="' + upd.foto + '" onclick="abrirFotoLightbox(\'' + upd.foto + '\')" style="width:100%;max-height:140px;object-fit:cover;border-radius:6px;margin-top:6px;cursor:zoom-in" loading="lazy" onerror="this.style.display=\'none\'">';
+      // Fotos de la actualización: las nuevas traen 'fotos' (varias); las viejas, solo 'foto'.
+      var fotosUpd = (Array.isArray(upd.fotos) && upd.fotos.length) ? upd.fotos : (upd.foto ? [upd.foto] : []);
+      if (fotosUpd.length === 1) {
+        h += '<img src="' + fotosUpd[0] + '" onclick="abrirFotoLightbox(\'' + fotosUpd[0] + '\')" style="width:100%;max-height:140px;object-fit:cover;border-radius:6px;margin-top:6px;cursor:zoom-in" loading="lazy" onerror="this.style.display=\'none\'">';
+      } else if (fotosUpd.length > 1) {
+        h += '<div style="display:grid;grid-template-columns:repeat(' + Math.min(fotosUpd.length, 4) + ',1fr);gap:4px;margin-top:6px">';
+        fotosUpd.forEach(function(u) {
+          h += '<img src="' + u + '" onclick="abrirFotoLightbox(\'' + u + '\')" style="width:100%;height:80px;object-fit:cover;border-radius:6px;cursor:zoom-in" loading="lazy" onerror="this.style.display=\'none\'">';
+        });
+        h += '</div>';
+      }
       h += '</div>';
     }
     h += '</div>';
@@ -9048,6 +9093,23 @@ function uploadToR2Comprimido(file, carpeta) {
     }).catch(reject);
   });
 }
+// Sube varias fotos DE A UNA (en paralelo, en celulares con poca memoria fallan
+// y se perdían sin avisar). Devuelve { urls, fallidas } respetando el orden.
+async function subirFotosDeAUna(archivos, carpeta) {
+  var urls = [];
+  var fallidas = 0;
+  for (var i = 0; i < archivos.length; i++) {
+    try {
+      var url = await uploadToR2Comprimido(archivos[i], carpeta);
+      if (url) urls.push(url); else fallidas++;
+    } catch (e) {
+      console.error('Error subiendo foto ' + (i + 1) + ':', e);
+      fallidas++;
+    }
+  }
+  return { urls: urls, fallidas: fallidas };
+}
+
 function agregarFoto() {
   abrirSelectorFoto('foto-input');
 }
@@ -9202,7 +9264,7 @@ function usarGaleria(inputId) {
   // Forzar galeria en Android: tipos explicitos en lugar de image/* evita que abra Archivos
   var tiposGaleria = 'image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif,image/bmp';
   input.setAttribute('accept', tiposGaleria);
-  if (inputId === 'foto-input') { input.setAttribute('multiple', 'multiple'); }
+  if (inputId === 'foto-input' || inputId === 'upd-nov-foto-input') { input.setAttribute('multiple', 'multiple'); }
   var _onGalDone = function() {
     window._camaraAbierta = false;
     // Restaurar accept original
@@ -13155,7 +13217,7 @@ function generarPreviewInforme() {
 
   // Cargar novedades y objetivos con parte_id (nuevo flujo PD/PU)
   Promise.all([
-    db.from('novedades').select('id,puesto,tipo,asunto,cargado_por,hora_evento,created_at,parte_id,nro_pd,nro_pu,fuerza_publica').gte('created_at', desdeUTC).lte('created_at', hastaUTC).not('parte_id', 'is', null).order('created_at', { ascending: true }),
+    db.from('novedades').select('id,puesto,tipo,asunto,cargado_por,hora_evento,created_at,parte_id,nro_pd,nro_pu,fuerza_publica,fotos,actualizaciones').gte('created_at', desdeUTC).lte('created_at', hastaUTC).not('parte_id', 'is', null).order('created_at', { ascending: true }),
     db.from('objetivos').select('id,puesto,descripcion,cargado_por,created_at,parte_id,nro_pd,nro_pu').gte('created_at', desdeUTC).lte('created_at', hastaUTC).not('parte_id', 'is', null).order('created_at', { ascending: true })
   ]).then(function(results) {
     var todasNovedades = results[0].data || [];
@@ -13188,8 +13250,19 @@ function generarPreviewInforme() {
 
       // Mapa parte_id → datos de origen (tipo/asunto de la novedad)
       var origenMap = {};
+      // Fotos que el agente subió en la novedad y en sus actualizaciones: el parte
+      // solo guardaba las que había al generarlo, y el resto no llegaba al informe.
+      var fotosNovPorParte = {};
       todasNovedades.forEach(function(n) {
         if (n.parte_id) origenMap[n.parte_id] = { tipo: n.tipo, asunto: n.asunto, cargado_por: n.cargado_por, created_at: n.created_at, puesto: n.puesto };
+        if (!n.parte_id) return;
+        var lista = fotosNovPorParte[n.parte_id] || (fotosNovPorParte[n.parte_id] = []);
+        (Array.isArray(n.fotos) ? n.fotos : []).forEach(function(u) { if (u) lista.push(u); });
+        (Array.isArray(n.actualizaciones) ? n.actualizaciones : []).forEach(function(a) {
+          if (!a) return;
+          if (Array.isArray(a.fotos) && a.fotos.length) a.fotos.forEach(function(u) { if (u) lista.push(u); });
+          else if (a.foto) lista.push(a.foto);
+        });
       });
       todosObjetivos.forEach(function(o) {
         if (o.parte_id && !origenMap[o.parte_id]) origenMap[o.parte_id] = { tipo: 'Control de Objetivo', asunto: o.descripcion, cargado_por: o.cargado_por, created_at: o.created_at, puesto: o.puesto };
@@ -13210,7 +13283,9 @@ function generarPreviewInforme() {
           administrativo: p.administrativo || '',
           nro_pd:        p.tipo === 'PD' ? (p.nro_pd + '/' + p.anio) : null,
           nro_pu:        p.tipo === 'PU' ? (p.nro_pd + '/' + p.anio) : null,
-          fotos:         p.fotos || [],
+          // Fotos del parte + las de sus novedades (sin repetir). En la vista previa
+          // cada foto tiene su casilla, así que la que no va se destilda.
+          fotos:         (p.fotos || []).concat(fotosNovPorParte[p.id] || []).filter(function(u, i, arr) { return u && arr.indexOf(u) === i; }),
           fuerza_publica: p.fuerza_publica || false,
           pendiente:     p.pendiente || false,
           fecha:         p.fecha,
@@ -17260,6 +17335,12 @@ async function abrirNuevaNovedad() {
   var _nHoraEv = document.getElementById('n-hora-evento');
   if (_nHoraEv) _nHoraEv.value = _horaActualHHMM();
   restaurarDraftNovedad();
+  // Cada novedad nueva empieza sin fotos: antes quedaban las de una novedad que
+  // se cerró sin guardar y se subían mezcladas con la siguiente.
+  FOTOS_PENDIENTES = [];
+  renderFotoPreview();
+  var _dzNov = document.getElementById('foto-drop-zone');
+  if (_dzNov && _dzNov.querySelector('div')) _dzNov.querySelector('div').textContent = 'Tocá para agregar foto o PDF';
   openOv('ov-nov');
 }
 
