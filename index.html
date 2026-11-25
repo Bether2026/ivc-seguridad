@@ -1041,6 +1041,8 @@ body::after { display: none; }
   padding: 12px;
 }
 .overlay.open { display: flex; animation: fadeView .25s cubic-bezier(.16,1,.3,1); }
+/* La confirmación siempre arriba de cualquier otra ventana (si no, queda tapada) */
+#ov-confirm { z-index: 400; }
 .modal {
   background: linear-gradient(180deg, var(--bg3) 0%, var(--bg2) 100%);
   border: 1px solid var(--border2);
@@ -23597,6 +23599,8 @@ var GP_STATE = {
   origen:    null,
   relevancia: null,  // pre-cargada desde la novedad de origen
   novedadesVinculadas: [],  // [{id, asunto, detalle, fotos, puesto, hora, fuente}]
+  desvinculadas: [],        // novedades/objetivos que se sacaron del parte (se desmarcan al guardar)
+  fotosExistentes: [],      // fotos que ya tenía el parte al abrirlo para editar (no se pierden)
 };
 
 var HIST_CACHE    = [];
@@ -23759,6 +23763,8 @@ function _gpAbrirModal(tipoForzado) {
   GP_STATE.parteId = null;
   GP_STATE.tipo    = null;
   GP_STATE.nro     = null;
+  GP_STATE.desvinculadas = [];
+  GP_STATE.fotosExistentes = [];
   GP_STATE.anio    = null;
   _gpFotosSeleccionadas = {};
   _gpResetFotos();
@@ -23894,6 +23900,11 @@ function _gpRenderTextosOriginales() {
 
   novs.forEach(function(n, idx) {
     if (idx > 0) html += '<div style="border-top:1px dashed var(--border);margin:8px 0;padding-top:8px;font-size:10px;color:var(--text3);font-weight:700">ACTUALIZACIÓN ' + idx + ' — ' + (n.fuente || '') + '</div>';
+    // Desvincular: siempre tiene que quedar al menos una novedad en el parte
+    if (novs.length > 1) {
+      html += '<div style="text-align:right;margin-bottom:4px"><button type="button" onclick="gpDesvincular(' + idx + ')" '
+        + 'style="padding:3px 10px;border-radius:6px;border:1px solid rgba(239,68,68,.4);background:rgba(239,68,68,.08);color:#f87171;font-family:var(--font);font-size:11px;font-weight:700;cursor:pointer">✕ Desvincular</button></div>';
+    }
     if (n.asunto) html += '<div style="font-weight:700;color:var(--text2);margin-bottom:4px">' + n.asunto + '</div>';
     if (n.hora)   html += '<div style="font-size:10px;color:var(--text3);margin-bottom:4px">' + n.hora + ' · ' + (n.puesto || '') + '</div>';
     html += '<div style="white-space:pre-wrap">' + (n.cuerpo || '—') + '</div>';
@@ -23903,6 +23914,10 @@ function _gpRenderTextosOriginales() {
         if (_gpFotosSeleccionadas[url] !== false) todasFotos.push(url);
       });
     }
+  });
+  // Fotos que el parte ya tenía (al editarlo): se muestran y se conservan
+  (GP_STATE.fotosExistentes || []).forEach(function(url) {
+    if (url && todasFotos.indexOf(url) === -1 && _gpFotosSeleccionadas[url] !== false) todasFotos.push(url);
   });
 
   cont.innerHTML = html;
@@ -23924,6 +23939,53 @@ function _gpRenderTextosOriginales() {
   // Check imagenes si hay fotos
   var imgCheck = document.getElementById('gp-imagenes');
   if (imgCheck && todasFotos.length) imgCheck.checked = true;
+}
+
+// ── Desvincular una novedad del parte ─────────────────────────
+// Se saca de la lista; al guardar, la novedad pierde el número de parte y sus
+// fotos salen del parte.
+function gpDesvincular(idx) {
+  var n = GP_STATE.novedadesVinculadas[idx];
+  if (!n) return;
+  if (GP_STATE.novedadesVinculadas.length <= 1) { toast('El parte tiene que tener al menos una novedad', 'err'); return; }
+  showConfirm('✕', 'Desvincular novedad',
+    '¿Sacar "' + (n.asunto || 'esta novedad') + '" de este parte? La novedad no se borra: queda sin parte y sus fotos salen del parte cuando guardes.',
+    function() {
+      var quitada = GP_STATE.novedadesVinculadas.splice(idx, 1)[0];
+      if (quitada && quitada.id) {
+        GP_STATE.desvinculadas = (GP_STATE.desvinculadas || []).concat([quitada]);
+      }
+      (quitada.fotos || []).forEach(function(url) { _gpFotosSeleccionadas[url] = false; });
+      _gpRenderTextosOriginales();
+      if (typeof gpActualizarSelectorFotos === 'function') gpActualizarSelectorFotos();
+      toast('Novedad desvinculada — guardá el parte para confirmar');
+    }, 'Desvincular', 'var(--red)');
+}
+
+// Fotos de las novedades/objetivos desvinculados (para sacarlas del parte al guardar).
+function _gpFotosDeDesvinculadas() {
+  var des = GP_STATE.desvinculadas || [];
+  var novIds = des.filter(function(d) { return d.fuente !== 'objetivo'; }).map(function(d) { return d.id; });
+  var objIds = des.filter(function(d) { return d.fuente === 'objetivo'; }).map(function(d) { return d.id; });
+  var quitar = {};
+  des.forEach(function(d) { (d.fotos || []).forEach(function(u) { quitar[u] = true; }); });
+  var juntar = function(fila) {
+    (fila.fotos || []).forEach(function(u) { if (u) quitar[u] = true; });
+    if (fila.foto_url) quitar[fila.foto_url] = true;
+    (fila.actualizaciones || []).forEach(function(a) {
+      if (!a) return;
+      (Array.isArray(a.fotos) ? a.fotos : []).forEach(function(u) { if (u) quitar[u] = true; });
+      if (a.foto) quitar[a.foto] = true;
+    });
+  };
+  return Promise.all([
+    novIds.length ? db.from('novedades').select('fotos,actualizaciones').in('id', novIds) : Promise.resolve({ data: [] }),
+    objIds.length ? db.from('objetivos').select('actualizaciones').in('id', objIds) : Promise.resolve({ data: [] }),
+  ]).then(function(r) {
+    (r[0].data || []).forEach(juntar);
+    (r[1].data || []).forEach(juntar);
+    return quitar;
+  }).catch(function() { return quitar; });
 }
 
 // ── Vincular otra novedad ─────────────────────────────────────
@@ -24148,7 +24210,7 @@ function gpSetRelevancia(val) {
 }
 
 // ── Guardar parte ─────────────────────────────────────────────
-function gpGuardar() {
+function gpGuardar(_fotosQuitar) {
   var parteId = document.getElementById('gp-parte-id').value;
   var tipo    = document.getElementById('gp-tipo').value;
   if (!parteId) { toast('Error: número no reservado', 'err'); return; }
@@ -24159,12 +24221,20 @@ function gpGuardar() {
   var btn = document.getElementById('gp-btn-guardar');
   if (btn) { btn.disabled = true; btn.textContent = 'Guardando...'; }
 
-  // Construir textos_originales
+  // Si se desvinculó alguna novedad, primero se buscan sus fotos para sacarlas del parte.
+  var desvinculadas = GP_STATE.desvinculadas || [];
+  if (desvinculadas.length && !_fotosQuitar) {
+    _gpFotosDeDesvinculadas().then(function(quitar) { gpGuardar(quitar); });
+    return;
+  }
+  _fotosQuitar = _fotosQuitar || {};
+
+  // Construir textos_originales (con el id, para poder desvincular al editar)
   var textosOriginales = GP_STATE.novedadesVinculadas.map(function(n, i) {
-    return { fuente: n.fuente, titulo: n.asunto, cuerpo: n.cuerpo, hora: n.hora, puesto: n.puesto, orden: i };
+    return { id: n.id || null, fuente: n.fuente, titulo: n.asunto, cuerpo: n.cuerpo, hora: n.hora, puesto: n.puesto, orden: i };
   });
 
-  // Unificar fotos (solo las seleccionadas)
+  // Unificar fotos (solo las seleccionadas) + las que el parte ya tenía, sin las de lo desvinculado
   var todasFotos = [];
   GP_STATE.novedadesVinculadas.forEach(function(n) {
     if (n.fotos && n.fotos.length) {
@@ -24173,6 +24243,10 @@ function gpGuardar() {
       });
     }
   });
+  (GP_STATE.fotosExistentes || []).forEach(function(url) {
+    if (url && todasFotos.indexOf(url) === -1 && _gpFotosSeleccionadas[url] !== false) todasFotos.push(url);
+  });
+  todasFotos = todasFotos.filter(function(url) { return !_fotosQuitar[url]; });
 
   // IDs de novedades vinculadas
   var novIds = GP_STATE.novedadesVinculadas
@@ -24260,7 +24334,20 @@ function gpGuardar() {
         if (GP_STATE.origen === 'precinto' && GP_STATE.origenId) {
           promises.push(db.from('precintos').update({ parte_id: parteId }).eq('id', GP_STATE.origenId));
         }
-        Promise.all(promises).then(function() {});
+        // Desvinculadas: se les saca el parte (solo si seguían apuntando a ESTE parte)
+        // y el número de PD/PU que les había puesto este parte.
+        desvinculadas.forEach(function(d) {
+          if (!d.id) return;
+          var tabla = d.fuente === 'objetivo' ? 'objetivos' : 'novedades';
+          promises.push(db.from(tabla).update({ parte_id: null }).eq('id', d.id).eq('parte_id', parteId));
+          promises.push(db.from(tabla).update({ nro_pd: null }).eq('id', d.id).eq('nro_pd', nroDisplay));
+          promises.push(db.from(tabla).update({ nro_pu: null }).eq('id', d.id).eq('nro_pu', nroDisplay));
+        });
+        GP_STATE.desvinculadas = [];
+        Promise.all(promises).then(function(res) {
+          var fallas = res.filter(function(r) { return r && r.error; });
+          if (fallas.length) { console.error('Vínculos del parte:', fallas); toast('El parte se guardó, pero no se pudieron actualizar todas las novedades vinculadas', 'err'); }
+        });
 
             closeOv('ov-generar-parte');
             GP_STATE.parteId = null;
@@ -24680,9 +24767,19 @@ function gpEditarParteActual() {
 
   var textsOrig = PARTE_ACTUAL.textos_originales;
   if (typeof textsOrig === 'string') try { textsOrig = JSON.parse(textsOrig); } catch(e) { textsOrig = []; }
+  // Los partes viejos no guardaban el id de cada novedad en textos_originales:
+  // se recupera de novedad_ids / objetivo_ids, que están en el mismo orden.
+  var _idsNov = (PARTE_ACTUAL.novedad_ids || []).slice();
+  var _idsObj = (PARTE_ACTUAL.objetivo_ids || []).slice();
   GP_STATE.novedadesVinculadas = (textsOrig || []).map(function(t) {
-    return { id: t.id || null, asunto: t.titulo || '', cuerpo: t.cuerpo || '', fotos: [], puesto: t.puesto || '', hora: t.hora || '', fuente: t.fuente || 'novedad' };
+    var fuente = t.fuente || 'novedad';
+    var id = t.id || (fuente === 'novedad' ? _idsNov.shift() : fuente === 'objetivo' ? _idsObj.shift() : null) || null;
+    if (t.id) { if (fuente === 'novedad') _idsNov = _idsNov.filter(function(x) { return x !== t.id; }); if (fuente === 'objetivo') _idsObj = _idsObj.filter(function(x) { return x !== t.id; }); }
+    return { id: id, asunto: t.titulo || '', cuerpo: t.cuerpo || '', fotos: [], puesto: t.puesto || '', hora: t.hora || '', fuente: fuente };
   });
+  GP_STATE.desvinculadas = [];
+  // Las fotos que ya tiene el parte se conservan al guardar (antes se perdían al editar).
+  GP_STATE.fotosExistentes = (Array.isArray(PARTE_ACTUAL.fotos) ? PARTE_ACTUAL.fotos : []).filter(Boolean);
 
   closeOv('ov-parte-detalle');
 
