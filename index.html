@@ -27583,13 +27583,21 @@ function iniciarHistorialFichajes() {
 
 var FH_ROWS = []; // cache de los fichajes traídos
 var FH_SEARCH_TIMER = null;
+var FH_PEDIDO = 0;          // para descartar una búsqueda vieja si se pide otra
+var FH_DIAS_TANDA = 31;     // días que se dibujan de a una vez (el resto con "Ver más días")
+var FH_DIAS_VISIBLES = FH_DIAS_TANDA;
 
 // El buscador de texto solo re-filtra lo ya traído (filtrado del lado del
 // cliente), sin re-consultar la base. Como sin fechas ya traemos todo el
 // historial, el filtro por nombre/puesto funciona sobre ese conjunto completo.
 function filtrarHistorialFichajes() {
   if (FH_SEARCH_TIMER) clearTimeout(FH_SEARCH_TIMER);
-  FH_SEARCH_TIMER = setTimeout(_renderHistorialFichajes, 200);
+  FH_SEARCH_TIMER = setTimeout(function() { FH_DIAS_VISIBLES = FH_DIAS_TANDA; _renderHistorialFichajes(); }, 200);
+}
+
+function verMasDiasFichajes() {
+  FH_DIAS_VISIBLES += FH_DIAS_TANDA;
+  _renderHistorialFichajes();
 }
 
 function buscarHistorialFichajes() {
@@ -27597,29 +27605,45 @@ function buscarHistorialFichajes() {
   var hastaVal = (document.getElementById('fh-hasta') || {}).value || '';
   var lista = document.getElementById('fh-lista');
   if (!lista) return;
-  lista.innerHTML = '<div class="empty"><div class="icon"><span class="spinner"></span></div></div>';
-
-  var query = db.from('fichajes').select('id,agente,entrada,salida,puesto,activo,cierre_admin,observaciones').order('entrada', { ascending: false });
+  var pedido = ++FH_PEDIDO;
+  FH_DIAS_VISIBLES = FH_DIAS_TANDA;
+  lista.innerHTML = '<div class="empty"><div class="icon"><span class="spinner"></span></div><p id="fh-progreso">Cargando historial…</p></div>';
 
   // Regla simple: las fechas mandan.
   // - Si hay AMBAS fechas → filtra por ese rango.
-  // - Si falta alguna fecha → trae TODO el historial (limitado a 800 por performance).
+  // - Si falta alguna fecha → trae TODO el historial.
+  // Se trae por tandas de 1000 (el máximo que devuelve la base por consulta),
+  // así no se corta en silencio: antes había un límite de 800 y el historial
+  // llegaba solo hasta hace un mes y medio.
   // El texto del buscador siempre filtra del lado del cliente sobre lo traído.
+  var desdeUTC = null, hastaUTC = null;
   if (desdeVal && hastaVal) {
-    var desdeUTC = desdeVal + 'T03:00:00.000Z';
+    desdeUTC = desdeVal + 'T03:00:00.000Z';
     var dh = new Date(hastaVal + 'T03:00:00.000Z');
     dh.setUTCDate(dh.getUTCDate() + 1);
-    var hastaUTC = dh.toISOString();
-    query = query.gte('entrada', desdeUTC).lte('entrada', hastaUTC);
-  } else {
-    query = query.limit(800);
+    hastaUTC = dh.toISOString();
   }
+  var TANDA = 1000;
+  var todos = [];
 
-  query.then(function(r) {
-    if (r.error) { lista.innerHTML = '<div class="empty"><p>Error: ' + r.error.message + '</p></div>'; return; }
-    FH_ROWS = r.data || [];
-    _renderHistorialFichajes();
-  });
+  function traerTanda(desde) {
+    var q = db.from('fichajes').select('id,agente,entrada,salida,puesto,activo,cierre_admin,observaciones')
+      .order('entrada', { ascending: false }).order('id', { ascending: true })
+      .range(desde, desde + TANDA - 1);
+    if (desdeUTC) q = q.gte('entrada', desdeUTC).lte('entrada', hastaUTC);
+    return q.then(function(r) {
+      if (pedido !== FH_PEDIDO) return; // se pidió otra búsqueda mientras tanto
+      if (r.error) { lista.innerHTML = '<div class="empty"><p>Error: ' + r.error.message + '</p></div>'; return; }
+      var filas = r.data || [];
+      todos = todos.concat(filas);
+      var prog = document.getElementById('fh-progreso');
+      if (prog) prog.textContent = 'Cargando historial… ' + todos.length.toLocaleString('es-AR') + ' fichajes';
+      if (filas.length === TANDA) return traerTanda(desde + TANDA);
+      FH_ROWS = todos;
+      _renderHistorialFichajes();
+    });
+  }
+  traerTanda(0);
 }
 
 function _renderHistorialFichajes() {
@@ -27653,6 +27677,15 @@ function _renderHistorialFichajes() {
   });
   fechasOrden = fechasOrden.filter(function(v,i,a){return a.indexOf(v)===i;});
 
+  // Se dibuja de a un mes de días para no trabar el celular; el resto, con "Ver más días".
+  var totalDias = fechasOrden.length;
+  var masViejo = rows[rows.length - 1] && rows[rows.length - 1].entrada;
+  var resumenFH = '<div style="text-align:center;font-size:11px;color:var(--text3);margin:6px 0 2px">'
+    + rows.length.toLocaleString('es-AR') + ' fichaje' + (rows.length !== 1 ? 's' : '') + ' en ' + totalDias + ' día' + (totalDias !== 1 ? 's' : '')
+    + (masViejo ? ' · desde el ' + new Date(masViejo).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'America/Argentina/Buenos_Aires' }) : '')
+    + '</div>';
+  fechasOrden = fechasOrden.slice(0, FH_DIAS_VISIBLES);
+
   var PUESTO_COLORS = ['#6366f1','#f59e0b','#10b981','#ef4444','#3b82f6','#8b5cf6','#ec4899','#14b8a6'];
   var puestoColorMap = {};
   var colorIdx = 0;
@@ -27661,7 +27694,7 @@ function _renderHistorialFichajes() {
     return puestoColorMap[p];
   }
 
-  var html = '';
+  var html = resumenFH;
   fechasOrden.forEach(function(fecha) {
     var dHN = new Date(fecha + 'T00:00:00Z');
     var hoy = new Date(fechaHoyAR() + 'T00:00:00Z');
@@ -27719,6 +27752,11 @@ function _renderHistorialFichajes() {
       });
     });
   });
+  if (totalDias > fechasOrden.length) {
+    var restan = totalDias - fechasOrden.length;
+    html += '<button type="button" onclick="verMasDiasFichajes()" style="display:block;width:100%;margin:14px 0 4px;padding:12px;border-radius:10px;border:1px solid rgba(124,58,237,.4);background:rgba(124,58,237,.1);color:#c4b5fd;font-family:var(--font);font-size:13px;font-weight:700;cursor:pointer">'
+      + 'Ver más días (quedan ' + restan + ' día' + (restan !== 1 ? 's' : '') + ')</button>';
+  }
   lista.innerHTML = html;
 }
 
